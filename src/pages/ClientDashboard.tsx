@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import logo from '@/assets/logo.png';
-import { LogOut, CreditCard, AlertTriangle, BarChart3, Shield } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, BarChart3, Shield, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
