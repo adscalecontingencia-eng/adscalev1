@@ -1,13 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 type DateFilter = 'today' | '7days' | 'custom';
 
+const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(120,60%,45%)', 'hsl(45,100%,50%)', 'hsl(200,100%,50%)', 'hsl(0,84%,60%)'];
+
 const Dashboard: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
-  const [customMonth, setCustomMonth] = useState(new Date().getMonth());
-  const [customYear, setCustomYear] = useState(new Date().getFullYear());
+  const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
 
   const transactions = JSON.parse(localStorage.getItem('adscale_transactions') || '[]');
   const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
@@ -21,46 +28,64 @@ const Dashboard: React.FC = () => {
       } else if (dateFilter === '7days') {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return d >= weekAgo;
-      } else {
-        return d.getMonth() === customMonth && d.getFullYear() === customYear;
+      } else if (customDate) {
+        return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
       }
+      return true;
     });
-  }, [transactions, dateFilter, customMonth, customYear]);
+  }, [transactions, dateFilter, customDate]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
   const profit = revenue - expenses;
 
-  // Structure costs breakdown
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
   const bmCosts = structureCosts.filter((t: any) => t.category === 'BMs').reduce((s: number, t: any) => s + t.amount, 0);
   const perfisCosts = structureCosts.filter((t: any) => t.category === 'Perfis').reduce((s: number, t: any) => s + t.amount, 0);
   const proxyCosts = structureCosts.filter((t: any) => t.category === 'Proxy').reduce((s: number, t: any) => s + t.amount, 0);
   const multiloginCosts = structureCosts.filter((t: any) => t.category === 'Multilogin').reduce((s: number, t: any) => s + t.amount, 0);
 
-  // Per-client profit
+  const pieData = [
+    { name: "BM's", value: bmCosts },
+    { name: 'Perfis', value: perfisCosts },
+    { name: 'Proxy', value: proxyCosts },
+    { name: 'Multilogin', value: multiloginCosts },
+  ].filter(d => d.value > 0);
+
   const clientProfits = clients.map((c: any) => {
     const cRevenue = filteredTransactions.filter((t: any) => t.clientId === c.id && t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
     const cExpenses = filteredTransactions.filter((t: any) => t.clientId === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
-    return { name: c.companyName || c.name, profit: cRevenue - cExpenses, revenue: cRevenue };
+    return { name: c.companyName || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
   }).filter((c: any) => c.revenue > 0 || c.profit !== 0);
 
-  const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-  const StatCard = ({ icon: Icon, label, value, trend }: { icon: any; label: string; value: string; trend?: 'up' | 'down' }) => (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-xl p-5 border-glow">
-      <div className="flex items-center justify-between mb-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <Icon size={18} className="text-primary" />
-        </div>
-        {trend && (trend === 'up' ? <TrendingUp size={16} className="text-success" /> : <TrendingDown size={16} className="text-destructive" />)}
-      </div>
-      <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className="text-xl font-bold font-display">{value}</p>
-    </motion.div>
-  );
+  // Daily data for area chart (last 7 days)
+  const dailyData = useMemo(() => {
+    const days: any[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toDateString();
+      const dayRevenue = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
+      const dayExpenses = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
+      days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses });
+    }
+    return days;
+  }, [transactions]);
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const StatCard = ({ icon: Icon, label, value, trend, color }: { icon: any; label: string; value: string; trend?: 'up' | 'down'; color?: string }) => (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-xl p-4 sm:p-5 border-glow hover:glow-box transition-shadow duration-300">
+      <div className="flex items-center justify-between mb-3">
+        <div className={`p-2.5 rounded-xl ${color || 'bg-primary/10'}`}>
+          <Icon size={20} className={color ? 'text-foreground' : 'text-primary'} />
+        </div>
+        {trend && (trend === 'up' ? <TrendingUp size={18} className="text-success" /> : <TrendingDown size={18} className="text-destructive" />)}
+      </div>
+      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+      <p className="text-lg sm:text-xl font-bold font-display tracking-tight">{value}</p>
+    </motion.div>
+  );
 
   return (
     <div className="space-y-6">
@@ -70,67 +95,145 @@ const Dashboard: React.FC = () => {
           <button
             key={f}
             onClick={() => setDateFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}
           >
-            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : 'Personalizado'}
+            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : 'Data específica'}
           </button>
         ))}
         {dateFilter === 'custom' && (
-          <div className="flex gap-2">
-            <select value={customMonth} onChange={e => setCustomMonth(+e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground">
-              {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select value={customYear} onChange={e => setCustomYear(+e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground">
-              {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                <CalendarIcon size={14} />
+                {customDate ? format(customDate, "dd 'de' MMMM, yyyy", { locale: ptBR }) : 'Selecionar data'}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={customDate}
+                onSelect={setCustomDate}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 
       {/* Main Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard icon={DollarSign} label="Faturamento" value={fmt(revenue)} trend="up" />
         <StatCard icon={BarChart3} label="Lucro" value={fmt(profit)} trend={profit >= 0 ? 'up' : 'down'} />
-        <StatCard icon={TrendingDown} label="Gastos de Estrutura" value={fmt(expenses)} trend="down" />
+        <StatCard icon={TrendingDown} label="Gastos Estrutura" value={fmt(expenses)} trend="down" />
         <StatCard icon={Users} label="Clientes Ativos" value={String(clients.length)} />
       </div>
 
-      {/* Structure Breakdown */}
-      <div className="bg-card border border-border rounded-xl p-5 border-glow">
-        <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-          <Server size={16} className="text-primary" /> Custos por Estrutura
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "BM's", value: bmCosts },
-            { label: 'Perfis', value: perfisCosts },
-            { label: 'Proxy', value: proxyCosts },
-            { label: 'Multilogin', value: multiloginCosts },
-          ].map(item => (
-            <div key={item.label} className="bg-secondary rounded-lg p-4">
-              <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
-              <p className="text-lg font-bold">{fmt(item.value)}</p>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Area Chart - Revenue vs Expenses */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-xl p-5 border-glow">
+          <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+            <BarChart3 size={16} className="text-primary" /> Faturamento vs Gastos (7 dias)
+          </h3>
+          <div className="h-52 sm:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyData}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(120,100%,50%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(120,100%,50%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(0,84%,60%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(0,84%,60%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,15%)" />
+                <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} />
+                <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `R$${v}`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }}
+                  formatter={(value: number) => fmt(value)}
+                />
+                <Area type="monotone" dataKey="faturamento" stroke="hsl(120,100%,50%)" fill="url(#colorRevenue)" strokeWidth={2} />
+                <Area type="monotone" dataKey="gastos" stroke="hsl(0,84%,60%)" fill="url(#colorExpenses)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Pie Chart - Structure Costs */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card border border-border rounded-xl p-5 border-glow">
+          <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+            <Server size={16} className="text-primary" /> Custos por Estrutura
+          </h3>
+          {pieData.length > 0 ? (
+            <div className="h-52 sm:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {pieData.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }} formatter={(value: number) => fmt(value)} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="h-52 sm:h-64 flex items-center justify-center">
+              <p className="text-sm text-muted-foreground">Nenhum gasto no período.</p>
+            </div>
+          )}
+        </motion.div>
       </div>
 
-      {/* Per-client profit */}
-      <div className="bg-card border border-border rounded-xl p-5 border-glow">
+      {/* Structure Breakdown Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {[
+          { label: "BM's", value: bmCosts, color: 'bg-primary/10' },
+          { label: 'Perfis', value: perfisCosts, color: 'bg-[hsl(120,60%,45%)]/10' },
+          { label: 'Proxy', value: proxyCosts, color: 'bg-[hsl(45,100%,50%)]/10' },
+          { label: 'Multilogin', value: multiloginCosts, color: 'bg-[hsl(200,100%,50%)]/10' },
+        ].map(item => (
+          <motion.div key={item.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card border border-border rounded-xl p-4 hover:border-glow transition-all">
+            <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+            <p className="text-lg font-bold font-display">{fmt(item.value)}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Per-client profit with bar chart */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-card border border-border rounded-xl p-5 border-glow">
         <h3 className="font-display text-sm font-semibold mb-4">Lucro por Cliente</h3>
         {clientProfits.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma transação encontrada para o período.</p>
         ) : (
-          <div className="space-y-2">
-            {clientProfits.map((c: any, i: number) => (
-              <div key={i} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3">
-                <span className="text-sm">{c.name}</span>
-                <span className={`text-sm font-semibold ${c.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(c.profit)}</span>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="h-48 sm:h-64 mb-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={clientProfits}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,15%)" />
+                  <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} />
+                  <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `R$${v}`} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }} formatter={(value: number) => fmt(value)} />
+                  <Bar dataKey="revenue" name="Receita" fill="hsl(120,100%,50%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expenses" name="Gastos" fill="hsl(0,84%,60%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-2">
+              {clientProfits.map((c: any, i: number) => (
+                <div key={i} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3">
+                  <span className="text-sm">{c.name}</span>
+                  <span className={`text-sm font-semibold ${c.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(c.profit)}</span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 };
