@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import logo from '@/assets/logo.png';
-import { LogOut, CreditCard, AlertTriangle, BarChart3, Shield } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, BarChart3, Shield, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -13,7 +14,8 @@ const ClientDashboard: React.FC = () => {
   const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
   const client = clients.find((c: any) => c.email === user?.email);
   const transactions = JSON.parse(localStorage.getItem('adscale_transactions') || '[]');
-
+  const commissions = JSON.parse(localStorage.getItem('adscale_commissions') || '[]');
+  const clientCommissions = commissions.filter((c: any) => c.clientId === client?.id);
   // Daily percentage entries for this client
   const clientEntries = JSON.parse(localStorage.getItem(`adscale_client_entries_${client?.id}`) || '[]');
 
@@ -50,8 +52,8 @@ const ClientDashboard: React.FC = () => {
       {/* Header */}
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="AD Scale" className="w-8 h-8 rounded-lg" />
           <div>
+            <h1 className="font-display text-sm font-bold text-primary glow-text">AD SCALE</h1>
             <h1 className="font-display text-sm font-bold text-primary glow-text">AD SCALE</h1>
             <p className="text-xs text-muted-foreground">Painel do Cliente</p>
           </div>
@@ -130,6 +132,44 @@ const ClientDashboard: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Commissions History */}
+        {clientCommissions.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-5 border-glow">
+            <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+              <DollarSign size={16} className="text-primary" /> Histórico de Comissões
+            </h3>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Acumulado</p>
+                <p className="text-sm font-bold text-primary">{fmt(clientCommissions.filter((c: any) => c.type === 'daily').reduce((s: number, c: any) => s + c.amount, 0))}</p>
+              </div>
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Pago</p>
+                <p className="text-sm font-bold text-success">{fmt(clientCommissions.filter((c: any) => c.type === 'paid').reduce((s: number, c: any) => s + c.amount, 0))}</p>
+              </div>
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Pendente</p>
+                <p className="text-sm font-bold text-warning">{fmt(clientCommissions.filter((c: any) => c.type === 'daily').reduce((s: number, c: any) => s + c.amount, 0) - clientCommissions.filter((c: any) => c.type === 'paid').reduce((s: number, c: any) => s + c.amount, 0))}</p>
+              </div>
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {clientCommissions.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((comm: any) => (
+                <div key={comm.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : 'bg-success'}`} />
+                    <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    <span className="text-muted-foreground">{comm.type === 'daily' ? 'Comissão' : 'Pagamento'}</span>
+                    {comm.note && <span className="text-muted-foreground italic">- {comm.note}</span>}
+                  </div>
+                  <span className={`font-semibold ${comm.type === 'daily' ? 'text-primary' : 'text-success'}`}>
+                    {comm.type === 'paid' ? '-' : '+'}{fmt(comm.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
