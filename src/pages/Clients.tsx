@@ -308,6 +308,17 @@ const Clients: React.FC = () => {
                   {/* Paid Form */}
                   {showPaidForm === c.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors whitespace-nowrap")}>
+                            <CalendarIcon size={14} />
+                            {format(paidDate, "dd/MM/yyyy", { locale: ptBR })}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={paidDate} onSelect={(d) => d && setPaidDate(d)} initialFocus className="p-3 pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
                       <input type="number" placeholder="Valor pago R$" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className={`${inputClass} flex-1`} />
                       <button onClick={() => handleAddPaid(c.id)} className="bg-success text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Registrar Pagamento</button>
                     </motion.div>
