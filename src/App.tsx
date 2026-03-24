@@ -43,7 +43,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/adscalev1">
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/login" />} />
