@@ -8,13 +8,15 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-type DateFilter = 'today' | '7days' | 'custom';
+type DateFilter = 'today' | '7days' | 'custom' | 'range';
 
 const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(120,60%,45%)', 'hsl(45,100%,50%)', 'hsl(200,100%,50%)', 'hsl(0,84%,60%)'];
 
 const Dashboard: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
   const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
+  const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined);
+  const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
 
   const transactions = JSON.parse(localStorage.getItem('adscale_transactions') || '[]');
   const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
