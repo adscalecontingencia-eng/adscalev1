@@ -14,7 +14,8 @@ const ClientDashboard: React.FC = () => {
   const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
   const client = clients.find((c: any) => c.email === user?.email);
   const transactions = JSON.parse(localStorage.getItem('adscale_transactions') || '[]');
-
+  const commissions = JSON.parse(localStorage.getItem('adscale_commissions') || '[]');
+  const clientCommissions = commissions.filter((c: any) => c.clientId === client?.id);
   // Daily percentage entries for this client
   const clientEntries = JSON.parse(localStorage.getItem(`adscale_client_entries_${client?.id}`) || '[]');
 
