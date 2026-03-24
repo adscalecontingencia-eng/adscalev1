@@ -52,8 +52,8 @@ const ClientDashboard: React.FC = () => {
       {/* Header */}
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="AD Scale" className="w-8 h-8 rounded-lg" />
           <div>
+            <h1 className="font-display text-sm font-bold text-primary glow-text">AD SCALE</h1>
             <h1 className="font-display text-sm font-bold text-primary glow-text">AD SCALE</h1>
             <p className="text-xs text-muted-foreground">Painel do Cliente</p>
           </div>
