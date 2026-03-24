@@ -8,13 +8,15 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-type DateFilter = 'today' | '7days' | 'custom';
+type DateFilter = 'today' | '7days' | 'custom' | 'range';
 
 const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(120,60%,45%)', 'hsl(45,100%,50%)', 'hsl(200,100%,50%)', 'hsl(0,84%,60%)'];
 
 const Dashboard: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
   const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
+  const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined);
+  const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
 
   const transactions = JSON.parse(localStorage.getItem('adscale_transactions') || '[]');
   const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
@@ -28,12 +30,22 @@ const Dashboard: React.FC = () => {
       } else if (dateFilter === '7days') {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return d >= weekAgo;
-      } else if (customDate) {
+      } else if (dateFilter === 'custom' && customDate) {
         return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
+      } else if (dateFilter === 'range') {
+        if (rangeFrom && rangeTo) {
+          const from = new Date(rangeFrom); from.setHours(0,0,0,0);
+          const to = new Date(rangeTo); to.setHours(23,59,59,999);
+          return d >= from && d <= to;
+        } else if (rangeFrom) {
+          const from = new Date(rangeFrom); from.setHours(0,0,0,0);
+          return d >= from;
+        }
+        return true;
       }
       return true;
     });
-  }, [transactions, dateFilter, customDate]);
+  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
@@ -91,13 +103,13 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        {(['today', '7days', 'custom'] as DateFilter[]).map(f => (
+        {(['today', '7days', 'custom', 'range'] as DateFilter[]).map(f => (
           <button
             key={f}
             onClick={() => setDateFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}
           >
-            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : 'Data específica'}
+            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'custom' ? 'Data específica' : 'Período'}
           </button>
         ))}
         {dateFilter === 'custom' && (
@@ -109,15 +121,36 @@ const Dashboard: React.FC = () => {
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={customDate}
-                onSelect={setCustomDate}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
+              <Calendar mode="single" selected={customDate} onSelect={setCustomDate} initialFocus className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
+        )}
+        {dateFilter === 'range' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                  <CalendarIcon size={14} />
+                  {rangeFrom ? format(rangeFrom, "dd/MM/yyyy", { locale: ptBR }) : 'De'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={rangeFrom} onSelect={setRangeFrom} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-sm text-muted-foreground">até</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                  <CalendarIcon size={14} />
+                  {rangeTo ? format(rangeTo, "dd/MM/yyyy", { locale: ptBR }) : 'Até'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={rangeTo} onSelect={setRangeTo} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
         )}
       </div>
 
