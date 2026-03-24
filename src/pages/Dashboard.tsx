@@ -30,12 +30,22 @@ const Dashboard: React.FC = () => {
       } else if (dateFilter === '7days') {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return d >= weekAgo;
-      } else if (customDate) {
+      } else if (dateFilter === 'custom' && customDate) {
         return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
+      } else if (dateFilter === 'range') {
+        if (rangeFrom && rangeTo) {
+          const from = new Date(rangeFrom); from.setHours(0,0,0,0);
+          const to = new Date(rangeTo); to.setHours(23,59,59,999);
+          return d >= from && d <= to;
+        } else if (rangeFrom) {
+          const from = new Date(rangeFrom); from.setHours(0,0,0,0);
+          return d >= from;
+        }
+        return true;
       }
       return true;
     });
-  }, [transactions, dateFilter, customDate]);
+  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
