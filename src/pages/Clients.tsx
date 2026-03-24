@@ -106,11 +106,12 @@ const Clients: React.FC = () => {
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
     const paid: Commission = {
-      id: `comm-${Date.now()}`, clientId, date: new Date().toISOString(),
+      id: `comm-${Date.now()}`, clientId, date: paidDate.toISOString(),
       amount, type: 'paid',
     };
     setCommissions(prev => [...prev, paid]);
     setPaidAmount('');
+    setPaidDate(new Date());
     setShowPaidForm(null);
   };
 
