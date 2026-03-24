@@ -45,6 +45,8 @@ const Clients: React.FC = () => {
   const [commissionAmount, setCommissionAmount] = useState('');
   const [commissionNote, setCommissionNote] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
+  const [commissionDate, setCommissionDate] = useState<Date>(new Date());
+  const [paidDate, setPaidDate] = useState<Date>(new Date());
 
   useEffect(() => { localStorage.setItem('adscale_clients', JSON.stringify(clients)); }, [clients]);
   useEffect(() => { localStorage.setItem('adscale_commissions', JSON.stringify(commissions)); }, [commissions]);
