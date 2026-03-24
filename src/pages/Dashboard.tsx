@@ -103,13 +103,13 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        {(['today', '7days', 'custom'] as DateFilter[]).map(f => (
+        {(['today', '7days', 'custom', 'range'] as DateFilter[]).map(f => (
           <button
             key={f}
             onClick={() => setDateFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}
           >
-            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : 'Data específica'}
+            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'custom' ? 'Data específica' : 'Período'}
           </button>
         ))}
         {dateFilter === 'custom' && (
@@ -121,15 +121,36 @@ const Dashboard: React.FC = () => {
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={customDate}
-                onSelect={setCustomDate}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
+              <Calendar mode="single" selected={customDate} onSelect={setCustomDate} initialFocus className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
+        )}
+        {dateFilter === 'range' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                  <CalendarIcon size={14} />
+                  {rangeFrom ? format(rangeFrom, "dd/MM/yyyy", { locale: ptBR }) : 'De'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={rangeFrom} onSelect={setRangeFrom} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-sm text-muted-foreground">até</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                  <CalendarIcon size={14} />
+                  {rangeTo ? format(rangeTo, "dd/MM/yyyy", { locale: ptBR }) : 'Até'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={rangeTo} onSelect={setRangeTo} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
         )}
       </div>
 
