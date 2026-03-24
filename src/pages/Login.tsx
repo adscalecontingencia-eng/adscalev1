@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import logo from '@/assets/logo.png';
+
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 const Login: React.FC = () => {
@@ -32,9 +32,8 @@ const Login: React.FC = () => {
         className="w-full max-w-md"
       >
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="AD Scale" className="w-24 h-24 mb-4" />
-          <h1 className="font-display text-2xl font-bold text-primary glow-text">AD SCALE</h1>
-          <p className="text-muted-foreground text-sm mt-1">Contingency Accounts</p>
+          <h1 className="font-display text-3xl font-bold text-primary glow-text tracking-wider">AD SCALE</h1>
+          <p className="text-muted-foreground text-sm mt-2">Contingency Accounts</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-card border border-border rounded-xl p-6 space-y-4">
