@@ -135,6 +135,44 @@ const ClientDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Commissions History */}
+        {clientCommissions.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-5 border-glow">
+            <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+              <DollarSign size={16} className="text-primary" /> Histórico de Comissões
+            </h3>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Acumulado</p>
+                <p className="text-sm font-bold text-primary">{fmt(clientCommissions.filter((c: any) => c.type === 'daily').reduce((s: number, c: any) => s + c.amount, 0))}</p>
+              </div>
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Pago</p>
+                <p className="text-sm font-bold text-success">{fmt(clientCommissions.filter((c: any) => c.type === 'paid').reduce((s: number, c: any) => s + c.amount, 0))}</p>
+              </div>
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Pendente</p>
+                <p className="text-sm font-bold text-warning">{fmt(clientCommissions.filter((c: any) => c.type === 'daily').reduce((s: number, c: any) => s + c.amount, 0) - clientCommissions.filter((c: any) => c.type === 'paid').reduce((s: number, c: any) => s + c.amount, 0))}</p>
+              </div>
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {clientCommissions.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((comm: any) => (
+                <div key={comm.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : 'bg-success'}`} />
+                    <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    <span className="text-muted-foreground">{comm.type === 'daily' ? 'Comissão' : 'Pagamento'}</span>
+                    {comm.note && <span className="text-muted-foreground italic">- {comm.note}</span>}
+                  </div>
+                  <span className={`font-semibold ${comm.type === 'daily' ? 'text-primary' : 'text-success'}`}>
+                    {comm.type === 'paid' ? '-' : '+'}{fmt(comm.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Ad Accounts */}
         <div className="bg-card border border-border rounded-xl p-5 border-glow">
           <div className="flex items-center justify-between mb-4">
