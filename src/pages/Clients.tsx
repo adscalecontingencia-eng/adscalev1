@@ -285,10 +285,23 @@ const Clients: React.FC = () => {
 
                   {/* Commission Form */}
                   {showCommissionForm === c.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
-                      <input type="number" placeholder="Valor R$" value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className={`${inputClass} flex-1`} />
-                      <input placeholder="Nota (opcional)" value={commissionNote} onChange={e => setCommissionNote(e.target.value)} className={`${inputClass} flex-1`} />
-                      <button onClick={() => handleAddCommission(c.id)} className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Adicionar</button>
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors whitespace-nowrap")}>
+                              <CalendarIcon size={14} />
+                              {format(commissionDate, "dd/MM/yyyy", { locale: ptBR })}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={commissionDate} onSelect={(d) => d && setCommissionDate(d)} initialFocus className="p-3 pointer-events-auto" />
+                          </PopoverContent>
+                        </Popover>
+                        <input type="number" placeholder="Valor R$" value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className={`${inputClass} flex-1`} />
+                        <input placeholder="Nota (opcional)" value={commissionNote} onChange={e => setCommissionNote(e.target.value)} className={`${inputClass} flex-1`} />
+                        <button onClick={() => handleAddCommission(c.id)} className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Adicionar</button>
+                      </div>
                     </motion.div>
                   )}
 
