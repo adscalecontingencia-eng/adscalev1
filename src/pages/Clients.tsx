@@ -268,8 +268,8 @@ const Clients: React.FC = () => {
                   <input type="number" value={form.blockedAccounts || 0} onChange={e => setForm(p => ({ ...p, blockedAccounts: +e.target.value }))} className={inputClass} />
                 </div>
               </div>
-              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">
-                {editing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+              <button onClick={handleSave} disabled={saving} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
+                {saving ? 'Salvando...' : editing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
               </button>
             </div>
           </motion.div>
