@@ -84,7 +84,7 @@ const Dashboard: React.FC = () => {
     return days;
   }, [transactions]);
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   const StatCard = ({ icon: Icon, label, value, trend, color }: { icon: any; label: string; value: string; trend?: 'up' | 'down'; color?: string }) => (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-xl p-4 sm:p-5 border-glow hover:glow-box transition-shadow duration-300">
@@ -184,7 +184,7 @@ const Dashboard: React.FC = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,15%)" />
                 <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `R$${v}`} />
+                <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `$${v}`} />
                 <Tooltip
                   contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }}
                   formatter={(value: number) => fmt(value)}
@@ -249,7 +249,7 @@ const Dashboard: React.FC = () => {
                 <BarChart data={clientProfits}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,15%)" />
                   <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} />
-                  <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `R$${v}`} />
+                  <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `$${v}`} />
                   <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }} formatter={(value: number) => fmt(value)} />
                   <Bar dataKey="revenue" name="Receita" fill="hsl(120,100%,50%)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="expenses" name="Gastos" fill="hsl(0,84%,60%)" radius={[4, 4, 0, 0]} />

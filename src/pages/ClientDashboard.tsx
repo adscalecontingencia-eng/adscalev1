@@ -37,7 +37,7 @@ const ClientDashboard: React.FC = () => {
     return clientEntries.filter((e: any) => new Date(e.date) >= cutoff);
   }, [clientEntries, filter, client]);
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   if (!client) {
     return (
