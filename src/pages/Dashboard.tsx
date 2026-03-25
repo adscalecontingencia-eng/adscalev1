@@ -83,6 +83,20 @@ const Dashboard: React.FC = () => {
     return days;
   }, [transactions]);
 
+  const monthlyData = useMemo(() => {
+    const months: any[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = d.getMonth();
+      const year = d.getFullYear();
+      const monthRevenue = transactions.filter((t: any) => { const td = new Date(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthExpenses = transactions.filter((t: any) => { const td = new Date(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
+    }
+    return months;
+  }, [transactions]);
+
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   const StatCard = ({ icon: Icon, label, value, trend, color }: { icon: any; label: string; value: string; trend?: 'up' | 'down'; color?: string }) => (
@@ -202,6 +216,25 @@ const Dashboard: React.FC = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Monthly Revenue vs Expenses Chart */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card border border-border rounded-xl p-5 border-glow">
+        <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+          <DollarSign size={16} className="text-primary" /> Receitas vs Gastos (últimos 6 meses)
+        </h3>
+        <div className="h-52 sm:h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,15%)" />
+              <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} />
+              <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }} formatter={(value: number) => fmt(value)} />
+              <Bar dataKey="receitas" name="Receitas" fill="hsl(120,100%,50%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="gastos" name="Gastos" fill="hsl(0,84%,60%)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[

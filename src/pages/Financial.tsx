@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, AlertCircle } from 'lucide-react';
+import { Plus, X, AlertCircle, CalendarIcon, Filter } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface Transaction {
   id: string;
@@ -20,6 +25,8 @@ interface ClientOption {
   name: string;
 }
 
+type DateFilter = 'all' | 'today' | '7days' | 'month' | 'custom' | 'range';
+
 const CATEGORIES = ['BMs', 'Perfis', 'Proxy', 'Multilogin', 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
 
 const Financial: React.FC = () => {
@@ -29,6 +36,14 @@ const Financial: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto', category: 'BMs', subcategory: '', clientId: '', amount: '', description: '' });
   const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
+  const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined);
+  const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const fetchData = async () => {
     const [txRes, clientRes] = await Promise.all([
@@ -46,6 +61,33 @@ const Financial: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const filteredTransactions = useMemo(() => {
+    const now = new Date();
+    return transactions.filter(t => {
+      const d = new Date(t.date);
+
+      // Date filter
+      if (dateFilter === 'today' && d.toDateString() !== now.toDateString()) return false;
+      if (dateFilter === '7days' && d < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)) return false;
+      if (dateFilter === 'month' && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false;
+      if (dateFilter === 'custom' && customDate) {
+        if (d.toDateString() !== customDate.toDateString()) return false;
+      }
+      if (dateFilter === 'range') {
+        if (rangeFrom) { const from = new Date(rangeFrom); from.setHours(0,0,0,0); if (d < from) return false; }
+        if (rangeTo) { const to = new Date(rangeTo); to.setHours(23,59,59,999); if (d > to) return false; }
+      }
+
+      // Category filter
+      if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+
+      // Type filter
+      if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+
+      return true;
+    });
+  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo, categoryFilter, typeFilter]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -82,13 +124,76 @@ const Financial: React.FC = () => {
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
   const errorInputClass = "w-full bg-secondary border border-destructive rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-destructive transition-colors";
 
-  const totalRevenue = transactions.filter(t => t.type === 'receita').reduce((s, t) => s + t.amount, 0);
-  const totalExpenses = transactions.filter(t => t.type === 'gasto').reduce((s, t) => s + t.amount, 0);
+  const totalRevenue = filteredTransactions.filter(t => t.type === 'receita').reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = filteredTransactions.filter(t => t.type === 'gasto').reduce((s, t) => s + t.amount, 0);
 
   if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
 
   return (
     <div className="space-y-6">
+      {/* Filters */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2 items-center">
+          <Filter size={16} className="text-muted-foreground" />
+          {(['all', 'today', '7days', 'month', 'custom', 'range'] as DateFilter[]).map(f => (
+            <button key={f} onClick={() => setDateFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+              {f === 'all' ? 'Todos' : f === 'today' ? 'Hoje' : f === '7days' ? '7 dias' : f === 'month' ? 'Este mês' : f === 'custom' ? 'Data' : 'Período'}
+            </button>
+          ))}
+          {dateFilter === 'custom' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                  <CalendarIcon size={12} />
+                  {customDate ? format(customDate, "dd/MM/yyyy", { locale: ptBR }) : 'Selecionar'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customDate} onSelect={setCustomDate} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          )}
+          {dateFilter === 'range' && (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                    <CalendarIcon size={12} />
+                    {rangeFrom ? format(rangeFrom, "dd/MM/yyyy") : 'De'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={rangeFrom} onSelect={setRangeFrom} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
+                    <CalendarIcon size={12} />
+                    {rangeTo ? format(rangeTo, "dd/MM/yyyy") : 'Até'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={rangeTo} onSelect={setRangeTo} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
+            <option value="all">Todas categorias</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
+            <option value="all">Todos tipos</option>
+            <option value="receita">Receita</option>
+            <option value="gasto">Gasto</option>
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 border-glow">
           <p className="text-xs text-muted-foreground">Receitas totais</p>
@@ -101,7 +206,7 @@ const Financial: React.FC = () => {
       </div>
 
       <div className="flex justify-between items-center">
-        <h3 className="font-display text-sm font-semibold">Transações</h3>
+        <h3 className="font-display text-sm font-semibold">Transações ({filteredTransactions.length})</h3>
         <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
           <Plus size={16} /> Adicionar
         </button>
@@ -157,7 +262,7 @@ const Financial: React.FC = () => {
       )}
 
       <div className="space-y-2">
-        {transactions.map(t => (
+        {filteredTransactions.map(t => (
           <div key={t.id} className="bg-card border border-border rounded-lg px-4 py-3 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -175,7 +280,7 @@ const Financial: React.FC = () => {
             </div>
           </div>
         ))}
-        {transactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma transação registrada.</p>}
+        {filteredTransactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma transação encontrada.</p>}
       </div>
     </div>
   );
