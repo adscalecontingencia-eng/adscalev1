@@ -8,8 +8,8 @@ interface SupportUser {
   id: string;
   name: string;
   email: string;
-  password: string;
   permissions: string[];
+  auth_user_id?: string;
 }
 
 const PERMISSION_OPTIONS = [
@@ -23,42 +23,84 @@ const PERMISSION_OPTIONS = [
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<SupportUser[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Partial<SupportUser>>({ permissions: ['support'] });
+  const [form, setForm] = useState<{ name: string; email: string; password: string; permissions: string[] }>({
+    name: '', email: '', password: '', permissions: ['support'],
+  });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
     const { data, error } = await supabase.from('support_users').select('*').order('created_at', { ascending: false });
     if (error) { toast.error('Erro ao carregar colaboradores'); return; }
-    setUsers((data || []).map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, permissions: u.permissions || [] })));
+    setUsers((data || []).map(u => ({
+      id: u.id, name: u.name, email: u.email,
+      permissions: u.permissions || [],
+      auth_user_id: (u as any).auth_user_id || undefined,
+    })));
     setLoading(false);
   };
 
   useEffect(() => { fetchUsers(); }, []);
 
   const handleSave = async () => {
-    if (!form.name || !form.email) return;
-    const { error } = await supabase.from('support_users').insert({
-      name: form.name,
-      email: form.email,
-      password: form.password || '123456',
-      permissions: form.permissions || ['support'],
-    });
-    if (error) { toast.error('Erro ao cadastrar colaborador'); return; }
-    toast.success('Colaborador cadastrado!');
-    setForm({ permissions: ['support'] });
-    setShowForm(false);
-    fetchUsers();
+    if (!form.name || !form.email || !form.password) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) { toast.error('Sessão expirada'); return; }
+
+      const res = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'create_user',
+          email: form.email,
+          password: form.password,
+          name: form.name,
+          role: 'support',
+          permissions: form.permissions,
+        },
+      });
+
+      if (res.error || res.data?.error) {
+        toast.error(res.data?.error || 'Erro ao cadastrar colaborador');
+        return;
+      }
+
+      toast.success('Colaborador cadastrado!');
+      setForm({ name: '', email: '', password: '', permissions: ['support'] });
+      setShowForm(false);
+      fetchUsers();
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('support_users').delete().eq('id', id);
-    if (error) { toast.error('Erro ao remover'); return; }
-    setUsers(prev => prev.filter(u => u.id !== id));
+  const handleDelete = async (user: SupportUser) => {
+    if (!user.auth_user_id) {
+      // Legacy user without auth - just delete from table
+      const { error } = await supabase.from('support_users').delete().eq('id', user.id);
+      if (error) { toast.error('Erro ao remover'); return; }
+    } else {
+      const res = await supabase.functions.invoke('manage-users', {
+        body: { action: 'delete_user', user_id: user.auth_user_id },
+      });
+      if (res.error || res.data?.error) {
+        toast.error('Erro ao remover');
+        return;
+      }
+      // Also delete from support_users table
+      await supabase.from('support_users').delete().eq('auth_user_id', user.auth_user_id);
+    }
+    toast.success('Colaborador removido!');
+    setUsers(prev => prev.filter(u => u.id !== user.id));
   };
 
   const togglePermission = (key: string) => {
     setForm(p => {
-      const perms = p.permissions || [];
+      const perms = p.permissions;
       return { ...p, permissions: perms.includes(key) ? perms.filter(k => k !== key) : [...perms, key] };
     });
   };
@@ -86,31 +128,31 @@ const UsersPage: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Nome</label>
-                <input value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputClass} />
+                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputClass} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">E-mail</label>
-                <input type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputClass} />
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputClass} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Senha</label>
-                <input value={form.password || ''} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} />
+                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} placeholder="Mínimo 6 caracteres" />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-2">Permissões</label>
                 <div className="flex flex-wrap gap-2">
                   {PERMISSION_OPTIONS.map(p => (
-                    <button
-                      key={p.key}
-                      onClick={() => togglePermission(p.key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs transition-all ${form.permissions?.includes(p.key) ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
-                    >
+                    <button key={p.key} onClick={() => togglePermission(p.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs transition-all ${form.permissions.includes(p.key) ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
                       {p.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">Cadastrar</button>
+              <button onClick={handleSave} disabled={saving}
+                className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
+                {saving ? 'Cadastrando...' : 'Cadastrar'}
+              </button>
             </div>
           </motion.div>
         </motion.div>
@@ -132,7 +174,7 @@ const UsersPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <button onClick={() => handleDelete(u.id)} className="p-2 text-muted-foreground hover:text-destructive"><X size={14} /></button>
+              <button onClick={() => handleDelete(u)} className="p-2 text-muted-foreground hover:text-destructive"><X size={14} /></button>
             </div>
           </div>
         ))}

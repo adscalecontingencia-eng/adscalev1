@@ -16,78 +16,113 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const ADMIN_CREDENTIALS = {
-  email: 'adscalecontingencia@gmail.com',
-  password: '@DSC@LE2026a',
-  user: { id: 'admin-1', email: 'adscalecontingencia@gmail.com', name: 'AD Scale Admin', role: 'admin' as UserRole },
-};
+async function fetchUserProfile(authUserId: string, email: string): Promise<User | null> {
+  // Check role from user_roles table
+  const { data: roles } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', authUserId);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('adscale_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  if (!roles || roles.length === 0) return null;
 
-  useEffect(() => {
-    if (user) localStorage.setItem('adscale_user', JSON.stringify(user));
-    else localStorage.removeItem('adscale_user');
-  }, [user]);
+  const role = roles[0].role as UserRole;
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // Check admin
-    if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-      setUser(ADMIN_CREDENTIALS.user);
-      return true;
-    }
+  if (role === 'admin') {
+    return { id: authUserId, email, name: 'AD Scale Admin', role: 'admin' };
+  }
 
-    // Check support users from Supabase
+  if (role === 'support') {
     const { data: supportUser } = await supabase
       .from('support_users')
       .select('*')
-      .eq('email', email)
-      .eq('password', password)
+      .eq('auth_user_id', authUserId)
       .maybeSingle();
 
     if (supportUser) {
-      setUser({
+      return {
         id: supportUser.id,
         email: supportUser.email,
         name: supportUser.name,
         role: 'support',
         permissions: supportUser.permissions || [],
-      });
-      return true;
+      };
     }
+  }
 
-    // Check clients from Supabase
+  if (role === 'client') {
     const { data: clientUser } = await supabase
       .from('clients')
       .select('*')
-      .eq('email', email)
-      .eq('password', password)
+      .eq('auth_user_id', authUserId)
       .maybeSingle();
 
     if (clientUser) {
-      setUser({
+      return {
         id: clientUser.id,
         email: clientUser.email,
         name: clientUser.name,
         role: 'client',
-      });
-      return true;
+      };
     }
+  }
 
-    return false;
+  return null;
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Listen for auth state changes FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+        setUser(profile);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    // Then check existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+        setUser(profile);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return false;
+
+    const profile = await fetchUserProfile(data.user.id, email);
+    if (!profile) {
+      await supabase.auth.signOut();
+      return false;
+    }
+
+    setUser(profile);
+    return true;
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading }}>
       {children}
     </AuthContext.Provider>
   );

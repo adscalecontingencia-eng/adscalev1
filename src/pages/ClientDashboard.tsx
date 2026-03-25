@@ -54,7 +54,7 @@ const ClientDashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{client.name}</span>
-          <button onClick={() => { logout(); navigate('/login'); }} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary">
+          <button onClick={async () => { await logout(); navigate('/login'); }} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary">
             <LogOut size={16} />
           </button>
         </div>

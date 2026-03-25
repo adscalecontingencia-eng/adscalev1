@@ -76,19 +76,45 @@ const Clients: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.name || !form.email || !form.number) return;
-    const payload = {
-      number: form.number || '', name: form.name || '', company_name: form.companyName || '',
-      email: form.email || '', password: form.password || '123456', observations: form.observations || '',
-      payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
-      ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
-    };
+
     if (editing) {
+      // Update existing client (no auth user change)
+      const payload = {
+        number: form.number || '', name: form.name || '', company_name: form.companyName || '',
+        email: form.email || '', observations: form.observations || '',
+        payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
+        ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
+      };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); return; }
       toast.success('Cliente atualizado!');
     } else {
-      const { error } = await supabase.from('clients').insert(payload);
-      if (error) { toast.error('Erro ao cadastrar cliente'); return; }
+      // Create new client via edge function (creates auth user + client record)
+      const password = form.password || '123456';
+      const res = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'create_user',
+          email: form.email,
+          password,
+          name: form.name,
+          role: 'client',
+          client_data: {
+            number: form.number,
+            companyName: form.companyName,
+            observations: form.observations,
+            paymentType: form.paymentType || 'fixed',
+            fixedValue: form.fixedValue || 0,
+            percentageValue: form.percentageValue || 0,
+            adAccounts: form.adAccounts || 0,
+            usedAccounts: form.usedAccounts || 0,
+            blockedAccounts: form.blockedAccounts || 0,
+          },
+        },
+      });
+      if (res.error || res.data?.error) {
+        toast.error(res.data?.error || 'Erro ao cadastrar cliente');
+        return;
+      }
       toast.success('Cliente cadastrado!');
     }
     resetForm();
