@@ -6,31 +6,45 @@ import { Mail, Lock, AlertCircle } from 'lucide-react';
 import logoAdscale from '@/assets/logo-adscale.png';
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      navigate(user.role === 'client' ? '/client-dashboard' : '/dashboard');
+    }
+  }, [loading, isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSubmitting(true);
     try {
       const success = await login(email, password);
       if (success) {
-        const saved = JSON.parse(localStorage.getItem('adscale_user') || '{}');
-        navigate(saved.role === 'client' ? '/client-dashboard' : '/dashboard');
+        // Navigation handled by useEffect
       } else {
         setError('E-mail ou senha incorretos');
       }
     } catch {
       setError('Erro ao fazer login');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground text-sm">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -69,9 +83,9 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={submitting}
             className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity glow-box disabled:opacity-50">
-            {loading ? 'Entrando...' : 'Entrar'}
+            {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
       </motion.div>
