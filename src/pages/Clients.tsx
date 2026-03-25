@@ -92,7 +92,7 @@ const Clients: React.FC = () => {
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
-      if (error) { toast.error('Erro ao atualizar cliente'); return; }
+      if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
       toast.success('Cliente atualizado!');
     } else {
       // Create new client via edge function (creates auth user + client record)
