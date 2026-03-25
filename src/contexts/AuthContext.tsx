@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type UserRole = 'admin' | 'support' | 'client';
@@ -22,7 +22,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 async function fetchUserProfile(authUserId: string, email: string): Promise<User | null> {
-  // Check role from user_roles table
   const { data: roles } = await supabase
     .from('user_roles')
     .select('role')
@@ -77,29 +76,61 @@ async function fetchUserProfile(authUserId: string, email: string): Promise<User
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    // Listen for auth state changes FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id, session.user.email || '');
-        setUser(profile);
-      } else {
+    // Prevent double init in strict mode
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    let isMounted = true;
+
+    // Load session once on mount
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && isMounted) {
+          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+          if (isMounted) setUser(profile);
+        }
+      } catch (e) {
+        console.error('Error loading session:', e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initSession();
+
+    // Listen for future auth changes (sign in, sign out, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      
+      if (event === 'SIGNED_OUT') {
         setUser(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          // Use setTimeout to avoid deadlock from calling Supabase inside the callback
+          setTimeout(async () => {
+            if (!isMounted) return;
+            const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+            if (isMounted) {
+              setUser(profile);
+              setLoading(false);
+            }
+          }, 0);
+        }
+      }
     });
 
-    // Then check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id, session.user.email || '');
-        setUser(profile);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
