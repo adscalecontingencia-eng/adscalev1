@@ -129,7 +129,7 @@ const Clients: React.FC = () => {
     c.number.includes(search)
   );
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
   return (
