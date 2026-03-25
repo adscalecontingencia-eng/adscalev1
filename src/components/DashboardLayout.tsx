@@ -25,14 +25,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       user.permissions?.includes(l.path.replace('/', ''))
     ) : [];
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <div className="flex min-h-screen">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-background/80 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-4 border-b border-border flex items-center gap-3">
           <img src={logo} alt="AD Scale" className="w-10 h-10 rounded-lg" />
@@ -46,13 +49,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {links.map(link => {
             const active = location.pathname === link.path;
             return (
-              <button
-                key={link.path}
-                onClick={() => { navigate(link.path); setSidebarOpen(false); }}
+              <button key={link.path} onClick={() => { navigate(link.path); setSidebarOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
                   active ? 'bg-primary/10 text-primary border-glow' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                }`}
-              >
+                }`}>
                 <link.icon size={18} />
                 <span>{link.label}</span>
                 {active && <ChevronRight size={14} className="ml-auto" />}
@@ -63,17 +63,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         <div className="p-3 border-t border-border">
           <div className="px-3 py-2 text-xs text-muted-foreground mb-2 truncate">{user?.email}</div>
-          <button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
-          >
+          <button onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all">
             <LogOut size={18} />
             <span>Sair</span>
           </button>
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 min-h-screen">
         <header className="h-14 border-b border-border flex items-center px-4 lg:px-6 gap-4">
           <button className="lg:hidden text-muted-foreground" onClick={() => setSidebarOpen(true)}>
