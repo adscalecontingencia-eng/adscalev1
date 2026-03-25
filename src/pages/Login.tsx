@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 import logoAdscale from '@/assets/logo-adscale.png';
 
@@ -12,26 +11,30 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = login(email, password);
-    if (success) {
-      const saved = JSON.parse(localStorage.getItem('adscale_user') || '{}');
-      navigate(saved.role === 'client' ? '/client-dashboard' : '/dashboard');
-    } else {
-      setError('E-mail ou senha incorretos');
+    setLoading(true);
+    try {
+      const success = await login(email, password);
+      if (success) {
+        const saved = JSON.parse(localStorage.getItem('adscale_user') || '{}');
+        navigate(saved.role === 'client' ? '/client-dashboard' : '/dashboard');
+      } else {
+        setError('E-mail ou senha incorretos');
+      }
+    } catch {
+      setError('Erro ao fazer login');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <img src={logoAdscale} alt="AD Scale Logo" className="w-32 h-32 object-contain mb-2" />
           <h1 className="font-display text-3xl font-bold text-primary glow-text tracking-wider">AD SCALE</h1>
@@ -50,14 +53,9 @@ const Login: React.FC = () => {
             <label className="block text-sm text-muted-foreground mb-1.5">E-mail</label>
             <div className="relative">
               <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 className="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="seu@email.com"
-                required
-              />
+                placeholder="seu@email.com" required />
             </div>
           </div>
 
@@ -65,22 +63,15 @@ const Login: React.FC = () => {
             <label className="block text-sm text-muted-foreground mb-1.5">Senha</label>
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 className="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="••••••••"
-                required
-              />
+                placeholder="••••••••" required />
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity glow-box"
-          >
-            Entrar
+          <button type="submit" disabled={loading}
+            className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity glow-box disabled:opacity-50">
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
       </motion.div>
