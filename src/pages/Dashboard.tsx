@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 type DateFilter = 'today' | '7days' | 'custom' | 'range';
 
@@ -17,45 +18,45 @@ const Dashboard: React.FC = () => {
   const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined);
   const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
 
-  const transactions = JSON.parse(localStorage.getItem('adscale_transactions') || '[]');
-  const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
+  useEffect(() => {
+    const fetchData = async () => {
+      const [txRes, clientRes] = await Promise.all([
+        supabase.from('transactions').select('*'),
+        supabase.from('clients').select('*'),
+      ]);
+      if (txRes.data) setTransactions(txRes.data);
+      if (clientRes.data) setClients(clientRes.data);
+    };
+    fetchData();
+  }, []);
 
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter((t: any) => {
       const d = new Date(t.date);
-      if (dateFilter === 'today') {
-        return d.toDateString() === now.toDateString();
-      } else if (dateFilter === '7days') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return d >= weekAgo;
-      } else if (dateFilter === 'custom' && customDate) {
-        return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
-      } else if (dateFilter === 'range') {
-        if (rangeFrom && rangeTo) {
-          const from = new Date(rangeFrom); from.setHours(0,0,0,0);
-          const to = new Date(rangeTo); to.setHours(23,59,59,999);
-          return d >= from && d <= to;
-        } else if (rangeFrom) {
-          const from = new Date(rangeFrom); from.setHours(0,0,0,0);
-          return d >= from;
-        }
-        return true;
+      if (dateFilter === 'today') return d.toDateString() === now.toDateString();
+      if (dateFilter === '7days') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      if (dateFilter === 'custom' && customDate) return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
+      if (dateFilter === 'range') {
+        if (rangeFrom && rangeTo) { const from = new Date(rangeFrom); from.setHours(0,0,0,0); const to = new Date(rangeTo); to.setHours(23,59,59,999); return d >= from && d <= to; }
+        if (rangeFrom) { const from = new Date(rangeFrom); from.setHours(0,0,0,0); return d >= from; }
       }
       return true;
     });
   }, [transactions, dateFilter, customDate, rangeFrom, rangeTo]);
 
-  const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
-  const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
+  const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const profit = revenue - expenses;
 
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
-  const bmCosts = structureCosts.filter((t: any) => t.category === 'BMs').reduce((s: number, t: any) => s + t.amount, 0);
-  const perfisCosts = structureCosts.filter((t: any) => t.category === 'Perfis').reduce((s: number, t: any) => s + t.amount, 0);
-  const proxyCosts = structureCosts.filter((t: any) => t.category === 'Proxy').reduce((s: number, t: any) => s + t.amount, 0);
-  const multiloginCosts = structureCosts.filter((t: any) => t.category === 'Multilogin').reduce((s: number, t: any) => s + t.amount, 0);
+  const bmCosts = structureCosts.filter((t: any) => t.category === 'BMs').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const perfisCosts = structureCosts.filter((t: any) => t.category === 'Perfis').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const proxyCosts = structureCosts.filter((t: any) => t.category === 'Proxy').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const multiloginCosts = structureCosts.filter((t: any) => t.category === 'Multilogin').reduce((s: number, t: any) => s + Number(t.amount), 0);
 
   const pieData = [
     { name: "BM's", value: bmCosts },
@@ -65,20 +66,18 @@ const Dashboard: React.FC = () => {
   ].filter(d => d.value > 0);
 
   const clientProfits = clients.map((c: any) => {
-    const cRevenue = filteredTransactions.filter((t: any) => t.clientId === c.id && t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
-    const cExpenses = filteredTransactions.filter((t: any) => t.clientId === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
-    return { name: c.companyName || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
+    const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+    return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
   }).filter((c: any) => c.revenue > 0 || c.profit !== 0);
 
-  // Daily data for area chart (last 7 days)
   const dailyData = useMemo(() => {
     const days: any[] = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+      const d = new Date(); d.setDate(d.getDate() - i);
       const dayStr = d.toDateString();
-      const dayRevenue = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + t.amount, 0);
-      const dayExpenses = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + t.amount, 0);
+      const dayRevenue = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayExpenses = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses });
     }
     return days;
@@ -89,9 +88,7 @@ const Dashboard: React.FC = () => {
   const StatCard = ({ icon: Icon, label, value, trend, color }: { icon: any; label: string; value: string; trend?: 'up' | 'down'; color?: string }) => (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-xl p-4 sm:p-5 border-glow hover:glow-box transition-shadow duration-300">
       <div className="flex items-center justify-between mb-3">
-        <div className={`p-2.5 rounded-xl ${color || 'bg-primary/10'}`}>
-          <Icon size={20} className={color ? 'text-foreground' : 'text-primary'} />
-        </div>
+        <div className={`p-2.5 rounded-xl ${color || 'bg-primary/10'}`}><Icon size={20} className={color ? 'text-foreground' : 'text-primary'} /></div>
         {trend && (trend === 'up' ? <TrendingUp size={18} className="text-success" /> : <TrendingDown size={18} className="text-destructive" />)}
       </div>
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
@@ -101,14 +98,9 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         {(['today', '7days', 'custom', 'range'] as DateFilter[]).map(f => (
-          <button
-            key={f}
-            onClick={() => setDateFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}
-          >
+          <button key={f} onClick={() => setDateFilter(f)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}>
             {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'custom' ? 'Data específica' : 'Período'}
           </button>
         ))}
@@ -154,7 +146,6 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Main Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard icon={DollarSign} label="Faturamento" value={fmt(revenue)} trend="up" />
         <StatCard icon={BarChart3} label="Lucro" value={fmt(profit)} trend={profit >= 0 ? 'up' : 'down'} />
@@ -162,9 +153,7 @@ const Dashboard: React.FC = () => {
         <StatCard icon={Users} label="Clientes Ativos" value={String(clients.length)} />
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Area Chart - Revenue vs Expenses */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-xl p-5 border-glow">
           <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
             <BarChart3 size={16} className="text-primary" /> Faturamento vs Gastos (7 dias)
@@ -185,10 +174,7 @@ const Dashboard: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,15%)" />
                 <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} />
                 <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 12 }} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }}
-                  formatter={(value: number) => fmt(value)}
-                />
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }} formatter={(value: number) => fmt(value)} />
                 <Area type="monotone" dataKey="faturamento" stroke="hsl(120,100%,50%)" fill="url(#colorRevenue)" strokeWidth={2} />
                 <Area type="monotone" dataKey="gastos" stroke="hsl(0,84%,60%)" fill="url(#colorExpenses)" strokeWidth={2} />
               </AreaChart>
@@ -196,7 +182,6 @@ const Dashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Pie Chart - Structure Costs */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card border border-border rounded-xl p-5 border-glow">
           <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
             <Server size={16} className="text-primary" /> Custos por Estrutura
@@ -206,29 +191,22 @@ const Dashboard: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {pieData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
+                    {pieData.map((_entry, index) => (<Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />))}
                   </Pie>
                   <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,7%)', border: '1px solid hsl(0,0%,15%)', borderRadius: '8px', color: 'hsl(0,0%,95%)' }} formatter={(value: number) => fmt(value)} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-52 sm:h-64 flex items-center justify-center">
-              <p className="text-sm text-muted-foreground">Nenhum gasto no período.</p>
-            </div>
+            <div className="h-52 sm:h-64 flex items-center justify-center"><p className="text-sm text-muted-foreground">Nenhum gasto no período.</p></div>
           )}
         </motion.div>
       </div>
 
-      {/* Structure Breakdown Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: "BM's", value: bmCosts, color: 'bg-primary/10' },
-          { label: 'Perfis', value: perfisCosts, color: 'bg-[hsl(120,60%,45%)]/10' },
-          { label: 'Proxy', value: proxyCosts, color: 'bg-[hsl(45,100%,50%)]/10' },
-          { label: 'Multilogin', value: multiloginCosts, color: 'bg-[hsl(200,100%,50%)]/10' },
+          { label: "BM's", value: bmCosts }, { label: 'Perfis', value: perfisCosts },
+          { label: 'Proxy', value: proxyCosts }, { label: 'Multilogin', value: multiloginCosts },
         ].map(item => (
           <motion.div key={item.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card border border-border rounded-xl p-4 hover:border-glow transition-all">
             <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
@@ -237,7 +215,6 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Per-client profit with bar chart */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-card border border-border rounded-xl p-5 border-glow">
         <h3 className="font-display text-sm font-semibold mb-4">Lucro por Cliente</h3>
         {clientProfits.length === 0 ? (

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, X, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SupportUser {
   id: string;
   name: string;
   email: string;
   password: string;
-  role: string;
   permissions: string[];
 }
 
@@ -20,25 +21,40 @@ const PERMISSION_OPTIONS = [
 ];
 
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<SupportUser[]>(() => JSON.parse(localStorage.getItem('adscale_support_users') || '[]'));
+  const [users, setUsers] = useState<SupportUser[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Partial<SupportUser>>({ permissions: ['support'] });
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { localStorage.setItem('adscale_support_users', JSON.stringify(users)); }, [users]);
-
-  const handleSave = () => {
-    if (!form.name || !form.email) return;
-    const u: SupportUser = {
-      id: `support-${Date.now()}`, name: form.name || '', email: form.email || '',
-      password: form.password || '123456', role: form.role || 'Suporte',
-      permissions: form.permissions || ['support'],
-    };
-    setUsers(prev => [...prev, u]);
-    setForm({ permissions: ['support'] });
-    setShowForm(false);
+  const fetchUsers = async () => {
+    const { data, error } = await supabase.from('support_users').select('*').order('created_at', { ascending: false });
+    if (error) { toast.error('Erro ao carregar colaboradores'); return; }
+    setUsers((data || []).map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, permissions: u.permissions || [] })));
+    setLoading(false);
   };
 
-  const handleDelete = (id: string) => setUsers(prev => prev.filter(u => u.id !== id));
+  useEffect(() => { fetchUsers(); }, []);
+
+  const handleSave = async () => {
+    if (!form.name || !form.email) return;
+    const { error } = await supabase.from('support_users').insert({
+      name: form.name,
+      email: form.email,
+      password: form.password || '123456',
+      permissions: form.permissions || ['support'],
+    });
+    if (error) { toast.error('Erro ao cadastrar colaborador'); return; }
+    toast.success('Colaborador cadastrado!');
+    setForm({ permissions: ['support'] });
+    setShowForm(false);
+    fetchUsers();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('support_users').delete().eq('id', id);
+    if (error) { toast.error('Erro ao remover'); return; }
+    setUsers(prev => prev.filter(u => u.id !== id));
+  };
 
   const togglePermission = (key: string) => {
     setForm(p => {
@@ -48,6 +64,8 @@ const UsersPage: React.FC = () => {
   };
 
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
+
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
 
   return (
     <div className="space-y-6">
@@ -79,10 +97,6 @@ const UsersPage: React.FC = () => {
                 <input value={form.password || ''} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Função</label>
-                <input value={form.role || ''} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} placeholder="Ex: Suporte, Analista" className={inputClass} />
-              </div>
-              <div>
                 <label className="block text-xs text-muted-foreground mb-2">Permissões</label>
                 <div className="flex flex-wrap gap-2">
                   {PERMISSION_OPTIONS.map(p => (
@@ -110,7 +124,6 @@ const UsersPage: React.FC = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <Shield size={14} className="text-primary" />
                   <h4 className="text-sm font-medium">{u.name}</h4>
-                  <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">{u.role}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{u.email}</p>
                 <div className="flex gap-1 mt-2">

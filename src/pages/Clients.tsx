@@ -6,6 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Client {
   id: string;
@@ -33,8 +35,8 @@ interface Commission {
 }
 
 const Clients: React.FC = () => {
-  const [clients, setClients] = useState<Client[]>(() => JSON.parse(localStorage.getItem('adscale_clients') || '[]'));
-  const [commissions, setCommissions] = useState<Commission[]>(() => JSON.parse(localStorage.getItem('adscale_commissions') || '[]'));
+  const [clients, setClients] = useState<Client[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showCommissionForm, setShowCommissionForm] = useState<string | null>(null);
   const [showPaidForm, setShowPaidForm] = useState<string | null>(null);
@@ -47,36 +49,50 @@ const Clients: React.FC = () => {
   const [paidAmount, setPaidAmount] = useState('');
   const [commissionDate, setCommissionDate] = useState<Date>(new Date());
   const [paidDate, setPaidDate] = useState<Date>(new Date());
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { localStorage.setItem('adscale_clients', JSON.stringify(clients)); }, [clients]);
-  useEffect(() => { localStorage.setItem('adscale_commissions', JSON.stringify(commissions)); }, [commissions]);
+  const fetchClients = async () => {
+    const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
+    if (error) { toast.error('Erro ao carregar clientes'); return; }
+    setClients((data || []).map(c => ({
+      id: c.id, number: c.number || '', name: c.name, companyName: c.company_name || '',
+      email: c.email, password: c.password, observations: c.observations || '',
+      paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
+      fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
+      adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
+    })));
+    setLoading(false);
+  };
 
-  useEffect(() => {
-    if (clients.length === 0) {
-      const demo: Client = {
-        id: 'client-1', number: '001', name: 'Cliente Demo', companyName: 'Empresa Demo',
-        email: 'cliente1@gmail.com', password: 'Cliente1', observations: 'Cliente de demonstração. Contrato padrão com 10% sobre gasto.',
-        paymentType: 'percentage', percentageValue: 10, adAccounts: 5, usedAccounts: 3, blockedAccounts: 1,
-      };
-      setClients([demo]);
-    }
-  }, []);
+  const fetchCommissions = async () => {
+    const { data, error } = await supabase.from('commissions').select('*').order('date', { ascending: false });
+    if (error) return;
+    setCommissions((data || []).map(c => ({
+      id: c.id, clientId: c.client_id, date: c.date, amount: Number(c.amount), type: c.type as 'daily' | 'paid', note: c.note || undefined,
+    })));
+  };
 
-  const handleSave = () => {
+  useEffect(() => { fetchClients(); fetchCommissions(); }, []);
+
+  const handleSave = async () => {
     if (!form.name || !form.email || !form.number) return;
+    const payload = {
+      number: form.number || '', name: form.name || '', company_name: form.companyName || '',
+      email: form.email || '', password: form.password || '123456', observations: form.observations || '',
+      payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
+      ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
+    };
     if (editing) {
-      setClients(prev => prev.map(c => c.id === editing.id ? { ...c, ...form } as Client : c));
+      const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
+      if (error) { toast.error('Erro ao atualizar cliente'); return; }
+      toast.success('Cliente atualizado!');
     } else {
-      const newClient: Client = {
-        id: `client-${Date.now()}`, number: form.number || '', name: form.name || '',
-        companyName: form.companyName || '', email: form.email || '', password: form.password || '123456',
-        observations: form.observations || '', paymentType: form.paymentType || 'fixed',
-        fixedValue: form.fixedValue, percentageValue: form.percentageValue,
-        adAccounts: form.adAccounts || 0, usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
-      };
-      setClients(prev => [...prev, newClient]);
+      const { error } = await supabase.from('clients').insert(payload);
+      if (error) { toast.error('Erro ao cadastrar cliente'); return; }
+      toast.success('Cliente cadastrado!');
     }
     resetForm();
+    fetchClients();
   };
 
   const resetForm = () => {
@@ -86,33 +102,35 @@ const Clients: React.FC = () => {
   };
 
   const handleEdit = (c: Client) => { setForm(c); setEditing(c); setShowForm(true); };
-  const handleDelete = (id: string) => setClients(prev => prev.filter(c => c.id !== id));
 
-  const handleAddCommission = (clientId: string) => {
-    const amount = parseFloat(commissionAmount);
-    if (isNaN(amount) || amount <= 0) return;
-    const newCommission: Commission = {
-      id: `comm-${Date.now()}`, clientId, date: commissionDate.toISOString(),
-      amount, type: 'daily', note: commissionNote || undefined,
-    };
-    setCommissions(prev => [...prev, newCommission]);
-    setCommissionAmount('');
-    setCommissionNote('');
-    setCommissionDate(new Date());
-    setShowCommissionForm(null);
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) { toast.error('Erro ao remover cliente'); return; }
+    setClients(prev => prev.filter(c => c.id !== id));
   };
 
-  const handleAddPaid = (clientId: string) => {
+  const handleAddCommission = async (clientId: string) => {
+    const amount = parseFloat(commissionAmount);
+    if (isNaN(amount) || amount <= 0) return;
+    const { error } = await supabase.from('commissions').insert({
+      client_id: clientId, date: commissionDate.toISOString(), amount, type: 'daily', note: commissionNote || null,
+    });
+    if (error) { toast.error('Erro ao lançar comissão'); return; }
+    toast.success('Comissão lançada!');
+    setCommissionAmount(''); setCommissionNote(''); setCommissionDate(new Date()); setShowCommissionForm(null);
+    fetchCommissions();
+  };
+
+  const handleAddPaid = async (clientId: string) => {
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
-    const paid: Commission = {
-      id: `comm-${Date.now()}`, clientId, date: paidDate.toISOString(),
-      amount, type: 'paid',
-    };
-    setCommissions(prev => [...prev, paid]);
-    setPaidAmount('');
-    setPaidDate(new Date());
-    setShowPaidForm(null);
+    const { error } = await supabase.from('commissions').insert({
+      client_id: clientId, date: paidDate.toISOString(), amount, type: 'paid',
+    });
+    if (error) { toast.error('Erro ao registrar pagamento'); return; }
+    toast.success('Pagamento registrado!');
+    setPaidAmount(''); setPaidDate(new Date()); setShowPaidForm(null);
+    fetchCommissions();
   };
 
   const getClientCommissions = (clientId: string) => commissions.filter(c => c.clientId === clientId);
@@ -132,6 +150,8 @@ const Clients: React.FC = () => {
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -144,7 +164,6 @@ const Clients: React.FC = () => {
         </button>
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -191,7 +210,7 @@ const Clients: React.FC = () => {
               </div>
               {(form.paymentType === 'fixed' || form.paymentType === 'both') && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Valor Fixo (R$)</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Valor Fixo ($)</label>
                   <input type="number" value={form.fixedValue || ''} onChange={e => setForm(p => ({ ...p, fixedValue: +e.target.value }))} className={inputClass} />
                 </div>
               )}
@@ -223,7 +242,6 @@ const Clients: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Client List */}
       <div className="space-y-3">
         {filtered.map(c => {
           const acc = getAccumulated(c.id);
@@ -243,7 +261,7 @@ const Clients: React.FC = () => {
                     <p className="text-xs text-muted-foreground mt-1">{c.email}</p>
                     <div className="flex flex-wrap gap-3 mt-2 text-xs">
                       <span className="text-primary">
-                        {c.paymentType === 'fixed' ? `Fixo: R$${c.fixedValue}` : c.paymentType === 'percentage' ? `${c.percentageValue}% sobre gasto` : `Fixo R$${c.fixedValue} + ${c.percentageValue}%`}
+                        {c.paymentType === 'fixed' ? `Fixo: $${c.fixedValue}` : c.paymentType === 'percentage' ? `${c.percentageValue}% sobre gasto` : `Fixo $${c.fixedValue} + ${c.percentageValue}%`}
                       </span>
                       <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
                     </div>
@@ -254,7 +272,6 @@ const Clients: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Commission Summary */}
                 <div className="mt-3 pt-3 border-t border-border">
                   <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
@@ -283,7 +300,6 @@ const Clients: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Commission Form */}
                   {showCommissionForm === c.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 space-y-2">
                       <div className="flex flex-col sm:flex-row gap-2">
@@ -298,14 +314,13 @@ const Clients: React.FC = () => {
                             <Calendar mode="single" selected={commissionDate} onSelect={(d) => d && setCommissionDate(d)} initialFocus className="p-3 pointer-events-auto" />
                           </PopoverContent>
                         </Popover>
-                        <input type="number" placeholder="Valor R$" value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className={`${inputClass} flex-1`} />
+                        <input type="number" placeholder="Valor $" value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className={`${inputClass} flex-1`} />
                         <input placeholder="Nota (opcional)" value={commissionNote} onChange={e => setCommissionNote(e.target.value)} className={`${inputClass} flex-1`} />
                         <button onClick={() => handleAddCommission(c.id)} className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Adicionar</button>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Paid Form */}
                   {showPaidForm === c.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
                       <Popover>
@@ -319,14 +334,13 @@ const Clients: React.FC = () => {
                           <Calendar mode="single" selected={paidDate} onSelect={(d) => d && setPaidDate(d)} initialFocus className="p-3 pointer-events-auto" />
                         </PopoverContent>
                       </Popover>
-                      <input type="number" placeholder="Valor pago R$" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className={`${inputClass} flex-1`} />
+                      <input type="number" placeholder="Valor pago $" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className={`${inputClass} flex-1`} />
                       <button onClick={() => handleAddPaid(c.id)} className="bg-success text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Registrar Pagamento</button>
                     </motion.div>
                   )}
                 </div>
               </div>
 
-              {/* Commission History */}
               {isExpanded && (
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="border-t border-border bg-secondary/50 p-4">
                   <h5 className="text-xs font-semibold text-muted-foreground mb-2">Histórico de Comissões</h5>

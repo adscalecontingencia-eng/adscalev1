@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, X, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Transaction {
   id: string;
@@ -13,52 +15,77 @@ interface Transaction {
   description: string;
 }
 
+interface ClientOption {
+  id: string;
+  name: string;
+}
+
 const CATEGORIES = ['BMs', 'Perfis', 'Proxy', 'Multilogin', 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
 
 const Financial: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => JSON.parse(localStorage.getItem('adscale_transactions') || '[]'));
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto', category: 'BMs', subcategory: '', clientId: '', amount: '', description: '' });
-  const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { localStorage.setItem('adscale_transactions', JSON.stringify(transactions)); }, [transactions]);
+  const fetchData = async () => {
+    const [txRes, clientRes] = await Promise.all([
+      supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+      supabase.from('clients').select('id, name'),
+    ]);
+    if (txRes.data) {
+      setTransactions(txRes.data.map(t => ({
+        id: t.id, date: t.date, type: t.type as 'receita' | 'gasto', category: t.category,
+        subcategory: t.subcategory || '', clientId: t.client_id || undefined, amount: Number(t.amount), description: t.description,
+      })));
+    }
+    if (clientRes.data) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     const amount = parseFloat(form.amount);
     if (isNaN(amount) || amount <= 0) errs.amount = 'O valor deve ser um número positivo';
     if (!form.date) errs.date = 'Data é obrigatória';
-    else {
-      const d = new Date(form.date);
-      if (isNaN(d.getTime())) errs.date = 'Data inválida';
-    }
     if (!form.description.trim()) errs.description = 'Descrição é obrigatória';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    const t: Transaction = {
-      id: `tx-${Date.now()}`, date: form.date, type: form.type, category: form.category,
-      subcategory: form.subcategory, clientId: form.clientId || undefined,
+    const { error } = await supabase.from('transactions').insert({
+      date: form.date, type: form.type, category: form.category,
+      subcategory: form.subcategory || null, client_id: form.clientId || null,
       amount: parseFloat(form.amount), description: form.description,
-    };
-    setTransactions(prev => [t, ...prev]);
+    });
+    if (error) { toast.error('Erro ao salvar transação'); return; }
+    toast.success('Transação salva!');
     setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BMs', subcategory: '', clientId: '', amount: '', description: '' });
     setShowForm(false);
     setErrors({});
+    fetchData();
   };
 
-  const handleDelete = (id: string) => setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    if (error) { toast.error('Erro ao remover'); return; }
+    setTransactions(prev => prev.filter(t => t.id !== id));
+  };
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
   const errorInputClass = "w-full bg-secondary border border-destructive rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-destructive transition-colors";
 
   const totalRevenue = transactions.filter(t => t.type === 'receita').reduce((s, t) => s + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'gasto').reduce((s, t) => s + t.amount, 0);
+
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
 
   return (
     <div className="space-y-6">
@@ -110,11 +137,11 @@ const Financial: React.FC = () => {
                 <label className="block text-xs text-muted-foreground mb-1">Cliente (opcional)</label>
                 <select value={form.clientId} onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))} className={inputClass}>
                   <option value="">Sem cliente</option>
-                  {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Valor (R$)</label>
+                <label className="block text-xs text-muted-foreground mb-1">Valor ($)</label>
                 <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                 {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
               </div>
