@@ -118,11 +118,13 @@ const Clients: React.FC = () => {
         },
       });
       if (res.error || res.data?.error) {
-        toast.error(res.data?.error || 'Erro ao cadastrar cliente');
+        toast.error(res.data?.error || res.error?.message || 'Erro ao cadastrar cliente');
+        setSaving(false);
         return;
       }
       toast.success('Cliente cadastrado!');
     }
+    setSaving(false);
     resetForm();
     fetchClients();
   };
