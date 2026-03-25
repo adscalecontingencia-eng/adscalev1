@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          ad_accounts: number | null
+          blocked_accounts: number | null
+          company_name: string | null
+          created_at: string
+          email: string
+          fixed_value: number | null
+          id: string
+          name: string
+          number: string | null
+          observations: string | null
+          password: string
+          payment_type: string
+          percentage_value: number | null
+          updated_at: string
+          used_accounts: number | null
+        }
+        Insert: {
+          ad_accounts?: number | null
+          blocked_accounts?: number | null
+          company_name?: string | null
+          created_at?: string
+          email: string
+          fixed_value?: number | null
+          id?: string
+          name: string
+          number?: string | null
+          observations?: string | null
+          password: string
+          payment_type?: string
+          percentage_value?: number | null
+          updated_at?: string
+          used_accounts?: number | null
+        }
+        Update: {
+          ad_accounts?: number | null
+          blocked_accounts?: number | null
+          company_name?: string | null
+          created_at?: string
+          email?: string
+          fixed_value?: number | null
+          id?: string
+          name?: string
+          number?: string | null
+          observations?: string | null
+          password?: string
+          payment_type?: string
+          percentage_value?: number | null
+          updated_at?: string
+          used_accounts?: number | null
+        }
+        Relationships: []
+      }
+      support_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          password: string
+          permissions: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          password: string
+          permissions?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          password?: string
+          permissions?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
