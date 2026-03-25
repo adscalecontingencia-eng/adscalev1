@@ -17,7 +17,8 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (roles && user && !roles.includes(user.role)) return <Navigate to="/login" />;
   return <>{children}</>;
