@@ -68,6 +68,44 @@ export type Database = {
         }
         Relationships: []
       }
+      commissions: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          type?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_users: {
         Row: {
           created_at: string
@@ -97,6 +135,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category: string
+          client_id: string | null
+          created_at: string
+          date: string
+          description: string
+          id: string
+          subcategory: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          client_id?: string | null
+          created_at?: string
+          date: string
+          description: string
+          id?: string
+          subcategory?: string | null
+          type?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          subcategory?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
