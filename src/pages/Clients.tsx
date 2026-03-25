@@ -74,8 +74,14 @@ const Clients: React.FC = () => {
 
   useEffect(() => { fetchClients(); fetchCommissions(); }, []);
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
-    if (!form.name || !form.email || !form.number) return;
+    if (!form.name || !form.email || !form.number) {
+      toast.error('Preencha os campos obrigatórios: Número, Nome e E-mail');
+      return;
+    }
+    setSaving(true);
 
     if (editing) {
       // Update existing client (no auth user change)
@@ -86,7 +92,7 @@ const Clients: React.FC = () => {
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
-      if (error) { toast.error('Erro ao atualizar cliente'); return; }
+      if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
       toast.success('Cliente atualizado!');
     } else {
       // Create new client via edge function (creates auth user + client record)
@@ -112,11 +118,13 @@ const Clients: React.FC = () => {
         },
       });
       if (res.error || res.data?.error) {
-        toast.error(res.data?.error || 'Erro ao cadastrar cliente');
+        toast.error(res.data?.error || res.error?.message || 'Erro ao cadastrar cliente');
+        setSaving(false);
         return;
       }
       toast.success('Cliente cadastrado!');
     }
+    setSaving(false);
     resetForm();
     fetchClients();
   };
@@ -260,8 +268,8 @@ const Clients: React.FC = () => {
                   <input type="number" value={form.blockedAccounts || 0} onChange={e => setForm(p => ({ ...p, blockedAccounts: +e.target.value }))} className={inputClass} />
                 </div>
               </div>
-              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">
-                {editing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+              <button onClick={handleSave} disabled={saving} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
+                {saving ? 'Salvando...' : editing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
               </button>
             </div>
           </motion.div>
