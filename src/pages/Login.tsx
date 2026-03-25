@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 import { Mail, Lock, AlertCircle } from 'lucide-react';
+import logoAdscale from '@/assets/logo-adscale.png';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -32,6 +33,7 @@ const Login: React.FC = () => {
         className="w-full max-w-md"
       >
         <div className="flex flex-col items-center mb-8">
+          <img src={logoAdscale} alt="AD Scale Logo" className="w-32 h-32 object-contain mb-2" />
           <h1 className="font-display text-3xl font-bold text-primary glow-text tracking-wider">AD SCALE</h1>
           <p className="text-muted-foreground text-sm mt-2">Contingency Accounts</p>
         </div>

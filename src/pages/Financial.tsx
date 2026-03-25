@@ -62,18 +62,14 @@ const Financial: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 border-glow">
-          <p className="text-xs text-muted-foreground">Total Receitas</p>
+          <p className="text-xs text-muted-foreground">Receitas totais</p>
           <p className="text-xl font-bold text-primary">{fmt(totalRevenue)}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 border-glow">
-          <p className="text-xs text-muted-foreground">Total Gastos</p>
+          <p className="text-xs text-muted-foreground">Gastos totais</p>
           <p className="text-xl font-bold text-destructive">{fmt(totalExpenses)}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 border-glow">
-          <p className="text-xs text-muted-foreground">Saldo</p>
-          <p className={`text-xl font-bold ${totalRevenue - totalExpenses >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(totalRevenue - totalExpenses)}</p>
         </div>
       </div>
 
