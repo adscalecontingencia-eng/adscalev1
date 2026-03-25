@@ -74,8 +74,14 @@ const Clients: React.FC = () => {
 
   useEffect(() => { fetchClients(); fetchCommissions(); }, []);
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
-    if (!form.name || !form.email || !form.number) return;
+    if (!form.name || !form.email || !form.number) {
+      toast.error('Preencha os campos obrigatórios: Número, Nome e E-mail');
+      return;
+    }
+    setSaving(true);
 
     if (editing) {
       // Update existing client (no auth user change)
