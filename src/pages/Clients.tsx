@@ -118,7 +118,9 @@ const Clients: React.FC = () => {
         },
       });
       if (res.error || res.data?.error) {
-        toast.error(res.data?.error || res.error?.message || 'Erro ao cadastrar cliente');
+        const errorMsg = res.data?.error || res.error?.message || 'Erro ao cadastrar cliente';
+        console.error('Erro ao criar cliente:', { error: res.error, data: res.data });
+        toast.error(errorMsg);
         setSaving(false);
         return;
       }
