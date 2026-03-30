@@ -140,6 +140,48 @@ const ClientDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Payment Options */}
+        {pendingTotal > 0 && (
+          <div className="bg-card border border-border rounded-xl p-5 border-glow">
+            <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+              <DollarSign size={16} className="text-primary" /> Opções de Pagamento
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">Escolha a forma de pagamento e você será redirecionado para o WhatsApp:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(`Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *PIX*. Aguardo as instruções da chave PIX para transferência.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all cursor-pointer group"
+              >
+                <Smartphone size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold text-emerald-500">PIX</span>
+                <span className="text-[10px] text-muted-foreground text-center">Transferência instantânea</span>
+              </a>
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(`Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *Payoneer*. Aguardo os dados da conta Payoneer para efetuar a transferência.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all cursor-pointer group"
+              >
+                <Globe size={24} className="text-sky-500 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold text-sky-500">PAYONEER</span>
+                <span className="text-[10px] text-muted-foreground text-center">Transferência internacional</span>
+              </a>
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(`Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *Crypto*. Aguardo o endereço da carteira e a rede para envio.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all cursor-pointer group"
+              >
+                <Bitcoin size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold text-amber-500">CRYPTO</span>
+                <span className="text-[10px] text-muted-foreground text-center">Criptomoedas</span>
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Contract */}
         <div className="bg-card border border-border rounded-xl p-5 border-glow">
           <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
