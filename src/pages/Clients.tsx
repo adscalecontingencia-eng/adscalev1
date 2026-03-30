@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -30,8 +30,12 @@ interface Commission {
   clientId: string;
   date: string;
   amount: number;
-  type: 'daily' | 'paid';
+  adSpend: number;
+  type: 'daily' | 'paid' | 'weekly_billing';
   note?: string;
+  billingWeekStart?: string;
+  billingWeekEnd?: string;
+  isWeeklyBilling?: boolean;
 }
 
 const Clients: React.FC = () => {
@@ -44,12 +48,13 @@ const Clients: React.FC = () => {
   const [editing, setEditing] = useState<Client | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Client>>({ paymentType: 'fixed', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
-  const [commissionAmount, setCommissionAmount] = useState('');
+  const [adSpendAmount, setAdSpendAmount] = useState('');
   const [commissionNote, setCommissionNote] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [commissionDate, setCommissionDate] = useState<Date>(new Date());
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const fetchClients = async () => {
     const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
@@ -68,13 +73,28 @@ const Clients: React.FC = () => {
     const { data, error } = await supabase.from('commissions').select('*').order('date', { ascending: false });
     if (error) return;
     setCommissions((data || []).map(c => ({
-      id: c.id, clientId: c.client_id, date: c.date, amount: Number(c.amount), type: c.type as 'daily' | 'paid', note: c.note || undefined,
+      id: c.id, clientId: c.client_id, date: c.date, amount: Number(c.amount),
+      adSpend: Number((c as any).ad_spend) || 0,
+      type: c.type as 'daily' | 'paid' | 'weekly_billing', note: c.note || undefined,
+      billingWeekStart: (c as any).billing_week_start || undefined,
+      billingWeekEnd: (c as any).billing_week_end || undefined,
+      isWeeklyBilling: (c as any).is_weekly_billing || false,
     })));
   };
 
   useEffect(() => { fetchClients(); fetchCommissions(); }, []);
 
-  const [saving, setSaving] = useState(false);
+  // Calculate commission based on client contract
+  const calculateCommission = (client: Client, adSpend: number): number => {
+    let commission = 0;
+    if (client.paymentType === 'fixed' || client.paymentType === 'both') {
+      commission += client.fixedValue || 0;
+    }
+    if (client.paymentType === 'percentage' || client.paymentType === 'both') {
+      commission += adSpend * ((client.percentageValue || 0) / 100);
+    }
+    return commission;
+  };
 
   const handleSave = async () => {
     if (!form.name || !form.email || !form.number) {
@@ -84,7 +104,6 @@ const Clients: React.FC = () => {
     setSaving(true);
 
     if (editing) {
-      // Update existing client (no auth user change)
       const payload = {
         number: form.number || '', name: form.name || '', company_name: form.companyName || '',
         email: form.email || '', observations: form.observations || '',
@@ -95,34 +114,21 @@ const Clients: React.FC = () => {
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
       toast.success('Cliente atualizado!');
     } else {
-      // Create new client via edge function (creates auth user + client record)
       const password = form.password || '123456';
       const res = await supabase.functions.invoke('manage-users', {
         body: {
-          action: 'create_user',
-          email: form.email,
-          password,
-          name: form.name,
-          role: 'client',
+          action: 'create_user', email: form.email, password, name: form.name, role: 'client',
           client_data: {
-            number: form.number,
-            companyName: form.companyName,
-            observations: form.observations,
-            paymentType: form.paymentType || 'fixed',
-            fixedValue: form.fixedValue || 0,
-            percentageValue: form.percentageValue || 0,
-            adAccounts: form.adAccounts || 0,
-            usedAccounts: form.usedAccounts || 0,
-            blockedAccounts: form.blockedAccounts || 0,
+            number: form.number, companyName: form.companyName, observations: form.observations,
+            paymentType: form.paymentType || 'fixed', fixedValue: form.fixedValue || 0,
+            percentageValue: form.percentageValue || 0, adAccounts: form.adAccounts || 0,
+            usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
           },
         },
       });
       if (res.error || res.data?.error) {
-        const errorMsg = res.data?.error || res.error?.message || 'Erro ao cadastrar cliente';
-        console.error('Erro ao criar cliente:', { error: res.error, data: res.data });
-        toast.error(errorMsg);
-        setSaving(false);
-        return;
+        toast.error(res.data?.error || res.error?.message || 'Erro ao cadastrar cliente');
+        setSaving(false); return;
       }
       toast.success('Cliente cadastrado!');
     }
@@ -146,14 +152,21 @@ const Clients: React.FC = () => {
   };
 
   const handleAddCommission = async (clientId: string) => {
-    const amount = parseFloat(commissionAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    const adSpend = parseFloat(adSpendAmount);
+    if (isNaN(adSpend) || adSpend <= 0) { toast.error('Informe um valor de gasto válido'); return; }
+    
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    
+    const commission = calculateCommission(client, adSpend);
+    
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: commissionDate.toISOString(), amount, type: 'daily', note: commissionNote || null,
-    });
+      client_id: clientId, date: commissionDate.toISOString(), amount: commission,
+      ad_spend: adSpend, type: 'daily', note: commissionNote || null,
+    } as any);
     if (error) { toast.error('Erro ao lançar comissão'); return; }
-    toast.success('Comissão lançada!');
-    setCommissionAmount(''); setCommissionNote(''); setCommissionDate(new Date()); setShowCommissionForm(null);
+    toast.success(`Comissão de ${fmt(commission)} lançada! (Gasto: ${fmt(adSpend)})`);
+    setAdSpendAmount(''); setCommissionNote(''); setCommissionDate(new Date()); setShowCommissionForm(null);
     fetchCommissions();
   };
 
@@ -169,12 +182,57 @@ const Clients: React.FC = () => {
     fetchCommissions();
   };
 
+  const handleGenerateWeeklyBilling = async (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
+
+    // Check if billing already exists for this week
+    const existing = commissions.find(c =>
+      c.clientId === clientId && c.type === 'weekly_billing' &&
+      c.billingWeekStart === format(weekStart, 'yyyy-MM-dd') 
+    );
+    if (existing) {
+      toast.error('Cobrança semanal já gerada para esta semana!');
+      return;
+    }
+
+    // Sum all daily commissions for this week
+    const weeklyCommissions = commissions.filter(c =>
+      c.clientId === clientId && c.type === 'daily' &&
+      isWithinInterval(new Date(c.date), { start: weekStart, end: weekEnd })
+    );
+    const totalAdSpend = weeklyCommissions.reduce((s, c) => s + c.adSpend, 0);
+    const totalCommission = weeklyCommissions.reduce((s, c) => s + c.amount, 0);
+
+    if (totalCommission <= 0) {
+      toast.error('Nenhuma comissão lançada nesta semana para gerar cobrança');
+      return;
+    }
+
+    const { error } = await supabase.from('commissions').insert({
+      client_id: clientId, date: now.toISOString(), amount: totalCommission,
+      ad_spend: totalAdSpend, type: 'weekly_billing',
+      billing_week_start: format(weekStart, 'yyyy-MM-dd'),
+      billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
+      is_weekly_billing: true,
+      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
+    } as any);
+    if (error) { toast.error('Erro ao gerar cobrança'); return; }
+    toast.success(`Cobrança semanal de ${fmt(totalCommission)} gerada!`);
+    fetchCommissions();
+  };
+
   const getClientCommissions = (clientId: string) => commissions.filter(c => c.clientId === clientId);
   const getAccumulated = (clientId: string) => {
     const cc = getClientCommissions(clientId);
     const daily = cc.filter(c => c.type === 'daily').reduce((s, c) => s + c.amount, 0);
     const paid = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
-    return { daily, paid, pending: daily - paid };
+    const totalAdSpend = cc.filter(c => c.type === 'daily').reduce((s, c) => s + c.adSpend, 0);
+    return { daily, paid, pending: daily - paid, totalAdSpend };
   };
 
   const filtered = clients.filter(c =>
@@ -283,6 +341,8 @@ const Clients: React.FC = () => {
           const acc = getAccumulated(c.id);
           const isExpanded = expandedClient === c.id;
           const clientComms = getClientCommissions(c.id);
+          const previewCommission = adSpendAmount && showCommissionForm === c.id
+            ? calculateCommission(c, parseFloat(adSpendAmount) || 0) : 0;
 
           return (
             <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border rounded-xl overflow-hidden border-glow">
@@ -309,9 +369,13 @@ const Clients: React.FC = () => {
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border">
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-3">
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Acumulado</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Gasto em Ads</p>
+                      <p className="text-xs sm:text-sm font-bold text-foreground">{fmt(acc.totalAdSpend)}</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão</p>
                       <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.daily)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
@@ -330,6 +394,9 @@ const Clients: React.FC = () => {
                     </button>
                     <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
                       <CheckCircle size={12} /> Comissão Paga
+                    </button>
+                    <button onClick={() => handleGenerateWeeklyBilling(c.id)} className="flex items-center gap-1.5 text-xs bg-warning/10 text-warning px-3 py-1.5 rounded-lg hover:bg-warning/20 transition-colors">
+                      <Receipt size={12} /> Gerar Cobrança Semanal
                     </button>
                     <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
@@ -350,10 +417,20 @@ const Clients: React.FC = () => {
                             <Calendar mode="single" selected={commissionDate} onSelect={(d) => d && setCommissionDate(d)} initialFocus className="p-3 pointer-events-auto" />
                           </PopoverContent>
                         </Popover>
-                        <input type="number" placeholder="Valor $" value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className={`${inputClass} flex-1`} />
+                        <input type="number" placeholder="Gasto em Ads ($)" value={adSpendAmount} onChange={e => setAdSpendAmount(e.target.value)} className={`${inputClass} flex-1`} />
                         <input placeholder="Nota (opcional)" value={commissionNote} onChange={e => setCommissionNote(e.target.value)} className={`${inputClass} flex-1`} />
                         <button onClick={() => handleAddCommission(c.id)} className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Adicionar</button>
                       </div>
+                      {previewCommission > 0 && (
+                        <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+                          <DollarSign size={12} className="text-primary" />
+                          <span className="text-muted-foreground">
+                            Gasto: <strong className="text-foreground">{fmt(parseFloat(adSpendAmount) || 0)}</strong>
+                            {' → '}Comissão da agência ({c.paymentType === 'fixed' ? 'Fixo' : c.paymentType === 'percentage' ? `${c.percentageValue}%` : `Fixo + ${c.percentageValue}%`}): 
+                            <strong className="text-primary ml-1">{fmt(previewCommission)}</strong>
+                          </span>
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -385,13 +462,22 @@ const Clients: React.FC = () => {
                   ) : (
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {clientComms.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(comm => (
-                        <div key={comm.id} className="flex items-center justify-between bg-card rounded-lg px-3 py-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : 'bg-success'}`} />
-                            <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                        <div key={comm.id} className={cn(
+                          "flex items-center justify-between rounded-lg px-3 py-2 text-xs",
+                          comm.type === 'weekly_billing' ? 'bg-warning/10 border border-warning/20' : 'bg-card'
+                        )}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
+                            <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                            <span className="text-muted-foreground">
+                              {comm.type === 'daily' ? 'Comissão' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança Semanal'}
+                            </span>
+                            {comm.type === 'daily' && comm.adSpend > 0 && (
+                              <span className="text-muted-foreground">(Ads: {fmt(comm.adSpend)})</span>
+                            )}
                             {comm.note && <span className="text-muted-foreground italic">- {comm.note}</span>}
                           </div>
-                          <span className={`font-semibold ${comm.type === 'daily' ? 'text-primary' : 'text-success'}`}>
+                          <span className={`font-semibold ${comm.type === 'daily' ? 'text-primary' : comm.type === 'paid' ? 'text-success' : 'text-warning'}`}>
                             {comm.type === 'paid' ? '-' : '+'}{fmt(comm.amount)}
                           </span>
                         </div>
