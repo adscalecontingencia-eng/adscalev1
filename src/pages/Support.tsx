@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, X, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Task {
   id: string;
@@ -18,8 +19,20 @@ const Support: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(() => JSON.parse(localStorage.getItem('adscale_tasks') || '[]'));
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structureType: 'BMs', status: 'pendente' });
-  const supportUsers = JSON.parse(localStorage.getItem('adscale_support_users') || '[]');
-  const clients = JSON.parse(localStorage.getItem('adscale_clients') || '[]');
+  const [supportUsers, setSupportUsers] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [supRes, cliRes] = await Promise.all([
+        supabase.from('support_users').select('id, name'),
+        supabase.from('clients').select('id, name'),
+      ]);
+      if (supRes.data) setSupportUsers(supRes.data);
+      if (cliRes.data) setClients(cliRes.data);
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => { localStorage.setItem('adscale_tasks', JSON.stringify(tasks)); }, [tasks]);
 
