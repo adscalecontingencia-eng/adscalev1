@@ -73,29 +73,41 @@ export type Database = {
       }
       commissions: {
         Row: {
+          ad_spend: number | null
           amount: number
+          billing_week_end: string | null
+          billing_week_start: string | null
           client_id: string
           created_at: string
           date: string
           id: string
+          is_weekly_billing: boolean | null
           note: string | null
           type: string
         }
         Insert: {
+          ad_spend?: number | null
           amount: number
+          billing_week_end?: string | null
+          billing_week_start?: string | null
           client_id: string
           created_at?: string
           date?: string
           id?: string
+          is_weekly_billing?: boolean | null
           note?: string | null
           type?: string
         }
         Update: {
+          ad_spend?: number | null
           amount?: number
+          billing_week_end?: string | null
+          billing_week_start?: string | null
           client_id?: string
           created_at?: string
           date?: string
           id?: string
+          is_weekly_billing?: boolean | null
           note?: string | null
           type?: string
         }
