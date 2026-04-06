@@ -371,10 +371,27 @@ const Clients: React.FC = () => {
       : cc;
     
     const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
-    const daily = comissionTypes.reduce((s, c) => s + c.amount, 0);
-    const paid = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
     const totalAdSpend = comissionTypes.reduce((s, c) => s + c.adSpend, 0);
-    return { daily, paid, pending: daily - paid, totalAdSpend };
+    
+    // Comissão Pendente: soma de valor_pendente dos registros pendentes/parciais
+    const comissaoPendente = comissionTypes
+      .filter(c => c.status === 'pendente' || c.status === 'parcial')
+      .reduce((s, c) => s + (c.valorPendente || 0), 0);
+    
+    // Comissão Paga: soma de amount dos paid + soma de valor_pago dos daily/weekly com status pago/parcial
+    const paidRecords = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
+    const valorPagoFromDaily = comissionTypes
+      .filter(c => c.status === 'pago' || c.status === 'parcial')
+      .reduce((s, c) => s + (c.valorPago || 0), 0);
+    const comissaoPaga = paidRecords + valorPagoFromDaily;
+    
+    // Comissão Total (para calcular saldo)
+    const comissaoTotal = comissionTypes.reduce((s, c) => s + c.amount, 0);
+    
+    // Saldo Pendente: total - paga
+    const saldoPendente = comissaoTotal - comissaoPaga;
+    
+    return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
   };
 
   const filtered = clients.filter(c =>
