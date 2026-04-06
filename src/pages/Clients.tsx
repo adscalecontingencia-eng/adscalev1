@@ -707,7 +707,7 @@ const Clients: React.FC = () => {
                     <p className="text-xs text-muted-foreground">Nenhum lançamento encontrado.</p>
                   ) : (
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {clientComms.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(comm => (
+                      {clientComms.sort((a, b) => parseDateLocal(b.date).getTime() - parseDateLocal(a.date).getTime()).map(comm => (
                         <div key={comm.id} className={cn(
                           "flex items-center justify-between rounded-lg px-3 py-2 text-xs",
                           comm.type === 'weekly_billing' ? 'bg-warning/10 border border-warning/20' : 'bg-card'
