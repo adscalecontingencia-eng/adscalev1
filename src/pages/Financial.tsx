@@ -66,7 +66,7 @@ const Financial: React.FC = () => {
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter(t => {
-      const d = new Date(t.date);
+      const d = parseDateLocal(t.date);
 
       // Date filter
       if (dateFilter === 'today' && d.toDateString() !== now.toDateString()) return false;
