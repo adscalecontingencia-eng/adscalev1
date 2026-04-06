@@ -4,7 +4,7 @@ import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, C
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,6 +36,10 @@ interface Commission {
   billingWeekStart?: string;
   billingWeekEnd?: string;
   isWeeklyBilling?: boolean;
+  percentualAplicado?: number;
+  valorPago?: number;
+  valorPendente?: number;
+  status?: string;
 }
 
 const Clients: React.FC = () => {
@@ -55,6 +59,7 @@ const Clients: React.FC = () => {
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState<'week' | 'month' | 'all'>('week');
 
   const fetchClients = async () => {
     const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
@@ -74,17 +79,20 @@ const Clients: React.FC = () => {
     if (error) return;
     setCommissions((data || []).map(c => ({
       id: c.id, clientId: c.client_id, date: c.date, amount: Number(c.amount),
-      adSpend: Number((c as any).ad_spend) || 0,
+      adSpend: Number(c.ad_spend) || 0,
       type: c.type as 'daily' | 'paid' | 'weekly_billing', note: c.note || undefined,
-      billingWeekStart: (c as any).billing_week_start || undefined,
-      billingWeekEnd: (c as any).billing_week_end || undefined,
-      isWeeklyBilling: (c as any).is_weekly_billing || false,
+      billingWeekStart: c.billing_week_start || undefined,
+      billingWeekEnd: c.billing_week_end || undefined,
+      isWeeklyBilling: c.is_weekly_billing || false,
+      percentualAplicado: Number((c as any).percentual_aplicado) || 0,
+      valorPago: Number((c as any).valor_pago) || 0,
+      valorPendente: Number((c as any).valor_pendente) || 0,
+      status: (c as any).status || 'pendente',
     })));
   };
 
   useEffect(() => { fetchClients(); fetchCommissions(); }, []);
 
-  // Calculate commission based on client contract
   const calculateCommission = (client: Client, adSpend: number): number => {
     let commission = 0;
     if (client.paymentType === 'fixed' || client.paymentType === 'both') {
@@ -159,12 +167,41 @@ const Clients: React.FC = () => {
     if (!client) return;
     
     const commission = calculateCommission(client, adSpend);
-    
-    const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: commissionDate.toISOString(), amount: commission,
-      ad_spend: adSpend, type: 'daily', note: commissionNote || null,
+    const percentApplied = client.paymentType === 'percentage' || client.paymentType === 'both' 
+      ? client.percentageValue || 0 : 0;
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+    // 1. Insert commission record
+    const { error: commError } = await supabase.from('commissions').insert({
+      client_id: clientId, 
+      date: commissionDate.toISOString(), 
+      amount: commission,
+      ad_spend: adSpend, 
+      type: 'daily', 
+      note: commissionNote || null,
+      billing_week_start: format(weekStart, 'yyyy-MM-dd'),
+      billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
+      percentual_aplicado: percentApplied,
+      valor_pago: 0,
+      valor_pendente: commission,
+      status: 'pendente',
     } as any);
-    if (error) { toast.error('Erro ao lançar comissão'); return; }
+    if (commError) { toast.error('Erro ao lançar comissão'); return; }
+
+    // 2. Also create a transaction record for the financial page
+    const categoryType = client.paymentType === 'fixed' ? 'Comissão Fixa' : 'Comissão Semanal';
+    const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
+    await supabase.from('transactions').insert({
+      date: format(commissionDate, 'yyyy-MM-dd'),
+      type: 'receita',
+      category: categoryType,
+      client_id: clientId,
+      amount: commission,
+      description: `Comissão do cliente ${client.name} - período ${periodoStr}`,
+    });
+
     toast.success(`Comissão de ${fmt(commission)} lançada! (Gasto: ${fmt(adSpend)})`);
     setAdSpendAmount(''); setCommissionNote(''); setCommissionDate(new Date()); setShowCommissionForm(null);
     fetchCommissions();
@@ -173,10 +210,36 @@ const Clients: React.FC = () => {
   const handleAddPaid = async (clientId: string) => {
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
+
+    // Insert paid record
     const { error } = await supabase.from('commissions').insert({
       client_id: clientId, date: paidDate.toISOString(), amount, type: 'paid',
     });
     if (error) { toast.error('Erro ao registrar pagamento'); return; }
+
+    // Update pending commissions for this client (mark as paid/partial)
+    const clientDailyComms = commissions
+      .filter(c => c.clientId === clientId && c.type === 'daily' && (c.status === 'pendente' || c.status === 'parcial'))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let remaining = amount;
+    for (const comm of clientDailyComms) {
+      if (remaining <= 0) break;
+      const pendente = comm.valorPendente || (comm.amount - (comm.valorPago || 0));
+      const payThis = Math.min(remaining, pendente);
+      const newPago = (comm.valorPago || 0) + payThis;
+      const newPendente = comm.amount - newPago;
+      const newStatus = newPendente <= 0 ? 'pago' : newPago > 0 ? 'parcial' : 'pendente';
+      
+      await supabase.from('commissions').update({
+        valor_pago: newPago,
+        valor_pendente: Math.max(0, newPendente),
+        status: newStatus,
+      } as any).eq('id', comm.id);
+      
+      remaining -= payThis;
+    }
+
     toast.success('Pagamento registrado!');
     setPaidAmount(''); setPaidDate(new Date()); setShowPaidForm(null);
     fetchCommissions();
@@ -187,10 +250,9 @@ const Clients: React.FC = () => {
     if (!client) return;
 
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // Check if billing already exists for this week
     const existing = commissions.find(c =>
       c.clientId === clientId && c.type === 'weekly_billing' &&
       c.billingWeekStart === format(weekStart, 'yyyy-MM-dd') 
@@ -200,7 +262,6 @@ const Clients: React.FC = () => {
       return;
     }
 
-    // Sum all daily commissions for this week
     const weeklyCommissions = commissions.filter(c =>
       c.clientId === clientId && c.type === 'daily' &&
       isWithinInterval(new Date(c.date), { start: weekStart, end: weekEnd })
@@ -220,18 +281,37 @@ const Clients: React.FC = () => {
       billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
       is_weekly_billing: true,
       note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
+      valor_pago: 0,
+      valor_pendente: totalCommission,
+      status: 'pendente',
     } as any);
     if (error) { toast.error('Erro ao gerar cobrança'); return; }
     toast.success(`Cobrança semanal de ${fmt(totalCommission)} gerada!`);
     fetchCommissions();
   };
 
+  const getFilterRange = () => {
+    const now = new Date();
+    switch (periodFilter) {
+      case 'week': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
+      case 'all': return null;
+    }
+  };
+
   const getClientCommissions = (clientId: string) => commissions.filter(c => c.clientId === clientId);
+  
   const getAccumulated = (clientId: string) => {
     const cc = getClientCommissions(clientId);
-    const daily = cc.filter(c => c.type === 'daily').reduce((s, c) => s + c.amount, 0);
-    const paid = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
-    const totalAdSpend = cc.filter(c => c.type === 'daily').reduce((s, c) => s + c.adSpend, 0);
+    const range = getFilterRange();
+    
+    const filtered = range 
+      ? cc.filter(c => isWithinInterval(new Date(c.date), { start: range.start, end: range.end }))
+      : cc;
+    
+    const daily = filtered.filter(c => c.type === 'daily').reduce((s, c) => s + c.amount, 0);
+    const paid = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
+    const totalAdSpend = filtered.filter(c => c.type === 'daily').reduce((s, c) => s + c.adSpend, 0);
     return { daily, paid, pending: daily - paid, totalAdSpend };
   };
 
@@ -252,6 +332,16 @@ const Clients: React.FC = () => {
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..." className={`${inputClass} pl-10`} />
+        </div>
+        <div className="flex gap-1">
+          {(['week', 'month', 'all'] as const).map(p => (
+            <button key={p} onClick={() => setPeriodFilter(p)}
+              className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-colors",
+                periodFilter === p ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              )}>
+              {p === 'week' ? 'Semana' : p === 'month' ? 'Mês' : 'Todos'}
+            </button>
+          ))}
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 glow-box whitespace-nowrap">
           <Plus size={16} /> Novo Cliente
@@ -474,6 +564,15 @@ const Clients: React.FC = () => {
                             </span>
                             {comm.type === 'daily' && comm.adSpend > 0 && (
                               <span className="text-muted-foreground">(Ads: {fmt(comm.adSpend)})</span>
+                            )}
+                            {comm.type === 'daily' && comm.status && (
+                              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium",
+                                comm.status === 'pago' ? 'bg-success/10 text-success' : 
+                                comm.status === 'parcial' ? 'bg-warning/10 text-warning' : 
+                                'bg-muted text-muted-foreground'
+                              )}>
+                                {comm.status === 'pago' ? 'Pago' : comm.status === 'parcial' ? 'Parcial' : 'Pendente'}
+                              </span>
                             )}
                             {comm.note && <span className="text-muted-foreground italic">- {comm.note}</span>}
                           </div>

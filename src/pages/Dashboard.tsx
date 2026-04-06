@@ -50,6 +50,7 @@ const Dashboard: React.FC = () => {
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
   const profit = revenue - expenses;
 
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
@@ -164,7 +165,7 @@ const Dashboard: React.FC = () => {
         <StatCard icon={DollarSign} label="Faturamento" value={fmt(revenue)} trend="up" />
         <StatCard icon={BarChart3} label="Lucro" value={fmt(profit)} trend={profit >= 0 ? 'up' : 'down'} />
         <StatCard icon={TrendingDown} label="Gastos Estrutura" value={fmt(expenses)} trend="down" />
-        <StatCard icon={Users} label="Clientes Ativos" value={String(clients.length)} />
+        <StatCard icon={Users} label="Clientes Ativos" value={String(activeClients)} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

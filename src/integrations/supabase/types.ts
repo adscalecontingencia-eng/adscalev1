@@ -83,7 +83,11 @@ export type Database = {
           id: string
           is_weekly_billing: boolean | null
           note: string | null
+          percentual_aplicado: number | null
+          status: string | null
           type: string
+          valor_pago: number | null
+          valor_pendente: number | null
         }
         Insert: {
           ad_spend?: number | null
@@ -96,7 +100,11 @@ export type Database = {
           id?: string
           is_weekly_billing?: boolean | null
           note?: string | null
+          percentual_aplicado?: number | null
+          status?: string | null
           type?: string
+          valor_pago?: number | null
+          valor_pendente?: number | null
         }
         Update: {
           ad_spend?: number | null
@@ -109,7 +117,11 @@ export type Database = {
           id?: string
           is_weekly_billing?: boolean | null
           note?: string | null
+          percentual_aplicado?: number | null
+          status?: string | null
           type?: string
+          valor_pago?: number | null
+          valor_pendente?: number | null
         }
         Relationships: [
           {
