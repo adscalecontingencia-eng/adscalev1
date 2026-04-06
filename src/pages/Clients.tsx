@@ -714,7 +714,7 @@ const Clients: React.FC = () => {
                         )}>
                           <div className="flex items-center gap-2 flex-wrap flex-1">
                             <span className={`w-2 h-2 rounded-full shrink-0 ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
-                            <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                            <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
                             <span className="text-muted-foreground">
                               {comm.type === 'daily' ? 'Gasto em Ads' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança Semanal'}
                             </span>
