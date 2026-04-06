@@ -59,7 +59,9 @@ const Clients: React.FC = () => {
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [periodFilter, setPeriodFilter] = useState<'week' | 'month' | 'all'>('week');
+  const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
 
   // Edit commission state
   const [editingCommission, setEditingCommission] = useState<Commission | null>(null);
