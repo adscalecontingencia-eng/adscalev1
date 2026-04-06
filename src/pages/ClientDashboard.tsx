@@ -49,7 +49,7 @@ const ClientDashboard: React.FC = () => {
   const filteredCommissions = useMemo(() => {
     const range = getFilterRange();
     return commissions.filter(c => {
-      const d = new Date(c.date);
+      const d = parseDateLocal(c.date);
       return isWithinInterval(d, { start: range.start, end: range.end });
     });
   }, [commissions, periodFilter, customStart, customEnd]);
