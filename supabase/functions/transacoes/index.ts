@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // If apenas_comissao = true, insert directly into commissions
+    // If apenas_comissao = true, treat amount as ad_spend, calculate commission from client contract
     if (apenas_comissao && type === 'receita' && (category === 'Comissão Fixa' || category === 'Comissão Semanal')) {
       if (!client_id) {
         return new Response(JSON.stringify({ erro: "client_id é obrigatório quando apenas_comissao = true" }), {
@@ -53,17 +53,43 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Fetch client contract to calculate commission
+      const { data: clientData, error: clientError } = await supabaseAdmin
+        .from("clients")
+        .select("payment_type, fixed_value, percentage_value")
+        .eq("id", client_id)
+        .single();
+
+      if (clientError || !clientData) {
+        return new Response(JSON.stringify({ erro: "Cliente não encontrado" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const adSpend = amount; // the amount sent is the ad spend
+      let commission = 0;
+      const pt = clientData.payment_type;
+      if (pt === 'fixed' || pt === 'both') {
+        commission += Number(clientData.fixed_value) || 0;
+      }
+      if (pt === 'percentage' || pt === 'both') {
+        commission += adSpend * ((Number(clientData.percentage_value) || 0) / 100);
+      }
+      const percentApplied = (pt === 'percentage' || pt === 'both') ? (Number(clientData.percentage_value) || 0) : 0;
+
       const { data, error } = await supabaseAdmin
         .from("commissions")
         .insert({
           client_id,
           date,
-          amount,
-          ad_spend: 0,
+          amount: commission,
+          ad_spend: adSpend,
           type: 'daily',
           note: description || null,
+          percentual_aplicado: percentApplied,
           valor_pago: 0,
-          valor_pendente: amount,
+          valor_pendente: commission,
           status: 'pendente',
         })
         .select()
@@ -76,7 +102,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ sucesso: true, comissao: data }), {
+      return new Response(JSON.stringify({ sucesso: true, comissao: data, ad_spend: adSpend, comissao_calculada: commission }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
