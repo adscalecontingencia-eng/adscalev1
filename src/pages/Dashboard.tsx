@@ -50,6 +50,7 @@ const Dashboard: React.FC = () => {
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
   const profit = revenue - expenses;
 
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
