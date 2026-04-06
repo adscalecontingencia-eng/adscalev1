@@ -4,7 +4,7 @@ import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, C
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -59,7 +59,9 @@ const Clients: React.FC = () => {
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [periodFilter, setPeriodFilter] = useState<'week' | 'month' | 'all'>('week');
+  const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
 
   // Edit commission state
   const [editingCommission, setEditingCommission] = useState<Commission | null>(null);
@@ -346,12 +348,14 @@ const Clients: React.FC = () => {
     fetchCommissions();
   };
 
-  const getFilterRange = () => {
+  const getFilterRange = (): { start: Date; end: Date } | null => {
     const now = new Date();
     switch (periodFilter) {
+      case 'today': return { start: startOfDay(now), end: endOfDay(now) };
+      case 'yesterday': { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
       case 'week': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
-      case 'all': return null;
+      case 'custom': return customStart && customEnd ? { start: startOfDay(customStart), end: endOfDay(customEnd) } : null;
     }
   };
 
@@ -390,15 +394,48 @@ const Clients: React.FC = () => {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..." className={`${inputClass} pl-10`} />
         </div>
-        <div className="flex gap-1">
-          {(['week', 'month', 'all'] as const).map(p => (
-            <button key={p} onClick={() => setPeriodFilter(p)}
+        <div className="flex gap-1 flex-wrap items-center">
+          {([
+            { key: 'today', label: 'Hoje' },
+            { key: 'yesterday', label: 'Ontem' },
+            { key: 'week', label: 'Semana' },
+            { key: 'month', label: 'Mês' },
+            { key: 'custom', label: 'Personalizado' },
+          ] as const).map(p => (
+            <button key={p.key} onClick={() => setPeriodFilter(p.key)}
               className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                periodFilter === p ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                periodFilter === p.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
               )}>
-              {p === 'week' ? 'Semana' : p === 'month' ? 'Mês' : 'Todos'}
+              {p.label}
             </button>
           ))}
+          {periodFilter === 'custom' && (
+            <div className="flex items-center gap-2 ml-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground flex items-center gap-1">
+                    <CalendarIcon size={12} />
+                    {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground text-xs">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground flex items-center gap-1">
+                    <CalendarIcon size={12} />
+                    {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 glow-box whitespace-nowrap">
           <Plus size={16} /> Novo Cliente
