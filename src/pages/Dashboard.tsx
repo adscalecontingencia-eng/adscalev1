@@ -92,8 +92,8 @@ const Dashboard: React.FC = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = d.getMonth();
       const year = d.getFullYear();
-      const monthRevenue = transactions.filter((t: any) => { const td = new Date(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const monthExpenses = transactions.filter((t: any) => { const td = new Date(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthRevenue = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthExpenses = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
       months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;
