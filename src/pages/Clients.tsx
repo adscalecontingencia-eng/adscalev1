@@ -638,16 +638,16 @@ const Clients: React.FC = () => {
                       <p className="text-xs sm:text-sm font-bold text-foreground">{fmt(acc.totalAdSpend)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão</p>
-                      <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.daily)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Pendente</p>
+                      <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.comissaoPendente)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Pago</p>
-                      <p className="text-xs sm:text-sm font-bold text-success">{fmt(acc.paid)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Paga</p>
+                      <p className="text-xs sm:text-sm font-bold text-success">{fmt(acc.comissaoPaga)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Pendente</p>
-                      <p className={`text-xs sm:text-sm font-bold ${acc.pending > 0 ? 'text-warning' : 'text-muted-foreground'}`}>{fmt(acc.pending)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Saldo Pendente</p>
+                      <p className={`text-xs sm:text-sm font-bold ${acc.saldoPendente > 0 ? 'text-warning' : 'text-muted-foreground'}`}>{fmt(acc.saldoPendente)}</p>
                     </div>
                   </div>
 
