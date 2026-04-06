@@ -37,7 +37,7 @@ const Dashboard: React.FC = () => {
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter((t: any) => {
-      const d = new Date(t.date);
+      const d = parseDateLocal(t.date);
       if (dateFilter === 'today') return d.toDateString() === now.toDateString();
       if (dateFilter === '7days') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       if (dateFilter === 'custom' && customDate) return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
