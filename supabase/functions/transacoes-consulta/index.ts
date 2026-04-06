@@ -71,6 +71,10 @@ Deno.serve(async (req) => {
       query = query.eq("type", tipo);
     }
 
+    if (clienteId) {
+      query = query.eq("client_id", clienteId);
+    }
+
     const { data, error } = await query;
 
     if (error) {
