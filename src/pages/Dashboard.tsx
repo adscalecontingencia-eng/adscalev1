@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateLocal } from '@/lib/date-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -36,7 +37,7 @@ const Dashboard: React.FC = () => {
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter((t: any) => {
-      const d = new Date(t.date);
+      const d = parseDateLocal(t.date);
       if (dateFilter === 'today') return d.toDateString() === now.toDateString();
       if (dateFilter === '7days') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       if (dateFilter === 'custom' && customDate) return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
@@ -77,8 +78,8 @@ const Dashboard: React.FC = () => {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const dayStr = d.toDateString();
-      const dayRevenue = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const dayExpenses = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayRevenue = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayExpenses = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses });
     }
     return days;
@@ -91,8 +92,8 @@ const Dashboard: React.FC = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = d.getMonth();
       const year = d.getFullYear();
-      const monthRevenue = transactions.filter((t: any) => { const td = new Date(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const monthExpenses = transactions.filter((t: any) => { const td = new Date(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthRevenue = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthExpenses = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
       months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;

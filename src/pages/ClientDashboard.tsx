@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -48,7 +49,7 @@ const ClientDashboard: React.FC = () => {
   const filteredCommissions = useMemo(() => {
     const range = getFilterRange();
     return commissions.filter(c => {
-      const d = new Date(c.date);
+      const d = parseDateLocal(c.date);
       return isWithinInterval(d, { start: range.start, end: range.end });
     });
   }, [commissions, periodFilter, customStart, customEnd]);
@@ -121,7 +122,7 @@ const ClientDashboard: React.FC = () => {
                     {billing.note || 'Cobrança semanal'} — Valor: <strong className="text-warning">{fmt(Number(billing.amount))}</strong>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Período: {(billing as any).billing_week_start ? format(new Date((billing as any).billing_week_start), 'dd/MM', { locale: ptBR }) : ''} - {(billing as any).billing_week_end ? format(new Date((billing as any).billing_week_end), 'dd/MM', { locale: ptBR }) : ''}
+                    Período: {(billing as any).billing_week_start ? formatDateShortBR((billing as any).billing_week_start) : ''} - {(billing as any).billing_week_end ? formatDateShortBR((billing as any).billing_week_end) : ''}
                   </p>
                 </div>
               </div>
@@ -300,7 +301,7 @@ const ClientDashboard: React.FC = () => {
                 )}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
-                    <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
                     <span className="text-muted-foreground">
                       {comm.type === 'daily' ? 'Comissão' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança'}
                     </span>

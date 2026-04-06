@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -227,7 +228,7 @@ const Clients: React.FC = () => {
 
     const clientDailyComms = commissions
       .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => parseDateLocal(a.date).getTime() - parseDateLocal(b.date).getTime());
 
     let remaining = amount;
     for (const comm of clientDailyComms) {
@@ -271,7 +272,7 @@ const Clients: React.FC = () => {
 
     const weeklyCommissions = commissions.filter(c =>
       c.clientId === clientId && c.type === 'daily' &&
-      isWithinInterval(new Date(c.date), { start: weekStart, end: weekEnd })
+      isWithinInterval(parseDateLocal(c.date), { start: weekStart, end: weekEnd })
     );
     const totalAdSpend = weeklyCommissions.reduce((s, c) => s + c.adSpend, 0);
     const totalCommission = weeklyCommissions.reduce((s, c) => s + c.amount, 0);
@@ -303,7 +304,7 @@ const Clients: React.FC = () => {
     setEditCommAmount(comm.amount.toString());
     setEditCommAdSpend(comm.adSpend.toString());
     setEditCommNote(comm.note || '');
-    setEditCommDate(new Date(comm.date));
+    setEditCommDate(parseDateLocal(comm.date));
   };
 
   const handleSaveEditCommission = async () => {
@@ -366,7 +367,7 @@ const Clients: React.FC = () => {
     const range = getFilterRange();
     
     const filtered = range 
-      ? cc.filter(c => isWithinInterval(new Date(c.date), { start: range.start, end: range.end }))
+      ? cc.filter(c => isWithinInterval(parseDateLocal(c.date), { start: range.start, end: range.end }))
       : cc;
     
     const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
@@ -706,14 +707,14 @@ const Clients: React.FC = () => {
                     <p className="text-xs text-muted-foreground">Nenhum lançamento encontrado.</p>
                   ) : (
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {clientComms.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(comm => (
+                      {clientComms.sort((a, b) => parseDateLocal(b.date).getTime() - parseDateLocal(a.date).getTime()).map(comm => (
                         <div key={comm.id} className={cn(
                           "flex items-center justify-between rounded-lg px-3 py-2 text-xs",
                           comm.type === 'weekly_billing' ? 'bg-warning/10 border border-warning/20' : 'bg-card'
                         )}>
                           <div className="flex items-center gap-2 flex-wrap flex-1">
                             <span className={`w-2 h-2 rounded-full shrink-0 ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
-                            <span className="text-muted-foreground">{format(new Date(comm.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                            <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
                             <span className="text-muted-foreground">
                               {comm.type === 'daily' ? 'Gasto em Ads' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança Semanal'}
                             </span>

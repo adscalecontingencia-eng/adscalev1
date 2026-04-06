@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, X, AlertCircle, CalendarIcon, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
@@ -65,7 +66,7 @@ const Financial: React.FC = () => {
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter(t => {
-      const d = new Date(t.date);
+      const d = parseDateLocal(t.date);
 
       // Date filter
       if (dateFilter === 'today' && d.toDateString() !== now.toDateString()) return false;
@@ -272,7 +273,7 @@ const Financial: React.FC = () => {
                 <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category}</span>
               </div>
               <p className="text-sm mt-1">{t.description}</p>
-              <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+              <p className="text-xs text-muted-foreground">{formatDateBR(t.date)}</p>
             </div>
             <div className="flex items-center gap-3">
               <span className={`font-semibold ${t.type === 'receita' ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount)}</span>
