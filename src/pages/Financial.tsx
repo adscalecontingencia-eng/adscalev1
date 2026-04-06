@@ -273,7 +273,7 @@ const Financial: React.FC = () => {
                 <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category}</span>
               </div>
               <p className="text-sm mt-1">{t.description}</p>
-              <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+              <p className="text-xs text-muted-foreground">{formatDateBR(t.date)}</p>
             </div>
             <div className="flex items-center gap-3">
               <span className={`font-semibold ${t.type === 'receita' ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount)}</span>
