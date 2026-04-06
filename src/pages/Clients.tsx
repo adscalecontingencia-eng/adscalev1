@@ -348,12 +348,14 @@ const Clients: React.FC = () => {
     fetchCommissions();
   };
 
-  const getFilterRange = () => {
+  const getFilterRange = (): { start: Date; end: Date } | null => {
     const now = new Date();
     switch (periodFilter) {
+      case 'today': return { start: startOfDay(now), end: endOfDay(now) };
+      case 'yesterday': { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
       case 'week': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
-      case 'all': return null;
+      case 'custom': return customStart && customEnd ? { start: startOfDay(customStart), end: endOfDay(customEnd) } : null;
     }
   };
 
