@@ -44,6 +44,43 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // If apenas_comissao = true, insert directly into commissions
+    if (apenas_comissao && type === 'receita' && (category === 'Comissão Fixa' || category === 'Comissão Semanal')) {
+      if (!client_id) {
+        return new Response(JSON.stringify({ erro: "client_id é obrigatório quando apenas_comissao = true" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("commissions")
+        .insert({
+          client_id,
+          date,
+          amount,
+          ad_spend: 0,
+          type: 'daily',
+          note: description || null,
+          valor_pago: 0,
+          valor_pendente: amount,
+          status: 'pendente',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return new Response(JSON.stringify({ erro: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ sucesso: true, comissao: data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data, error } = await supabaseAdmin
       .from("transactions")
       .insert({
