@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, X, AlertCircle, CalendarIcon, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
