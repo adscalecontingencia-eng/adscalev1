@@ -122,7 +122,7 @@ const ClientDashboard: React.FC = () => {
                     {billing.note || 'Cobrança semanal'} — Valor: <strong className="text-warning">{fmt(Number(billing.amount))}</strong>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Período: {(billing as any).billing_week_start ? format(new Date((billing as any).billing_week_start), 'dd/MM', { locale: ptBR }) : ''} - {(billing as any).billing_week_end ? format(new Date((billing as any).billing_week_end), 'dd/MM', { locale: ptBR }) : ''}
+                    Período: {(billing as any).billing_week_start ? formatDateShortBR((billing as any).billing_week_start) : ''} - {(billing as any).billing_week_end ? formatDateShortBR((billing as any).billing_week_end) : ''}
                   </p>
                 </div>
               </div>
