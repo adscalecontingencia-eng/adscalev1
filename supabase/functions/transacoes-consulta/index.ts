@@ -77,6 +77,12 @@ Deno.serve(async (req) => {
       .order("date", { ascending: false });
 
     if (tipo) {
+      if (!["receita", "gasto"].includes(tipo)) {
+        return new Response(JSON.stringify({ erro: "Tipo inválido. Use: receita ou gasto" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       query = query.eq("type", tipo);
     }
 
