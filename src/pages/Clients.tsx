@@ -371,10 +371,27 @@ const Clients: React.FC = () => {
       : cc;
     
     const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
-    const daily = comissionTypes.reduce((s, c) => s + c.amount, 0);
-    const paid = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
     const totalAdSpend = comissionTypes.reduce((s, c) => s + c.adSpend, 0);
-    return { daily, paid, pending: daily - paid, totalAdSpend };
+    
+    // Comissão Pendente: soma de valor_pendente dos registros pendentes/parciais
+    const comissaoPendente = comissionTypes
+      .filter(c => c.status === 'pendente' || c.status === 'parcial')
+      .reduce((s, c) => s + (c.valorPendente || 0), 0);
+    
+    // Comissão Paga: soma de amount dos paid + soma de valor_pago dos daily/weekly com status pago/parcial
+    const paidRecords = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
+    const valorPagoFromDaily = comissionTypes
+      .filter(c => c.status === 'pago' || c.status === 'parcial')
+      .reduce((s, c) => s + (c.valorPago || 0), 0);
+    const comissaoPaga = paidRecords + valorPagoFromDaily;
+    
+    // Comissão Total (para calcular saldo)
+    const comissaoTotal = comissionTypes.reduce((s, c) => s + c.amount, 0);
+    
+    // Saldo Pendente: total - paga
+    const saldoPendente = comissaoTotal - comissaoPaga;
+    
+    return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
   };
 
   const filtered = clients.filter(c =>
@@ -621,16 +638,16 @@ const Clients: React.FC = () => {
                       <p className="text-xs sm:text-sm font-bold text-foreground">{fmt(acc.totalAdSpend)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão</p>
-                      <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.daily)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Pendente</p>
+                      <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.comissaoPendente)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Pago</p>
-                      <p className="text-xs sm:text-sm font-bold text-success">{fmt(acc.paid)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Paga</p>
+                      <p className="text-xs sm:text-sm font-bold text-success">{fmt(acc.comissaoPaga)}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Pendente</p>
-                      <p className={`text-xs sm:text-sm font-bold ${acc.pending > 0 ? 'text-warning' : 'text-muted-foreground'}`}>{fmt(acc.pending)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Saldo Pendente</p>
+                      <p className={`text-xs sm:text-sm font-bold ${acc.saldoPendente > 0 ? 'text-warning' : 'text-muted-foreground'}`}>{fmt(acc.saldoPendente)}</p>
                     </div>
                   </div>
 
