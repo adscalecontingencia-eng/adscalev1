@@ -21,9 +21,11 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const chave = url.searchParams.get("chave");
-    const periodo = url.searchParams.get("periodo") || "hoje";
+    const periodo = url.searchParams.get("periodo");
     const tipo = url.searchParams.get("tipo");
     const clienteId = url.searchParams.get("cliente_id");
+    const customStart = url.searchParams.get("start");
+    const customEnd = url.searchParams.get("end");
 
     // Validate secret key
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
@@ -34,25 +36,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Calculate date range
-    const now = new Date();
     let startDate: string;
-    let endDate: string = now.toISOString().split("T")[0];
+    let endDate: string;
 
-    if (periodo === "hoje") {
-      startDate = endDate;
-    } else if (periodo === "semana") {
-      const dayOfWeek = now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
-      startDate = monday.toISOString().split("T")[0];
-    } else if (periodo === "mes") {
-      startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    if (customStart && customEnd) {
+      startDate = customStart;
+      endDate = customEnd;
     } else {
-      return new Response(JSON.stringify({ erro: "Período inválido. Use: hoje, semana ou mes" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const now = new Date();
+      endDate = now.toISOString().split("T")[0];
+      const p = periodo || "hoje";
+
+      if (p === "hoje") {
+        startDate = endDate;
+      } else if (p === "semana") {
+        const dayOfWeek = now.getDay();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+        startDate = monday.toISOString().split("T")[0];
+      } else if (p === "mes") {
+        startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      } else {
+        return new Response(JSON.stringify({ erro: "Período inválido. Use: hoje, semana ou mes" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const supabaseAdmin = createClient(
