@@ -165,7 +165,7 @@ const Dashboard: React.FC = () => {
         <StatCard icon={DollarSign} label="Faturamento" value={fmt(revenue)} trend="up" />
         <StatCard icon={BarChart3} label="Lucro" value={fmt(profit)} trend={profit >= 0 ? 'up' : 'down'} />
         <StatCard icon={TrendingDown} label="Gastos Estrutura" value={fmt(expenses)} trend="down" />
-        <StatCard icon={Users} label="Clientes Ativos" value={String(clients.length)} />
+        <StatCard icon={Users} label="Clientes Ativos" value={String(activeClients)} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
