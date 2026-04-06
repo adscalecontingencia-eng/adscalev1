@@ -304,7 +304,7 @@ const Clients: React.FC = () => {
     setEditCommAmount(comm.amount.toString());
     setEditCommAdSpend(comm.adSpend.toString());
     setEditCommNote(comm.note || '');
-    setEditCommDate(new Date(comm.date));
+    setEditCommDate(parseDateLocal(comm.date));
   };
 
   const handleSaveEditCommission = async () => {
