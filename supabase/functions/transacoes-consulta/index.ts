@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
     const chave = url.searchParams.get("chave");
     const periodo = url.searchParams.get("periodo") || "hoje";
     const tipo = url.searchParams.get("tipo");
+    const clienteId = url.searchParams.get("cliente_id");
 
     // Validate secret key
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
