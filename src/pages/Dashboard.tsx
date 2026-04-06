@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateLocal } from '@/lib/date-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
