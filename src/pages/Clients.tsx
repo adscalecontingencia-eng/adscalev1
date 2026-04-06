@@ -309,9 +309,10 @@ const Clients: React.FC = () => {
       ? cc.filter(c => isWithinInterval(new Date(c.date), { start: range.start, end: range.end }))
       : cc;
     
-    const daily = filtered.filter(c => c.type === 'daily').reduce((s, c) => s + c.amount, 0);
+    const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
+    const daily = comissionTypes.reduce((s, c) => s + c.amount, 0);
     const paid = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
-    const totalAdSpend = filtered.filter(c => c.type === 'daily').reduce((s, c) => s + c.adSpend, 0);
+    const totalAdSpend = comissionTypes.reduce((s, c) => s + c.adSpend, 0);
     return { daily, paid, pending: daily - paid, totalAdSpend };
   };
 
