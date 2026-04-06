@@ -367,7 +367,7 @@ const Clients: React.FC = () => {
     const range = getFilterRange();
     
     const filtered = range 
-      ? cc.filter(c => isWithinInterval(new Date(c.date), { start: range.start, end: range.end }))
+      ? cc.filter(c => isWithinInterval(parseDateLocal(c.date), { start: range.start, end: range.end }))
       : cc;
     
     const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
