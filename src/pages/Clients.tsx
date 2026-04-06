@@ -272,7 +272,7 @@ const Clients: React.FC = () => {
 
     const weeklyCommissions = commissions.filter(c =>
       c.clientId === clientId && c.type === 'daily' &&
-      isWithinInterval(new Date(c.date), { start: weekStart, end: weekEnd })
+      isWithinInterval(parseDateLocal(c.date), { start: weekStart, end: weekEnd })
     );
     const totalAdSpend = weeklyCommissions.reduce((s, c) => s + c.adSpend, 0);
     const totalCommission = weeklyCommissions.reduce((s, c) => s + c.amount, 0);
