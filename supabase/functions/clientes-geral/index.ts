@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     if (tipo === "contas_por_cliente" || tipo === "clientes_ativos") {
       let query = supabaseAdmin
         .from("clients")
-        .select("name, company_name, ad_accounts, used_accounts, blocked_accounts")
+        .select("id, name, company_name, ad_accounts, used_accounts, blocked_accounts")
         .order("name");
 
       if (tipo === "clientes_ativos") {
@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         clientes: (data || []).map((c: any) => ({
           nome: c.name,
+          id: c.id,
           empresa: c.company_name,
           contas_anuncio: c.ad_accounts,
           contas_usadas: c.used_accounts,
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     if (tipo === "resumo_clientes") {
       const { data, error } = await supabaseAdmin
         .from("clients")
-        .select("name, company_name, payment_type, fixed_value, percentage_value, ad_accounts, used_accounts, blocked_accounts, observations")
+        .select("id, name, company_name, payment_type, fixed_value, percentage_value, ad_accounts, used_accounts, blocked_accounts, observations")
         .order("name");
 
       if (error) {
@@ -107,6 +108,7 @@ Deno.serve(async (req) => {
 
       return new Response(JSON.stringify({
         clientes: (data || []).map((c: any) => ({
+          id: c.id,
           nome: c.name,
           empresa: c.company_name,
           tipo_pagamento: c.payment_type,
