@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { chave, date, type, category, client_id, amount, description } = body;
+    const { chave, date, type, category, client_id, amount, description, apenas_comissao } = body;
 
     // Validate secret key
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
