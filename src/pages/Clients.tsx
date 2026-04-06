@@ -228,7 +228,7 @@ const Clients: React.FC = () => {
 
     const clientDailyComms = commissions
       .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => parseDateLocal(a.date).getTime() - parseDateLocal(b.date).getTime());
 
     let remaining = amount;
     for (const comm of clientDailyComms) {
