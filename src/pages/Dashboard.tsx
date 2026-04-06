@@ -78,8 +78,8 @@ const Dashboard: React.FC = () => {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const dayStr = d.toDateString();
-      const dayRevenue = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const dayExpenses = transactions.filter((t: any) => new Date(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayRevenue = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayExpenses = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses });
     }
     return days;
