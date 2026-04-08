@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { chave, tipo_tabela, descricao_busca, cliente_id, valor, data, data_inicio, data_fim } = body;
+    const { chave, tipo_tabela, descricao_busca, cliente_id, valor, data, data_inicio, data_fim, ad_spend } = body;
 
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
     if (!chave || chave !== secretKey) {
