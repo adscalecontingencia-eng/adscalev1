@@ -71,11 +71,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const isTransactions = tipo_tabela === "transactions";
 
     let query = supabaseAdmin.from(tipo_tabela).select("*");
@@ -85,7 +80,6 @@ Deno.serve(async (req) => {
         query = query.or(`description.ilike.%${descricao_busca}%,category.ilike.%${descricao_busca}%`);
       }
     } else {
-      // commissions: if we have cliente_id + valor, skip descricao_busca
       if (cliente_id && (valor !== undefined && valor !== null)) {
         // use only cliente_id + valor (applied below)
       } else if (descricao_busca) {
