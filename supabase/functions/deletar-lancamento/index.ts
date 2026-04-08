@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { chave, tipo_tabela, descricao_busca, cliente_id, valor, data } = body;
+    const { chave, tipo_tabela, descricao_busca, cliente_id, valor, data, data_inicio, data_fim } = body;
 
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
     if (!chave || chave !== secretKey) {
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!descricao_busca && !cliente_id && !valor && !data) {
+    if (!descricao_busca && !cliente_id && !valor && !data && !data_inicio) {
       return new Response(JSON.stringify({ erro: "Informe pelo menos um critério de busca" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
     if (valor !== undefined && valor !== null) {
       query = query.eq("amount", valor);
     }
-    if (data) {
+    if (data_inicio && data_fim) {
+      query = query.gte("date", data_inicio).lte("date", data_fim);
+    } else if (data) {
       if (isTransactions) {
         query = query.eq("date", data);
       } else {
