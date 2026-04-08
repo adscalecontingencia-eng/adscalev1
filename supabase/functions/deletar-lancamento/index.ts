@@ -46,12 +46,15 @@ Deno.serve(async (req) => {
     );
 
     const isTransactions = tipo_tabela === "transactions";
-    const textCol = isTransactions ? "description" : "note";
 
     let query = supabaseAdmin.from(tipo_tabela).select("*");
 
     if (descricao_busca) {
-      query = query.ilike(textCol, `%${descricao_busca}%`);
+      if (isTransactions) {
+        query = query.or(`description.ilike.%${descricao_busca}%,category.ilike.%${descricao_busca}%`);
+      } else {
+        query = query.ilike("note", `%${descricao_busca}%`);
+      }
     }
     if (cliente_id) {
       query = query.eq("client_id", cliente_id);
