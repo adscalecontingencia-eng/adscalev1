@@ -104,6 +104,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch commissions (gastos em ads)
+    const { data: commissions, error: commError } = await supabaseAdmin
+      .from("commissions")
+      .select("*")
+      .eq("client_id", client.id)
+      .eq("type", "daily")
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: false });
+
+    if (commError) {
+      return new Response(JSON.stringify({ erro: commError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const totalReceitas = (transactions || [])
       .filter((t: any) => t.type === "receita")
       .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
@@ -111,6 +128,16 @@ Deno.serve(async (req) => {
     const totalGastos = (transactions || [])
       .filter((t: any) => t.type === "gasto")
       .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+
+    const totalAdSpend = (commissions || []).reduce((sum: number, c: any) => sum + Number(c.ad_spend || 0), 0);
+    const totalComissaoGerada = (commissions || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
+
+    const registrosAds = (commissions || []).map((c: any) => ({
+      date: typeof c.date === "string" ? c.date.split("T")[0] : c.date,
+      ad_spend: Number(c.ad_spend || 0),
+      comissao: Number(c.amount || 0),
+      status: c.status,
+    }));
 
     return new Response(JSON.stringify({
       cliente: {
@@ -128,6 +155,11 @@ Deno.serve(async (req) => {
       total_receitas: totalReceitas,
       total_gastos: totalGastos,
       saldo: totalReceitas - totalGastos,
+      gastos_ads: {
+        total_ad_spend: totalAdSpend,
+        total_comissao_gerada: totalComissaoGerada,
+        registros: registrosAds,
+      },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
