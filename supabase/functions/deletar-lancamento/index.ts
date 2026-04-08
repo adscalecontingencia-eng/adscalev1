@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
     if (valor !== undefined && valor !== null) {
       query = query.eq("amount", valor);
     }
-    if (data) {
+    if (data_inicio && data_fim) {
+      query = query.gte("date", data_inicio).lte("date", data_fim);
+    } else if (data) {
       if (isTransactions) {
         query = query.eq("date", data);
       } else {
