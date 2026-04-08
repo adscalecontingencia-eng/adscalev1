@@ -122,8 +122,8 @@ Deno.serve(async (req) => {
     if (records.length > 1) {
       const lista = records.map((r: any) => ({
         id: r.id,
-        descricao: isTransactions ? r.description : r.note,
-        valor: r.amount,
+        descricao: isTransactions ? r.description : (r.type === 'daily' ? 'Gasto em Ads' : r.note),
+        valor: isTransactions ? r.amount : (r.ad_spend ?? r.amount),
         data: r.date,
       }));
       return new Response(JSON.stringify({ multiplos: true, total: records.length, registros: lista }), {
