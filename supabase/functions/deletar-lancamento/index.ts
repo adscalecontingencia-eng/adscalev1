@@ -49,11 +49,16 @@ Deno.serve(async (req) => {
 
     let query = supabaseAdmin.from(tipo_tabela).select("*");
 
-    if (descricao_busca) {
-      if (isTransactions) {
+    if (isTransactions) {
+      if (descricao_busca) {
         query = query.or(`description.ilike.%${descricao_busca}%,category.ilike.%${descricao_busca}%`);
-      } else {
-        query = query.ilike("note", `%${descricao_busca}%`);
+      }
+    } else {
+      // commissions: if we have cliente_id + valor, skip descricao_busca
+      if (cliente_id && (valor !== undefined && valor !== null)) {
+        // use only cliente_id + valor (applied below)
+      } else if (descricao_busca) {
+        query = query.or(`note.ilike.%${descricao_busca}%,type.ilike.%${descricao_busca}%`);
       }
     }
     if (cliente_id) {
