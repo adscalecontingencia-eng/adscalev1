@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const BLOCKED_KEYWORDS = ["DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE"];
-const ALLOWED_PREFIXES = ["SELECT", "INSERT", "UPDATE", "DELETE"];
+const ALLOWED_PREFIXES = ["SELECT", "INSERT", "UPDATE", "DELETE", "WITH"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
