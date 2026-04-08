@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { chave, tipo_tabela, descricao_busca, cliente_id, valor, data, data_inicio, data_fim, ad_spend } = body;
+    const { chave, tipo_tabela, descricao_busca, cliente_id, valor, data, data_inicio, data_fim, ad_spend, deletar_tudo } = body;
 
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
     if (!chave || chave !== secretKey) {
@@ -31,6 +31,37 @@ Deno.serve(async (req) => {
     if (!tipo_tabela || !["transactions", "commissions"].includes(tipo_tabela)) {
       return new Response(JSON.stringify({ erro: "tipo_tabela deve ser 'transactions' ou 'commissions'" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Deletar tudo
+    if (deletar_tudo === true) {
+      const { data: allRecords, error: fetchErr } = await supabaseAdmin.from(tipo_tabela).select("id");
+      if (fetchErr) {
+        return new Response(JSON.stringify({ erro: fetchErr.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const total = allRecords?.length || 0;
+      if (total === 0) {
+        return new Response(JSON.stringify({ sucesso: true, total_deletado: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const ids = allRecords.map((r: any) => r.id);
+      const { error: delErr } = await supabaseAdmin.from(tipo_tabela).delete().in("id", ids);
+      if (delErr) {
+        return new Response(JSON.stringify({ erro: delErr.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ sucesso: true, total_deletado: total }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
