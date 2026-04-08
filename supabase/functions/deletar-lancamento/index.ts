@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!descricao_busca && !cliente_id && !valor && !data) {
+    if (!descricao_busca && !cliente_id && !valor && !data && !data_inicio) {
       return new Response(JSON.stringify({ erro: "Informe pelo menos um critério de busca" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
