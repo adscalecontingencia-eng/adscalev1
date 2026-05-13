@@ -19,6 +19,7 @@ interface Client {
   email: string;
   password: string;
   observations: string;
+  clientType: 'aluguel' | 'venda';
   paymentType: 'fixed' | 'percentage' | 'both';
   fixedValue?: number;
   percentageValue?: number;
@@ -28,6 +29,19 @@ interface Client {
   whatsappPhone?: string;
   whatsappGroupLink?: string;
 }
+
+// Metas de desconto por gasto semanal (apenas clientes de aluguel)
+const SPEND_TIERS: { min: number; pct: number }[] = [
+  { min: 200000, pct: 1 },
+  { min: 80000, pct: 2 },
+  { min: 40000, pct: 3 },
+  { min: 20000, pct: 4 },
+];
+
+const getTierPercentage = (weekSpend: number, basePct: number): number => {
+  for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
+  return basePct;
+};
 
 interface Commission {
   id: string;
@@ -55,7 +69,7 @@ const Clients: React.FC = () => {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Client | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<Client>>({ paymentType: 'fixed', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
+  const [form, setForm] = useState<Partial<Client>>({ clientType: 'aluguel', paymentType: 'percentage', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
   const [adSpendAmount, setAdSpendAmount] = useState('');
   const [commissionNote, setCommissionNote] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
@@ -80,6 +94,7 @@ const Clients: React.FC = () => {
     setClients((data || []).map(c => ({
       id: c.id, number: c.number || '', name: c.name, companyName: c.company_name || '',
       email: c.email, password: c.password, observations: c.observations || '',
+      clientType: ((c as any).client_type as 'aluguel' | 'venda') || 'aluguel',
       paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
       fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
@@ -107,15 +122,25 @@ const Clients: React.FC = () => {
 
   useEffect(() => { fetchClients(); fetchCommissions(); }, []);
 
-  const calculateCommission = (client: Client, adSpend: number): number => {
-    let commission = 0;
-    if (client.paymentType === 'fixed' || client.paymentType === 'both') {
-      commission += client.fixedValue || 0;
+  const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
+    // Venda → valor fixo
+    if (client.clientType === 'venda') {
+      return client.fixedValue || 0;
     }
-    if (client.paymentType === 'percentage' || client.paymentType === 'both') {
-      commission += adSpend * ((client.percentageValue || 0) / 100);
-    }
-    return commission;
+    // Aluguel → percentual com tier de desconto baseado no gasto semanal acumulado
+    const totalWeek = (weeklyAccumSpend ?? 0) + adSpend;
+    const rate = getTierPercentage(totalWeek, client.percentageValue || 0);
+    return adSpend * (rate / 100);
+  };
+
+  // Soma de Ad Spend já lançado na semana corrente p/ um cliente (exclui weekly_billing)
+  const getWeeklyAccumSpend = (clientId: string, refDate: Date): number => {
+    const ws = startOfWeek(refDate, { weekStartsOn: 1 });
+    const we = endOfWeek(refDate, { weekStartsOn: 1 });
+    return commissions
+      .filter(c => c.clientId === clientId && c.type === 'daily' &&
+        isWithinInterval(parseDateLocal(c.date), { start: ws, end: we }))
+      .reduce((s, c) => s + (c.adSpend || 0), 0);
   };
 
   const handleSave = async () => {
@@ -125,11 +150,17 @@ const Clients: React.FC = () => {
     }
     setSaving(true);
 
+    const clientType: 'aluguel' | 'venda' = form.clientType === 'venda' ? 'venda' : 'aluguel';
+    const paymentType: 'fixed' | 'percentage' = clientType === 'venda' ? 'fixed' : 'percentage';
+    const fixedValue = clientType === 'venda' ? (form.fixedValue || 0) : 0;
+    const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
+
     if (editing) {
-      const payload = {
+      const payload: any = {
         number: form.number || '', name: form.name || '', company_name: form.companyName || '',
         email: form.email || '', observations: form.observations || '',
-        payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
+        client_type: clientType,
+        payment_type: paymentType, fixed_value: fixedValue, percentage_value: percentageValue,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
       };
@@ -143,8 +174,8 @@ const Clients: React.FC = () => {
           action: 'create_user', email: form.email, password, name: form.name, role: 'client',
           client_data: {
             number: form.number, companyName: form.companyName, observations: form.observations,
-            paymentType: form.paymentType || 'fixed', fixedValue: form.fixedValue || 0,
-            percentageValue: form.percentageValue || 0, adAccounts: form.adAccounts || 0,
+            clientType, paymentType, fixedValue, percentageValue,
+            adAccounts: form.adAccounts || 0,
             usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
             whatsappPhone: form.whatsappPhone || null, whatsappGroupLink: form.whatsappGroupLink || null,
           },
@@ -162,7 +193,7 @@ const Clients: React.FC = () => {
   };
 
   const resetForm = () => {
-    setForm({ paymentType: 'fixed', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
+    setForm({ clientType: 'aluguel', paymentType: 'percentage', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
     setEditing(null);
     setShowForm(false);
   };
@@ -183,9 +214,11 @@ const Clients: React.FC = () => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
     
-    const commission = calculateCommission(client, adSpend);
-    const percentApplied = client.paymentType === 'percentage' || client.paymentType === 'both' 
-      ? client.percentageValue || 0 : 0;
+    const accumWeek = getWeeklyAccumSpend(clientId, commissionDate);
+    const commission = calculateCommission(client, adSpend, accumWeek);
+    const percentApplied = client.clientType === 'aluguel'
+      ? getTierPercentage(accumWeek + adSpend, client.percentageValue || 0)
+      : 0;
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -206,7 +239,7 @@ const Clients: React.FC = () => {
     } as any);
     if (commError) { toast.error('Erro ao lançar gasto em ads'); return; }
 
-    const categoryType = client.paymentType === 'fixed' ? 'Comissão Fixa' : 'Comissão Semanal';
+    const categoryType = client.clientType === 'venda' ? 'Comissão Fixa' : 'Comissão Semanal';
     const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
     await supabase.from('transactions').insert({
       date: format(commissionDate, 'yyyy-MM-dd'),
@@ -556,24 +589,48 @@ const Clients: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Tipo de Pagamento</label>
-                <select value={form.paymentType} onChange={e => setForm(p => ({ ...p, paymentType: e.target.value as any }))} className={inputClass}>
-                  <option value="fixed">Valor Fixo</option>
-                  <option value="percentage">% sobre Gasto</option>
-                  <option value="both">Fixo + %</option>
+                <label className="block text-xs text-muted-foreground mb-1">Tipo de Cliente</label>
+                <select
+                  value={form.clientType || 'aluguel'}
+                  onChange={e => {
+                    const ct = e.target.value as 'aluguel' | 'venda';
+                    setForm(p => ({
+                      ...p,
+                      clientType: ct,
+                      paymentType: ct === 'venda' ? 'fixed' : 'percentage',
+                      fixedValue: ct === 'venda' ? (p.fixedValue || 0) : 0,
+                      percentageValue: ct === 'aluguel' ? (p.percentageValue || 0) : 0,
+                    }));
+                  }}
+                  className={inputClass}
+                >
+                  <option value="aluguel">Aluguel (somente %)</option>
+                  <option value="venda">Venda (somente valor fixo)</option>
                 </select>
               </div>
-              {(form.paymentType === 'fixed' || form.paymentType === 'both') && (
+              {form.clientType === 'venda' && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Valor Fixo ($)</label>
                   <input type="number" value={form.fixedValue || ''} onChange={e => setForm(p => ({ ...p, fixedValue: +e.target.value }))} className={inputClass} />
                 </div>
               )}
-              {(form.paymentType === 'percentage' || form.paymentType === 'both') && (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Percentual (%)</label>
-                  <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
-                </div>
+              {form.clientType !== 'venda' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Percentual base (%)</label>
+                    <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
+                  </div>
+                  <div className="bg-secondary/60 border border-border rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Metas semanais de desconto (USD)</p>
+                    <ul className="text-xs space-y-1 text-foreground">
+                      <li className="flex justify-between"><span>Acima de $20k</span><span className="text-primary font-semibold">4%</span></li>
+                      <li className="flex justify-between"><span>Acima de $40k</span><span className="text-primary font-semibold">3%</span></li>
+                      <li className="flex justify-between"><span>Acima de $80k</span><span className="text-primary font-semibold">2%</span></li>
+                      <li className="flex justify-between"><span>Acima de $200k</span><span className="text-primary font-semibold">1%</span></li>
+                    </ul>
+                  </div>
+                </>
               )}
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -663,8 +720,12 @@ const Clients: React.FC = () => {
           const acc = getAccumulated(c.id);
           const isExpanded = expandedClient === c.id;
           const clientComms = getClientCommissions(c.id);
+          const accumWeekForCard = getWeeklyAccumSpend(c.id, new Date());
           const previewCommission = adSpendAmount && showCommissionForm === c.id
-            ? calculateCommission(c, parseFloat(adSpendAmount) || 0) : 0;
+            ? calculateCommission(c, parseFloat(adSpendAmount) || 0, accumWeekForCard) : 0;
+          const previewRate = c.clientType === 'aluguel'
+            ? getTierPercentage(accumWeekForCard + (parseFloat(adSpendAmount) || 0), c.percentageValue || 0)
+            : 0;
 
           return (
             <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border rounded-xl overflow-hidden border-glow">
@@ -674,12 +735,19 @@ const Clients: React.FC = () => {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">#{c.number}</span>
                       <h4 className="font-semibold text-sm">{c.name}</h4>
+                      <span className={cn("text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-medium",
+                        c.clientType === 'venda' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'
+                      )}>
+                        {c.clientType === 'venda' ? 'Venda' : 'Aluguel'}
+                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{c.companyName}</p>
                     <p className="text-xs text-muted-foreground mt-1">{c.email}</p>
                     <div className="flex flex-wrap gap-3 mt-2 text-xs">
                       <span className="text-primary">
-                        {c.paymentType === 'fixed' ? `Fixo: $${c.fixedValue}` : c.paymentType === 'percentage' ? `${c.percentageValue}% sobre gasto` : `Fixo $${c.fixedValue} + ${c.percentageValue}%`}
+                        {c.clientType === 'venda'
+                          ? `Fixo: $${c.fixedValue}`
+                          : `${c.percentageValue}% base • metas: 4/3/2/1% (>20k/40k/80k/200k)`}
                       </span>
                       <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
                     </div>
@@ -748,7 +816,7 @@ const Clients: React.FC = () => {
                           <DollarSign size={12} className="text-primary" />
                           <span className="text-muted-foreground">
                             Gasto: <strong className="text-foreground">{fmt(parseFloat(adSpendAmount) || 0)}</strong>
-                            {' → '}Comissão pendente ({c.paymentType === 'fixed' ? 'Fixo' : c.paymentType === 'percentage' ? `${c.percentageValue}%` : `Fixo + ${c.percentageValue}%`}): 
+                            {' → '}Comissão pendente ({c.clientType === 'venda' ? 'Fixo' : `${previewRate}% — semana acumulada ${fmt(accumWeekForCard + (parseFloat(adSpendAmount) || 0))}`}):
                             <strong className="text-primary ml-1">{fmt(previewCommission)}</strong>
                           </span>
                         </div>

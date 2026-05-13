@@ -94,6 +94,7 @@ export type Database = {
           ad_accounts: number | null
           auth_user_id: string | null
           blocked_accounts: number | null
+          client_type: string
           company_name: string | null
           created_at: string
           email: string
@@ -115,6 +116,7 @@ export type Database = {
           ad_accounts?: number | null
           auth_user_id?: string | null
           blocked_accounts?: number | null
+          client_type?: string
           company_name?: string | null
           created_at?: string
           email: string
@@ -136,6 +138,7 @@ export type Database = {
           ad_accounts?: number | null
           auth_user_id?: string | null
           blocked_accounts?: number | null
+          client_type?: string
           company_name?: string | null
           created_at?: string
           email?: string

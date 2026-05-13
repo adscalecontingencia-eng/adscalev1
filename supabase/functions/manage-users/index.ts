@@ -92,6 +92,8 @@ Deno.serve(async (req) => {
         });
       } else if (role === "client") {
         const cd = client_data || {};
+        const clientType = cd.clientType === "venda" ? "venda" : "aluguel";
+        const paymentType = clientType === "venda" ? "fixed" : "percentage";
         await supabaseAdmin.from("clients").insert({
           auth_user_id: userId,
           name,
@@ -100,9 +102,10 @@ Deno.serve(async (req) => {
           number: cd.number || "",
           company_name: cd.companyName || "",
           observations: cd.observations || "",
-          payment_type: cd.paymentType || "fixed",
-          fixed_value: cd.fixedValue || 0,
-          percentage_value: cd.percentageValue || 0,
+          client_type: clientType,
+          payment_type: paymentType,
+          fixed_value: clientType === "venda" ? (cd.fixedValue || 0) : 0,
+          percentage_value: clientType === "aluguel" ? (cd.percentageValue || 0) : 0,
           ad_accounts: cd.adAccounts || 0,
           used_accounts: cd.usedAccounts || 0,
           blocked_accounts: cd.blockedAccounts || 0,
