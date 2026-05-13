@@ -350,7 +350,35 @@ const Clients: React.FC = () => {
     fetchCommissions();
   };
 
-  const getFilterRange = (): { start: Date; end: Date } | null => {
+  // Mark a weekly billing as paid (creates a 'paid' record and liquidates pending)
+  const handleMarkBillingPaid = async (billing: Commission) => {
+    const pendente = billing.valorPendente ?? billing.amount;
+    if (pendente <= 0) { toast.info('Cobrança já está paga'); return; }
+    const { error } = await supabase.from('commissions').insert({
+      client_id: billing.clientId,
+      date: new Date().toISOString(),
+      amount: pendente,
+      type: 'paid',
+      note: `Pagamento da cobrança ${billing.note || `${billing.billingWeekStart}-${billing.billingWeekEnd}`}`,
+    });
+    if (error) { toast.error('Erro ao marcar como pago'); return; }
+    // Liquidate pending commissions FIFO (mirrors handleAddPaid)
+    const clientDailyComms = commissions
+      .filter(c => c.clientId === billing.clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
+      .sort((a, b) => parseDateLocal(a.date).getTime() - parseDateLocal(b.date).getTime());
+    let remaining = pendente;
+    for (const comm of clientDailyComms) {
+      if (remaining <= 0) break;
+      const p = comm.valorPendente || (comm.amount - (comm.valorPago || 0));
+      const payThis = Math.min(remaining, p);
+      const newPago = (comm.valorPago || 0) + payThis;
+      const newPendente = comm.amount - newPago;
+      const newStatus = newPendente <= 0 ? 'pago' : 'parcial';
+      await supabase.from('commissions').update({ valor_pago: newPago, valor_pendente: Math.max(0, newPendente), status: newStatus } as any).eq('id', comm.id);
+      remaining -= payThis;
+    }
+    toast.success('Cobrança marcada como paga!');
+    fetchCommissions();
     const now = new Date();
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
