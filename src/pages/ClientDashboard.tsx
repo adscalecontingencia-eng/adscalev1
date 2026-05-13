@@ -32,14 +32,16 @@ const ClientDashboard: React.FC = () => {
       const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
       if (clientData) {
         setClient(clientData);
-        const [{ data: commData }, { data: blocked }, { data: assigns }] = await Promise.all([
+        const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }] = await Promise.all([
           supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
           supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
           supabase.from('meta_ad_account_assignments').select('*, ad_account:meta_ad_accounts(*)').eq('client_id', clientData.id).eq('active', true),
+          supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
         ]);
         setCommissions(commData || []);
         setSavedAccounts(blocked || []);
         setActiveAccounts(assigns || []);
+        setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
       }
       setLoading(false);
     };
