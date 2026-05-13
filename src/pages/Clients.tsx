@@ -25,6 +25,8 @@ interface Client {
   adAccounts: number;
   usedAccounts: number;
   blockedAccounts: number;
+  whatsappPhone?: string;
+  whatsappGroupLink?: string;
 }
 
 interface Commission {
