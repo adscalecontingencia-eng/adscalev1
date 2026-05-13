@@ -407,7 +407,18 @@ const Clients: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <PageHero
+        eyebrow="Clientes & Comissões"
+        title={<>Carteira de <span className="text-primary glow-text">clientes</span></>}
+        description="Gestão completa de clientes, comissões diárias e fechamento semanal de Ad Spend."
+        actions={
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Total</div>
+            <div className="font-display text-2xl font-bold text-foreground">{clients.length}</div>
+          </div>
+        }
+      />
+
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..." className={`${inputClass} pl-10`} />
