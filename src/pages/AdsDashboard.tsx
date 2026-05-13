@@ -82,7 +82,14 @@ export default function AdsDashboard() {
   };
 
   useEffect(() => { loadMeta(); }, []);
-  useEffect(() => { loadInsights(); }, [range]);
+  useEffect(() => {
+    // Sincronização em tempo real: puxa do Meta e depois carrega do banco
+    (async () => {
+      await sync({ silent: true });
+      await loadInsights();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
   const clientByAccount = useMemo(() => {
     const m = new Map<string, string>();
