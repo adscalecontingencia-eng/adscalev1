@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity
 } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
 
@@ -16,6 +16,7 @@ const adminLinks = [
   { path: '/meta-connections', label: 'Conexões Meta', icon: Plug },
   { path: '/asset-map', label: 'Mapa de Ativos', icon: Network },
   { path: '/block-log', label: 'Log de Bloqueios', icon: Ban },
+  { path: '/access-logs', label: 'Acessos', icon: Activity },
   { path: '/users', label: 'Usuários', icon: UserCog },
 ];
 

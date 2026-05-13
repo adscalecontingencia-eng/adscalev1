@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
@@ -15,6 +15,8 @@ const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
+  const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
+  const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
@@ -26,8 +28,14 @@ const ClientDashboard: React.FC = () => {
       const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
       if (clientData) {
         setClient(clientData);
-        const { data: commData } = await supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false });
+        const [{ data: commData }, { data: blocked }, { data: assigns }] = await Promise.all([
+          supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
+          supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
+          supabase.from('meta_ad_account_assignments').select('*, ad_account:meta_ad_accounts(*)').eq('client_id', clientData.id).eq('active', true),
+        ]);
         setCommissions(commData || []);
+        setSavedAccounts(blocked || []);
+        setActiveAccounts(assigns || []);
       }
       setLoading(false);
     };
@@ -109,6 +117,54 @@ const ClientDashboard: React.FC = () => {
       </header>
 
       <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
+
+        {/* Pontos positivos da agência */}
+        <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-5">
+          <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/15 blur-[60px] pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">
+              <Sparkles size={11} /> Sua agência protegendo seus investimentos
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
+                <ShieldCheck size={18} className="text-primary" />
+                <div className="text-2xl font-bold text-primary mt-2">{savedAccounts.length}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Economizadas</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">Bloqueios resolvidos pela agência</div>
+              </div>
+              <div className="rounded-xl bg-secondary/60 border border-border p-4">
+                <Shield size={18} className="text-emerald-400" />
+                <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.length}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Ativas</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">Operando agora para você</div>
+              </div>
+              <div className="rounded-xl bg-secondary/60 border border-border p-4">
+                <TrendingUp size={18} className="text-sky-400" />
+                <div className="text-2xl font-bold text-sky-400 mt-2">{fmt(allTimeTotals.adSpend)}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Investido em Ads</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">Gasto total gerenciado</div>
+              </div>
+              <div className="rounded-xl bg-secondary/60 border border-border p-4">
+                <Ban size={18} className="text-amber-400" />
+                <div className="text-2xl font-bold text-amber-400 mt-2">{savedAccounts.filter(s => s.resolved_at).length}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Eventos Resolvidos</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">Riscos neutralizados</div>
+              </div>
+            </div>
+            {savedAccounts.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Últimas contas salvas</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {savedAccounts.slice(0, 6).map(s => (
+                    <span key={s.id} className="text-[10px] px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-primary/90 font-mono">
+                      {s.ad_account?.name || s.ad_account?.meta_account_id || 'Conta'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Pending Billing Alerts */}
         {pendingBillings.length > 0 && (

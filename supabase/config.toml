@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.meta-sync]
 verify_jwt = false
+
+[functions.client-signup]
+verify_jwt = false
+
+[functions.record-access]
+verify_jwt = false

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, AlertCircle, Zap } from 'lucide-react';
 import AdScaleLogo from '@/components/AdScaleLogo';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login: React.FC = () => {
   const { login, isAuthenticated, user, loading } = useAuth();
@@ -27,6 +28,9 @@ const Login: React.FC = () => {
       const success = await login(email, password);
       if (!success) {
         setError('E-mail ou senha incorretos');
+        supabase.functions.invoke('record-access', { body: { action: 'login_failed', email } }).catch(() => {});
+      } else {
+        supabase.functions.invoke('record-access', { body: { action: 'login', email } }).catch(() => {});
       }
     } catch {
       setError('Erro ao fazer login');
@@ -164,7 +168,10 @@ const Login: React.FC = () => {
           </button>
         </motion.form>
 
-        <p className="text-center text-muted-foreground/40 text-xs mt-8">
+        <p className="text-center text-muted-foreground text-xs mt-6">
+          Primeiro acesso? <Link to="/signup" className="text-primary hover:underline font-medium">Cadastre-se</Link>
+        </p>
+        <p className="text-center text-muted-foreground/40 text-xs mt-4">
           © {new Date().getFullYear()} AD Scale · Todos os direitos reservados
         </p>
       </motion.div>

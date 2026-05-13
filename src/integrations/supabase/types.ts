@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          action: string
+          auth_user_id: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          role: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          auth_user_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          role?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          auth_user_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          role?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      client_terms_acceptances: {
+        Row: {
+          accepted_at: string
+          auth_user_id: string | null
+          client_id: string
+          email: string
+          id: string
+          ip_address: string | null
+          terms_version: string
+          user_agent: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          auth_user_id?: string | null
+          client_id: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          terms_version: string
+          user_agent?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          auth_user_id?: string | null
+          client_id?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          terms_version?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           ad_accounts: number | null
