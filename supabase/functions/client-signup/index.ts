@@ -29,16 +29,38 @@ Deno.serve(async (req) => {
 
     const normEmail = email.trim().toLowerCase();
 
-    // Find pending client (created by admin) without auth_user_id
-    const { data: client, error: cliErr } = await admin
+    // Find existing client record (may have been pre-registered by admin)
+    const { data: existing, error: cliErr } = await admin
       .from("clients")
       .select("id, email, auth_user_id, name")
       .ilike("email", normEmail)
       .maybeSingle();
 
     if (cliErr) return json({ error: "Erro ao consultar cadastro" }, 500);
-    if (!client) return json({ error: "E-mail não autorizado. Solicite cadastro à agência." }, 403);
-    if (client.auth_user_id) return json({ error: "Este e-mail já possui acesso ativo. Faça login." }, 409);
+    if (existing?.auth_user_id) return json({ error: "Este e-mail já possui acesso ativo. Faça login." }, 409);
+
+    let client = existing;
+    // Auto-register: if no client row exists, create a pending one
+    if (!client) {
+      const defaultName = normEmail.split("@")[0];
+      const { data: created, error: insErr } = await admin
+        .from("clients")
+        .insert({
+          name: defaultName,
+          email: normEmail,
+          password: "",
+          payment_type: "fixed",
+          fixed_value: 0,
+          percentage_value: 0,
+          ad_accounts: 0,
+          used_accounts: 0,
+          blocked_accounts: 0,
+        })
+        .select("id, email, auth_user_id, name")
+        .single();
+      if (insErr || !created) return json({ error: "Erro ao registrar cliente" }, 500);
+      client = created;
+    }
 
     // Create auth user
     const { data: created, error: authErr } = await admin.auth.admin.createUser({
