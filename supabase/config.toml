@@ -1,1 +1,7 @@
 project_id = "etojigjmeselsqptjkil"
+
+[functions.meta-assign-account]
+verify_jwt = true
+
+[functions.meta-sync]
+verify_jwt = false
