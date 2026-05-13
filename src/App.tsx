@@ -10,6 +10,7 @@ import Clients from "./pages/Clients";
 import Financial from "./pages/Financial";
 import Support from "./pages/Support";
 import UsersPage from "./pages/UsersPage";
+import MetaConnections from "./pages/MetaConnections";
 import ClientDashboard from "./pages/ClientDashboard";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
