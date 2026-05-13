@@ -131,6 +131,7 @@ const Clients: React.FC = () => {
         email: form.email || '', observations: form.observations || '',
         payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
+        whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
