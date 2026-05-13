@@ -379,6 +379,9 @@ const Clients: React.FC = () => {
     }
     toast.success('Cobrança marcada como paga!');
     fetchCommissions();
+  };
+
+  const getFilterRange = (): { start: Date; end: Date } | null => {
     const now = new Date();
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
