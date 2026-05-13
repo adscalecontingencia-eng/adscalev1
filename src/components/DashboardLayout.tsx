@@ -8,7 +8,7 @@ import {
 
 const adminLinks = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/ads-dashboard', label: 'Ads Dashboard', icon: BarChart3 },
+  { path: '/ads-dashboard', label: 'Ads', icon: BarChart3 },
   { path: '/clients', label: 'Clientes', icon: Users },
   { path: '/financial', label: 'Financeiro', icon: DollarSign },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon },
