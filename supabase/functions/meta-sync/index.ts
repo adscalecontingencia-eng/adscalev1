@@ -398,19 +398,31 @@ Deno.serve(async (req) => {
       };
 
       const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name");
-      if (!bmsDb || bmsDb.length === 0) {
-        return json({ erro: "Nenhuma BM encontrada. Rode sync_bms primeiro." }, 400);
-      }
 
       const PAGE_FIELDS = "id,name,category,fan_count,followers_count,created_time,picture.type(large),is_published,verification_status";
       const errors: any[] = [];
       const allPages: any[] = [];
+      const sourceCounts: Record<string, number> = {};
 
-      const tasks: { bmDbId: string; bmMetaId: string; edge: string }[] = [];
-      for (const bm of bmsDb) {
+      const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
+      for (const bm of bmsDb || []) {
         for (const e of ["owned_pages", "client_pages"]) {
-          tasks.push({ bmDbId: bm.id, bmMetaId: bm.meta_bm_id, edge: e });
+          tasks.push({ bmDbId: bm.id, ownerId: bm.meta_bm_id, edge: e, label: `bm:${bm.name}/${e}` });
         }
+      }
+      // Also pull pages from the System User's own profile (outside BMs)
+      tasks.push({ bmDbId: null, ownerId: "me", edge: "accounts", label: "me/accounts" });
+      // And businesses the user has access to (may catch BMs not yet synced)
+      try {
+        const myBms = await paginate(`${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name&limit=200`);
+        for (const b of myBms) {
+          if (!(bmsDb || []).some((x: any) => x.meta_bm_id === b.id)) {
+            tasks.push({ bmDbId: null, ownerId: b.id, edge: "owned_pages", label: `bm-extra:${b.name}/owned_pages` });
+            tasks.push({ bmDbId: null, ownerId: b.id, edge: "client_pages", label: `bm-extra:${b.name}/client_pages` });
+          }
+        }
+      } catch (e) {
+        errors.push({ source: "me/businesses", erro: (e as Error).message });
       }
 
       const CONCURRENCY = 8;
@@ -422,11 +434,12 @@ Deno.serve(async (req) => {
           const t = tasks[i];
           try {
             const items = await paginate(
-              `${META_API}/${t.bmMetaId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${PAGE_FIELDS}&limit=200`
+              `${META_API}/${t.ownerId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${PAGE_FIELDS}&limit=200`
             );
+            sourceCounts[t.label] = items.length;
             for (const p of items) allPages.push({ ...p, _bm_db_id: t.bmDbId });
           } catch (e) {
-            errors.push({ bm: t.bmMetaId, edge: t.edge, erro: (e as Error).message });
+            errors.push({ source: t.label, erro: (e as Error).message });
           }
         }
       };
@@ -460,7 +473,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
       }
 
-      return json({ sucesso: true, paginas_sincronizadas: rows.length, erros: errors });
+      return json({ sucesso: true, paginas_sincronizadas: rows.length, fontes: sourceCounts, erros: errors });
     }
 
     return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights | sync_pages" }, 400);
