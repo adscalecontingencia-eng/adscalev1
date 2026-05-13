@@ -172,7 +172,7 @@ export default function AdsDashboard() {
             Métricas consolidadas das contas do Meta Ads — {filteredAccountIds.size} conta(s).
           </p>
         </div>
-        <Button size="sm" disabled={syncing} onClick={sync}>
+        <Button size="sm" disabled={syncing} onClick={() => sync()}>
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
           Sincronizar período
         </Button>
