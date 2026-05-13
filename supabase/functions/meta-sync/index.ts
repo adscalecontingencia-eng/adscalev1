@@ -187,13 +187,21 @@ Deno.serve(async (req) => {
       for (const acc of accounts || []) {
         try {
           const data = await metaFetch(`/${acc.meta_account_id}/insights`, token, {
-            fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions",
+            fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
             time_range: JSON.stringify({ since: date, until: date }),
             level: "account",
           });
 
           const row = (data.data || [])[0];
           if (!row) continue;
+
+          const purchaseTypes = ["purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase"];
+          const sumByType = (arr: any[]) =>
+            (arr || [])
+              .filter((a) => purchaseTypes.includes(a.action_type))
+              .reduce((s, a) => s + Number(a.value || 0), 0);
+          const purchases = sumByType(row.actions);
+          const revenue = sumByType(row.action_values);
 
           const { error } = await supabase.from("meta_ad_insights").upsert(
             {
@@ -207,6 +215,8 @@ Deno.serve(async (req) => {
               ctr: Number(row.ctr || 0),
               reach: Number(row.reach || 0),
               actions: row.actions || null,
+              purchases,
+              revenue,
             },
             { onConflict: "ad_account_id,date" }
           );
