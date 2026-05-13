@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '@/assets/logo.png';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, X, ChevronRight
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, X, ChevronRight, Plug
 } from 'lucide-react';
 
 const adminLinks = [
@@ -11,6 +11,7 @@ const adminLinks = [
   { path: '/clients', label: 'Clientes', icon: Users },
   { path: '/financial', label: 'Financeiro', icon: DollarSign },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon },
+  { path: '/meta-connections', label: 'Conexões Meta', icon: Plug },
   { path: '/users', label: 'Usuários', icon: UserCog },
 ];
 
