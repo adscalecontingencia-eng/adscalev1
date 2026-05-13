@@ -169,7 +169,7 @@ export default function AdsDashboard() {
     <div className="space-y-6">
       <PageHero
         eyebrow="Performance"
-        title={<>Dashboard de <span className="text-primary glow-text">anúncios</span></>}
+        title={<><span className="text-primary glow-text">Ads</span></>}
         description={`Métricas consolidadas das contas do Meta Ads — ${filteredAccountIds.size} conta(s).`}
         actions={
           <Button size="sm" disabled={syncing} onClick={() => sync()}>
@@ -225,18 +225,18 @@ export default function AdsDashboard() {
 
       {/* Metric grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Metric icon={DollarSign} label="Gasto Total" value={fmtUSD(metrics.spend)} />
         <Metric icon={TrendingUp} label="Faturamento" value={fmtUSD(metrics.revenue)} accent />
+        <Metric icon={DollarSign} label="Gasto Total" value={fmtUSD(metrics.spend)} />
         <Metric icon={DollarSign} label="Lucro" value={fmtUSD(metrics.profit)} accent={metrics.profit > 0} danger={metrics.profit < 0} />
         <Metric icon={Activity} label="Margem" value={fmtPct(metrics.margin)} accent={metrics.margin > 0} danger={metrics.margin < 0} />
-        <Metric icon={Target} label="CPA" value={fmtUSD(metrics.cpa)} />
-        <Metric icon={ShoppingCart} label="Compras" value={fmtNum(metrics.purchases)} />
         <Metric icon={Activity} label="ROAS" value={`${metrics.roas.toFixed(2)}x`} accent={metrics.roas >= 1} danger={metrics.roas > 0 && metrics.roas < 1} />
+        <Metric icon={ShoppingCart} label="Compras" value={fmtNum(metrics.purchases)} />
+        <Metric icon={Target} label="CPA" value={fmtUSD(metrics.cpa)} />
+        <Metric icon={Activity} label="CTR" value={fmtPct(metrics.ctr)} />
+        <Metric icon={DollarSign} label="CPC" value={fmtUSD(metrics.cpc)} />
+        <Metric icon={DollarSign} label="CPM" value={fmtUSD(metrics.cpm)} />
         <Metric icon={MousePointerClick} label="Cliques" value={fmtNum(metrics.clicks)} />
         <Metric icon={BarChart3} label="Impressões" value={fmtNum(metrics.impressions)} />
-        <Metric icon={DollarSign} label="CPM" value={fmtUSD(metrics.cpm)} />
-        <Metric icon={DollarSign} label="CPC" value={fmtUSD(metrics.cpc)} />
-        <Metric icon={Activity} label="CTR" value={fmtPct(metrics.ctr)} />
       </div>
 
       {loading && (
