@@ -10,10 +10,21 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RefreshCw, Search, Link2, Unlink, Building2 } from "lucide-react";
+import {
+  RefreshCw, Search, Link2, Unlink, Building2, Calendar, Globe,
+  CreditCard, Shield, AlertTriangle, Eye, DollarSign,
+} from "lucide-react";
 
-type BM = { id: string; meta_bm_id: string; name: string; status: string | null; last_synced_at: string | null };
+type BM = {
+  id: string; meta_bm_id: string; name: string; status: string | null;
+  verification_status: string | null; account_count: number | null;
+  pixel_count: number | null; page_count: number | null;
+  last_synced_at: string | null;
+};
 type Account = {
   id: string;
   meta_account_id: string;
@@ -23,9 +34,31 @@ type Account = {
   account_status: number | null;
   currency: string | null;
   amount_spent: number | null;
+  spend_cap: number | null;
+  timezone_name: string | null;
+  account_created_time: string | null;
+  disable_reason: number | null;
+  disable_reason_label: string | null;
+  funding_source: string | null;
+  balance: number | null;
+  business_country_code: string | null;
+  age: number | null;
+  owner_business_name: string | null;
+  score: number | null;
+  score_label: string | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
 type Client = { id: string; name: string; email: string };
+
+const scoreColor = (score: number) =>
+  score >= 80 ? "text-primary" : score >= 60 ? "text-blue-400" : score >= 40 ? "text-yellow-400" : "text-destructive";
+
+const scoreBadgeVariant = (label: string | null): "default" | "secondary" | "destructive" | "outline" => {
+  if (!label) return "outline";
+  if (label === "Crítico") return "destructive";
+  if (label === "Atenção") return "secondary";
+  return "default";
+};
 
 export default function MetaConnections() {
   const [bms, setBms] = useState<BM[]>([]);
@@ -38,12 +71,13 @@ export default function MetaConnections() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterClient, setFilterClient] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [detail, setDetail] = useState<Account | null>(null);
 
   const load = async () => {
     setLoading(true);
     const [b, a, asn, cl] = await Promise.all([
       supabase.from("meta_business_managers").select("*").order("name"),
-      supabase.from("meta_ad_accounts").select("*").order("name"),
+      supabase.from("meta_ad_accounts").select("*").order("score", { ascending: true }),
       supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true),
       supabase.from("clients").select("id, name, email").order("name"),
     ]);
@@ -113,12 +147,21 @@ export default function MetaConnections() {
     });
   }, [accounts, filterBm, filterStatus, filterClient, search, currentClient]);
 
-  const stats = useMemo(() => ({
-    bms: bms.length,
-    accounts: accounts.length,
-    assigned: assignments.length,
-    blocked: accounts.filter((a) => a.status !== "active").length,
-  }), [bms, accounts, assignments]);
+  const stats = useMemo(() => {
+    const avgScore = accounts.length
+      ? Math.round(accounts.reduce((s, a) => s + (a.score || 0), 0) / accounts.length)
+      : 0;
+    return {
+      bms: bms.length,
+      accounts: accounts.length,
+      assigned: assignments.length,
+      blocked: accounts.filter((a) => a.status !== "active").length,
+      avgScore,
+    };
+  }, [bms, accounts, assignments]);
+
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
 
   return (
     <div className="space-y-6">
@@ -141,11 +184,12 @@ export default function MetaConnections() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatCard label="BMs" value={stats.bms} />
         <StatCard label="Contas" value={stats.accounts} />
         <StatCard label="Atribuídas" value={stats.assigned} accent />
         <StatCard label="Bloqueadas" value={stats.blocked} danger />
+        <StatCard label="Score médio" value={stats.avgScore} accent={stats.avgScore >= 60} danger={stats.avgScore < 40} />
       </div>
 
       <Card className="p-4 space-y-3">
@@ -174,9 +218,7 @@ export default function MetaConnections() {
           </Select>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="active">Ativas</SelectItem>
@@ -185,9 +227,7 @@ export default function MetaConnections() {
           </Select>
 
           <Select value={filterClient} onValueChange={setFilterClient}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Todos clientes" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[220px]"><SelectValue placeholder="Todos clientes" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos clientes</SelectItem>
               <SelectItem value="unassigned">— Sem cliente —</SelectItem>
@@ -204,19 +244,23 @@ export default function MetaConnections() {
               <TableRow>
                 <TableHead>Conta</TableHead>
                 <TableHead>BM</TableHead>
+                <TableHead>Score</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead>Gasto</TableHead>
-                <TableHead className="min-w-[240px]">Cliente atribuído</TableHead>
+                <TableHead className="min-w-[220px]">Cliente</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma conta encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma conta encontrada.</TableCell></TableRow>
               ) : (
                 filtered.map((a) => {
                   const clientId = currentClient(a.id);
+                  const score = a.score ?? 0;
                   return (
                     <TableRow key={a.id}>
                       <TableCell>
@@ -225,9 +269,30 @@ export default function MetaConnections() {
                       </TableCell>
                       <TableCell className="text-sm">{bmName(a.bm_id)}</TableCell>
                       <TableCell>
-                        <Badge variant={a.status === "active" ? "default" : "destructive"}>
-                          {a.status === "active" ? "Ativa" : "Bloqueada"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-display font-bold ${scoreColor(score)}`}>{score}</span>
+                          <Badge variant={scoreBadgeVariant(a.score_label)} className="text-[10px]">
+                            {a.score_label || "—"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {a.status === "active" ? (
+                          <Badge variant="default">Ativa</Badge>
+                        ) : (
+                          <Badge variant="destructive" title={a.disable_reason_label || ""}>
+                            {a.disable_reason_label && a.disable_reason
+                              ? a.disable_reason_label
+                              : "Bloqueada"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {a.funding_source ? (
+                          <span className="text-foreground">Vinculado</span>
+                        ) : (
+                          <span className="text-yellow-400">Sem pagamento</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm font-mono">
                         {a.currency} {(a.amount_spent || 0).toFixed(2)}
@@ -248,12 +313,13 @@ export default function MetaConnections() {
                               ))}
                             </SelectContent>
                           </Select>
-                          {clientId ? (
-                            <Link2 className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Unlink className="h-4 w-4 text-muted-foreground" />
-                          )}
+                          {clientId ? <Link2 className="h-4 w-4 text-primary" /> : <Unlink className="h-4 w-4 text-muted-foreground" />}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="ghost" onClick={() => setDetail(a)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -263,6 +329,17 @@ export default function MetaConnections() {
           </Table>
         </div>
       </Card>
+
+      <AccountDetailDialog
+        account={detail}
+        bmName={detail ? bmName(detail.bm_id) : ""}
+        clientName={
+          detail
+            ? clients.find((c) => c.id === currentClient(detail.id))?.name || null
+            : null
+        }
+        onClose={() => setDetail(null)}
+      />
     </div>
   );
 }
@@ -275,5 +352,93 @@ function StatCard({ label, value, accent, danger }: { label: string; value: numb
         {value}
       </div>
     </Card>
+  );
+}
+
+function AccountDetailDialog({
+  account, bmName, clientName, onClose,
+}: { account: Account | null; bmName: string; clientName: string | null; onClose: () => void }) {
+  if (!account) return null;
+  const score = account.score ?? 0;
+  const fmt = (v: any) => (v === null || v === undefined || v === "" ? "—" : v);
+  const fmtMoney = (v: number | null) =>
+    v === null || v === undefined ? "—" : `${account.currency || "USD"} ${Number(v).toFixed(2)}`;
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
+
+  return (
+    <Dialog open={!!account} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            {account.name}
+            <Badge variant={scoreBadgeVariant(account.score_label)}>
+              <span className={scoreColor(score)}>{score}/100</span>
+              <span className="ml-1">· {account.score_label || "—"}</span>
+            </Badge>
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground font-mono">ID: {account.meta_account_id}</p>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Card className="p-4 grid grid-cols-2 gap-4 text-sm">
+            <Info icon={Building2} label="BM" value={bmName} />
+            <Info icon={Shield} label="Status" value={account.status === "active" ? "Ativa" : "Bloqueada"} danger={account.status !== "active"} />
+            <Info icon={CreditCard} label="Pagamento" value={fmt(account.funding_source) || "Sem pagamento vinculado"} warning={!account.funding_source} />
+            <Info icon={Globe} label="Fuso horário" value={fmt(account.timezone_name)} />
+            <Info icon={DollarSign} label="Saldo devedor" value={fmtMoney(account.balance)} />
+            <Info icon={DollarSign} label="Gasto histórico" value={fmtMoney(account.amount_spent)} />
+            <Info icon={DollarSign} label="Limite de gasto" value={fmtMoney(account.spend_cap)} />
+            <Info icon={Calendar} label="Criada em" value={fmtDate(account.account_created_time)} />
+            <Info icon={Building2} label="Dono" value={fmt(account.owner_business_name)} />
+            <Info icon={Globe} label="País" value={fmt(account.business_country_code)} />
+            <Info icon={Link2} label="Cliente atribuído" value={clientName || "Sem cliente"} warning={!clientName} />
+          </Card>
+
+          {account.disable_reason && account.disable_reason !== 0 && (
+            <Card className="p-4 border-destructive/40">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium text-sm">
+                  Bloqueio: {account.disable_reason_label} (código {account.disable_reason})
+                </span>
+              </div>
+            </Card>
+          )}
+
+          <Card className="p-4">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+              Score Meta · {score}/100
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full ${score >= 80 ? "bg-primary" : score >= 60 ? "bg-blue-400" : score >= 40 ? "bg-yellow-400" : "bg-destructive"}`}
+                style={{ width: `${score}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Calculado a partir de sinais oficiais do Meta: status da conta, motivo de bloqueio,
+              fonte de pagamento, verificação da BM e histórico de gasto.
+            </p>
+          </Card>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Info({
+  icon: Icon, label, value, danger, warning,
+}: { icon: any; label: string; value: any; danger?: boolean; warning?: boolean }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">
+        <Icon className="h-3 w-3" />
+        {label}
+      </div>
+      <div className={`text-sm ${danger ? "text-destructive" : warning ? "text-yellow-400" : "text-foreground"}`}>
+        {value}
+      </div>
+    </div>
   );
 }
