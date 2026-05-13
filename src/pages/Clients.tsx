@@ -146,6 +146,7 @@ const Clients: React.FC = () => {
             paymentType: form.paymentType || 'fixed', fixedValue: form.fixedValue || 0,
             percentageValue: form.percentageValue || 0, adAccounts: form.adAccounts || 0,
             usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
+            whatsappPhone: form.whatsappPhone || null, whatsappGroupLink: form.whatsappGroupLink || null,
           },
         },
       });
