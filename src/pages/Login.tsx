@@ -67,14 +67,18 @@ const Login: React.FC = () => {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.4 }}
-            className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5"
+            className="mb-5 text-primary"
           >
-            <Zap size={28} className="text-primary" />
+            <AdScaleLogo size={64} />
           </motion.div>
-          <h1 className="font-display text-3xl font-bold text-foreground tracking-wider">
-            AD <span className="text-primary">SCALE</span>
+          <h1 className="font-display text-3xl font-bold text-foreground tracking-[0.22em]">
+            AD <span className="text-primary glow-text">SCALE</span>
           </h1>
-          <p className="text-muted-foreground text-sm mt-2 tracking-wide">Contingency Accounts</p>
+          <div className="flex items-center gap-3 mt-3">
+            <span className="h-px w-8 bg-border" />
+            <p className="text-muted-foreground text-[10px] uppercase tracking-[0.35em]">Contingency Accounts</p>
+            <span className="h-px w-8 bg-border" />
+          </div>
         </div>
 
         {/* Login form */}
