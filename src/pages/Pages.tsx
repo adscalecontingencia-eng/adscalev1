@@ -86,11 +86,16 @@ const PagesAdmin: React.FC = () => {
     setSyncing(true);
     const { data, error } = await supabase.functions.invoke('meta-sync', { body: { action: 'sync_pages' } });
     setSyncing(false);
-    if (error || (data as any)?.erro) {
-      toast.error((data as any)?.erro || error?.message || 'Erro ao sincronizar');
+    const payload = data as any;
+    if (error || payload?.sucesso === false || payload?.erro) {
+      toast.error(payload?.erro || error?.message || 'Erro ao sincronizar', { duration: 9000 });
       return;
     }
-    toast.success(`Sincronizadas ${(data as any)?.paginas_sincronizadas ?? 0} páginas`);
+    const blockedDetails = payload?.detalhes_bloqueados ? ` (${payload.detalhes_bloqueados} sem detalhes por bloqueio da Meta)` : '';
+    toast.success(`Sincronizadas ${payload?.paginas_sincronizadas ?? 0} páginas${blockedDetails}`, { duration: 7000 });
+    if (payload?.avisos?.length || payload?.erros?.length) {
+      toast.warning('Algumas BMs/campos foram bloqueados pela Meta, mas as páginas disponíveis foram importadas.', { duration: 9000 });
+    }
     fetchAll();
   };
 
