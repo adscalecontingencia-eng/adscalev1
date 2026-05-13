@@ -11,6 +11,7 @@ import Financial from "./pages/Financial";
 import Support from "./pages/Support";
 import UsersPage from "./pages/UsersPage";
 import MetaConnections from "./pages/MetaConnections";
+import AdsDashboard from "./pages/AdsDashboard";
 import ClientDashboard from "./pages/ClientDashboard";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/support" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Support /></DashboardLayout></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute roles={['admin']}><DashboardLayout><UsersPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/meta-connections" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><MetaConnections /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/ads-dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AdsDashboard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

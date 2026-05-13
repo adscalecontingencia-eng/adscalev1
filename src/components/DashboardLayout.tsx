@@ -3,11 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '@/assets/logo.png';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, X, ChevronRight, Plug
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, X, ChevronRight, Plug, BarChart3
 } from 'lucide-react';
 
 const adminLinks = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/ads-dashboard', label: 'Ads Dashboard', icon: BarChart3 },
   { path: '/clients', label: 'Clientes', icon: Users },
   { path: '/financial', label: 'Financeiro', icon: DollarSign },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon },
