@@ -145,12 +145,18 @@ const ClientDashboard: React.FC = () => {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList className="w-full grid grid-cols-3 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList className="w-full grid grid-cols-4 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> Resumo
             </TabsTrigger>
             <TabsTrigger value="contrato" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <FileText size={14} /> Contrato
+            </TabsTrigger>
+            <TabsTrigger value="paginas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
+              <ImageIcon size={14} /> Páginas
+              {pages.length > 0 && (
+                <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{pages.length}</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
               <Receipt size={14} /> Cobranças
