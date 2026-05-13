@@ -58,6 +58,7 @@ function BMNode({ data }: any) {
       <div className="text-[9px] text-purple-300/60 font-mono truncate">ID: {data.id}</div>
       <div className="flex gap-2 mt-1.5 text-[9px] text-purple-200/80">
         <span>{data.accounts}c</span>
+        <span className="text-primary">{data.activeAccounts ?? 0} ativas</span>
         <span>{data.pixels}px</span>
         <span>{data.pages}pg</span>
       </div>
