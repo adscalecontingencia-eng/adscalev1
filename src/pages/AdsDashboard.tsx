@@ -132,19 +132,13 @@ export default function AdsDashboard() {
     setSyncing(true);
     try {
       const { since, until } = rangeToDates(range);
-      const dates: string[] = [];
-      const start = new Date(since), end = new Date(until);
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.push(d.toISOString().slice(0, 10));
-      }
-      for (const date of dates) {
-        const { data, error } = await supabase.functions.invoke("meta-sync", {
-          body: { action: "sync_insights", date },
-        });
-        if (error) throw error;
-        if ((data as any)?.erro) throw new Error((data as any).erro);
-      }
-      toast.success(`Insights sincronizados (${dates.length} dia(s))`);
+      const { data, error } = await supabase.functions.invoke("meta-sync", {
+        body: { action: "sync_insights", since, until },
+      });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      const rows = (data as any)?.linhas_upsertadas ?? 0;
+      toast.success(`Sincronizado: ${rows} registro(s)`);
       await loadInsights();
     } catch (e: any) {
       toast.error(`Falha: ${e.message}`);
