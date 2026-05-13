@@ -64,19 +64,16 @@ const Login: React.FC = () => {
         {/* Brand header */}
         <div className="flex flex-col items-center mb-10">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.4 }}
-            className="mb-5 text-primary"
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="text-primary"
           >
-            <AdScaleLogo size={64} />
+            <AdScaleLogo size={42} />
           </motion.div>
-          <h1 className="font-display text-3xl font-bold text-foreground tracking-[0.22em]">
-            AD <span className="text-primary glow-text">SCALE</span>
-          </h1>
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-3 mt-5">
             <span className="h-px w-8 bg-border" />
-            <p className="text-muted-foreground text-[10px] uppercase tracking-[0.35em]">Contingency Accounts</p>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-[0.4em]">Contingency Accounts</p>
             <span className="h-px w-8 bg-border" />
           </div>
         </div>
