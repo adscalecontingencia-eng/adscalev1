@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { RefreshCw, BarChart3, DollarSign, Target, MousePointerClick, TrendingUp, ShoppingCart, Activity } from "lucide-react";
 import { motion } from "framer-motion";
+import { PageHero } from "@/components/ui-kit";
 
 type Range = "today" | "yesterday" | "7d" | "30d" | "90d";
 type BM = { id: string; name: string };
