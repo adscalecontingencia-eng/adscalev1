@@ -110,15 +110,12 @@ const ClientDashboard: React.FC = () => {
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur z-20">
         <div className="flex items-center gap-3">
           <img
-            src={new URL('../assets/logo-adscale.png', import.meta.url).href}
+            src={new URL('../assets/logo-adscale-new.png', import.meta.url).href}
             alt="AD SCALE"
             translate="no"
-            className="h-10 w-10 rounded-md object-contain"
+            className="h-10 lg:h-12 w-auto object-contain"
           />
-          <div>
-            <h1 translate="no" className="font-display text-sm font-bold text-primary glow-text">AD SCALE</h1>
-            <p className="text-xs text-muted-foreground">Painel do Cliente</p>
-          </div>
+          <p className="text-xs text-muted-foreground hidden sm:block border-l border-border pl-3">Painel do Cliente</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
