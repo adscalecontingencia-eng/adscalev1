@@ -69,7 +69,7 @@ const Clients: React.FC = () => {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Client | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<Client>>({ paymentType: 'fixed', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
+  const [form, setForm] = useState<Partial<Client>>({ clientType: 'aluguel', paymentType: 'percentage', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
   const [adSpendAmount, setAdSpendAmount] = useState('');
   const [commissionNote, setCommissionNote] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
