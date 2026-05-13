@@ -60,11 +60,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === "unassign") {
-      const { error } = await supabase
+      const q = supabase
         .from("meta_ad_account_assignments")
         .update({ active: false })
-        .eq("ad_account_id", ad_account_id)
-        .eq("client_id", client_id);
+        .eq("ad_account_id", ad_account_id);
+      if (client_id) q.eq("client_id", client_id);
+      const { error } = await q;
       if (error) return json({ erro: error.message }, 400);
       return json({ sucesso: true });
     }
