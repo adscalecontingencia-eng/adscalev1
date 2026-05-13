@@ -130,6 +130,7 @@ Deno.serve(async (req) => {
       const ACCOUNT_FIELDS = [
         "id","account_id","name","account_status","currency","amount_spent","spend_cap",
         "timezone_name","created_time","disable_reason","funding_source",
+        "funding_source_details","is_prepay_account",
         "balance","business_country_code","age","business",
       ].join(",");
 
