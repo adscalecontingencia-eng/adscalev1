@@ -140,8 +140,7 @@ const NotificationSettings: React.FC = () => {
       <PageHero
         eyebrow="Preferências"
         title="Notificações"
-        subtitle="Defina quais eventos chegam na Central, no e-mail e no WhatsApp — com granularidade por tipo de ativo e ativo específico."
-        icon={Bell}
+        description="Defina quais eventos chegam na Central, no e-mail e no WhatsApp — com granularidade por tipo de ativo e ativo específico."
         actions={
           <button onClick={save} disabled={saving}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60">
@@ -199,8 +198,8 @@ const NotificationSettings: React.FC = () => {
         </p>
       </Panel>
 
-      <Panel title="Regras específicas por ativo" icon={ShieldAlert}
-        description="Sobrescreva o padrão para uma BM, conta, perfil ou página específica."
+      <Panel title="Regras específicas por ativo"
+        subtitle="Sobrescreva o padrão para uma BM, conta, perfil ou página específica."
         actions={
           <button onClick={addOverride}
             className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
