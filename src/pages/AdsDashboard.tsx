@@ -214,9 +214,11 @@ export default function AdsDashboard() {
       </Card>
 
       {/* Metric grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric icon={DollarSign} label="Gasto Total" value={fmtUSD(metrics.spend)} />
         <Metric icon={TrendingUp} label="Faturamento" value={fmtUSD(metrics.revenue)} accent />
+        <Metric icon={DollarSign} label="Lucro" value={fmtUSD(metrics.profit)} accent={metrics.profit > 0} danger={metrics.profit < 0} />
+        <Metric icon={Activity} label="Margem" value={fmtPct(metrics.margin)} accent={metrics.margin > 0} danger={metrics.margin < 0} />
         <Metric icon={Target} label="CPA" value={fmtUSD(metrics.cpa)} />
         <Metric icon={ShoppingCart} label="Compras" value={fmtNum(metrics.purchases)} />
         <Metric icon={Activity} label="ROAS" value={`${metrics.roas.toFixed(2)}x`} accent={metrics.roas >= 1} danger={metrics.roas > 0 && metrics.roas < 1} />
