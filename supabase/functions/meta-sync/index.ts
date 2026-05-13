@@ -37,8 +37,20 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "Use POST" }, 405);
 
   try {
-    const token = Deno.env.get("META_SYSTEM_USER_TOKEN");
+    const rawToken = Deno.env.get("META_SYSTEM_USER_TOKEN");
+    const token = rawToken?.replace(/\s+/g, "").trim();
     if (!token) return json({ erro: "META_SYSTEM_USER_TOKEN não configurado" }, 500);
+
+    // Diagnostic: returns first/last chars + length without leaking the token
+    if (req.url.includes("debug=1")) {
+      return json({
+        token_length: token.length,
+        starts_with: token.slice(0, 6),
+        ends_with: token.slice(-6),
+        starts_correct: token.startsWith("EAA"),
+        raw_length: rawToken?.length,
+      });
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
