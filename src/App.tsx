@@ -54,6 +54,7 @@ const App = () => (
             <Route path="/financial" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Financial /></DashboardLayout></ProtectedRoute>} />
             <Route path="/support" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Support /></DashboardLayout></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute roles={['admin']}><DashboardLayout><UsersPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/meta-connections" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><MetaConnections /></DashboardLayout></ProtectedRoute>} />
             <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
