@@ -73,23 +73,27 @@
 }
 
 @layer utilities {
-  .glow-text {
-    text-shadow: var(--glow-primary);
-  }
+  .glow-text { text-shadow: var(--glow-primary); }
+  .glow-box { box-shadow: var(--glow-primary); }
+  .glow-box-strong { box-shadow: var(--glow-primary-strong); }
+  .card-gradient { background: linear-gradient(135deg, hsl(0, 0%, 8%) 0%, hsl(0, 0%, 5%) 100%); }
+  .border-glow { border: 1px solid hsl(120, 100%, 50%, 0.2); }
 
-  .glow-box {
-    box-shadow: var(--glow-primary);
+  /* —— AD SCALE v2 —— */
+  .glass { @apply bg-card/60 backdrop-blur-xl border border-border/60 rounded-2xl; }
+  .glass-hover { @apply hover:border-primary/30 transition-colors; }
+  .grid-texture {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
+    background-size: 36px 36px;
   }
-
-  .glow-box-strong {
-    box-shadow: var(--glow-primary-strong);
-  }
-
-  .card-gradient {
-    background: linear-gradient(135deg, hsl(0, 0%, 8%) 0%, hsl(0, 0%, 5%) 100%);
-  }
-
-  .border-glow {
-    border: 1px solid hsl(120, 100%, 50%, 0.2);
-  }
+  .neon-divider { background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.5), transparent); height: 1px; }
+  .pill { @apply px-3 py-1.5 rounded-full text-xs font-medium border transition-all; }
+  .pill-active { @apply bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)]; }
+  .pill-idle { @apply bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40; }
+  .scrollbar-neon::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-neon::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-neon::-webkit-scrollbar-thumb { background: hsl(var(--primary) / 0.25); border-radius: 999px; }
+  .scrollbar-neon::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.5); }
 }

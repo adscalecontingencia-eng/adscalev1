@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { RefreshCw, BarChart3, DollarSign, Target, MousePointerClick, TrendingUp, ShoppingCart, Activity } from "lucide-react";
 import { motion } from "framer-motion";
+import { PageHero } from "@/components/ui-kit";
 
 type Range = "today" | "yesterday" | "7d" | "30d" | "90d";
 type BM = { id: string; name: string };
@@ -166,24 +167,17 @@ export default function AdsDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-display font-bold text-foreground">Dashboard de Anúncios</h2>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
-            Métricas consolidadas das contas do Meta Ads — {filteredAccountIds.size} conta(s).
-            {syncing && (
-              <span className="inline-flex items-center gap-1 text-primary text-xs">
-                <RefreshCw className="h-3 w-3 animate-spin" />
-                atualizando em segundo plano…
-              </span>
-            )}
-          </p>
-        </div>
-        <Button size="sm" disabled={syncing} onClick={() => sync()}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          Sincronizar período
-        </Button>
-      </div>
+      <PageHero
+        eyebrow="Performance"
+        title={<>Dashboard de <span className="text-primary glow-text">anúncios</span></>}
+        description={`Métricas consolidadas das contas do Meta Ads — ${filteredAccountIds.size} conta(s).`}
+        actions={
+          <Button size="sm" disabled={syncing} onClick={() => sync()}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            Sincronizar
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <Card className="p-4 space-y-3">

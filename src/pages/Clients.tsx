@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { PageHero } from '@/components/ui-kit';
 import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -407,6 +408,18 @@ const Clients: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <PageHero
+        eyebrow="Clientes & Comissões"
+        title={<>Carteira de <span className="text-primary glow-text">clientes</span></>}
+        description="Gestão completa de clientes, comissões diárias e fechamento semanal de Ad Spend."
+        actions={
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Total</div>
+            <div className="font-display text-2xl font-bold text-foreground">{clients.length}</div>
+          </div>
+        }
+      />
+
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

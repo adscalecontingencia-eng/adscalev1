@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { PageHero } from '@/components/ui-kit';
 import { Plus, X, AlertCircle, CalendarIcon, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -132,6 +133,17 @@ const Financial: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <PageHero
+        eyebrow="Financeiro"
+        title={<>Caixa & <span className="text-primary glow-text">transações</span></>}
+        description="Receitas, gastos de estrutura e comissões em um só lugar — sempre em USD."
+        actions={
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
+            <Plus size={16} /> Nova transação
+          </button>
+        }
+      />
+
       {/* Filters */}
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2 items-center">

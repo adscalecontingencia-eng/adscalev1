@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { PageHero } from '@/components/ui-kit';
 import { Plus, X, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -111,12 +112,16 @@ const UsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{users.length} colaborador(es)</p>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
-          <Plus size={16} /> Novo Colaborador
-        </button>
-      </div>
+      <PageHero
+        eyebrow="Equipe"
+        title={<>Usuários & <span className="text-primary glow-text">permissões</span></>}
+        description={`${users.length} colaborador(es) com acesso ao painel.`}
+        actions={
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
+            <Plus size={16} /> Novo Colaborador
+          </button>
+        }
+      />
 
       {showForm && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
