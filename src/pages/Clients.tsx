@@ -816,7 +816,7 @@ const Clients: React.FC = () => {
                           <DollarSign size={12} className="text-primary" />
                           <span className="text-muted-foreground">
                             Gasto: <strong className="text-foreground">{fmt(parseFloat(adSpendAmount) || 0)}</strong>
-                            {' → '}Comissão pendente ({c.paymentType === 'fixed' ? 'Fixo' : c.paymentType === 'percentage' ? `${c.percentageValue}%` : `Fixo + ${c.percentageValue}%`}): 
+                            {' → '}Comissão pendente ({c.clientType === 'venda' ? 'Fixo' : `${previewRate}% — semana acumulada ${fmt(accumWeekForCard + (parseFloat(adSpendAmount) || 0))}`}):
                             <strong className="text-primary ml-1">{fmt(previewCommission)}</strong>
                           </span>
                         </div>
