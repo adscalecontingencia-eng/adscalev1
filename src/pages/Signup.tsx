@@ -31,11 +31,22 @@ const Signup: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("client-signup", {
-        body: { email, password, accept_terms: true, terms_version: TERMS_VERSION },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      // Use fetch directly so we can read the JSON error body even on non-2xx
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-signup`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ email, password, accept_terms: true, terms_version: TERMS_VERSION }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
+      }
       setDone(true);
       setTimeout(() => navigate("/login"), 2500);
     } catch (e: any) {
