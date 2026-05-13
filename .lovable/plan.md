@@ -1,89 +1,94 @@
 ## Objetivo
-1. Gerar automaticamente a `weekly_billing` de cada cliente toda **sexta-feira** com base no contrato (fixo, % ou ambos).
-2. Disparar a mensagem de cobrança no **WhatsApp do cliente** via webhook do agente n8n existente.
+Notificar via WhatsApp (n8n) os clientes quando ocorrerem eventos críticos nas estruturas Meta vinculadas a eles: conta banida, BM restrita, anúncio rejeitado e página banida.
 
 ---
 
-## Parte 1 — Geração automática (Cron)
+## Parte 1 — Banco de dados
 
-### 1.1 Schema
-Adicionar colunas em `clients`:
-- `whatsapp_phone TEXT` — número no formato internacional (ex: `5511999999999`)
-- `notify_whatsapp BOOLEAN DEFAULT true` — opt-in da notificação automática
+**Nova tabela `meta_critical_events`** (auditoria + idempotência + retry):
+- `event_type`: `account_banned` | `bm_restricted` | `ad_rejected` | `page_banned`
+- `severity`: `critical` | `high`
+- `ad_account_id`, `bm_id`, `client_id` (FK lógica), `entity_meta_id`, `entity_name`
+- `reason`, `details jsonb`
+- `detected_at`, `notified_at`, `notify_status` (`pending|sent|failed|skipped`)
+- `dispatch_log_id` → liga ao `whatsapp_dispatch_log` existente
+- Constraint única: `(event_type, entity_meta_id, detected_at::date)` para não duplicar no mesmo dia
 
-Adicionar campo no formulário admin (`Clients.tsx`) para preencher esses dados.
-
-### 1.2 Edge Function `generate-weekly-billings`
-Para cada cliente:
-- Calcular semana corrente (Seg–Dom).
-- Verificar se já existe `weekly_billing` com `billing_week_start` igual → ignorar (idempotente).
-- Somar `ad_spend` e `amount` das `commissions` daily da semana.
-- Calcular comissão final pelo contrato:
-  - `fixed`: `fixed_value`
-  - `percentage`: `ad_spend * percentage_value/100`
-  - `both`: soma dos dois
-- Inserir `weekly_billing` (`status: 'pendente'`, `valor_pendente = amount`).
-- Se `notify_whatsapp` e `whatsapp_phone`, chamar o webhook do n8n com payload (ver Parte 2).
-
-### 1.3 Agendamento (pg_cron)
-Habilitar `pg_cron` + `pg_net` e agendar para **toda sexta às 12:00 (horário de Brasília = 15:00 UTC)**:
-```sql
-select cron.schedule(
-  'weekly-billing-friday',
-  '0 15 * * 5',
-  $$ select net.http_post(
-       url:='https://<project>.supabase.co/functions/v1/generate-weekly-billings',
-       headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
-       body:='{}'::jsonb
-     ); $$
-);
-```
-Adicionar botão **"Rodar agora"** no admin para disparo manual de teste.
+**Sync de páginas e ads (novo)** — hoje só temos contagens. Para detectar `ad_rejected` e `page_banned` precisamos sincronizar:
+- `meta_pages`: `meta_page_id`, `bm_id`, `name`, `is_published`, `is_restricted`, `last_synced_at`
+- `meta_ads`: `meta_ad_id`, `ad_account_id`, `name`, `effective_status`, `disapproval_reason`, `last_synced_at`
 
 ---
 
-## Parte 2 — Envio WhatsApp via n8n
+## Parte 2 — Edge Function `meta-critical-monitor`
 
-### 2.1 No n8n (você faz)
-1. Criar workflow novo com trigger **Webhook (POST)** — copiar a URL gerada.
-2. Adicionar header de autenticação (ex: `X-Lovable-Token`) com um valor secreto.
-3. Após o Webhook, conectar o nó do seu agente WhatsApp (Evolution API / WhatsApp Business / Z-API — o que você já usa) com:
-   - destinatário = `{{ $json.phone }}`
-   - mensagem = `{{ $json.message }}` (template já formatado pela Edge Function)
-4. Ativar o workflow.
+Roda em duas situações:
+1. **Automático**: chamada no fim do `meta-sync` após cada `sync_accounts` / `sync_insights`.
+2. **Manual**: botão no painel admin "Verificar eventos críticos agora" + botão "Reenviar" por evento.
 
-### 2.2 No Lovable (eu faço)
-1. Pedir 2 secrets: `N8N_WEBHOOK_URL` e `N8N_WEBHOOK_TOKEN`.
-2. Na Edge Function, após criar a `weekly_billing`, fazer:
-```ts
-await fetch(N8N_WEBHOOK_URL, {
-  method: 'POST',
-  headers: { 'Content-Type':'application/json', 'X-Lovable-Token': N8N_WEBHOOK_TOKEN },
-  body: JSON.stringify({
-    client_id, client_name, phone: whatsapp_phone,
-    amount, week_start, week_end, due_date, // sexta
-    payment_link: 'https://adscalev1.lovable.app/#/login',
-    message: `Olá ${nome}! Sua cobrança semanal AD SCALE de ${valor} referente a ${periodo} está disponível. Vencimento: hoje (sexta). Acesse seu painel: ...`
-  })
-});
+Lógica:
+- Compara estado atual (Meta) vs último estado salvo:
+  - `account_status != 1` ou `disable_reason > 0` que antes era 0 → `account_banned`
+  - BM `verification_status` mudou para `not_verified`/`disabled` → `bm_restricted`
+  - Ad com `effective_status` em `DISAPPROVED|WITH_ISSUES` → `ad_rejected`
+  - Page com `is_restricted=true` ou some da listagem → `page_banned`
+- Para cada evento detectado:
+  - Resolve `client_id` via `meta_ad_account_assignments` (eventos sem cliente atribuído ficam `skipped` — só log, sem WhatsApp)
+  - Insere em `meta_critical_events`
+  - Se cliente tem `whatsapp_phone` e `notify_whatsapp=true`, dispara webhook n8n
+  - Registra resultado em `whatsapp_dispatch_log`
+
+---
+
+## Parte 3 — Webhook n8n
+
+Payload enviado (POST):
+```json
+{
+  "event_type": "account_banned",
+  "severity": "critical",
+  "client": { "id": "...", "name": "...", "phone": "5511..." },
+  "entity": { "type": "ad_account", "meta_id": "act_123", "name": "Conta XYZ" },
+  "reason": "ADS_INTEGRITY_POLICY",
+  "detected_at": "2026-05-13T15:00:00Z",
+  "message": "🚨 *AD SCALE* — Conta de anúncio *XYZ* foi BANIDA. Motivo: ADS_INTEGRITY_POLICY. Nossa equipe já foi acionada.",
+  "portal_link": "https://adscalev1.lovable.app/#/login"
+}
 ```
-3. Logar a tentativa em uma nova tabela `whatsapp_dispatch_log` (status, response, error) para auditoria e retry.
 
-### 2.3 Botão manual de reenvio
-No painel admin, em cada cobrança pendente, botão **"Reenviar WhatsApp"** que chama a mesma function com `billing_id` específico.
+Headers:
+- `Content-Type: application/json`
+- `X-Lovable-Token: <N8N_WEBHOOK_TOKEN>`
+
+Templates de mensagem (PT-BR) por `event_type` formatados na própria edge function — você só repassa `message` no n8n.
+
+**Secrets necessários** (peço quando confirmar):
+- `N8N_CRITICAL_WEBHOOK_URL`
+- `N8N_WEBHOOK_TOKEN` (pode ser o mesmo já existente)
+
+---
+
+## Parte 4 — UI Admin
+
+Nova página (ou aba dentro de `BlockLog`) **"Eventos Críticos"**:
+- Lista cronológica com filtro por tipo/cliente/status
+- Badge de severidade e canal (WhatsApp enviado / falhou / sem cliente)
+- Botão **Verificar agora** (chama `meta-critical-monitor` action=`check`)
+- Botão **Reenviar WhatsApp** por linha (action=`resend`, billing_id=event_id)
+- Indicador de último check
 
 ---
 
 ## Detalhes técnicos
-- Função usa `SUPABASE_SERVICE_ROLE_KEY` (já disponível) para bypass de RLS.
-- Idempotência via constraint lógica `(client_id, billing_week_start)` em `commissions` do tipo `weekly_billing`.
-- `verify_jwt = false` (chamada por cron sem usuário).
-- Mensagem em PT-BR, valor em USD com formatação `$1,234.56`.
+- Sync de pages/ads adiciona ~2 chamadas extras por BM/conta — concorrência limitada como já é feito em `meta-sync`.
+- Fontes Meta: `/me/businesses/{bm}/owned_pages` (já chamado, só persistir) + `/{ad_account_id}/ads?fields=effective_status,issues_info,name`.
+- Idempotência: constraint única evita duplicar evento + `notified_at` evita reenvio automático (só manual).
+- RLS: tabelas novas com policy `admin/support full` + `clients read own` (se quiser exibir no painel do cliente depois).
+- Envio usa `SUPABASE_SERVICE_ROLE_KEY` para bypass.
 
 ---
 
 ## O que preciso de você
-1. Confirmar que posso prosseguir com a implementação.
-2. Adicionar os secrets `N8N_WEBHOOK_URL` e `N8N_WEBHOOK_TOKEN` quando eu pedir.
-3. Confirmar o **horário** da cobrança (proponho **sexta 12:00 BRT**).
-4. Confirmar o **template da mensagem** (ou aprovar o sugerido acima).
+1. Confirmar o plano (especialmente: criar `meta_pages` e `meta_ads` para detectar rejeição/banimento — sem isso esses 2 eventos ficam impossíveis).
+2. Após aprovado, eu peço os 2 secrets do n8n.
+3. Você cria o workflow n8n com nó Webhook + envio para o WhatsApp (`{{ $json.client.phone }}` / `{{ $json.message }}`).

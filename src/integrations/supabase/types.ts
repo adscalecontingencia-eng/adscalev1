@@ -407,6 +407,56 @@ export type Database = {
           },
         ]
       }
+      meta_ads: {
+        Row: {
+          ad_account_id: string | null
+          created_at: string
+          disapproval_reason: string | null
+          effective_status: string | null
+          id: string
+          issues_info: Json | null
+          last_synced_at: string | null
+          meta_ad_id: string
+          name: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id?: string | null
+          created_at?: string
+          disapproval_reason?: string | null
+          effective_status?: string | null
+          id?: string
+          issues_info?: Json | null
+          last_synced_at?: string | null
+          meta_ad_id: string
+          name: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string | null
+          created_at?: string
+          disapproval_reason?: string | null
+          effective_status?: string | null
+          id?: string
+          issues_info?: Json | null
+          last_synced_at?: string | null
+          meta_ad_id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ads_ad_account_id_fkey"
+            columns: ["ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_blocked_accounts_log: {
         Row: {
           ad_account_id: string
@@ -496,6 +546,110 @@ export type Database = {
           verification_status?: string | null
         }
         Relationships: []
+      }
+      meta_critical_events: {
+        Row: {
+          ad_account_id: string | null
+          bm_id: string | null
+          client_id: string | null
+          created_at: string
+          details: Json | null
+          detected_at: string
+          dispatch_log_id: string | null
+          entity_meta_id: string
+          entity_name: string | null
+          entity_type: string
+          event_type: string
+          id: string
+          notified_at: string | null
+          notify_status: string
+          reason: string | null
+          severity: string
+        }
+        Insert: {
+          ad_account_id?: string | null
+          bm_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          details?: Json | null
+          detected_at?: string
+          dispatch_log_id?: string | null
+          entity_meta_id: string
+          entity_name?: string | null
+          entity_type: string
+          event_type: string
+          id?: string
+          notified_at?: string | null
+          notify_status?: string
+          reason?: string | null
+          severity?: string
+        }
+        Update: {
+          ad_account_id?: string | null
+          bm_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          details?: Json | null
+          detected_at?: string
+          dispatch_log_id?: string | null
+          entity_meta_id?: string
+          entity_name?: string | null
+          entity_type?: string
+          event_type?: string
+          id?: string
+          notified_at?: string | null
+          notify_status?: string
+          reason?: string | null
+          severity?: string
+        }
+        Relationships: []
+      }
+      meta_pages: {
+        Row: {
+          bm_id: string | null
+          category: string | null
+          created_at: string
+          id: string
+          is_published: boolean | null
+          is_restricted: boolean | null
+          last_synced_at: string | null
+          meta_page_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bm_id?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          is_restricted?: boolean | null
+          last_synced_at?: string | null
+          meta_page_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bm_id?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          is_restricted?: boolean | null
+          last_synced_at?: string | null
+          meta_page_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_pages_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
