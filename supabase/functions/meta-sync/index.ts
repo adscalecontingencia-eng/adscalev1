@@ -50,13 +50,14 @@ Deno.serve(async (req) => {
 
     // ===== 1) SYNC BMs =====
     if (action === "sync_bms") {
-      // /me/businesses returns all BMs the System User has access to
-      const data = await metaFetch("/me/businesses", token, {
-        fields: "id,name,verification_status",
-        limit: "100",
+      // System User belongs to its owning business + may see client businesses
+      const me = await metaFetch("/me", token, {
+        fields: "id,name,businesses{id,name,verification_status},client_businesses{id,name,verification_status}",
       });
 
-      const bms = data.data || [];
+      const owned = me.businesses?.data || [];
+      const client = me.client_businesses?.data || [];
+      const bms = [...owned, ...client];
       const upserts = bms.map((bm: any) => ({
         meta_bm_id: bm.id,
         name: bm.name,
