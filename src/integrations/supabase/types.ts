@@ -100,6 +100,7 @@ export type Database = {
           fixed_value: number | null
           id: string
           name: string
+          notify_whatsapp: boolean
           number: string | null
           observations: string | null
           password: string
@@ -107,6 +108,7 @@ export type Database = {
           percentage_value: number | null
           updated_at: string
           used_accounts: number | null
+          whatsapp_phone: string | null
         }
         Insert: {
           ad_accounts?: number | null
@@ -118,6 +120,7 @@ export type Database = {
           fixed_value?: number | null
           id?: string
           name: string
+          notify_whatsapp?: boolean
           number?: string | null
           observations?: string | null
           password: string
@@ -125,6 +128,7 @@ export type Database = {
           percentage_value?: number | null
           updated_at?: string
           used_accounts?: number | null
+          whatsapp_phone?: string | null
         }
         Update: {
           ad_accounts?: number | null
@@ -136,6 +140,7 @@ export type Database = {
           fixed_value?: number | null
           id?: string
           name?: string
+          notify_whatsapp?: boolean
           number?: string | null
           observations?: string | null
           password?: string
@@ -143,6 +148,7 @@ export type Database = {
           percentage_value?: number | null
           updated_at?: string
           used_accounts?: number | null
+          whatsapp_phone?: string | null
         }
         Relationships: []
       }
@@ -643,6 +649,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_dispatch_log: {
+        Row: {
+          billing_id: string | null
+          client_id: string | null
+          created_at: string
+          error: string | null
+          http_status: number | null
+          id: string
+          payload: Json | null
+          phone: string | null
+          response: string | null
+          status: string
+        }
+        Insert: {
+          billing_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          phone?: string | null
+          response?: string | null
+          status: string
+        }
+        Update: {
+          billing_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          phone?: string | null
+          response?: string | null
+          status?: string
         }
         Relationships: []
       }
