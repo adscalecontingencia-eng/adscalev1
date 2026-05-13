@@ -48,54 +48,77 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
 
-    // ===== 1) SYNC BMs + ACCOUNTS (via /me/adaccounts — single source of truth) =====
+    // ===== 1) SYNC BMs + ACCOUNTS (User Token: list BMs then accounts of each) =====
     if (action === "sync_bms" || action === "sync_accounts") {
-      // Pull every ad account this System User can see, with its owning business inline
-      const all: any[] = [];
-      let url: string | null = `${META_API}/me/adaccounts?access_token=${encodeURIComponent(token)}&fields=id,account_id,name,account_status,currency,amount_spent,business{id,name,verification_status}&limit=200`;
-      while (url) {
-        const r = await fetch(url);
-        const d = await r.json();
-        if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
-        all.push(...(d.data || []));
-        url = d.paging?.next || null;
-      }
+      // Helper: paginate any /edge URL
+      const paginate = async (firstUrl: string) => {
+        const out: any[] = [];
+        let url: string | null = firstUrl;
+        while (url) {
+          const r = await fetch(url);
+          const d = await r.json();
+          if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
+          out.push(...(d.data || []));
+          url = d.paging?.next || null;
+        }
+        return out;
+      };
 
-      if (all.length === 0) {
+      // 1a) List all BMs the user admins
+      const bms = await paginate(
+        `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
+      );
+
+      if (bms.length === 0) {
         return json({
           sucesso: true,
           sincronizadas: 0,
-          hint: "Nenhuma conta de anúncio visível para este System User. Atribua contas a ele em business.facebook.com → Configurações → Usuários do Sistema → Adicionar Ativos.",
+          hint: "Nenhuma Business Manager encontrada. Verifique se este token pertence ao usuário admin das BMs.",
         });
       }
 
-      // Upsert BMs (deduped)
-      const bmMap = new Map<string, any>();
-      for (const acc of all) {
-        const bm = acc.business;
-        if (bm?.id && !bmMap.has(bm.id)) bmMap.set(bm.id, bm);
-      }
-      const bmRows = Array.from(bmMap.values()).map((bm) => ({
+      // Upsert BMs
+      const bmRows = bms.map((bm: any) => ({
         meta_bm_id: bm.id,
         name: bm.name,
         status: bm.verification_status || "active",
         last_synced_at: new Date().toISOString(),
       }));
-      if (bmRows.length > 0) {
-        const { error } = await supabase.from("meta_business_managers")
-          .upsert(bmRows, { onConflict: "meta_bm_id" });
-        if (error) throw error;
-      }
+      const { error: bmErr } = await supabase.from("meta_business_managers")
+        .upsert(bmRows, { onConflict: "meta_bm_id" });
+      if (bmErr) throw bmErr;
 
-      // Lookup BM uuids
       const { data: bmsDb } = await supabase.from("meta_business_managers")
         .select("id, meta_bm_id");
       const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
 
-      // Upsert accounts
-      const accRows = all.map((acc: any) => ({
+      // 1b) For each BM, list owned + client ad accounts
+      const allAccounts: any[] = [];
+      const errors: any[] = [];
+      for (const bm of bms) {
+        for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
+          try {
+            const accs = await paginate(
+              `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=id,account_id,name,account_status,currency,amount_spent&limit=200`
+            );
+            for (const acc of accs) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
+          } catch (e) {
+            errors.push({ bm: bm.name, edge, erro: (e as Error).message });
+          }
+        }
+      }
+
+      // Dedupe by meta_account_id
+      const seen = new Set<string>();
+      const unique = allAccounts.filter((a) => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return true;
+      });
+
+      const accRows = unique.map((acc: any) => ({
         meta_account_id: acc.id,
-        bm_id: acc.business?.id ? bmIdMap.get(acc.business.id) : null,
+        bm_id: bmIdMap.get(acc._bm_meta_id) || null,
         name: acc.name,
         account_status: acc.account_status,
         status: acc.account_status === 1 ? "active" : "blocked",
@@ -103,15 +126,19 @@ Deno.serve(async (req) => {
         amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
         last_synced_at: new Date().toISOString(),
       }));
-      const { error: accErr } = await supabase.from("meta_ad_accounts")
-        .upsert(accRows, { onConflict: "meta_account_id" });
-      if (accErr) throw accErr;
+
+      if (accRows.length > 0) {
+        const { error: accErr } = await supabase.from("meta_ad_accounts")
+          .upsert(accRows, { onConflict: "meta_account_id" });
+        if (accErr) throw accErr;
+      }
 
       return json({
         sucesso: true,
         bms_sincronizadas: bmRows.length,
         contas_sincronizadas: accRows.length,
         bms: bmRows.map((b) => b.name),
+        erros: errors,
       });
     }
 
