@@ -83,10 +83,11 @@ export default function AdsDashboard() {
 
   useEffect(() => { loadMeta(); }, []);
   useEffect(() => {
-    // Sincronização em tempo real: puxa do Meta e depois carrega do banco
+    // 1) Mostra imediatamente o que já está no banco
+    // 2) Em paralelo, dispara sync em background e recarrega quando terminar
     (async () => {
-      await sync({ silent: true });
       await loadInsights();
+      sync({ silent: true }).then(() => loadInsights());
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
