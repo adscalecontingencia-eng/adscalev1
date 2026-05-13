@@ -87,7 +87,7 @@ export default function AdsDashboard() {
     // 2) Em paralelo, dispara sync em background e recarrega quando terminar
     (async () => {
       await loadInsights();
-      sync({ silent: true }).then(() => loadInsights());
+      sync({ silent: true }).then(() => loadInsights({ background: true }));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
