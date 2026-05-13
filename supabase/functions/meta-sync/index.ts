@@ -222,6 +222,21 @@ Deno.serve(async (req) => {
         return { score: s, label, reasons };
       };
 
+      // Mascara o cartão: extrai apenas os 4 últimos dígitos do display_string
+      const maskFunding = (acc: any): string | null => {
+        const fsd = acc.funding_source_details;
+        if (!fsd) return acc.funding_source ? "Vinculado" : null;
+        const raw: string = fsd.display_string || "";
+        const digits = (raw.match(/\d/g) || []).join("");
+        const last4 = digits.slice(-4);
+        const type = fsd.type || "";
+        const brandMatch = raw.match(/^([A-Za-z]+)/);
+        const brand = brandMatch ? brandMatch[1].toUpperCase() : "";
+        if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
+        if (type) return type.replace(/_/g, " ");
+        return raw || "Vinculado";
+      };
+
       const accRows = unique.map((acc: any) => {
         const { score, label } = computeScore(acc);
         return {
@@ -237,7 +252,8 @@ Deno.serve(async (req) => {
           account_created_time: acc.created_time || null,
           disable_reason: acc.disable_reason ?? null,
           disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
-          funding_source: acc.funding_source || null,
+          funding_source: maskFunding(acc),
+          billing_cycle: acc.is_prepay_account === true ? "Pré-paga" : acc.is_prepay_account === false ? "Pós-paga" : null,
           balance: acc.balance ? Number(acc.balance) / 100 : 0,
           business_country_code: acc.business_country_code || null,
           age: acc.age ?? null,
