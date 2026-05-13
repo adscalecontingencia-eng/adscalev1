@@ -65,15 +65,21 @@ const Support: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2 text-xs">
-          <span className="bg-muted text-muted-foreground px-2 py-1 rounded">Pendentes: {tasks.filter(t => t.status === 'pendente').length}</span>
-          <span className="bg-warning/10 text-warning px-2 py-1 rounded">Em andamento: {tasks.filter(t => t.status === 'em_andamento').length}</span>
-          <span className="bg-primary/10 text-primary px-2 py-1 rounded">Concluídas: {tasks.filter(t => t.status === 'concluida').length}</span>
-        </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
-          <Plus size={16} /> Nova Tarefa
-        </button>
+      <PageHero
+        eyebrow="Suporte"
+        title={<>Operação & <span className="text-primary glow-text">tarefas</span></>}
+        description="Tarefas internas de manutenção, atendimento e estrutura — distribuídas para o time de suporte."
+        actions={
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
+            <Plus size={16} /> Nova Tarefa
+          </button>
+        }
+      />
+
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="bg-muted/60 backdrop-blur border border-border/60 text-muted-foreground px-3 py-1.5 rounded-full">Pendentes · {tasks.filter(t => t.status === 'pendente').length}</span>
+        <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full">Em andamento · {tasks.filter(t => t.status === 'em_andamento').length}</span>
+        <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">Concluídas · {tasks.filter(t => t.status === 'concluida').length}</span>
       </div>
 
       {showForm && (
