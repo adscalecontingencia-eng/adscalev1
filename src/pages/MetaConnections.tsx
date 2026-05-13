@@ -102,15 +102,16 @@ export default function MetaConnections() {
 
   const filtered = useMemo(() => {
     return accounts.filter((a) => {
+      const cId = currentClient(a.id);
       if (filterBm !== "all" && a.bm_id !== filterBm) return false;
       if (filterStatus === "active" && a.status !== "active") return false;
       if (filterStatus === "blocked" && a.status === "active") return false;
-      if (filterStatus === "assigned" && !currentClient(a.id)) return false;
-      if (filterStatus === "unassigned" && currentClient(a.id)) return false;
+      if (filterClient === "unassigned" && cId) return false;
+      if (filterClient !== "all" && filterClient !== "unassigned" && cId !== filterClient) return false;
       if (search && !`${a.name} ${a.meta_account_id}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [accounts, filterBm, filterStatus, search, currentClient]);
+  }, [accounts, filterBm, filterStatus, filterClient, search, currentClient]);
 
   const stats = useMemo(() => ({
     bms: bms.length,
