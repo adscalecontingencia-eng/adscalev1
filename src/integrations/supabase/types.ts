@@ -133,6 +133,223 @@ export type Database = {
           },
         ]
       }
+      meta_ad_account_assignments: {
+        Row: {
+          active: boolean | null
+          ad_account_id: string
+          assigned_at: string
+          client_id: string
+          id: string
+        }
+        Insert: {
+          active?: boolean | null
+          ad_account_id: string
+          assigned_at?: string
+          client_id: string
+          id?: string
+        }
+        Update: {
+          active?: boolean | null
+          ad_account_id?: string
+          assigned_at?: string
+          client_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ad_account_assignments_ad_account_id_fkey"
+            columns: ["ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_ad_account_assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_ad_accounts: {
+        Row: {
+          account_status: number | null
+          amount_spent: number | null
+          bm_id: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          last_synced_at: string | null
+          meta_account_id: string
+          name: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_status?: number | null
+          amount_spent?: number | null
+          bm_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          last_synced_at?: string | null
+          meta_account_id: string
+          name: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_status?: number | null
+          amount_spent?: number | null
+          bm_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          last_synced_at?: string | null
+          meta_account_id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ad_accounts_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_ad_insights: {
+        Row: {
+          actions: Json | null
+          ad_account_id: string
+          clicks: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number | null
+          reach: number | null
+          spend: number | null
+        }
+        Insert: {
+          actions?: Json | null
+          ad_account_id: string
+          clicks?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          spend?: number | null
+        }
+        Update: {
+          actions?: Json | null
+          ad_account_id?: string
+          clicks?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          spend?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ad_insights_ad_account_id_fkey"
+            columns: ["ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_blocked_accounts_log: {
+        Row: {
+          ad_account_id: string
+          client_id: string | null
+          detected_at: string
+          event_type: string
+          id: string
+          reason: string | null
+          resolved_at: string | null
+        }
+        Insert: {
+          ad_account_id: string
+          client_id?: string | null
+          detected_at?: string
+          event_type: string
+          id?: string
+          reason?: string | null
+          resolved_at?: string | null
+        }
+        Update: {
+          ad_account_id?: string
+          client_id?: string | null
+          detected_at?: string
+          event_type?: string
+          id?: string
+          reason?: string | null
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_blocked_accounts_log_ad_account_id_fkey"
+            columns: ["ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_blocked_accounts_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_business_managers: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          meta_bm_id: string
+          name: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          meta_bm_id: string
+          name: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          meta_bm_id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_users: {
         Row: {
           auth_user_id: string | null
