@@ -68,17 +68,17 @@ export default function AdsDashboard() {
     setAssignments((asn.data as Assignment[]) || []);
   };
 
-  const loadInsights = async () => {
-    setLoading(true);
+  const loadInsights = async (opts?: { background?: boolean }) => {
+    if (!opts?.background) setLoading(true);
     const { since, until } = rangeToDates(range);
     const { data, error } = await supabase
       .from("meta_ad_insights")
       .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
       .gte("date", since)
       .lte("date", until);
-    if (error) toast.error(error.message);
+    if (error && !opts?.background) toast.error(error.message);
     setInsights((data as Insight[]) || []);
-    setLoading(false);
+    if (!opts?.background) setLoading(false);
   };
 
   useEffect(() => { loadMeta(); }, []);
