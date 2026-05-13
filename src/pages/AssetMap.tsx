@@ -172,13 +172,17 @@ function buildGraph(bms: BM[], accounts: Account[]) {
     const profileW = bmWidths.reduce((a, b) => a + b, 0) + (profileBms.length - 1) * 40;
     const profileCenterX = cursorX + profileW / 2;
 
-    // Profile node (level 0)
+    // Profile node (level 0) — aggregate active/inactive across all its BMs
+    const profileBmIds = new Set(profileBms.map(b => b.id));
+    const profileAccs = accounts.filter(a => a.bm_id && profileBmIds.has(a.bm_id));
+    const profileActive = profileAccs.filter(a => a.account_status === 1).length;
+    const profileInactive = profileAccs.length - profileActive;
     const profileId = `p:${profileName}`;
     nodes.push({
       id: profileId,
       type: "profile",
       position: { x: profileCenterX - 90, y: 0 },
-      data: { label: profileName },
+      data: { label: profileName, activeAccounts: profileActive, inactiveAccounts: profileInactive },
     });
 
     // BMs (level 1)
@@ -187,6 +191,8 @@ function buildGraph(bms: BM[], accounts: Account[]) {
       const w = bmWidths[i];
       const bmCenterX = bmCursor + w / 2;
       const bmId = `bm:${bm.id}`;
+      const bmAccs = accounts.filter(a => a.bm_id === bm.id);
+      const bmActive = bmAccs.filter(a => a.account_status === 1).length;
       nodes.push({
         id: bmId,
         type: "bm",
@@ -196,7 +202,8 @@ function buildGraph(bms: BM[], accounts: Account[]) {
           id: bm.meta_bm_id,
           verification_status: bm.verification_status,
           accounts: bm.account_count ?? 0,
-          activeAccounts: accounts.filter(a => a.bm_id === bm.id && a.account_status === 1).length,
+          activeAccounts: bmActive,
+          inactiveAccounts: bmAccs.length - bmActive,
           pixels: bm.pixel_count ?? 0,
           pages: bm.page_count ?? 0,
         },
