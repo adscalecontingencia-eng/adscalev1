@@ -122,15 +122,25 @@ const Clients: React.FC = () => {
 
   useEffect(() => { fetchClients(); fetchCommissions(); }, []);
 
-  const calculateCommission = (client: Client, adSpend: number): number => {
-    let commission = 0;
-    if (client.paymentType === 'fixed' || client.paymentType === 'both') {
-      commission += client.fixedValue || 0;
+  const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
+    // Venda → valor fixo
+    if (client.clientType === 'venda') {
+      return client.fixedValue || 0;
     }
-    if (client.paymentType === 'percentage' || client.paymentType === 'both') {
-      commission += adSpend * ((client.percentageValue || 0) / 100);
-    }
-    return commission;
+    // Aluguel → percentual com tier de desconto baseado no gasto semanal acumulado
+    const totalWeek = (weeklyAccumSpend ?? 0) + adSpend;
+    const rate = getTierPercentage(totalWeek, client.percentageValue || 0);
+    return adSpend * (rate / 100);
+  };
+
+  // Soma de Ad Spend já lançado na semana corrente p/ um cliente (exclui weekly_billing)
+  const getWeeklyAccumSpend = (clientId: string, refDate: Date): number => {
+    const ws = startOfWeek(refDate, { weekStartsOn: 1 });
+    const we = endOfWeek(refDate, { weekStartsOn: 1 });
+    return commissions
+      .filter(c => c.clientId === clientId && c.type === 'daily' &&
+        isWithinInterval(parseDateLocal(c.date), { start: ws, end: we }))
+      .reduce((s, c) => s + (c.adSpend || 0), 0);
   };
 
   const handleSave = async () => {
