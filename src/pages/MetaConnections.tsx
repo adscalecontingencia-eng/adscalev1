@@ -36,6 +36,7 @@ export default function MetaConnections() {
   const [syncing, setSyncing] = useState<"bms" | "accounts" | null>(null);
   const [filterBm, setFilterBm] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterClient, setFilterClient] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   const load = async () => {
