@@ -416,6 +416,66 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          asset_id: string
+          asset_type: string
+          channel: string
+          created_at: string
+          enabled: boolean
+          event_type: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_id?: string
+          asset_type?: string
+          channel: string
+          created_at?: string
+          enabled?: boolean
+          event_type: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string
+          asset_type?: string
+          channel?: string
+          created_at?: string
+          enabled?: boolean
+          event_type?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_states: {
+        Row: {
+          created_at: string
+          id: string
+          notification_id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_id: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_users: {
         Row: {
           auth_user_id: string | null
