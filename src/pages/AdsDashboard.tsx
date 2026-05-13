@@ -148,7 +148,7 @@ export default function AdsDashboard() {
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
       if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
-      await loadInsights();
+      await loadInsights({ background: silent });
     } catch (e: any) {
       if (!silent) toast.error(`Falha: ${e.message}`);
       else console.error("auto-sync falhou:", e.message);
