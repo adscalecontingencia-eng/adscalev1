@@ -149,8 +149,8 @@ const NotificationSettings: React.FC = () => {
         }
       />
 
-      <Panel title="Padrões por canal e tipo de ativo" icon={Bell}
-        description="Ative ou desative cada combinação. Específicos abaixo sobrescrevem estes padrões.">
+      <Panel title="Padrões por canal e tipo de ativo"
+        subtitle="Ative ou desative cada combinação. Específicos abaixo sobrescrevem estes padrões.">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
