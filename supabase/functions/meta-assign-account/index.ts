@@ -35,8 +35,11 @@ Deno.serve(async (req) => {
     if (!isAdminOrSupport) return json({ erro: "Acesso negado" }, 403);
 
     const { action, ad_account_id, client_id } = await req.json();
-    if (!action || !ad_account_id || !client_id) {
-      return json({ erro: "Campos obrigatórios: action, ad_account_id, client_id" }, 400);
+    if (!action || !ad_account_id) {
+      return json({ erro: "Campos obrigatórios: action, ad_account_id" }, 400);
+    }
+    if (action === "assign" && !client_id) {
+      return json({ erro: "client_id é obrigatório para assign" }, 400);
     }
 
     if (action === "assign") {
