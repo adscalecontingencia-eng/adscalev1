@@ -10,6 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import AdScaleLogo from '@/components/AdScaleLogo';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -108,13 +109,8 @@ const ClientDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur z-20">
-        <div className="flex items-center gap-3">
-          <img
-            src={new URL('../assets/logo-adscale-new.png', import.meta.url).href}
-            alt="AD SCALE"
-            translate="no"
-            className="h-10 lg:h-12 w-auto object-contain"
-          />
+        <div className="flex items-center gap-3 text-primary">
+          <AdScaleLogo size={28} />
           <p className="text-xs text-muted-foreground hidden sm:block border-l border-border pl-3">Painel do Cliente</p>
         </div>
         <div className="flex items-center gap-3">
