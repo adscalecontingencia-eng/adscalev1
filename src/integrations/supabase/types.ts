@@ -174,42 +174,84 @@ export type Database = {
       }
       meta_ad_accounts: {
         Row: {
+          account_created_time: string | null
           account_status: number | null
+          age: number | null
           amount_spent: number | null
+          balance: number | null
           bm_id: string | null
+          business_country_code: string | null
           created_at: string
           currency: string | null
+          disable_reason: number | null
+          disable_reason_label: string | null
+          funding_source: string | null
           id: string
           last_synced_at: string | null
           meta_account_id: string
           name: string
+          owner_business_name: string | null
+          page_count: number | null
+          pixel_count: number | null
+          score: number | null
+          score_label: string | null
+          spend_cap: number | null
           status: string | null
+          timezone_name: string | null
           updated_at: string
         }
         Insert: {
+          account_created_time?: string | null
           account_status?: number | null
+          age?: number | null
           amount_spent?: number | null
+          balance?: number | null
           bm_id?: string | null
+          business_country_code?: string | null
           created_at?: string
           currency?: string | null
+          disable_reason?: number | null
+          disable_reason_label?: string | null
+          funding_source?: string | null
           id?: string
           last_synced_at?: string | null
           meta_account_id: string
           name: string
+          owner_business_name?: string | null
+          page_count?: number | null
+          pixel_count?: number | null
+          score?: number | null
+          score_label?: string | null
+          spend_cap?: number | null
           status?: string | null
+          timezone_name?: string | null
           updated_at?: string
         }
         Update: {
+          account_created_time?: string | null
           account_status?: number | null
+          age?: number | null
           amount_spent?: number | null
+          balance?: number | null
           bm_id?: string | null
+          business_country_code?: string | null
           created_at?: string
           currency?: string | null
+          disable_reason?: number | null
+          disable_reason_label?: string | null
+          funding_source?: string | null
           id?: string
           last_synced_at?: string | null
           meta_account_id?: string
           name?: string
+          owner_business_name?: string | null
+          page_count?: number | null
+          pixel_count?: number | null
+          score?: number | null
+          score_label?: string | null
+          spend_cap?: number | null
           status?: string | null
+          timezone_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -328,31 +370,46 @@ export type Database = {
       }
       meta_business_managers: {
         Row: {
+          account_count: number | null
           created_at: string
           id: string
           last_synced_at: string | null
           meta_bm_id: string
           name: string
+          page_count: number | null
+          pixel_count: number | null
+          primary_page: string | null
           status: string | null
           updated_at: string
+          verification_status: string | null
         }
         Insert: {
+          account_count?: number | null
           created_at?: string
           id?: string
           last_synced_at?: string | null
           meta_bm_id: string
           name: string
+          page_count?: number | null
+          pixel_count?: number | null
+          primary_page?: string | null
           status?: string | null
           updated_at?: string
+          verification_status?: string | null
         }
         Update: {
+          account_count?: number | null
           created_at?: string
           id?: string
           last_synced_at?: string | null
           meta_bm_id?: string
           name?: string
+          page_count?: number | null
+          pixel_count?: number | null
+          primary_page?: string | null
           status?: string | null
           updated_at?: string
+          verification_status?: string | null
         }
         Relationships: []
       }
