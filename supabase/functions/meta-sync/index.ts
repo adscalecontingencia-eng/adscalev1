@@ -172,62 +172,88 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ===== 3) SYNC DAILY INSIGHTS =====
+    // ===== 3) SYNC DAILY INSIGHTS (range, paralelo) =====
     if (action === "sync_insights") {
-      const date = body.date || new Date(Date.now() - 86400000).toISOString().slice(0, 10); // ontem por padrão
+      const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const since: string = body.since || body.date || yday;
+      const until: string = body.until || body.date || yday;
 
       const { data: accounts, error: accErr } = await supabase
         .from("meta_ad_accounts")
         .select("id, meta_account_id, name");
       if (accErr) throw accErr;
 
-      let synced = 0;
+      const purchaseTypes = ["purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase"];
+      const sumByType = (arr: any[]) =>
+        (arr || [])
+          .filter((a) => purchaseTypes.includes(a.action_type))
+          .reduce((s: number, a: any) => s + Number(a.value || 0), 0);
+
       const errors: any[] = [];
+      let totalRows = 0;
 
-      for (const acc of accounts || []) {
-        try {
-          const data = await metaFetch(`/${acc.meta_account_id}/insights`, token, {
-            fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
-            time_range: JSON.stringify({ since: date, until: date }),
-            level: "account",
-          });
+      // Concurrency limiter
+      const CONCURRENCY = 8;
+      const list = accounts || [];
+      let idx = 0;
+      const allRows: any[] = [];
 
-          const row = (data.data || [])[0];
-          if (!row) continue;
-
-          const purchaseTypes = ["purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase"];
-          const sumByType = (arr: any[]) =>
-            (arr || [])
-              .filter((a) => purchaseTypes.includes(a.action_type))
-              .reduce((s, a) => s + Number(a.value || 0), 0);
-          const purchases = sumByType(row.actions);
-          const revenue = sumByType(row.action_values);
-
-          const { error } = await supabase.from("meta_ad_insights").upsert(
-            {
-              ad_account_id: acc.id,
-              date,
-              spend: Number(row.spend || 0),
-              impressions: Number(row.impressions || 0),
-              clicks: Number(row.clicks || 0),
-              cpm: Number(row.cpm || 0),
-              cpc: Number(row.cpc || 0),
-              ctr: Number(row.ctr || 0),
-              reach: Number(row.reach || 0),
-              actions: row.actions || null,
-              purchases,
-              revenue,
-            },
-            { onConflict: "ad_account_id,date" }
-          );
-          if (error) throw error;
-          synced++;
-        } catch (e) {
-          errors.push({ account: acc.name, erro: (e as Error).message });
+      const worker = async () => {
+        while (true) {
+          const i = idx++;
+          if (i >= list.length) return;
+          const acc = list[i];
+          try {
+            const data = await metaFetch(`/${acc.meta_account_id}/insights`, token, {
+              fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
+              time_range: JSON.stringify({ since, until }),
+              level: "account",
+              time_increment: "1",
+              limit: "500",
+            });
+            for (const row of data.data || []) {
+              allRows.push({
+                ad_account_id: acc.id,
+                date: row.date_start,
+                spend: Number(row.spend || 0),
+                impressions: Number(row.impressions || 0),
+                clicks: Number(row.clicks || 0),
+                cpm: Number(row.cpm || 0),
+                cpc: Number(row.cpc || 0),
+                ctr: Number(row.ctr || 0),
+                reach: Number(row.reach || 0),
+                actions: row.actions || null,
+                purchases: sumByType(row.actions),
+                revenue: sumByType(row.action_values),
+              });
+            }
+          } catch (e) {
+            errors.push({ account: acc.name, erro: (e as Error).message });
+          }
         }
+      };
+
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, list.length) }, worker));
+
+      // Bulk upsert in chunks
+      const CHUNK = 500;
+      for (let i = 0; i < allRows.length; i += CHUNK) {
+        const chunk = allRows.slice(i, i + CHUNK);
+        const { error } = await supabase
+          .from("meta_ad_insights")
+          .upsert(chunk, { onConflict: "ad_account_id,date" });
+        if (error) throw error;
+        totalRows += chunk.length;
       }
 
-      return json({ sucesso: true, data: date, contas_sincronizadas: synced, erros: errors });
+      return json({
+        sucesso: true,
+        since,
+        until,
+        contas: list.length,
+        linhas_upsertadas: totalRows,
+        erros: errors,
+      });
     }
 
     return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights" }, 400);
