@@ -25,6 +25,8 @@ interface Client {
   adAccounts: number;
   usedAccounts: number;
   blockedAccounts: number;
+  whatsappPhone?: string;
+  whatsappGroupLink?: string;
 }
 
 interface Commission {
@@ -81,6 +83,7 @@ const Clients: React.FC = () => {
       paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
       fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
+      whatsappPhone: (c as any).whatsapp_phone || '', whatsappGroupLink: (c as any).whatsapp_group_link || '',
     })));
     setLoading(false);
   };
@@ -128,6 +131,7 @@ const Clients: React.FC = () => {
         email: form.email || '', observations: form.observations || '',
         payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
+        whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
@@ -142,6 +146,7 @@ const Clients: React.FC = () => {
             paymentType: form.paymentType || 'fixed', fixedValue: form.fixedValue || 0,
             percentageValue: form.percentageValue || 0, adAccounts: form.adAccounts || 0,
             usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
+            whatsappPhone: form.whatsappPhone || null, whatsappGroupLink: form.whatsappGroupLink || null,
           },
         },
       });
@@ -539,6 +544,16 @@ const Clients: React.FC = () => {
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Observações (contrato)</label>
                 <textarea value={form.observations || ''} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} className={`${inputClass} h-24 resize-none`} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">WhatsApp (cliente)</label>
+                  <input value={form.whatsappPhone || ''} onChange={e => setForm(p => ({ ...p, whatsappPhone: e.target.value }))} placeholder="5511999999999" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Link do Grupo WhatsApp</label>
+                  <input value={form.whatsappGroupLink || ''} onChange={e => setForm(p => ({ ...p, whatsappGroupLink: e.target.value }))} placeholder="https://chat.whatsapp.com/..." className={inputClass} />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Tipo de Pagamento</label>

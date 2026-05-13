@@ -108,6 +108,7 @@ export type Database = {
           percentage_value: number | null
           updated_at: string
           used_accounts: number | null
+          whatsapp_group_link: string | null
           whatsapp_phone: string | null
         }
         Insert: {
@@ -128,6 +129,7 @@ export type Database = {
           percentage_value?: number | null
           updated_at?: string
           used_accounts?: number | null
+          whatsapp_group_link?: string | null
           whatsapp_phone?: string | null
         }
         Update: {
@@ -148,6 +150,7 @@ export type Database = {
           percentage_value?: number | null
           updated_at?: string
           used_accounts?: number | null
+          whatsapp_group_link?: string | null
           whatsapp_phone?: string | null
         }
         Relationships: []

@@ -106,6 +106,8 @@ Deno.serve(async (req) => {
           ad_accounts: cd.adAccounts || 0,
           used_accounts: cd.usedAccounts || 0,
           blocked_accounts: cd.blockedAccounts || 0,
+          whatsapp_phone: cd.whatsappPhone || null,
+          whatsapp_group_link: cd.whatsappGroupLink || null,
         });
       }
 
