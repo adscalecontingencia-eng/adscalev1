@@ -123,7 +123,9 @@ export default function AdsDashboard() {
     const cpc = clicks > 0 ? spend / clicks : 0;
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
     const roas = spend > 0 ? revenue / spend : 0;
-    return { spend, revenue, purchases, clicks, impressions, cpa, cpm, cpc, ctr, roas };
+    const profit = revenue - spend;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    return { spend, revenue, purchases, clicks, impressions, cpa, cpm, cpc, ctr, roas, profit, margin };
   }, [filteredInsights]);
 
   const sync = async () => {
