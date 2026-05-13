@@ -5,6 +5,7 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 import {
   LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban
 } from 'lucide-react';
+import NotificationCenter from '@/components/NotificationCenter';
 
 const adminLinks = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -94,9 +95,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <h1 className="font-display text-sm font-semibold text-foreground tracking-wide">
             {links.find(l => l.path === location.pathname)?.label || 'Dashboard'}
           </h1>
-          <div className="ml-auto flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-            Live
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
+              Live
+            </div>
+            <NotificationCenter />
           </div>
         </header>
         <div className="p-4 lg:p-6">{children}</div>
