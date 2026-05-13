@@ -50,27 +50,44 @@ Deno.serve(async (req) => {
 
     // ===== 1) SYNC BMs =====
     if (action === "sync_bms") {
-      // System User: own business via /me, plus shared client businesses
-      const me = await metaFetch("/me", token, { fields: "id,name" });
-      const own = await metaFetch("/me/businesses", token, {
-        fields: "id,name,verification_status", limit: "100",
+      // System User: owning business sits in /me?fields=business
+      const me = await metaFetch("/me", token, {
+        fields: "id,name,business{id,name,verification_status}",
       });
-      const owned = own.data || [];
 
-      // For each owned BM, list client BMs (BMs that shared assets with us)
+      const owning = me.business ? [me.business] : [];
+
+      // Also try /me/businesses (rare, but covers admin tokens)
+      let owned: any[] = [];
+      try {
+        const own = await metaFetch("/me/businesses", token, {
+          fields: "id,name,verification_status", limit: "100",
+        });
+        owned = own.data || [];
+      } catch (_) {}
+
+      // Merge unique
+      const allOwned = [...owning, ...owned].filter(
+        (bm, i, arr) => arr.findIndex((b) => b.id === bm.id) === i
+      );
+
+      // For each owning BM, list client BMs (BMs that shared assets with us)
       const clientBms: any[] = [];
-      for (const bm of owned) {
+      for (const bm of allOwned) {
         try {
           const c = await metaFetch(`/${bm.id}/clients`, token, {
             fields: "id,name,verification_status", limit: "200",
           });
           clientBms.push(...(c.data || []));
-        } catch (_) { /* ignore */ }
+        } catch (_) {}
       }
 
-      const bms = [...owned, ...clientBms];
+      const bms = [...allOwned, ...clientBms].filter(
+        (bm, i, arr) => arr.findIndex((b) => b.id === bm.id) === i
+      );
+
       if (bms.length === 0) {
-        return json({ sucesso: true, sincronizadas: 0, debug: { me, hint: "System User não pertence a nenhuma BM. Certifique-se de que ele foi criado dentro de uma Business Manager e atribua ativos a ele." } });
+        return json({ sucesso: true, sincronizadas: 0, debug: { me, hint: "Nenhuma Business Manager visível para este System User. Verifique se o System User foi criado dentro de uma BM (Business Manager Settings → System Users)." } });
       }
       const upserts = bms.map((bm: any) => ({
         meta_bm_id: bm.id,
