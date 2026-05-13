@@ -40,6 +40,12 @@ function ProfileNode({ data }: any) {
       </div>
       <div className="font-semibold text-cyan-100 truncate">{data.label}</div>
       {data.id && <div className="text-[9px] text-cyan-300/60 font-mono truncate">ID: {data.id}</div>}
+      {(data.activeAccounts != null || data.inactiveAccounts != null) && (
+        <div className="flex gap-2 mt-1.5 text-[9px]">
+          <span className="text-primary">{data.activeAccounts ?? 0} ativas</span>
+          <span className="text-destructive">{data.inactiveAccounts ?? 0} inativas</span>
+        </div>
+      )}
       <Handle type="source" position={Position.Bottom} className="!bg-cyan-500" />
     </div>
   );
@@ -56,9 +62,10 @@ function BMNode({ data }: any) {
       </div>
       <div className="font-semibold text-purple-100 truncate">{data.label}</div>
       <div className="text-[9px] text-purple-300/60 font-mono truncate">ID: {data.id}</div>
-      <div className="flex gap-2 mt-1.5 text-[9px] text-purple-200/80">
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5 text-[9px] text-purple-200/80">
         <span>{data.accounts}c</span>
         <span className="text-primary">{data.activeAccounts ?? 0} ativas</span>
+        <span className="text-destructive">{data.inactiveAccounts ?? 0} inativas</span>
         <span>{data.pixels}px</span>
         <span>{data.pages}pg</span>
       </div>
