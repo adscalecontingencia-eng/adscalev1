@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
@@ -15,6 +15,8 @@ const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
+  const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
+  const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
@@ -26,8 +28,14 @@ const ClientDashboard: React.FC = () => {
       const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
       if (clientData) {
         setClient(clientData);
-        const { data: commData } = await supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false });
+        const [{ data: commData }, { data: blocked }, { data: assigns }] = await Promise.all([
+          supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
+          supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
+          supabase.from('meta_ad_account_assignments').select('*, ad_account:meta_ad_accounts(*)').eq('client_id', clientData.id).eq('active', true),
+        ]);
         setCommissions(commData || []);
+        setSavedAccounts(blocked || []);
+        setActiveAccounts(assigns || []);
       }
       setLoading(false);
     };
