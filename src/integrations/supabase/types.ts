@@ -234,7 +234,9 @@ export type Database = {
           date: string
           id: string
           impressions: number | null
+          purchases: number | null
           reach: number | null
+          revenue: number | null
           spend: number | null
         }
         Insert: {
@@ -248,7 +250,9 @@ export type Database = {
           date: string
           id?: string
           impressions?: number | null
+          purchases?: number | null
           reach?: number | null
+          revenue?: number | null
           spend?: number | null
         }
         Update: {
@@ -262,7 +266,9 @@ export type Database = {
           date?: string
           id?: string
           impressions?: number | null
+          purchases?: number | null
           reach?: number | null
+          revenue?: number | null
           spend?: number | null
         }
         Relationships: [
