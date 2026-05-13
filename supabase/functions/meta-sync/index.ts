@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
       }
 
-      return json({ sucesso: true, paginas_sincronizadas: rows.length, erros: errors });
+      return json({ sucesso: true, paginas_sincronizadas: rows.length, fontes: sourceCounts, erros: errors });
     }
 
     return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights | sync_pages" }, 400);
