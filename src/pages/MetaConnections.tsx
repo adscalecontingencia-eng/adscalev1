@@ -40,6 +40,7 @@ type Account = {
   disable_reason: number | null;
   disable_reason_label: string | null;
   funding_source: string | null;
+  billing_cycle: string | null;
   balance: number | null;
   business_country_code: string | null;
   age: number | null;
