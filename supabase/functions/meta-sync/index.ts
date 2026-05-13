@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
         .select("id, meta_bm_id");
       const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
 
-      // 1b) For each BM, list owned + client ad accounts (com campos detalhados) + contagens (pixels/pages)
+      // 1b) Para cada BM, lista contas + contagens — TUDO em paralelo (concorrência limitada)
       const allAccounts: any[] = [];
       const errors: any[] = [];
       const bmCounts = new Map<string, { accounts: number; pixels: number; pages: number }>();
@@ -133,31 +133,47 @@ Deno.serve(async (req) => {
         "balance","business_country_code","age","business",
       ].join(",");
 
+      type Task =
+        | { kind: "accounts"; bmId: string; bmName: string; edge: string }
+        | { kind: "count"; bmId: string; edge: string };
+      const tasks: Task[] = [];
       for (const bm of bms) {
-        const counts = { accounts: 0, pixels: 0, pages: 0 };
-        for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
+        bmCounts.set(bm.id, { accounts: 0, pixels: 0, pages: 0 });
+        for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
+          tasks.push({ kind: "accounts", bmId: bm.id, bmName: bm.name, edge: e });
+        }
+        for (const e of ["adspixels", "owned_pages", "client_pages"]) {
+          tasks.push({ kind: "count", bmId: bm.id, edge: e });
+        }
+      }
+
+      const CONCURRENCY = 10;
+      let cursor = 0;
+      const worker = async () => {
+        while (true) {
+          const i = cursor++;
+          if (i >= tasks.length) return;
+          const t = tasks[i];
+          const url = t.kind === "accounts"
+            ? `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`
+            : `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=id&limit=200`;
           try {
-            const accs = await paginate(
-              `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`
-            );
-            for (const acc of accs) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
-            counts.accounts += accs.length;
+            const items = await paginate(url);
+            const c = bmCounts.get(t.bmId)!;
+            if (t.kind === "accounts") {
+              for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
+              c.accounts += items.length;
+            } else if (t.edge === "adspixels") {
+              c.pixels += items.length;
+            } else {
+              c.pages += items.length;
+            }
           } catch (e) {
-            errors.push({ bm: bm.name, edge, erro: (e as Error).message });
+            if (t.kind === "accounts") errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
           }
         }
-        // Pixels & pages owned by BM (best-effort, falhas não bloqueiam)
-        for (const edge of ["adspixels", "owned_pages", "client_pages"]) {
-          try {
-            const items = await paginate(
-              `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=id&limit=200`
-            );
-            if (edge === "adspixels") counts.pixels += items.length;
-            else counts.pages += items.length;
-          } catch { /* ignore */ }
-        }
-        bmCounts.set(bm.id, counts);
-      }
+      };
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
 
       // Dedupe by meta_account_id
       const seen = new Set<string>();
