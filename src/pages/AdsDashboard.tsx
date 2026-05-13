@@ -135,7 +135,8 @@ export default function AdsDashboard() {
     return { spend, revenue, purchases, clicks, impressions, cpa, cpm, cpc, ctr, roas, profit, margin };
   }, [filteredInsights]);
 
-  const sync = async () => {
+  const sync = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     setSyncing(true);
     try {
       const { since, until } = rangeToDates(range);
@@ -145,10 +146,11 @@ export default function AdsDashboard() {
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
-      toast.success(`Sincronizado: ${rows} registro(s)`);
+      if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
       await loadInsights();
     } catch (e: any) {
-      toast.error(`Falha: ${e.message}`);
+      if (!silent) toast.error(`Falha: ${e.message}`);
+      else console.error("auto-sync falhou:", e.message);
     } finally {
       setSyncing(false);
     }
