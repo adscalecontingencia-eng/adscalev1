@@ -123,26 +123,22 @@ export default function AdsDashboard() {
     const cpc = clicks > 0 ? spend / clicks : 0;
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
     const roas = spend > 0 ? revenue / spend : 0;
-    return { spend, revenue, purchases, clicks, impressions, cpa, cpm, cpc, ctr, roas };
+    const profit = revenue - spend;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    return { spend, revenue, purchases, clicks, impressions, cpa, cpm, cpc, ctr, roas, profit, margin };
   }, [filteredInsights]);
 
   const sync = async () => {
     setSyncing(true);
     try {
       const { since, until } = rangeToDates(range);
-      const dates: string[] = [];
-      const start = new Date(since), end = new Date(until);
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.push(d.toISOString().slice(0, 10));
-      }
-      for (const date of dates) {
-        const { data, error } = await supabase.functions.invoke("meta-sync", {
-          body: { action: "sync_insights", date },
-        });
-        if (error) throw error;
-        if ((data as any)?.erro) throw new Error((data as any).erro);
-      }
-      toast.success(`Insights sincronizados (${dates.length} dia(s))`);
+      const { data, error } = await supabase.functions.invoke("meta-sync", {
+        body: { action: "sync_insights", since, until },
+      });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      const rows = (data as any)?.linhas_upsertadas ?? 0;
+      toast.success(`Sincronizado: ${rows} registro(s)`);
       await loadInsights();
     } catch (e: any) {
       toast.error(`Falha: ${e.message}`);
@@ -218,9 +214,11 @@ export default function AdsDashboard() {
       </Card>
 
       {/* Metric grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Metric icon={DollarSign} label="Gasto Total" value={fmtUSD(metrics.spend)} />
         <Metric icon={TrendingUp} label="Faturamento" value={fmtUSD(metrics.revenue)} accent />
+        <Metric icon={DollarSign} label="Lucro" value={fmtUSD(metrics.profit)} accent={metrics.profit > 0} danger={metrics.profit < 0} />
+        <Metric icon={Activity} label="Margem" value={fmtPct(metrics.margin)} accent={metrics.margin > 0} danger={metrics.margin < 0} />
         <Metric icon={Target} label="CPA" value={fmtUSD(metrics.cpa)} />
         <Metric icon={ShoppingCart} label="Compras" value={fmtNum(metrics.purchases)} />
         <Metric icon={Activity} label="ROAS" value={`${metrics.roas.toFixed(2)}x`} accent={metrics.roas >= 1} danger={metrics.roas > 0 && metrics.roas < 1} />
