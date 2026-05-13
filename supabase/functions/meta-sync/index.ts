@@ -89,6 +89,24 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Quick mode: only sync BMs (skip accounts) — use sync_accounts to fetch accounts
+      if (action === "sync_bms") {
+        const bmRowsQuick = bms.map((bm: any) => ({
+          meta_bm_id: bm.id,
+          name: bm.name,
+          status: bm.verification_status || "active",
+          last_synced_at: new Date().toISOString(),
+        }));
+        await supabase.from("meta_business_managers")
+          .upsert(bmRowsQuick, { onConflict: "meta_bm_id" });
+        return json({
+          sucesso: true,
+          bms_sincronizadas: bmRowsQuick.length,
+          bms: bmRowsQuick.map((b) => b.name),
+          proximo_passo: "Rode action=sync_accounts para puxar as contas de anúncio.",
+        });
+      }
+
       // Upsert BMs
       const bmRows = bms.map((bm: any) => ({
         meta_bm_id: bm.id,
