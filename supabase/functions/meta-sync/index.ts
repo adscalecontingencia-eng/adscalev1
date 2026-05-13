@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
       const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name");
 
       const PAGE_FIELDS = "id,name,category,fan_count,followers_count,created_time,picture.type(large),is_published,verification_status";
-      const PAGE_FALLBACK_FIELDS = [PAGE_FIELDS, "id,name,category,picture.type(large)", "id,name", "id"];
+      const PAGE_FALLBACK_FIELDS = ["id,name,category,picture.type(large)", "id,name", "id"];
       const errors: any[] = [];
       const warnings: any[] = [];
       const detailErrors: any[] = [];
@@ -428,15 +428,8 @@ Deno.serve(async (req) => {
           try {
             const items = await paginate(edgeUrl(t.ownerId, t.edge, fields));
             sourceCounts[t.label] = items.length;
-            sourceModes[t.label] = fields === PAGE_FIELDS ? "detalhado" : "basico";
-            if (fields !== PAGE_FIELDS) {
-              warnings.push({
-                source: t.label,
-                aviso: "A Meta bloqueou os campos detalhados; importei a página com os dados básicos disponíveis.",
-                detalhe: lastError,
-              });
-            }
-            return items.map((item: any) => ({ ...item, _partial: fields !== PAGE_FIELDS }));
+            sourceModes[t.label] = "basico";
+            return items.map((item: any) => ({ ...item, _partial: true }));
           } catch (e) {
             lastError = (e as Error).message;
             if (!isMetaAccessBlocked(lastError)) break;
