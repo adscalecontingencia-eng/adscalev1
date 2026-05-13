@@ -19,6 +19,7 @@ interface Client {
   email: string;
   password: string;
   observations: string;
+  clientType: 'aluguel' | 'venda';
   paymentType: 'fixed' | 'percentage' | 'both';
   fixedValue?: number;
   percentageValue?: number;
@@ -28,6 +29,19 @@ interface Client {
   whatsappPhone?: string;
   whatsappGroupLink?: string;
 }
+
+// Metas de desconto por gasto semanal (apenas clientes de aluguel)
+const SPEND_TIERS: { min: number; pct: number }[] = [
+  { min: 200000, pct: 1 },
+  { min: 80000, pct: 2 },
+  { min: 40000, pct: 3 },
+  { min: 20000, pct: 4 },
+];
+
+const getTierPercentage = (weekSpend: number, basePct: number): number => {
+  for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
+  return basePct;
+};
 
 interface Commission {
   id: string;
