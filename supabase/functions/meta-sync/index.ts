@@ -50,14 +50,28 @@ Deno.serve(async (req) => {
 
     // ===== 1) SYNC BMs =====
     if (action === "sync_bms") {
-      // System User belongs to its owning business + may see client businesses
-      const me = await metaFetch("/me", token, {
-        fields: "id,name,businesses{id,name,verification_status},client_businesses{id,name,verification_status}",
+      // System User: own business via /me, plus shared client businesses
+      const me = await metaFetch("/me", token, { fields: "id,name" });
+      const own = await metaFetch("/me/businesses", token, {
+        fields: "id,name,verification_status", limit: "100",
       });
+      const owned = own.data || [];
 
-      const owned = me.businesses?.data || [];
-      const client = me.client_businesses?.data || [];
-      const bms = [...owned, ...client];
+      // For each owned BM, list client BMs (BMs that shared assets with us)
+      const clientBms: any[] = [];
+      for (const bm of owned) {
+        try {
+          const c = await metaFetch(`/${bm.id}/clients`, token, {
+            fields: "id,name,verification_status", limit: "200",
+          });
+          clientBms.push(...(c.data || []));
+        } catch (_) { /* ignore */ }
+      }
+
+      const bms = [...owned, ...clientBms];
+      if (bms.length === 0) {
+        return json({ sucesso: true, sincronizadas: 0, debug: { me, hint: "System User não pertence a nenhuma BM. Certifique-se de que ele foi criado dentro de uma Business Manager e atribua ativos a ele." } });
+      }
       const upserts = bms.map((bm: any) => ({
         meta_bm_id: bm.id,
         name: bm.name,
