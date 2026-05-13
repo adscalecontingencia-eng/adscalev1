@@ -174,15 +174,26 @@ export default function MetaConnections() {
           </Select>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="active">Ativas</SelectItem>
               <SelectItem value="blocked">Bloqueadas</SelectItem>
-              <SelectItem value="assigned">Atribuídas</SelectItem>
-              <SelectItem value="unassigned">Sem cliente</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterClient} onValueChange={setFilterClient}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Todos clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos clientes</SelectItem>
+              <SelectItem value="unassigned">— Sem cliente —</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
