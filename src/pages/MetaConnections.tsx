@@ -40,6 +40,7 @@ type Account = {
   disable_reason: number | null;
   disable_reason_label: string | null;
   funding_source: string | null;
+  billing_cycle: string | null;
   balance: number | null;
   business_country_code: string | null;
   age: number | null;
@@ -385,6 +386,7 @@ function AccountDetailDialog({
             <Info icon={Building2} label="BM" value={bmName} />
             <Info icon={Shield} label="Status" value={account.status === "active" ? "Ativa" : "Bloqueada"} danger={account.status !== "active"} />
             <Info icon={CreditCard} label="Pagamento" value={fmt(account.funding_source) || "Sem pagamento vinculado"} warning={!account.funding_source} />
+            <Info icon={RefreshCw} label="Ciclo da BM" value={fmt(account.billing_cycle)} />
             <Info icon={Globe} label="Fuso horário" value={fmt(account.timezone_name)} />
             <Info icon={DollarSign} label="Saldo devedor" value={fmtMoney(account.balance)} />
             <Info icon={DollarSign} label="Gasto histórico" value={fmtMoney(account.amount_spent)} />
