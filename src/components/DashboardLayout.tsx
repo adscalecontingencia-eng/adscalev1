@@ -41,16 +41,13 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       )}
 
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card/60 backdrop-blur-xl border-r border-border/60 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="px-5 py-5 border-b border-border/60 flex items-center gap-3">
+        <div className="px-5 py-5 border-b border-border/60">
           <div className="text-primary">
-            <AdScaleLogo size={36} />
+            <AdScaleLogo size={26} />
           </div>
-          <div className="leading-tight">
-            <h2 className="font-display text-[15px] font-bold text-foreground tracking-[0.18em]">
-              AD <span className="text-primary glow-text">SCALE</span>
-            </h2>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 mt-0.5">Contingency</p>
-          </div>
+          <p className="text-[9px] uppercase tracking-[0.42em] text-muted-foreground/70 mt-2 ml-0.5">
+            Contingency · OS
+          </p>
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
