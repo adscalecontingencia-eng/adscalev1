@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, AlertCircle, Zap } from 'lucide-react';
+import AdScaleLogo from '@/components/AdScaleLogo';
 
 const Login: React.FC = () => {
   const { login, isAuthenticated, user, loading } = useAuth();
