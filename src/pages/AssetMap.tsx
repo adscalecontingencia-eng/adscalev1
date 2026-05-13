@@ -58,6 +58,7 @@ function BMNode({ data }: any) {
       <div className="text-[9px] text-purple-300/60 font-mono truncate">ID: {data.id}</div>
       <div className="flex gap-2 mt-1.5 text-[9px] text-purple-200/80">
         <span>{data.accounts}c</span>
+        <span className="text-primary">{data.activeAccounts ?? 0} ativas</span>
         <span>{data.pixels}px</span>
         <span>{data.pages}pg</span>
       </div>
@@ -188,6 +189,7 @@ function buildGraph(bms: BM[], accounts: Account[]) {
           id: bm.meta_bm_id,
           verification_status: bm.verification_status,
           accounts: bm.account_count ?? 0,
+          activeAccounts: accounts.filter(a => a.bm_id === bm.id && a.account_status === 1).length,
           pixels: bm.pixel_count ?? 0,
           pages: bm.page_count ?? 0,
         },
