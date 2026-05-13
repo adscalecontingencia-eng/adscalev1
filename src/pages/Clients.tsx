@@ -545,6 +545,16 @@ const Clients: React.FC = () => {
                 <label className="block text-xs text-muted-foreground mb-1">Observações (contrato)</label>
                 <textarea value={form.observations || ''} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} className={`${inputClass} h-24 resize-none`} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">WhatsApp (cliente)</label>
+                  <input value={form.whatsappPhone || ''} onChange={e => setForm(p => ({ ...p, whatsappPhone: e.target.value }))} placeholder="5511999999999" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Link do Grupo WhatsApp</label>
+                  <input value={form.whatsappGroupLink || ''} onChange={e => setForm(p => ({ ...p, whatsappGroupLink: e.target.value }))} placeholder="https://chat.whatsapp.com/..." className={inputClass} />
+                </div>
+              </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Tipo de Pagamento</label>
                 <select value={form.paymentType} onChange={e => setForm(p => ({ ...p, paymentType: e.target.value as any }))} className={inputClass}>
