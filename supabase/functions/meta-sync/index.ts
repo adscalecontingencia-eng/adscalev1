@@ -400,9 +400,50 @@ Deno.serve(async (req) => {
       const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name");
 
       const PAGE_FIELDS = "id,name,category,fan_count,followers_count,created_time,picture.type(large),is_published,verification_status";
+      const PAGE_FALLBACK_FIELDS = [PAGE_FIELDS, "id,name,category,picture.type(large)", "id,name", "id"];
       const errors: any[] = [];
+      const warnings: any[] = [];
+      const detailErrors: any[] = [];
       const allPages: any[] = [];
       const sourceCounts: Record<string, number> = {};
+      const sourceModes: Record<string, string> = {};
+
+      const isMetaAccessBlocked = (message: string) =>
+        message.includes("API access blocked") ||
+        message.includes('"code":200') ||
+        message.includes("Permissions error") ||
+        message.includes("Unsupported get request");
+
+      const edgeUrl = (ownerId: string, edge: string, fields: string) => {
+        const url = new URL(`${META_API}/${ownerId}/${edge}`);
+        url.searchParams.set("access_token", token);
+        url.searchParams.set("fields", fields);
+        url.searchParams.set("limit", "200");
+        return url.toString();
+      };
+
+      const fetchPagesWithFallback = async (t: { ownerId: string; edge: string; label: string }) => {
+        let lastError = "";
+        for (const fields of PAGE_FALLBACK_FIELDS) {
+          try {
+            const items = await paginate(edgeUrl(t.ownerId, t.edge, fields));
+            sourceCounts[t.label] = items.length;
+            sourceModes[t.label] = fields === PAGE_FIELDS ? "detalhado" : "basico";
+            if (fields !== PAGE_FIELDS) {
+              warnings.push({
+                source: t.label,
+                aviso: "A Meta bloqueou os campos detalhados; importei a página com os dados básicos disponíveis.",
+                detalhe: lastError,
+              });
+            }
+            return items.map((item: any) => ({ ...item, _partial: fields !== PAGE_FIELDS }));
+          } catch (e) {
+            lastError = (e as Error).message;
+            if (!isMetaAccessBlocked(lastError)) break;
+          }
+        }
+        throw new Error(lastError || "Falha ao ler páginas da BM");
+      };
 
       const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
       for (const bm of bmsDb || []) {
@@ -433,10 +474,7 @@ Deno.serve(async (req) => {
           if (i >= tasks.length) return;
           const t = tasks[i];
           try {
-            const items = await paginate(
-              `${META_API}/${t.ownerId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${PAGE_FIELDS}&limit=200`
-            );
-            sourceCounts[t.label] = items.length;
+            const items = await fetchPagesWithFallback(t);
             for (const p of items) allPages.push({ ...p, _bm_db_id: t.bmDbId });
           } catch (e) {
             errors.push({ source: t.label, erro: (e as Error).message });
@@ -453,10 +491,29 @@ Deno.serve(async (req) => {
         return true;
       });
 
+      const needsDetails = unique.filter((p: any) => p._partial || !p.created_time || p.followers_count == null || p.fan_count == null);
+      let detailCursor = 0;
+      const detailWorker = async () => {
+        while (true) {
+          const i = detailCursor++;
+          if (i >= needsDetails.length) return;
+          const p = needsDetails[i];
+          try {
+            const details = await metaFetch(`/${p.id}`, token, { fields: PAGE_FIELDS });
+            Object.assign(p, details, { _partial: false });
+          } catch (e) {
+            if (detailErrors.length < 8) detailErrors.push({ page_id: p.id, erro: (e as Error).message });
+          }
+        }
+      };
+      if (needsDetails.length > 0) {
+        await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
+      }
+
       const rows = unique.map((p: any) => ({
         meta_page_id: p.id,
         bm_id: p._bm_db_id,
-        name: p.name,
+        name: p.name || `Página ${p.id}`,
         category: p.category || null,
         fan_count: p.fan_count ?? null,
         followers_count: p.followers_count ?? p.fan_count ?? null,
@@ -473,7 +530,29 @@ Deno.serve(async (req) => {
         if (error) throw error;
       }
 
-      return json({ sucesso: true, paginas_sincronizadas: rows.length, fontes: sourceCounts, erros: errors });
+      const apiBlocked = [...errors, ...warnings, ...detailErrors].some((e) => isMetaAccessBlocked(String(e.erro || e.detalhe || "")));
+      if (rows.length === 0 && errors.length > 0) {
+        return json({
+          sucesso: false,
+          erro: apiBlocked
+            ? "A Meta bloqueou o acesso às páginas das BMs para este token/app. Verifique permissões business_management, pages_show_list e pages_read_engagement no app/token."
+            : "Não foi possível puxar páginas das BMs.",
+          fontes: sourceCounts,
+          modos: sourceModes,
+          erros: errors,
+        });
+      }
+
+      return json({
+        sucesso: true,
+        paginas_sincronizadas: rows.length,
+        fontes: sourceCounts,
+        modos: sourceModes,
+        avisos: warnings,
+        detalhes_bloqueados: detailErrors.length,
+        amostras_erros_detalhes: detailErrors,
+        erros: errors,
+      });
     }
 
     return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights | sync_pages" }, 400);
