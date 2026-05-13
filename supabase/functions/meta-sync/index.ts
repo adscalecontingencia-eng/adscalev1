@@ -50,14 +50,16 @@ Deno.serve(async (req) => {
 
     // ===== 1) SYNC BMs =====
     if (action === "sync_bms") {
-      // System User: owning business sits in /me?fields=business
-      const me = await metaFetch("/me", token, {
-        fields: "id,name,business{id,name,verification_status}",
-      });
+      // Debug the token to know exactly what we're dealing with
+      const appId = Deno.env.get("META_APP_ID");
+      const appSecret = Deno.env.get("META_APP_SECRET");
+      const appToken = `${appId}|${appSecret}`;
+      const dbg = await metaFetch("/debug_token", appToken, { input_token: token });
+      const tokenData = dbg.data || {};
 
-      const owning = me.business ? [me.business] : [];
+      const me = await metaFetch("/me", token, { fields: "id,name" });
 
-      // Also try /me/businesses (rare, but covers admin tokens)
+      // Try every plausible source of BMs
       let owned: any[] = [];
       try {
         const own = await metaFetch("/me/businesses", token, {
@@ -66,14 +68,19 @@ Deno.serve(async (req) => {
         owned = own.data || [];
       } catch (_) {}
 
-      // Merge unique
-      const allOwned = [...owning, ...owned].filter(
-        (bm, i, arr) => arr.findIndex((b) => b.id === bm.id) === i
-      );
+      // If token has a business field in debug, include it
+      if (tokenData.profile_id && !owned.find((b) => b.id === tokenData.profile_id)) {
+        try {
+          const b = await metaFetch(`/${tokenData.profile_id}`, token, {
+            fields: "id,name,verification_status",
+          });
+          if (b.id) owned.push(b);
+        } catch (_) {}
+      }
 
-      // For each owning BM, list client BMs (BMs that shared assets with us)
+      // For each known BM, list client BMs
       const clientBms: any[] = [];
-      for (const bm of allOwned) {
+      for (const bm of owned) {
         try {
           const c = await metaFetch(`/${bm.id}/clients`, token, {
             fields: "id,name,verification_status", limit: "200",
@@ -82,12 +89,20 @@ Deno.serve(async (req) => {
         } catch (_) {}
       }
 
-      const bms = [...allOwned, ...clientBms].filter(
+      const bms = [...owned, ...clientBms].filter(
         (bm, i, arr) => arr.findIndex((b) => b.id === bm.id) === i
       );
 
       if (bms.length === 0) {
-        return json({ sucesso: true, sincronizadas: 0, debug: { me, hint: "Nenhuma Business Manager visível para este System User. Verifique se o System User foi criado dentro de uma BM (Business Manager Settings → System Users)." } });
+        return json({
+          sucesso: true,
+          sincronizadas: 0,
+          debug: {
+            me,
+            token_info: tokenData,
+            hint: "Nenhuma Business Manager visível. Verifique scopes e se o System User foi criado dentro de uma BM.",
+          },
+        });
       }
       const upserts = bms.map((bm: any) => ({
         meta_bm_id: bm.id,
