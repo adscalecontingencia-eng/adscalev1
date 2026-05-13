@@ -150,11 +150,17 @@ const Clients: React.FC = () => {
     }
     setSaving(true);
 
+    const clientType: 'aluguel' | 'venda' = form.clientType === 'venda' ? 'venda' : 'aluguel';
+    const paymentType: 'fixed' | 'percentage' = clientType === 'venda' ? 'fixed' : 'percentage';
+    const fixedValue = clientType === 'venda' ? (form.fixedValue || 0) : 0;
+    const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
+
     if (editing) {
-      const payload = {
+      const payload: any = {
         number: form.number || '', name: form.name || '', company_name: form.companyName || '',
         email: form.email || '', observations: form.observations || '',
-        payment_type: form.paymentType || 'fixed', fixed_value: form.fixedValue || 0, percentage_value: form.percentageValue || 0,
+        client_type: clientType,
+        payment_type: paymentType, fixed_value: fixedValue, percentage_value: percentageValue,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
       };
@@ -168,8 +174,8 @@ const Clients: React.FC = () => {
           action: 'create_user', email: form.email, password, name: form.name, role: 'client',
           client_data: {
             number: form.number, companyName: form.companyName, observations: form.observations,
-            paymentType: form.paymentType || 'fixed', fixedValue: form.fixedValue || 0,
-            percentageValue: form.percentageValue || 0, adAccounts: form.adAccounts || 0,
+            clientType, paymentType, fixedValue, percentageValue,
+            adAccounts: form.adAccounts || 0,
             usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
             whatsappPhone: form.whatsappPhone || null, whatsappGroupLink: form.whatsappGroupLink || null,
           },
