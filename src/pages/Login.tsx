@@ -59,23 +59,39 @@ const Login: React.FC = () => {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-sm relative z-10 px-4"
+        className="w-full max-w-md relative z-10 px-4"
       >
-        {/* Brand header */}
-        <div className="flex flex-col items-center mb-10">
+        {/* Brand header — hero */}
+        <div className="flex flex-col items-center mb-12">
           <motion.div
-            initial={{ scale: 0.92, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="text-primary"
+            initial={{ scale: 0.85, opacity: 0, filter: 'blur(8px)' }}
+            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+            transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="relative text-primary"
           >
-            <AdScaleLogo size={42} />
+            {/* radial halo behind the wordmark */}
+            <div className="absolute inset-0 -z-10 flex items-center justify-center">
+              <div className="w-[420px] h-[180px] bg-primary/15 blur-[80px] rounded-full" />
+            </div>
+            <div className="absolute inset-0 -z-10 flex items-center justify-center">
+              <div className="w-[260px] h-[120px] bg-primary/25 blur-[40px] rounded-full" />
+            </div>
+
+            <AdScaleLogo size={72} />
           </motion.div>
-          <div className="flex items-center gap-3 mt-5">
-            <span className="h-px w-8 bg-border" />
-            <p className="text-muted-foreground text-[10px] uppercase tracking-[0.4em]">Contingency Accounts</p>
-            <span className="h-px w-8 bg-border" />
-          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.5 }}
+            className="flex items-center gap-3 mt-7"
+          >
+            <span className="h-px w-10 bg-gradient-to-r from-transparent to-primary/60" />
+            <p className="text-primary/80 text-[10px] uppercase tracking-[0.5em] font-medium">
+              Contingency Accounts
+            </p>
+            <span className="h-px w-10 bg-gradient-to-l from-transparent to-primary/60" />
+          </motion.div>
         </div>
 
         {/* Login form */}
