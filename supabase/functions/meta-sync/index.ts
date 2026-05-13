@@ -122,20 +122,41 @@ Deno.serve(async (req) => {
         .select("id, meta_bm_id");
       const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
 
-      // 1b) For each BM, list owned + client ad accounts
+      // 1b) For each BM, list owned + client ad accounts (com campos detalhados) + contagens (pixels/pages)
       const allAccounts: any[] = [];
       const errors: any[] = [];
+      const bmCounts = new Map<string, { accounts: number; pixels: number; pages: number }>();
+
+      const ACCOUNT_FIELDS = [
+        "id","account_id","name","account_status","currency","amount_spent","spend_cap",
+        "timezone_name","created_time","disable_reason","funding_source",
+        "balance","business_country_code","age","business",
+      ].join(",");
+
       for (const bm of bms) {
+        const counts = { accounts: 0, pixels: 0, pages: 0 };
         for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
           try {
             const accs = await paginate(
-              `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=id,account_id,name,account_status,currency,amount_spent&limit=200`
+              `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`
             );
             for (const acc of accs) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
+            counts.accounts += accs.length;
           } catch (e) {
             errors.push({ bm: bm.name, edge, erro: (e as Error).message });
           }
         }
+        // Pixels & pages owned by BM (best-effort, falhas não bloqueiam)
+        for (const edge of ["adspixels", "owned_pages", "client_pages"]) {
+          try {
+            const items = await paginate(
+              `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=id&limit=200`
+            );
+            if (edge === "adspixels") counts.pixels += items.length;
+            else counts.pages += items.length;
+          } catch { /* ignore */ }
+        }
+        bmCounts.set(bm.id, counts);
       }
 
       // Dedupe by meta_account_id
@@ -146,21 +167,93 @@ Deno.serve(async (req) => {
         return true;
       });
 
-      const accRows = unique.map((acc: any) => ({
-        meta_account_id: acc.id,
-        bm_id: bmIdMap.get(acc._bm_meta_id) || null,
-        name: acc.name,
-        account_status: acc.account_status,
-        status: acc.account_status === 1 ? "active" : "blocked",
-        currency: acc.currency || "USD",
-        amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
-        last_synced_at: new Date().toISOString(),
-      }));
+      // Tabela oficial Meta de disable_reason
+      // https://developers.facebook.com/docs/marketing-api/reference/ad-account/
+      const DISABLE_REASONS: Record<number, string> = {
+        0: "Nenhum",
+        1: "ADS_INTEGRITY_POLICY",
+        2: "ADS_IP_REVIEW",
+        3: "RISK_PAYMENT",
+        4: "GRAY_ACCOUNT_SHUT_DOWN",
+        5: "ADS_AFC_REVIEW",
+        6: "BUSINESS_INTEGRITY_RAR",
+        7: "PERMANENT_CLOSE",
+        8: "UNUSED_RESELLER_ACCOUNT",
+        9: "UNUSED_ACCOUNT",
+        10: "UMBRELLA_AD_ACCOUNT",
+        11: "BUSINESS_MANAGER_INTEGRITY_POLICY",
+        12: "MISREPRESENTED_AD_ACCOUNT",
+        13: "AOAB_DESHARE_LEGAL_ENTITY",
+        14: "CTX_THREAD_REVIEW",
+        15: "COMPROMISED_AD_ACCOUNT",
+      };
+
+      const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
+
+      // Score (0-100) baseado em sinais oficiais do Meta
+      const computeScore = (acc: any) => {
+        let s = 100;
+        const reasons: string[] = [];
+        if (acc.account_status !== 1) { s -= 60; reasons.push("Conta não ativa"); }
+        if (acc.disable_reason && acc.disable_reason !== 0) { s -= 40; reasons.push("Bloqueio ativo"); }
+        if (!acc.funding_source) { s -= 20; reasons.push("Sem pagamento vinculado"); }
+        const bmVer = bmStatusMap.get(acc._bm_meta_id);
+        if (bmVer && bmVer !== "verified") { s -= 10; reasons.push("BM não verificada"); }
+        if (!acc.amount_spent || Number(acc.amount_spent) === 0) { s -= 5; reasons.push("Sem histórico de gasto"); }
+        s = Math.max(0, Math.min(100, s));
+        const label = s >= 80 ? "Excelente" : s >= 60 ? "Bom" : s >= 40 ? "Atenção" : "Crítico";
+        return { score: s, label, reasons };
+      };
+
+      const accRows = unique.map((acc: any) => {
+        const { score, label } = computeScore(acc);
+        return {
+          meta_account_id: acc.id,
+          bm_id: bmIdMap.get(acc._bm_meta_id) || null,
+          name: acc.name,
+          account_status: acc.account_status,
+          status: acc.account_status === 1 ? "active" : "blocked",
+          currency: acc.currency || "USD",
+          amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
+          spend_cap: acc.spend_cap ? Number(acc.spend_cap) / 100 : null,
+          timezone_name: acc.timezone_name || null,
+          account_created_time: acc.created_time || null,
+          disable_reason: acc.disable_reason ?? null,
+          disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
+          funding_source: acc.funding_source || null,
+          balance: acc.balance ? Number(acc.balance) / 100 : 0,
+          business_country_code: acc.business_country_code || null,
+          age: acc.age ?? null,
+          owner_business_name: acc.business?.name || null,
+          score,
+          score_label: label,
+          last_synced_at: new Date().toISOString(),
+        };
+      });
 
       if (accRows.length > 0) {
         const { error: accErr } = await supabase.from("meta_ad_accounts")
           .upsert(accRows, { onConflict: "meta_account_id" });
         if (accErr) throw accErr;
+      }
+
+      // Atualiza contadores e verification_status nas BMs
+      const bmUpdates = bms.map((bm: any) => {
+        const c = bmCounts.get(bm.id) || { accounts: 0, pixels: 0, pages: 0 };
+        return {
+          meta_bm_id: bm.id,
+          name: bm.name,
+          status: bm.verification_status || "active",
+          verification_status: bm.verification_status || null,
+          account_count: c.accounts,
+          pixel_count: c.pixels,
+          page_count: c.pages,
+          last_synced_at: new Date().toISOString(),
+        };
+      });
+      if (bmUpdates.length > 0) {
+        await supabase.from("meta_business_managers")
+          .upsert(bmUpdates, { onConflict: "meta_bm_id" });
       }
 
       return json({
