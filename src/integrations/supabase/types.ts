@@ -179,6 +179,7 @@ export type Database = {
           age: number | null
           amount_spent: number | null
           balance: number | null
+          billing_cycle: string | null
           bm_id: string | null
           business_country_code: string | null
           created_at: string
@@ -206,6 +207,7 @@ export type Database = {
           age?: number | null
           amount_spent?: number | null
           balance?: number | null
+          billing_cycle?: string | null
           bm_id?: string | null
           business_country_code?: string | null
           created_at?: string
@@ -233,6 +235,7 @@ export type Database = {
           age?: number | null
           amount_spent?: number | null
           balance?: number | null
+          billing_cycle?: string | null
           bm_id?: string | null
           business_country_code?: string | null
           created_at?: string
