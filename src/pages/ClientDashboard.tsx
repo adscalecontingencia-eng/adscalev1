@@ -293,19 +293,19 @@ const ClientDashboard: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div className="bg-secondary/60 rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de Pagamento</p>
-                  <p className="font-medium mt-1">{client.payment_type === 'fixed' ? 'Valor Fixo' : client.payment_type === 'percentage' ? '% sobre Gasto' : 'Fixo + %'}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de Cliente</p>
+                  <p className="font-medium mt-1">{client.client_type === 'venda' ? 'Venda (Valor Fixo)' : 'Aluguel (% sobre Gasto)'}</p>
                 </div>
-                {(client.payment_type === 'fixed' || client.payment_type === 'both') && (
+                {client.client_type === 'venda' ? (
                   <div className="bg-secondary/60 rounded-lg p-3">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Fixo</p>
                     <p className="font-medium text-primary mt-1">{fmt(Number(client.fixed_value) || 0)}</p>
                   </div>
-                )}
-                {(client.payment_type === 'percentage' || client.payment_type === 'both') && (
+                ) : (
                   <div className="bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual base</p>
                     <p className="font-medium text-primary mt-1">{client.percentage_value}%</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
                   </div>
                 )}
                 <div className="bg-secondary/60 rounded-lg p-3">
@@ -320,6 +320,86 @@ const ClientDashboard: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {client.client_type !== 'venda' && (() => {
+              const now = new Date();
+              const ws = startOfWeek(now, { weekStartsOn: 1 });
+              const we = endOfWeek(now, { weekStartsOn: 1 });
+              const weekSpend = commissions
+                .filter((c: any) => c.type === 'daily' && isWithinInterval(parseDateLocal(c.date), { start: ws, end: we }))
+                .reduce((s: number, c: any) => s + Number(c.ad_spend || 0), 0);
+              const tiers = [
+                { min: 20000, pct: 4 },
+                { min: 40000, pct: 3 },
+                { min: 80000, pct: 2 },
+                { min: 200000, pct: 1 },
+              ];
+              const currentRate = [...tiers].reverse().find(t => weekSpend > t.min)?.pct ?? (Number(client.percentage_value) || 0);
+              const nextTier = tiers.find(t => weekSpend <= t.min);
+              const remaining = nextTier ? Math.max(0, nextTier.min - weekSpend) : 0;
+              const progressMax = nextTier ? nextTier.min : 200000;
+              const progressPct = Math.min(100, (weekSpend / progressMax) * 100);
+              return (
+                <div className="bg-card border border-border rounded-xl p-5 border-glow">
+                  <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
+                    <TrendingUp size={16} className="text-primary" /> Metas semanais de desconto
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Quanto mais sua conta gastar na semana, menor o percentual cobrado pela agência.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div className="bg-secondary/60 rounded-lg p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto desta semana</p>
+                      <p className="font-bold text-lg text-foreground mt-1">{fmt(weekSpend)}</p>
+                    </div>
+                    <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual atual</p>
+                      <p className="font-bold text-lg text-primary mt-1">{currentRate}%</p>
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
+                    </div>
+                    {nextTier ? (
+                      <p className="text-[11px] text-muted-foreground mt-2">
+                        Faltam <strong className="text-primary">{fmt(remaining)}</strong> para atingir <strong className="text-primary">{nextTier.pct}%</strong> (acima de {fmt(nextTier.min)}).
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — 1% sobre o gasto.</p>
+                    )}
+                  </div>
+                  <ul className="space-y-2">
+                    {tiers.map(t => {
+                      const reached = weekSpend > t.min;
+                      const active = currentRate === t.pct;
+                      return (
+                        <li
+                          key={t.min}
+                          className={cn(
+                            "flex items-center justify-between rounded-lg px-3 py-2 border text-sm",
+                            active ? "bg-primary/10 border-primary/40" :
+                            reached ? "bg-success/10 border-success/30" :
+                            "bg-secondary/40 border-border"
+                          )}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={cn(
+                              "w-2 h-2 rounded-full",
+                              active ? "bg-primary animate-pulse" : reached ? "bg-success" : "bg-muted-foreground/40"
+                            )} />
+                            Acima de {fmt(t.min)}
+                          </span>
+                          <span className={cn("font-semibold",
+                            active ? "text-primary" : reached ? "text-success" : "text-muted-foreground"
+                          )}>{t.pct}%</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })()}
 
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
