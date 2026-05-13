@@ -82,7 +82,14 @@ export default function AdsDashboard() {
   };
 
   useEffect(() => { loadMeta(); }, []);
-  useEffect(() => { loadInsights(); }, [range]);
+  useEffect(() => {
+    // Sincronização em tempo real: puxa do Meta e depois carrega do banco
+    (async () => {
+      await sync({ silent: true });
+      await loadInsights();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
   const clientByAccount = useMemo(() => {
     const m = new Map<string, string>();
@@ -128,7 +135,8 @@ export default function AdsDashboard() {
     return { spend, revenue, purchases, clicks, impressions, cpa, cpm, cpc, ctr, roas, profit, margin };
   }, [filteredInsights]);
 
-  const sync = async () => {
+  const sync = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     setSyncing(true);
     try {
       const { since, until } = rangeToDates(range);
@@ -138,10 +146,11 @@ export default function AdsDashboard() {
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
-      toast.success(`Sincronizado: ${rows} registro(s)`);
+      if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
       await loadInsights();
     } catch (e: any) {
-      toast.error(`Falha: ${e.message}`);
+      if (!silent) toast.error(`Falha: ${e.message}`);
+      else console.error("auto-sync falhou:", e.message);
     } finally {
       setSyncing(false);
     }
@@ -163,7 +172,7 @@ export default function AdsDashboard() {
             Métricas consolidadas das contas do Meta Ads — {filteredAccountIds.size} conta(s).
           </p>
         </div>
-        <Button size="sm" disabled={syncing} onClick={sync}>
+        <Button size="sm" disabled={syncing} onClick={() => sync()}>
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
           Sincronizar período
         </Button>
