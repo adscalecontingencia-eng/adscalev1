@@ -193,7 +193,7 @@ const Clients: React.FC = () => {
   };
 
   const resetForm = () => {
-    setForm({ paymentType: 'fixed', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
+    setForm({ clientType: 'aluguel', paymentType: 'percentage', adAccounts: 0, usedAccounts: 0, blockedAccounts: 0 });
     setEditing(null);
     setShowForm(false);
   };
@@ -214,9 +214,11 @@ const Clients: React.FC = () => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
     
-    const commission = calculateCommission(client, adSpend);
-    const percentApplied = client.paymentType === 'percentage' || client.paymentType === 'both' 
-      ? client.percentageValue || 0 : 0;
+    const accumWeek = getWeeklyAccumSpend(clientId, commissionDate);
+    const commission = calculateCommission(client, adSpend, accumWeek);
+    const percentApplied = client.clientType === 'aluguel'
+      ? getTierPercentage(accumWeek + adSpend, client.percentageValue || 0)
+      : 0;
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -237,7 +239,7 @@ const Clients: React.FC = () => {
     } as any);
     if (commError) { toast.error('Erro ao lançar gasto em ads'); return; }
 
-    const categoryType = client.paymentType === 'fixed' ? 'Comissão Fixa' : 'Comissão Semanal';
+    const categoryType = client.clientType === 'venda' ? 'Comissão Fixa' : 'Comissão Semanal';
     const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
     await supabase.from('transactions').insert({
       date: format(commissionDate, 'yyyy-MM-dd'),
