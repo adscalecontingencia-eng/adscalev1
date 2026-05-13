@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logo from '@/assets/logo.png';
+import AdScaleLogo from '@/components/AdScaleLogo';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, X, ChevronRight, Plug, BarChart3, Network, Ban
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban
 } from 'lucide-react';
 
 const adminLinks = [
@@ -35,54 +35,72 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-background/80 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="p-4 border-b border-border flex items-center gap-3">
-          <img src={logo} alt="AD Scale" className="w-10 h-10 rounded-lg" />
-          <div>
-            <h2 className="font-display text-sm font-bold text-primary glow-text">AD SCALE</h2>
-            <p className="text-xs text-muted-foreground">Contingência</p>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card/60 backdrop-blur-xl border-r border-border/60 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="px-5 py-5 border-b border-border/60 flex items-center gap-3">
+          <div className="text-primary">
+            <AdScaleLogo size={36} />
+          </div>
+          <div className="leading-tight">
+            <h2 className="font-display text-[15px] font-bold text-foreground tracking-[0.18em]">
+              AD <span className="text-primary glow-text">SCALE</span>
+            </h2>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 mt-0.5">Contingency</p>
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {links.map(link => {
             const active = location.pathname === link.path;
             return (
               <button key={link.path} onClick={() => { navigate(link.path); setSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                  active ? 'bg-primary/10 text-primary border-glow' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                  active
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                 }`}>
-                <link.icon size={18} />
-                <span>{link.label}</span>
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-full shadow-[0_0_8px_hsl(var(--primary))]" />
+                )}
+                <link.icon size={17} className={active ? '' : 'opacity-70 group-hover:opacity-100'} />
+                <span className="font-medium">{link.label}</span>
                 {active && <ChevronRight size={14} className="ml-auto" />}
               </button>
             );
           })}
         </nav>
 
-        <div className="p-3 border-t border-border">
-          <div className="px-3 py-2 text-xs text-muted-foreground mb-2 truncate">{user?.email}</div>
+        <div className="p-3 border-t border-border/60">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/40 mb-2">
+            <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold">
+              {user?.email?.[0]?.toUpperCase() || '·'}
+            </div>
+            <div className="text-[11px] text-muted-foreground truncate flex-1">{user?.email}</div>
+          </div>
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all">
-            <LogOut size={18} />
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+            <LogOut size={16} />
             <span>Sair</span>
           </button>
         </div>
       </aside>
 
       <main className="flex-1 min-h-screen">
-        <header className="h-14 border-b border-border flex items-center px-4 lg:px-6 gap-4">
-          <button className="lg:hidden text-muted-foreground" onClick={() => setSidebarOpen(true)}>
+        <header className="sticky top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center px-4 lg:px-6 gap-4">
+          <button className="lg:hidden text-muted-foreground hover:text-foreground" onClick={() => setSidebarOpen(true)}>
             <Menu size={22} />
           </button>
-          <h1 className="font-display text-sm font-semibold text-foreground">
+          <h1 className="font-display text-sm font-semibold text-foreground tracking-wide">
             {links.find(l => l.path === location.pathname)?.label || 'Dashboard'}
           </h1>
+          <div className="ml-auto flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
+            Live
+          </div>
         </header>
         <div className="p-4 lg:p-6">{children}</div>
       </main>
