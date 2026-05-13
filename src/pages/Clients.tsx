@@ -720,8 +720,12 @@ const Clients: React.FC = () => {
           const acc = getAccumulated(c.id);
           const isExpanded = expandedClient === c.id;
           const clientComms = getClientCommissions(c.id);
+          const accumWeekForCard = getWeeklyAccumSpend(c.id, new Date());
           const previewCommission = adSpendAmount && showCommissionForm === c.id
-            ? calculateCommission(c, parseFloat(adSpendAmount) || 0) : 0;
+            ? calculateCommission(c, parseFloat(adSpendAmount) || 0, accumWeekForCard) : 0;
+          const previewRate = c.clientType === 'aluguel'
+            ? getTierPercentage(accumWeekForCard + (parseFloat(adSpendAmount) || 0), c.percentageValue || 0)
+            : 0;
 
           return (
             <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border rounded-xl overflow-hidden border-glow">
@@ -731,12 +735,19 @@ const Clients: React.FC = () => {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">#{c.number}</span>
                       <h4 className="font-semibold text-sm">{c.name}</h4>
+                      <span className={cn("text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-medium",
+                        c.clientType === 'venda' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'
+                      )}>
+                        {c.clientType === 'venda' ? 'Venda' : 'Aluguel'}
+                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{c.companyName}</p>
                     <p className="text-xs text-muted-foreground mt-1">{c.email}</p>
                     <div className="flex flex-wrap gap-3 mt-2 text-xs">
                       <span className="text-primary">
-                        {c.paymentType === 'fixed' ? `Fixo: $${c.fixedValue}` : c.paymentType === 'percentage' ? `${c.percentageValue}% sobre gasto` : `Fixo $${c.fixedValue} + ${c.percentageValue}%`}
+                        {c.clientType === 'venda'
+                          ? `Fixo: $${c.fixedValue}`
+                          : `${c.percentageValue}% base • metas: 4/3/2/1% (>20k/40k/80k/200k)`}
                       </span>
                       <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
                     </div>
