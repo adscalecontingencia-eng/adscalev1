@@ -589,24 +589,48 @@ const Clients: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Tipo de Pagamento</label>
-                <select value={form.paymentType} onChange={e => setForm(p => ({ ...p, paymentType: e.target.value as any }))} className={inputClass}>
-                  <option value="fixed">Valor Fixo</option>
-                  <option value="percentage">% sobre Gasto</option>
-                  <option value="both">Fixo + %</option>
+                <label className="block text-xs text-muted-foreground mb-1">Tipo de Cliente</label>
+                <select
+                  value={form.clientType || 'aluguel'}
+                  onChange={e => {
+                    const ct = e.target.value as 'aluguel' | 'venda';
+                    setForm(p => ({
+                      ...p,
+                      clientType: ct,
+                      paymentType: ct === 'venda' ? 'fixed' : 'percentage',
+                      fixedValue: ct === 'venda' ? (p.fixedValue || 0) : 0,
+                      percentageValue: ct === 'aluguel' ? (p.percentageValue || 0) : 0,
+                    }));
+                  }}
+                  className={inputClass}
+                >
+                  <option value="aluguel">Aluguel (somente %)</option>
+                  <option value="venda">Venda (somente valor fixo)</option>
                 </select>
               </div>
-              {(form.paymentType === 'fixed' || form.paymentType === 'both') && (
+              {form.clientType === 'venda' && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Valor Fixo ($)</label>
                   <input type="number" value={form.fixedValue || ''} onChange={e => setForm(p => ({ ...p, fixedValue: +e.target.value }))} className={inputClass} />
                 </div>
               )}
-              {(form.paymentType === 'percentage' || form.paymentType === 'both') && (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Percentual (%)</label>
-                  <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
-                </div>
+              {form.clientType !== 'venda' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Percentual base (%)</label>
+                    <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
+                  </div>
+                  <div className="bg-secondary/60 border border-border rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Metas semanais de desconto (USD)</p>
+                    <ul className="text-xs space-y-1 text-foreground">
+                      <li className="flex justify-between"><span>Acima de $20k</span><span className="text-primary font-semibold">4%</span></li>
+                      <li className="flex justify-between"><span>Acima de $40k</span><span className="text-primary font-semibold">3%</span></li>
+                      <li className="flex justify-between"><span>Acima de $80k</span><span className="text-primary font-semibold">2%</span></li>
+                      <li className="flex justify-between"><span>Acima de $200k</span><span className="text-primary font-semibold">1%</span></li>
+                    </ul>
+                  </div>
+                </>
               )}
               <div className="grid grid-cols-3 gap-3">
                 <div>
