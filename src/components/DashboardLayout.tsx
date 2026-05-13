@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logo from '@/assets/logo.png';
+import AdScaleLogo from '@/components/AdScaleLogo';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, X, ChevronRight, Plug, BarChart3, Network, Ban
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban
 } from 'lucide-react';
 
 const adminLinks = [
