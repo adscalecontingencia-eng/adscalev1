@@ -189,6 +189,7 @@ function buildGraph(bms: BM[], accounts: Account[]) {
           id: bm.meta_bm_id,
           verification_status: bm.verification_status,
           accounts: bm.account_count ?? 0,
+          activeAccounts: accounts.filter(a => a.bm_id === bm.id && a.account_status === 1).length,
           pixels: bm.pixel_count ?? 0,
           pages: bm.page_count ?? 0,
         },
