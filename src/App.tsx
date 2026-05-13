@@ -13,6 +13,7 @@ import UsersPage from "./pages/UsersPage";
 import MetaConnections from "./pages/MetaConnections";
 import AdsDashboard from "./pages/AdsDashboard";
 import AssetMap from "./pages/AssetMap";
+import BlockLog from "./pages/BlockLog";
 import ClientDashboard from "./pages/ClientDashboard";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
