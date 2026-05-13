@@ -169,8 +169,14 @@ export default function AdsDashboard() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground">Dashboard de Anúncios</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
             Métricas consolidadas das contas do Meta Ads — {filteredAccountIds.size} conta(s).
+            {syncing && (
+              <span className="inline-flex items-center gap-1 text-primary text-xs">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                atualizando em segundo plano…
+              </span>
+            )}
           </p>
         </div>
         <Button size="sm" disabled={syncing} onClick={() => sync()}>
