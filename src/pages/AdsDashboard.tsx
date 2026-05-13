@@ -68,25 +68,26 @@ export default function AdsDashboard() {
     setAssignments((asn.data as Assignment[]) || []);
   };
 
-  const loadInsights = async () => {
-    setLoading(true);
+  const loadInsights = async (opts?: { background?: boolean }) => {
+    if (!opts?.background) setLoading(true);
     const { since, until } = rangeToDates(range);
     const { data, error } = await supabase
       .from("meta_ad_insights")
       .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
       .gte("date", since)
       .lte("date", until);
-    if (error) toast.error(error.message);
+    if (error && !opts?.background) toast.error(error.message);
     setInsights((data as Insight[]) || []);
-    setLoading(false);
+    if (!opts?.background) setLoading(false);
   };
 
   useEffect(() => { loadMeta(); }, []);
   useEffect(() => {
-    // Sincronização em tempo real: puxa do Meta e depois carrega do banco
+    // 1) Mostra imediatamente o que já está no banco
+    // 2) Em paralelo, dispara sync em background e recarrega quando terminar
     (async () => {
-      await sync({ silent: true });
       await loadInsights();
+      sync({ silent: true }).then(() => loadInsights({ background: true }));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
@@ -147,7 +148,7 @@ export default function AdsDashboard() {
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
       if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
-      await loadInsights();
+      await loadInsights({ background: silent });
     } catch (e: any) {
       if (!silent) toast.error(`Falha: ${e.message}`);
       else console.error("auto-sync falhou:", e.message);
@@ -168,8 +169,14 @@ export default function AdsDashboard() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground">Dashboard de Anúncios</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
             Métricas consolidadas das contas do Meta Ads — {filteredAccountIds.size} conta(s).
+            {syncing && (
+              <span className="inline-flex items-center gap-1 text-primary text-xs">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                atualizando em segundo plano…
+              </span>
+            )}
           </p>
         </div>
         <Button size="sm" disabled={syncing} onClick={() => sync()}>
