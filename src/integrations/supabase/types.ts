@@ -610,41 +610,80 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_page_assignments: {
+        Row: {
+          active: boolean
+          assigned_at: string
+          client_id: string
+          id: string
+          page_id: string
+        }
+        Insert: {
+          active?: boolean
+          assigned_at?: string
+          client_id: string
+          id?: string
+          page_id: string
+        }
+        Update: {
+          active?: boolean
+          assigned_at?: string
+          client_id?: string
+          id?: string
+          page_id?: string
+        }
+        Relationships: []
+      }
       meta_pages: {
         Row: {
           bm_id: string | null
           category: string | null
           created_at: string
+          created_time: string | null
+          fan_count: number | null
+          followers_count: number | null
           id: string
           is_published: boolean | null
           is_restricted: boolean | null
           last_synced_at: string | null
           meta_page_id: string
           name: string
+          picture_url: string | null
+          status: string | null
           updated_at: string
         }
         Insert: {
           bm_id?: string | null
           category?: string | null
           created_at?: string
+          created_time?: string | null
+          fan_count?: number | null
+          followers_count?: number | null
           id?: string
           is_published?: boolean | null
           is_restricted?: boolean | null
           last_synced_at?: string | null
           meta_page_id: string
           name: string
+          picture_url?: string | null
+          status?: string | null
           updated_at?: string
         }
         Update: {
           bm_id?: string | null
           category?: string | null
           created_at?: string
+          created_time?: string | null
+          fan_count?: number | null
+          followers_count?: number | null
           id?: string
           is_published?: boolean | null
           is_restricted?: boolean | null
           last_synced_at?: string | null
           meta_page_id?: string
           name?: string
+          picture_url?: string | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: [
