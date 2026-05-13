@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
@@ -23,7 +23,8 @@ const ClientDashboard: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
-  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'paginas'>('resumo');
+  const [pages, setPages] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,14 +32,16 @@ const ClientDashboard: React.FC = () => {
       const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
       if (clientData) {
         setClient(clientData);
-        const [{ data: commData }, { data: blocked }, { data: assigns }] = await Promise.all([
+        const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }] = await Promise.all([
           supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
           supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
           supabase.from('meta_ad_account_assignments').select('*, ad_account:meta_ad_accounts(*)').eq('client_id', clientData.id).eq('active', true),
+          supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
         ]);
         setCommissions(commData || []);
         setSavedAccounts(blocked || []);
         setActiveAccounts(assigns || []);
+        setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
       }
       setLoading(false);
     };
@@ -142,12 +145,18 @@ const ClientDashboard: React.FC = () => {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList className="w-full grid grid-cols-3 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList className="w-full grid grid-cols-4 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> Resumo
             </TabsTrigger>
             <TabsTrigger value="contrato" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <FileText size={14} /> Contrato
+            </TabsTrigger>
+            <TabsTrigger value="paginas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
+              <ImageIcon size={14} /> Páginas
+              {pages.length > 0 && (
+                <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{pages.length}</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
               <Receipt size={14} /> Cobranças
@@ -423,6 +432,50 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           {/* COBRANÇAS */}
+          {/* PÁGINAS */}
+          <TabsContent value="paginas" className="space-y-4 mt-0">
+            <div className="bg-card border border-border rounded-xl p-5 border-glow">
+              <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
+                <ImageIcon size={16} className="text-primary" /> Suas páginas Meta
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Páginas atribuídas ao seu contrato, com data de criação e quantidade de seguidores.
+              </p>
+              {pages.length === 0 ? (
+                <div className="text-center py-8 border border-dashed border-border rounded-lg">
+                  <ImageIcon size={28} className="mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma página atribuída ainda.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {pages.map((p: any) => (
+                    <div key={p.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex gap-3">
+                      {p.picture_url ? (
+                        <img src={p.picture_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-border shrink-0" loading="lazy" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground shrink-0"><ImageIcon size={20} /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{p.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{p.category || 'Sem categoria'}</p>
+                        <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+                          <span className="flex items-center gap-1 text-primary">
+                            <UsersIcon size={11} />
+                            {(p.followers_count ?? p.fan_count ?? 0).toLocaleString('en-US')}
+                          </span>
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <CalendarIcon size={11} />
+                            {p.created_time ? format(new Date(p.created_time), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
             {/* Saldo principal */}
             <div className={cn(

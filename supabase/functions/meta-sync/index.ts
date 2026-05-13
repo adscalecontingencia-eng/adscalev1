@@ -382,7 +382,88 @@ Deno.serve(async (req) => {
       });
     }
 
-    return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights" }, 400);
+    // ===== 4) SYNC PAGES (BMs -> owned + client pages with details) =====
+    if (action === "sync_pages") {
+      const paginate = async (firstUrl: string) => {
+        const out: any[] = [];
+        let url: string | null = firstUrl;
+        while (url) {
+          const r = await fetch(url);
+          const d = await r.json();
+          if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
+          out.push(...(d.data || []));
+          url = d.paging?.next || null;
+        }
+        return out;
+      };
+
+      const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name");
+      if (!bmsDb || bmsDb.length === 0) {
+        return json({ erro: "Nenhuma BM encontrada. Rode sync_bms primeiro." }, 400);
+      }
+
+      const PAGE_FIELDS = "id,name,category,fan_count,followers_count,created_time,picture.type(large),is_published,verification_status";
+      const errors: any[] = [];
+      const allPages: any[] = [];
+
+      const tasks: { bmDbId: string; bmMetaId: string; edge: string }[] = [];
+      for (const bm of bmsDb) {
+        for (const e of ["owned_pages", "client_pages"]) {
+          tasks.push({ bmDbId: bm.id, bmMetaId: bm.meta_bm_id, edge: e });
+        }
+      }
+
+      const CONCURRENCY = 8;
+      let cursor = 0;
+      const worker = async () => {
+        while (true) {
+          const i = cursor++;
+          if (i >= tasks.length) return;
+          const t = tasks[i];
+          try {
+            const items = await paginate(
+              `${META_API}/${t.bmMetaId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${PAGE_FIELDS}&limit=200`
+            );
+            for (const p of items) allPages.push({ ...p, _bm_db_id: t.bmDbId });
+          } catch (e) {
+            errors.push({ bm: t.bmMetaId, edge: t.edge, erro: (e as Error).message });
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
+
+      // Dedupe by page id
+      const seen = new Set<string>();
+      const unique = allPages.filter((p) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+
+      const rows = unique.map((p: any) => ({
+        meta_page_id: p.id,
+        bm_id: p._bm_db_id,
+        name: p.name,
+        category: p.category || null,
+        fan_count: p.fan_count ?? null,
+        followers_count: p.followers_count ?? p.fan_count ?? null,
+        created_time: p.created_time || null,
+        picture_url: p.picture?.data?.url || null,
+        is_published: p.is_published ?? null,
+        is_restricted: false,
+        status: "active",
+        last_synced_at: new Date().toISOString(),
+      }));
+
+      if (rows.length > 0) {
+        const { error } = await supabase.from("meta_pages").upsert(rows, { onConflict: "meta_page_id" });
+        if (error) throw error;
+      }
+
+      return json({ sucesso: true, paginas_sincronizadas: rows.length, erros: errors });
+    }
+
+    return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights | sync_pages" }, 400);
   } catch (err) {
     return json({ erro: (err as Error).message }, 500);
   }
