@@ -88,19 +88,19 @@ const Dashboard: React.FC = () => {
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-  // Custo de Produtos = soma de custo_produto nas vendas (receitas) + custo de gastos da estrutura
-  // Mais útil: total de "custo de produto" lançado nas transações
-  const productCost = filteredTransactions.reduce(
-    (s: number, t: any) => s + (Number(t.custo_produto) || 0),
-    0,
-  );
+  // Custo de Produtos = custo_produto lançado nas VENDAS (receitas).
+  // Não somamos o custo dos gastos de estrutura aqui porque, nesses lançamentos,
+  // amount === custo_produto (já está contabilizado em "expenses").
+  const productCost = filteredTransactions
+    .filter((t: any) => t.type === 'receita')
+    .reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
 
   // Ticket Médio = faturamento médio por venda (transação tipo receita)
   const salesCount = filteredTransactions.filter((t: any) => t.type === 'receita').length;
   const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
   const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
-  const profit = revenue - expenses;
+  const profit = revenue - expenses - productCost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
@@ -123,8 +123,11 @@ const Dashboard: React.FC = () => {
   const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
     .filter((c: any) => ((c.client_type as string) || 'aluguel') === typeFilter)
     .map((c: any) => {
-      const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cTx = filteredTransactions.filter((t: any) => t.client_id === c.id);
+      const cRevenue = cTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cStructure = cTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cProductCost = cTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+      const cExpenses = cStructure + cProductCost;
       return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
     })
     .filter((c: any) => c.revenue > 0 || c.expenses > 0);
@@ -144,8 +147,11 @@ const Dashboard: React.FC = () => {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const dayStr = d.toDateString();
-      const dayRevenue = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const dayExpenses = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayTx = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr);
+      const dayRevenue = dayTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayStructure = dayTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayProductCost = dayTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+      const dayExpenses = dayStructure + dayProductCost;
       days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
     }
     return days;
@@ -158,8 +164,11 @@ const Dashboard: React.FC = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = d.getMonth();
       const year = d.getFullYear();
-      const monthRevenue = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const monthExpenses = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthTx = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year; });
+      const monthRevenue = monthTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthStructure = monthTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthProductCost = monthTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+      const monthExpenses = monthStructure + monthProductCost;
       months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;

@@ -146,7 +146,9 @@ const Financial: React.FC = () => {
   const errorInputClass = "w-full bg-secondary border border-destructive rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-destructive transition-colors";
 
   const totalRevenue = filteredTransactions.filter(t => t.type === 'receita').reduce((s, t) => s + t.amount, 0);
-  const totalExpenses = filteredTransactions.filter(t => t.type === 'gasto').reduce((s, t) => s + t.amount, 0);
+  const totalStructureExpenses = filteredTransactions.filter(t => t.type === 'gasto').reduce((s, t) => s + t.amount, 0);
+  const totalProductCost = filteredTransactions.filter(t => t.type === 'receita').reduce((s, t) => s + (Number(t.custoProduto) || 0), 0);
+  const totalExpenses = totalStructureExpenses + totalProductCost;
 
   if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
 
