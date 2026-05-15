@@ -41,7 +41,21 @@ const Financial: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+  const [inputCurrency, setInputCurrency] = useState<'USD' | 'BRL'>('USD');
+  const [usdToBrl, setUsdToBrl] = useState<number>(5.0);
   const [loading, setLoading] = useState(true);
+
+  // Cotação USD → BRL para conversão dos lançamentos em BRL
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+        const json = await res.json();
+        const bid = parseFloat(json?.USDBRL?.bid);
+        if (!isNaN(bid) && bid > 0) setUsdToBrl(bid);
+      } catch { /* mantém fallback */ }
+    })();
+  }, []);
 
   // Filters
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
