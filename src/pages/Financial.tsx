@@ -286,10 +286,17 @@ const Financial: React.FC = () => {
                 </div>
               )}
               {form.type === 'receita' && (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
-                  <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
-                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
+                    <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                    {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
+                    <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro desta venda.</p>
+                  </div>
                 </div>
               )}
               {form.type === 'outros' && (
