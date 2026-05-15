@@ -60,7 +60,7 @@ const Financial: React.FC = () => {
       setTransactions(txRes.data.map((t: any) => ({
         id: t.id, date: t.date, type: t.type as 'receita' | 'gasto', category: t.category,
         subcategory: t.subcategory || '', clientId: t.client_id || undefined, amount: Number(t.amount), description: t.description,
-        custoProduto: Number(t.custo_produto || 0), valorVenda: Number(t.valor_venda || 0),
+        custoProduto: Number(t.custo_produto || 0), valorVenda: Number(t.valor_venda || 0), quantidade: Number(t.quantidade || 0),
       })));
     }
     if (clientRes.data) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
