@@ -126,9 +126,11 @@ const Financial: React.FC = () => {
     const isGasto = form.type === 'gasto';
     const isVenda = form.type === 'receita';
     const isOutros = form.type === 'outros';
-    const custo = parseFloat(form.custoProduto) || 0;
-    const venda = parseFloat(form.valorVenda) || 0;
-    const outros = parseFloat(form.amount) || 0;
+    // Se o usuário lançou em BRL, convertemos para USD (moeda base do sistema)
+    const toUsd = (n: number) => inputCurrency === 'BRL' && usdToBrl > 0 ? n / usdToBrl : n;
+    const custo = toUsd(parseFloat(form.custoProduto) || 0);
+    const venda = toUsd(parseFloat(form.valorVenda) || 0);
+    const outros = toUsd(parseFloat(form.amount) || 0);
     const amount = isGasto ? custo : isVenda ? venda : outros;
     const dbType = isVenda ? 'receita' : 'gasto';
     const subcategory = isOutros ? 'outros_gastos' : (form.subcategory || null);
@@ -142,8 +144,9 @@ const Financial: React.FC = () => {
       quantidade: isVenda ? (parseInt(form.quantidade) || 0) : 0,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
-    toast.success('Transação salva!');
+    toast.success(inputCurrency === 'BRL' ? `Salva em USD (convertida de R$ @ ${usdToBrl.toFixed(2)})` : 'Transação salva!');
     setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+    setInputCurrency('USD');
     setShowForm(false);
     setErrors({});
     fetchData();
