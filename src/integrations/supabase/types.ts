@@ -799,6 +799,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          quantidade: number
           subcategory: string | null
           type: string
           valor_venda: number | null
@@ -812,6 +813,7 @@ export type Database = {
           date: string
           description: string
           id?: string
+          quantidade?: number
           subcategory?: string | null
           type?: string
           valor_venda?: number | null
@@ -825,6 +827,7 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          quantidade?: number
           subcategory?: string | null
           type?: string
           valor_venda?: number | null

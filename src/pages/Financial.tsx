@@ -22,6 +22,7 @@ interface Transaction {
   description: string;
   custoProduto: number;
   valorVenda: number;
+  quantidade: number;
 }
 
 interface ClientOption {
@@ -39,7 +40,7 @@ const Financial: React.FC = () => {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
+  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -59,7 +60,7 @@ const Financial: React.FC = () => {
       setTransactions(txRes.data.map((t: any) => ({
         id: t.id, date: t.date, type: t.type as 'receita' | 'gasto', category: t.category,
         subcategory: t.subcategory || '', clientId: t.client_id || undefined, amount: Number(t.amount), description: t.description,
-        custoProduto: Number(t.custo_produto || 0), valorVenda: Number(t.valor_venda || 0),
+        custoProduto: Number(t.custo_produto || 0), valorVenda: Number(t.valor_venda || 0), quantidade: Number(t.quantidade || 0),
       })));
     }
     if (clientRes.data) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
@@ -124,10 +125,11 @@ const Financial: React.FC = () => {
       amount, description: form.description,
       custo_produto: isGasto || isVenda ? custo : 0,
       valor_venda: isVenda ? venda : 0,
+      quantidade: isVenda ? (parseInt(form.quantidade) || 0) : 0,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success('Transação salva!');
-    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
+    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
     setShowForm(false);
     setErrors({});
     fetchData();
@@ -286,7 +288,7 @@ const Financial: React.FC = () => {
                 </div>
               )}
               {form.type === 'receita' && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
                     <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
@@ -295,7 +297,12 @@ const Financial: React.FC = () => {
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
                     <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
-                    <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro desta venda.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro.</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Quantidade</label>
+                    <input type="number" min="0" step="1" value={form.quantidade} onChange={e => setForm(p => ({ ...p, quantidade: e.target.value }))} placeholder="0" className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Produtos vendidos.</p>
                   </div>
                 </div>
               )}
@@ -341,6 +348,13 @@ const Financial: React.FC = () => {
                     <span className="text-muted-foreground">{considerLabel} considerado:</span>
                     <span className="font-mono font-semibold text-foreground">{fmt(t.amount)}</span>
                     <span className={`${impactColor} font-medium`}>{impactLabel}</span>
+                    {isVenda && t.quantidade > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Qtd:</span>
+                        <span className="font-mono font-semibold text-foreground">{t.quantidade}</span>
+                      </>
+                    )}
                     {isVenda && t.custoProduto > 0 && (
                       <>
                         <span className="text-muted-foreground">·</span>
