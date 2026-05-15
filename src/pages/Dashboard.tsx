@@ -7,6 +7,7 @@ import { parseDateLocal } from '@/lib/date-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import AdScaleLogo from '@/components/AdScaleLogo';
@@ -73,11 +74,18 @@ const Dashboard: React.FC = () => {
     { name: 'Pagina', value: paginaCosts },
   ].filter(d => d.value > 0);
 
-  const clientProfits = clients.map((c: any) => {
-    const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
-  }).filter((c: any) => c.revenue > 0 || c.profit !== 0);
+  const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
+    .filter((c: any) => ((c.client_type as string) || 'aluguel') === typeFilter)
+    .map((c: any) => {
+      const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
+    })
+    .filter((c: any) => c.revenue > 0 || c.expenses > 0);
+
+  const clientProfitsAluguel = useMemo(() => buildClientProfits('aluguel'), [clients, filteredTransactions]);
+  const clientProfitsVenda = useMemo(() => buildClientProfits('venda'), [clients, filteredTransactions]);
+  const clientProfits = [...clientProfitsAluguel, ...clientProfitsVenda];
 
   const dailyData = useMemo(() => {
     const days: any[] = [];
