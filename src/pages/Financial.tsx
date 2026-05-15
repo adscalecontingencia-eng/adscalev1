@@ -97,7 +97,8 @@ const Financial: React.FC = () => {
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    const amount = parseFloat(form.amount);
+    const valueField = form.type === 'gasto' ? form.custoProduto : form.valorVenda;
+    const amount = parseFloat(valueField);
     if (isNaN(amount) || amount <= 0) errs.amount = 'O valor deve ser um número positivo';
     if (!form.date) errs.date = 'Data é obrigatória';
     if (!form.description.trim()) errs.description = 'Descrição é obrigatória';
@@ -107,12 +108,16 @@ const Financial: React.FC = () => {
 
   const handleSave = async () => {
     if (!validate()) return;
+    const isGasto = form.type === 'gasto';
+    const custo = parseFloat(form.custoProduto) || 0;
+    const venda = parseFloat(form.valorVenda) || 0;
+    const amount = isGasto ? custo : venda;
     const { error } = await supabase.from('transactions').insert({
       date: form.date, type: form.type, category: form.category,
       subcategory: form.subcategory || null, client_id: form.clientId || null,
-      amount: parseFloat(form.amount), description: form.description,
-      custo_produto: parseFloat(form.custoProduto) || 0,
-      valor_venda: parseFloat(form.valorVenda) || 0,
+      amount, description: form.description,
+      custo_produto: isGasto ? custo : 0,
+      valor_venda: isGasto ? 0 : venda,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success('Transação salva!');
@@ -247,8 +252,8 @@ const Financial: React.FC = () => {
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Tipo</label>
                 <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as any }))} className={inputClass}>
-                  <option value="gasto">Gasto de Estrutura</option>
-                  <option value="receita">Receita / Comissão</option>
+                  <option value="gasto">Gasto da Estrutura de aluguel</option>
+                  <option value="receita">Venda</option>
                 </select>
               </div>
               <div>
@@ -264,24 +269,17 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Valor ($)</label>
-                <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
-                {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+              {form.type === 'gasto' ? (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
-                  <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
+                  <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
                 </div>
+              ) : (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
-                  <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={inputClass} />
-                </div>
-              </div>
-              {(parseFloat(form.valorVenda) > 0 || parseFloat(form.custoProduto) > 0) && (
-                <div className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
-                  Lucro estimado: <span className={`font-semibold ${(parseFloat(form.valorVenda || '0') - parseFloat(form.custoProduto || '0')) >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt((parseFloat(form.valorVenda || '0') - parseFloat(form.custoProduto || '0')))}</span>
+                  <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
                 </div>
               )}
               <div>
@@ -301,7 +299,7 @@ const Financial: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2 py-0.5 rounded ${t.type === 'receita' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                  {t.type === 'receita' ? 'Receita' : 'Gasto'}
+                  {t.type === 'receita' ? 'Venda' : 'Gasto Estrutura'}
                 </span>
                 <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category}</span>
               </div>
