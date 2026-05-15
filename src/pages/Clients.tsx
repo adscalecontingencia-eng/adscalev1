@@ -179,6 +179,7 @@ const Clients: React.FC = () => {
         client_type: clientType,
         payment_type: paymentType, fixed_value: fixedValue, percentage_value: percentageValue,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
+        plan_credit: planCredit,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
