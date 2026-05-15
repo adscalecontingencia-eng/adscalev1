@@ -98,6 +98,7 @@ const Clients: React.FC = () => {
       clientType: ((c as any).client_type as 'aluguel' | 'venda') || 'aluguel',
       paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
       fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
+      planCredit: Number((c as any).plan_credit) || 0,
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
       whatsappPhone: (c as any).whatsapp_phone || '', whatsappGroupLink: (c as any).whatsapp_group_link || '',
     })));
