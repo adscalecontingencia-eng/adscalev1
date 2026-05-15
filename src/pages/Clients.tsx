@@ -23,6 +23,7 @@ interface Client {
   paymentType: 'fixed' | 'percentage' | 'both';
   fixedValue?: number;
   percentageValue?: number;
+  planCredit?: number;
   adAccounts: number;
   usedAccounts: number;
   blockedAccounts: number;
@@ -97,6 +98,7 @@ const Clients: React.FC = () => {
       clientType: ((c as any).client_type as 'aluguel' | 'venda') || 'aluguel',
       paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
       fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
+      planCredit: Number((c as any).plan_credit) || 0,
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
       whatsappPhone: (c as any).whatsapp_phone || '', whatsappGroupLink: (c as any).whatsapp_group_link || '',
     })));
@@ -168,6 +170,7 @@ const Clients: React.FC = () => {
     const paymentType: 'fixed' | 'percentage' = clientType === 'venda' ? 'fixed' : 'percentage';
     const fixedValue = clientType === 'venda' ? (form.fixedValue || 0) : 0;
     const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
+    const planCredit = clientType === 'aluguel' ? (form.planCredit || 0) : 0;
 
     if (editing) {
       const payload: any = {
@@ -176,6 +179,7 @@ const Clients: React.FC = () => {
         client_type: clientType,
         payment_type: paymentType, fixed_value: fixedValue, percentage_value: percentageValue,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
+        plan_credit: planCredit,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
@@ -203,7 +207,7 @@ const Clients: React.FC = () => {
           action: 'create_user', email: form.email, password, name: form.name, role: 'client',
           client_data: {
             number: form.number, companyName: form.companyName, observations: form.observations,
-            clientType, paymentType, fixedValue, percentageValue,
+            clientType, paymentType, fixedValue, percentageValue, planCredit,
             adAccounts: form.adAccounts || 0,
             usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
             whatsappPhone: form.whatsappPhone || null, whatsappGroupLink: form.whatsappGroupLink || null,
@@ -350,19 +354,38 @@ const Clients: React.FC = () => {
       return;
     }
 
+    // Abate o crédito do plano (se houver) — não conta como faturamento
+    const availableCredit = Math.max(0, client.planCredit || 0);
+    const creditApplied = Math.min(availableCredit, totalCommission);
+    const billedAmount = Math.max(0, totalCommission - creditApplied);
+    const noteSuffix = creditApplied > 0
+      ? ` · Crédito aplicado: ${fmt(creditApplied)} (saldo restante: ${fmt(availableCredit - creditApplied)})`
+      : '';
+
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: now.toISOString(), amount: totalCommission,
+      client_id: clientId, date: now.toISOString(), amount: billedAmount,
       ad_spend: totalAdSpend, type: 'weekly_billing',
       billing_week_start: format(weekStart, 'yyyy-MM-dd'),
       billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
       is_weekly_billing: true,
-      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
+      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}${noteSuffix}`,
       valor_pago: 0,
-      valor_pendente: totalCommission,
-      status: 'pendente',
+      valor_pendente: billedAmount,
+      status: billedAmount <= 0 ? 'pago' : 'pendente',
     } as any);
     if (error) { toast.error('Erro ao gerar cobrança'); return; }
-    toast.success(`Cobrança semanal de ${fmt(totalCommission)} gerada!`);
+
+    // Atualiza o saldo de crédito do cliente
+    if (creditApplied > 0) {
+      const newCredit = Math.max(0, availableCredit - creditApplied);
+      await supabase.from('clients').update({ plan_credit: newCredit } as any).eq('id', clientId);
+      await fetchClients();
+    }
+
+    const msg = creditApplied > 0
+      ? `Cobrança gerada: ${fmt(billedAmount)} (crédito de ${fmt(creditApplied)} abatido)`
+      : `Cobrança semanal de ${fmt(billedAmount)} gerada!`;
+    toast.success(msg);
     fetchCommissions();
   };
 
@@ -647,6 +670,11 @@ const Clients: React.FC = () => {
                     <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
                     <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
                   </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Crédito do Plano (USD)</label>
+                    <input type="number" step="0.01" value={form.planCredit ?? ''} onChange={e => setForm(p => ({ ...p, planCredit: parseFloat(e.target.value) || 0 }))} placeholder="0.00" className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
+                  </div>
                   <div className="bg-secondary/60 border border-border rounded-lg p-3">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Metas semanais de desconto (USD)</p>
                     <ul className="text-xs space-y-1 text-foreground">
@@ -776,6 +804,9 @@ const Clients: React.FC = () => {
                           : `${c.percentageValue}% base • metas: 4/3/2/1% (>20k/40k/80k/200k)`}
                       </span>
                       <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
+                      {c.clientType === 'aluguel' && (c.planCredit || 0) > 0 && (
+                        <span className="text-success">Crédito do plano: {fmt(c.planCredit || 0)}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1 sm:gap-2 shrink-0 ml-2">

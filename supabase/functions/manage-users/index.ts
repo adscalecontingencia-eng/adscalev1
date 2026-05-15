@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
           payment_type: paymentType,
           fixed_value: clientType === "venda" ? (cd.fixedValue || 0) : 0,
           percentage_value: clientType === "aluguel" ? (cd.percentageValue || 0) : 0,
+          plan_credit: clientType === "aluguel" ? (cd.planCredit || 0) : 0,
           ad_accounts: cd.adAccounts || 0,
           used_accounts: cd.usedAccounts || 0,
           blocked_accounts: cd.blockedAccounts || 0,

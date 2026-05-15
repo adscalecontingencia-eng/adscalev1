@@ -107,6 +107,7 @@ export type Database = {
           password: string
           payment_type: string
           percentage_value: number | null
+          plan_credit: number
           updated_at: string
           used_accounts: number | null
           whatsapp_group_link: string | null
@@ -129,6 +130,7 @@ export type Database = {
           password: string
           payment_type?: string
           percentage_value?: number | null
+          plan_credit?: number
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           password?: string
           payment_type?: string
           percentage_value?: number | null
+          plan_credit?: number
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
