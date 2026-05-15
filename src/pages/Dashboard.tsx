@@ -55,9 +55,23 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, []);
 
+  // Mapa client_id → client_type para filtrar transações por tipo de cliente
+  const clientTypeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    clients.forEach((c: any) => m.set(c.id, (c.client_type as string) || 'aluguel'));
+    return m;
+  }, [clients]);
+
+  const matchesClientType = (t: any) => {
+    if (clientTypeFilter === 'geral') return true;
+    if (!t.client_id) return false;
+    return clientTypeMap.get(t.client_id) === clientTypeFilter;
+  };
+
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter((t: any) => {
+      if (!matchesClientType(t)) return false;
       const d = parseDateLocal(t.date);
       if (dateFilter === 'today') return d.toDateString() === now.toDateString();
       if (dateFilter === '7days') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -68,10 +82,22 @@ const Dashboard: React.FC = () => {
       }
       return true;
     });
-  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo]);
+  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo, clientTypeFilter, clientTypeMap]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+  // Custo de Produtos = soma de custo_produto nas vendas (receitas) + custo de gastos da estrutura
+  // Mais útil: total de "custo de produto" lançado nas transações
+  const productCost = filteredTransactions.reduce(
+    (s: number, t: any) => s + (Number(t.custo_produto) || 0),
+    0,
+  );
+
+  // Ticket Médio = faturamento médio por venda (transação tipo receita)
+  const salesCount = filteredTransactions.filter((t: any) => t.type === 'receita').length;
+  const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
+
   const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
   const profit = revenue - expenses;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
@@ -104,17 +130,23 @@ const Dashboard: React.FC = () => {
   const clientProfitsVenda = useMemo(() => buildClientProfits('venda'), [clients, filteredTransactions]);
   const clientProfits = [...clientProfitsAluguel, ...clientProfitsVenda];
 
+  // Para os gráficos temporais (diário/mensal) também respeitamos o filtro de tipo de cliente
+  const baseTimeTransactions = useMemo(
+    () => transactions.filter((t: any) => matchesClientType(t)),
+    [transactions, clientTypeFilter, clientTypeMap],
+  );
+
   const dailyData = useMemo(() => {
     const days: any[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const dayStr = d.toDateString();
-      const dayRevenue = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const dayExpenses = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayRevenue = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayExpenses = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
     }
     return days;
-  }, [transactions]);
+  }, [baseTimeTransactions]);
 
   const monthlyData = useMemo(() => {
     const months: any[] = [];
@@ -123,15 +155,26 @@ const Dashboard: React.FC = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = d.getMonth();
       const year = d.getFullYear();
-      const monthRevenue = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const monthExpenses = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthRevenue = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthExpenses = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
       months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;
-  }, [transactions]);
+  }, [baseTimeTransactions]);
 
-  const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  const fmtCompact = (v: number) => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}`;
+  // Conversão de moeda — todas as somas no banco são em USD
+  const conv = (v: number) => currency === 'BRL' ? v * usdToBrl : v;
+  const fmt = (v: number) => {
+    const n = conv(v);
+    return currency === 'BRL'
+      ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  };
+  const fmtCompact = (v: number) => {
+    const n = conv(v);
+    const symbol = currency === 'BRL' ? 'R$' : '$';
+    return `${symbol}${Math.abs(n) >= 1000 ? (n / 1000).toFixed(1) + 'k' : n.toFixed(0)}`;
+  };
 
   const tooltipStyle = {
     backgroundColor: 'hsl(0,0%,5% / 0.95)',
