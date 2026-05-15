@@ -9,7 +9,7 @@ interface Task {
   title: string;
   description: string;
   category: 'manutencao' | 'atendimento';
-  structureType: 'Perfil' | 'BM Comum' | 'BM Verificada' | 'BM Disparo' | 'Pagina' | 'Outro';
+  structureType: 'Perfil' | 'BM Comum' | 'BM Verificada' | 'BM API' | 'BM Disparo' | 'Pagina' | 'Outro';
   assignedTo?: string;
   clientId?: string;
   status: 'pendente' | 'em_andamento' | 'concluida';
@@ -110,7 +110,7 @@ const Support: React.FC = () => {
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Estrutura</label>
                   <select value={form.structureType} onChange={e => setForm(p => ({ ...p, structureType: e.target.value as any }))} className={inputClass}>
-                    {['Perfil', 'BM Comum', 'BM Verificada', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
