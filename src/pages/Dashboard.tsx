@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
@@ -195,17 +195,31 @@ const Dashboard: React.FC = () => {
   const sparkExpenses = dailyData.map(d => ({ v: d.gastos }));
 
   // ============ EXPORTAR DASHBOARD PARA EXCEL ============
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const sym = currency;
     const v = (n: number) => Number(conv(n).toFixed(2));
     const tipoLabel = clientTypeFilter === 'geral' ? 'Geral' : clientTypeFilter === 'aluguel' ? 'Aluguel' : 'Vendas';
 
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'AD SCALE';
+    wb.created = new Date();
+
+    const addSheet = (name: string, rows: any[][], widths: number[]) => {
+      const ws = wb.addWorksheet(name);
+      ws.columns = widths.map(w => ({ width: w }));
+      rows.forEach(r => ws.addRow(r));
+      // Header style on row 1 of data tables (skip Resumo special layout)
+      const headerRow = ws.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FF0F0F0F' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF39FF14' } };
+    };
 
     // 1) Resumo / KPIs
-    const resumo = [
+    const wsResumo = wb.addWorksheet('Resumo');
+    wsResumo.columns = [{ width: 28 }, { width: 26 }];
+    [
       ['AD SCALE — Dashboard'],
-      ['Gerado em', format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })],
+      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })],
       ['Período', dateLabel],
       ['Tipo de cliente', tipoLabel],
       ['Moeda', sym + (sym === 'BRL' ? ` (cotação R$ ${usdToBrl.toFixed(4)})` : '')],
@@ -220,32 +234,26 @@ const Dashboard: React.FC = () => {
       ['Vendas (qtd)', salesCount],
       ['Clientes Ativos', activeClients],
       ['Clientes Totais', clients.length],
-    ];
-    const wsResumo = XLSX.utils.aoa_to_sheet(resumo);
-    wsResumo['!cols'] = [{ wch: 28 }, { wch: 22 }];
-    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+    ].forEach(r => wsResumo.addRow(r));
+    wsResumo.getRow(1).font = { bold: true, size: 14 };
+    wsResumo.getRow(7).font = { bold: true, color: { argb: 'FF0F0F0F' } };
+    wsResumo.getRow(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF39FF14' } };
 
-    // 2) Diário (últimos 7 dias)
-    const diario = [
+    // 2) Diário
+    addSheet('Diario', [
       ['Data', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
       ...dailyData.map(d => [d.date, v(d.faturamento), v(d.gastos), v(d.lucro)]),
-    ];
-    const wsDiario = XLSX.utils.aoa_to_sheet(diario);
-    wsDiario['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, wsDiario, 'Diario');
+    ], [12, 18, 18, 18]);
 
-    // 3) Mensal (últimos 6 meses)
-    const mensal = [
+    // 3) Mensal
+    addSheet('Mensal', [
       ['Mês', `Receitas (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
       ...monthlyData.map(m => [m.date, v(m.receitas), v(m.gastos), v(m.lucro)]),
-    ];
-    const wsMensal = XLSX.utils.aoa_to_sheet(mensal);
-    wsMensal['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, wsMensal, 'Mensal');
+    ], [12, 18, 18, 18]);
 
     // 4) Custos por Estrutura
     const totalEstrutura = pieData.reduce((s, p) => s + p.value, 0);
-    const estrutura = [
+    addSheet('Custos Estrutura', [
       ['Estrutura', `Custo (${sym})`, '% do total'],
       ...pieData.map(p => [
         p.name,
@@ -253,31 +261,30 @@ const Dashboard: React.FC = () => {
         totalEstrutura > 0 ? Number(((p.value / totalEstrutura) * 100).toFixed(2)) : 0,
       ]),
       ['Total', v(totalEstrutura), 100],
-    ];
-    const wsEstrutura = XLSX.utils.aoa_to_sheet(estrutura);
-    wsEstrutura['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(wb, wsEstrutura, 'Custos Estrutura');
+    ], [22, 18, 14]);
 
     // 5) Clientes Aluguel
-    const aluguel = [
+    addSheet('Clientes Aluguel', [
       ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
       ...clientProfitsAluguel.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
-    ];
-    const wsAluguel = XLSX.utils.aoa_to_sheet(aluguel);
-    wsAluguel['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, wsAluguel, 'Clientes Aluguel');
+    ], [30, 18, 18, 18]);
 
     // 6) Clientes Vendas
-    const vendas = [
+    addSheet('Clientes Vendas', [
       ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
       ...clientProfitsVenda.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
-    ];
-    const wsVendas = XLSX.utils.aoa_to_sheet(vendas);
-    wsVendas['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, wsVendas, 'Clientes Vendas');
+    ], [30, 18, 18, 18]);
 
-    const filename = `adscale-dashboard-${tipoLabel.toLowerCase()}-${sym}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `adscale-dashboard-${tipoLabel.toLowerCase()}-${sym}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const dateLabel =
