@@ -9,7 +9,7 @@ interface Task {
   title: string;
   description: string;
   category: 'manutencao' | 'atendimento';
-  structureType: 'Perfil' | 'BM Comum' | 'BM Verificada' | 'BM Disparo' | 'Pagina' | 'Outro';
+  structureType: 'Perfil' | 'BM Comum' | 'BM Verificada' | 'BM API' | 'BM Disparo' | 'Pagina' | 'Outro';
   assignedTo?: string;
   clientId?: string;
   status: 'pendente' | 'em_andamento' | 'concluida';
