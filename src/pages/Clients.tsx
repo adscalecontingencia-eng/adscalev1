@@ -579,44 +579,6 @@ const Clients: React.FC = () => {
               <button onClick={resetForm} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Número</label>
-                  <input value={form.number || ''} onChange={e => setForm(p => ({ ...p, number: e.target.value }))} className={inputClass} required />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Nome</label>
-                  <input value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputClass} required />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Empresa</label>
-                <input value={form.companyName || ''} onChange={e => setForm(p => ({ ...p, companyName: e.target.value }))} className={inputClass} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">E-mail (login)</label>
-                  <input type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputClass} required />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Senha</label>
-                  <input value={form.password || ''} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Observações (contrato)</label>
-                <textarea value={form.observations || ''} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} className={`${inputClass} h-24 resize-none`} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">WhatsApp (cliente)</label>
-                  <input value={form.whatsappPhone || ''} onChange={e => setForm(p => ({ ...p, whatsappPhone: e.target.value }))} placeholder="5511999999999" className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Link do Grupo WhatsApp</label>
-                  <input value={form.whatsappGroupLink || ''} onChange={e => setForm(p => ({ ...p, whatsappGroupLink: e.target.value }))} placeholder="https://chat.whatsapp.com/..." className={inputClass} />
-                </div>
-              </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Tipo de Cliente</label>
                 <select
@@ -632,19 +594,54 @@ const Clients: React.FC = () => {
                     }));
                   }}
                   className={inputClass}
+                  disabled={!!editing}
                 >
-                  <option value="aluguel">Aluguel (somente %)</option>
-                  <option value="venda">Venda (somente valor fixo)</option>
+                  <option value="aluguel">Aluguel (acesso ao portal + comissão %)</option>
+                  <option value="venda">Venda (cadastro simples — só Nome e Número)</option>
                 </select>
               </div>
-              {form.clientType === 'venda' && (
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Valor Fixo ($)</label>
-                  <input type="number" value={form.fixedValue || ''} onChange={e => setForm(p => ({ ...p, fixedValue: +e.target.value }))} className={inputClass} />
+                  <label className="block text-xs text-muted-foreground mb-1">Número</label>
+                  <input value={form.number || ''} onChange={e => setForm(p => ({ ...p, number: e.target.value }))} className={inputClass} required />
                 </div>
-              )}
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Nome</label>
+                  <input value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputClass} required />
+                </div>
+              </div>
+
               {form.clientType !== 'venda' && (
                 <>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Empresa</label>
+                    <input value={form.companyName || ''} onChange={e => setForm(p => ({ ...p, companyName: e.target.value }))} className={inputClass} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">E-mail (login)</label>
+                      <input type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputClass} required />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Senha</label>
+                      <input value={form.password || ''} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Observações (contrato)</label>
+                    <textarea value={form.observations || ''} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} className={`${inputClass} h-24 resize-none`} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">WhatsApp (cliente)</label>
+                      <input value={form.whatsappPhone || ''} onChange={e => setForm(p => ({ ...p, whatsappPhone: e.target.value }))} placeholder="5511999999999" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Link do Grupo WhatsApp</label>
+                      <input value={form.whatsappGroupLink || ''} onChange={e => setForm(p => ({ ...p, whatsappGroupLink: e.target.value }))} placeholder="https://chat.whatsapp.com/..." className={inputClass} />
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">Percentual base (%)</label>
                     <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
@@ -659,22 +656,22 @@ const Clients: React.FC = () => {
                       <li className="flex justify-between"><span>Acima de $200k</span><span className="text-primary font-semibold">1%</span></li>
                     </ul>
                   </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Contas disponíveis</label>
+                      <input type="number" value={form.adAccounts || 0} onChange={e => setForm(p => ({ ...p, adAccounts: +e.target.value }))} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Contas usadas</label>
+                      <input type="number" value={form.usedAccounts || 0} onChange={e => setForm(p => ({ ...p, usedAccounts: +e.target.value }))} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Contas bloqueadas</label>
+                      <input type="number" value={form.blockedAccounts || 0} onChange={e => setForm(p => ({ ...p, blockedAccounts: +e.target.value }))} className={inputClass} />
+                    </div>
+                  </div>
                 </>
               )}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Contas disponíveis</label>
-                  <input type="number" value={form.adAccounts || 0} onChange={e => setForm(p => ({ ...p, adAccounts: +e.target.value }))} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Contas usadas</label>
-                  <input type="number" value={form.usedAccounts || 0} onChange={e => setForm(p => ({ ...p, usedAccounts: +e.target.value }))} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Contas bloqueadas</label>
-                  <input type="number" value={form.blockedAccounts || 0} onChange={e => setForm(p => ({ ...p, blockedAccounts: +e.target.value }))} className={inputClass} />
-                </div>
-              </div>
               <button onClick={handleSave} disabled={saving} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
                 {saving ? 'Salvando...' : editing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
               </button>
