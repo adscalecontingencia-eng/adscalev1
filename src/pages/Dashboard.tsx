@@ -104,12 +104,26 @@ const Dashboard: React.FC = () => {
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
+  // Valor líquido por produto = receitas da categoria - (gastos de estrutura + custo do produto) da categoria
+  const netByCategory = (cat: string) => {
+    const catTx = filteredTransactions.filter((t: any) => t.category === cat);
+    const rev = catTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const exp = catTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const pCost = catTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+    return rev - exp - pCost;
+  };
   const perfilCosts = structureCosts.filter((t: any) => t.category === 'Perfil').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmComumCosts = structureCosts.filter((t: any) => t.category === 'BM Comum').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmVerifCosts = structureCosts.filter((t: any) => t.category === 'BM Verificada').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmApiCosts = structureCosts.filter((t: any) => t.category === 'BM API').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmDisparoCosts = structureCosts.filter((t: any) => t.category === 'BM Disparo').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const paginaCosts = structureCosts.filter((t: any) => t.category === 'Pagina').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const perfilNet = netByCategory('Perfil');
+  const bmComumNet = netByCategory('BM Comum');
+  const bmVerifNet = netByCategory('BM Verificada');
+  const bmApiNet = netByCategory('BM API');
+  const bmDisparoNet = netByCategory('BM Disparo');
+  const paginaNet = netByCategory('Pagina');
 
   const pieData = [
     { name: 'Perfil', value: perfilCosts },
