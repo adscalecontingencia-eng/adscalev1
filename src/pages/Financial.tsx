@@ -22,6 +22,7 @@ interface Transaction {
   description: string;
   custoProduto: number;
   valorVenda: number;
+  quantidade: number;
 }
 
 interface ClientOption {
