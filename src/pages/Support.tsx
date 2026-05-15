@@ -9,7 +9,7 @@ interface Task {
   title: string;
   description: string;
   category: 'manutencao' | 'atendimento';
-  structureType: 'BMs' | 'Perfis' | 'Proxy' | 'Multilogin' | 'Outro';
+  structureType: 'Perfil' | 'BM Comum' | 'BM Verificada' | 'BM Disparo' | 'Pagina' | 'Outro';
   assignedTo?: string;
   clientId?: string;
   status: 'pendente' | 'em_andamento' | 'concluida';
@@ -19,7 +19,7 @@ interface Task {
 const Support: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(() => JSON.parse(localStorage.getItem('adscale_tasks') || '[]'));
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structureType: 'BMs', status: 'pendente' });
+  const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structureType: 'BM Comum', status: 'pendente' });
   const [supportUsers, setSupportUsers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
 
@@ -41,12 +41,12 @@ const Support: React.FC = () => {
     if (!form.title) return;
     const t: Task = {
       id: `task-${Date.now()}`, title: form.title || '', description: form.description || '',
-      category: form.category || 'manutencao', structureType: form.structureType || 'BMs',
+      category: form.category || 'manutencao', structureType: form.structureType || 'BM Comum',
       assignedTo: form.assignedTo, clientId: form.clientId, status: 'pendente',
       createdAt: new Date().toISOString(),
     };
     setTasks(prev => [t, ...prev]);
-    setForm({ category: 'manutencao', structureType: 'BMs', status: 'pendente' });
+    setForm({ category: 'manutencao', structureType: 'BM Comum', status: 'pendente' });
     setShowForm(false);
   };
 
@@ -110,7 +110,7 @@ const Support: React.FC = () => {
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Estrutura</label>
                   <select value={form.structureType} onChange={e => setForm(p => ({ ...p, structureType: e.target.value as any }))} className={inputClass}>
-                    {['BMs', 'Perfis', 'Proxy', 'Multilogin', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Perfil', 'BM Comum', 'BM Verificada', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>

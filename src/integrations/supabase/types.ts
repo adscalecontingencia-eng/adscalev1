@@ -795,33 +795,39 @@ export type Database = {
           category: string
           client_id: string | null
           created_at: string
+          custo_produto: number | null
           date: string
           description: string
           id: string
           subcategory: string | null
           type: string
+          valor_venda: number | null
         }
         Insert: {
           amount: number
           category?: string
           client_id?: string | null
           created_at?: string
+          custo_produto?: number | null
           date: string
           description: string
           id?: string
           subcategory?: string | null
           type?: string
+          valor_venda?: number | null
         }
         Update: {
           amount?: number
           category?: string
           client_id?: string | null
           created_at?: string
+          custo_produto?: number | null
           date?: string
           description?: string
           id?: string
           subcategory?: string | null
           type?: string
+          valor_venda?: number | null
         }
         Relationships: [
           {
