@@ -299,6 +299,46 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
+      {/* CLIENT TYPE + CURRENCY TOGGLES */}
+      <div className="flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">Tipo:</span>
+          {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setClientTypeFilter(t)}
+              className={cn(
+                'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border',
+                clientTypeFilter === t
+                  ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_16px_hsl(var(--primary)/0.35)]'
+                  : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
+              )}
+            >
+              {t === 'geral' ? 'Geral' : t === 'aluguel' ? 'Aluguel' : 'Vendas'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Moeda:</span>
+          <div className="flex rounded-full border border-border/60 bg-card/40 backdrop-blur p-0.5">
+            {(['USD', 'BRL'] as Currency[]).map(c => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className={cn(
+                  'px-3 py-1 rounded-full text-xs font-semibold transition-all',
+                  currency === c ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          {currency === 'BRL' && (
+            <span className="text-[10px] text-muted-foreground font-mono">@ R${usdToBrl.toFixed(2)}</span>
+          )}
+        </div>
+      </div>
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(120,100%,50%)" />
