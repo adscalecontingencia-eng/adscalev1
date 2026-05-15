@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
 
-type DateFilter = 'today' | '7days' | 'custom' | 'range';
+type DateFilter = 'today' | '7days' | 'month' | 'custom' | 'range';
 type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
 type Currency = 'USD' | 'BRL';
 const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)', 'hsl(200,100%,55%)', 'hsl(280,80%,60%)'];
@@ -76,6 +76,7 @@ const Dashboard: React.FC = () => {
       const d = parseDateLocal(t.date);
       if (dateFilter === 'today') return d.toDateString() === now.toDateString();
       if (dateFilter === '7days') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      if (dateFilter === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
       if (dateFilter === 'custom' && customDate) return d.getMonth() === customDate.getMonth() && d.getFullYear() === customDate.getFullYear() && d.getDate() === customDate.getDate();
       if (dateFilter === 'range') {
         if (rangeFrom && rangeTo) { const from = new Date(rangeFrom); from.setHours(0,0,0,0); const to = new Date(rangeTo); to.setHours(23,59,59,999); return d >= from && d <= to; }
@@ -313,6 +314,7 @@ const Dashboard: React.FC = () => {
   const dateLabel =
     dateFilter === 'today' ? 'Hoje'
     : dateFilter === '7days' ? 'Últimos 7 dias'
+    : dateFilter === 'month' ? 'Esse Mês'
     : dateFilter === 'custom' ? 'Data específica'
     : 'Período personalizado';
 
@@ -362,7 +364,7 @@ const Dashboard: React.FC = () => {
 
       {/* DATE FILTER PILLS */}
       <div className="flex flex-wrap gap-2 items-center">
-        {(['today', '7days', 'custom', 'range'] as DateFilter[]).map(f => (
+        {(['today', '7days', 'month', 'custom', 'range'] as DateFilter[]).map(f => (
           <button
             key={f}
             onClick={() => setDateFilter(f)}
@@ -373,7 +375,7 @@ const Dashboard: React.FC = () => {
                 : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
             )}
           >
-            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'custom' ? 'Data específica' : 'Período'}
+            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'month' ? 'Esse Mês' : f === 'custom' ? 'Data específica' : 'Período'}
           </button>
         ))}
         {dateFilter === 'custom' && (
