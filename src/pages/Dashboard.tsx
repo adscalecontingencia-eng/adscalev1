@@ -88,19 +88,19 @@ const Dashboard: React.FC = () => {
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-  // Custo de Produtos = soma de custo_produto nas vendas (receitas) + custo de gastos da estrutura
-  // Mais útil: total de "custo de produto" lançado nas transações
-  const productCost = filteredTransactions.reduce(
-    (s: number, t: any) => s + (Number(t.custo_produto) || 0),
-    0,
-  );
+  // Custo de Produtos = custo_produto lançado nas VENDAS (receitas).
+  // Não somamos o custo dos gastos de estrutura aqui porque, nesses lançamentos,
+  // amount === custo_produto (já está contabilizado em "expenses").
+  const productCost = filteredTransactions
+    .filter((t: any) => t.type === 'receita')
+    .reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
 
   // Ticket Médio = faturamento médio por venda (transação tipo receita)
   const salesCount = filteredTransactions.filter((t: any) => t.type === 'receita').length;
   const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
   const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
-  const profit = revenue - expenses;
+  const profit = revenue - expenses - productCost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
   const structureCosts = filteredTransactions.filter((t: any) => t.type === 'gasto');
