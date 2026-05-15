@@ -170,6 +170,7 @@ const Clients: React.FC = () => {
     const paymentType: 'fixed' | 'percentage' = clientType === 'venda' ? 'fixed' : 'percentage';
     const fixedValue = clientType === 'venda' ? (form.fixedValue || 0) : 0;
     const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
+    const planCredit = clientType === 'aluguel' ? (form.planCredit || 0) : 0;
 
     if (editing) {
       const payload: any = {
