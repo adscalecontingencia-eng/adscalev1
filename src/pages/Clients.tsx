@@ -207,7 +207,7 @@ const Clients: React.FC = () => {
           action: 'create_user', email: form.email, password, name: form.name, role: 'client',
           client_data: {
             number: form.number, companyName: form.companyName, observations: form.observations,
-            clientType, paymentType, fixedValue, percentageValue,
+            clientType, paymentType, fixedValue, percentageValue, planCredit,
             adAccounts: form.adAccounts || 0,
             usedAccounts: form.usedAccounts || 0, blockedAccounts: form.blockedAccounts || 0,
             whatsappPhone: form.whatsappPhone || null, whatsappGroupLink: form.whatsappGroupLink || null,
