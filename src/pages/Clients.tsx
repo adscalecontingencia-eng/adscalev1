@@ -23,6 +23,7 @@ interface Client {
   paymentType: 'fixed' | 'percentage' | 'both';
   fixedValue?: number;
   percentageValue?: number;
+  planCredit?: number;
   adAccounts: number;
   usedAccounts: number;
   blockedAccounts: number;
