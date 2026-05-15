@@ -14,7 +14,8 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
 
 type DateFilter = 'today' | '7days' | 'custom' | 'range';
-
+type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
+type Currency = 'USD' | 'BRL';
 const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)', 'hsl(200,100%,55%)', 'hsl(280,80%,60%)'];
 
 const Dashboard: React.FC = () => {
