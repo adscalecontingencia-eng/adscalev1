@@ -322,11 +322,21 @@ const Financial: React.FC = () => {
               </div>
               <p className="text-sm mt-1">{t.description}</p>
               <p className="text-xs text-muted-foreground">{formatDateBR(t.date)}</p>
-              {(t.custoProduto > 0 || t.valorVenda > 0) && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Custo: <span className="text-foreground">{fmt(t.custoProduto)}</span> · Venda: <span className="text-foreground">{fmt(t.valorVenda)}</span> · Lucro: <span className={(t.valorVenda - t.custoProduto) >= 0 ? 'text-primary' : 'text-destructive'}>{fmt(t.valorVenda - t.custoProduto)}</span>
-                </p>
-              )}
+              {(() => {
+                const isVenda = t.type === 'receita';
+                const isOutros = t.subcategory === 'outros_gastos';
+                const isGastoEst = t.type === 'gasto' && !isOutros;
+                const considerLabel = isVenda ? 'Valor de venda' : isGastoEst ? 'Custo do produto' : 'Valor';
+                const impactLabel = isVenda ? '+ entra como receita no lucro' : '− sai como gasto do lucro';
+                const impactColor = isVenda ? 'text-primary' : 'text-destructive';
+                return (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                    <span className="text-muted-foreground">{considerLabel} considerado:</span>
+                    <span className="font-mono font-semibold text-foreground">{fmt(t.amount)}</span>
+                    <span className={`${impactColor} font-medium`}>{impactLabel}</span>
+                  </div>
+                );
+              })()}
             </div>
             <div className="flex items-center gap-3">
               <span className={`font-semibold ${t.type === 'receita' ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount)}</span>
