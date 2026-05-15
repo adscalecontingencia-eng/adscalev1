@@ -315,8 +315,8 @@ const Financial: React.FC = () => {
           <div key={t.id} className="bg-card border border-border rounded-lg px-4 py-3 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className={`text-xs px-2 py-0.5 rounded ${t.type === 'receita' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                  {t.type === 'receita' ? 'Venda' : 'Gasto Estrutura'}
+                <span className={`text-xs px-2 py-0.5 rounded ${t.type === 'receita' ? 'bg-primary/10 text-primary' : t.subcategory === 'outros_gastos' ? 'bg-amber-500/10 text-amber-400' : 'bg-destructive/10 text-destructive'}`}>
+                  {t.type === 'receita' ? 'Venda' : t.subcategory === 'outros_gastos' ? 'Outros Gastos' : 'Gasto Estrutura'}
                 </span>
                 <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category}</span>
               </div>
