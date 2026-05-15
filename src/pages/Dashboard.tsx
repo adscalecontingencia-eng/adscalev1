@@ -106,6 +106,7 @@ const Dashboard: React.FC = () => {
   const perfilCosts = structureCosts.filter((t: any) => t.category === 'Perfil').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmComumCosts = structureCosts.filter((t: any) => t.category === 'BM Comum').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmVerifCosts = structureCosts.filter((t: any) => t.category === 'BM Verificada').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const bmApiCosts = structureCosts.filter((t: any) => t.category === 'BM API').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const bmDisparoCosts = structureCosts.filter((t: any) => t.category === 'BM Disparo').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const paginaCosts = structureCosts.filter((t: any) => t.category === 'Pagina').reduce((s: number, t: any) => s + Number(t.amount), 0);
 
@@ -113,6 +114,7 @@ const Dashboard: React.FC = () => {
     { name: 'Perfil', value: perfilCosts },
     { name: 'BM Comum', value: bmComumCosts },
     { name: 'BM Verificada', value: bmVerifCosts },
+    { name: 'BM API', value: bmApiCosts },
     { name: 'BM Disparo', value: bmDisparoCosts },
     { name: 'Pagina', value: paginaCosts },
   ].filter(d => d.value > 0);
