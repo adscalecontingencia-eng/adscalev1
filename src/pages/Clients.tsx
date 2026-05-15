@@ -172,6 +172,12 @@ const Clients: React.FC = () => {
     const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
     const planCredit = clientType === 'aluguel' ? (form.planCredit || 0) : 0;
 
+    // Delta de crédito p/ lançar como receita (faturamento)
+    const previousCredit = editing ? (editing.planCredit || 0) : 0;
+    const creditDelta = clientType === 'aluguel' ? Math.max(0, planCredit - previousCredit) : 0;
+
+    let savedClientId: string | null = editing ? editing.id : null;
+
     if (editing) {
       const payload: any = {
         number: form.number || '', name: form.name || '', company_name: form.companyName || '',
@@ -219,7 +225,26 @@ const Clients: React.FC = () => {
         setSaving(false); return;
       }
       toast.success('Cliente cadastrado!');
+      savedClientId = (res.data as any)?.client_id || null;
+      // fallback: busca pelo email criado
+      if (!savedClientId) {
+        const { data: cs } = await supabase.from('clients').select('id').eq('email', effectiveEmail).limit(1);
+        savedClientId = cs?.[0]?.id || null;
+      }
     }
+
+    // Lança o crédito como receita (faturamento) — apenas o delta positivo
+    if (creditDelta > 0 && savedClientId) {
+      await supabase.from('transactions').insert({
+        date: new Date().toISOString().split('T')[0],
+        type: 'receita',
+        category: 'Crédito do Plano',
+        client_id: savedClientId,
+        amount: creditDelta,
+        description: `Crédito do plano ${editing ? 'adicionado' : 'inicial'} - ${form.name}`,
+      } as any);
+    }
+
     setSaving(false);
     resetForm();
     fetchClients();
@@ -272,18 +297,35 @@ const Clients: React.FC = () => {
     } as any);
     if (commError) { toast.error('Erro ao lançar gasto em ads'); return; }
 
-    const categoryType = client.clientType === 'venda' ? 'Comissão Fixa' : 'Comissão Semanal';
-    const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
-    await supabase.from('transactions').insert({
-      date: format(commissionDate, 'yyyy-MM-dd'),
-      type: 'receita',
-      category: categoryType,
-      client_id: clientId,
-      amount: commission,
-      description: `Comissão do cliente ${client.name} - período ${periodoStr}`,
-    });
+    // Abate o crédito do plano (se aluguel) — a parte abatida NÃO gera receita,
+    // pois o crédito já foi lançado como faturamento no cadastro do cliente.
+    const availableCredit = client.clientType === 'aluguel' ? Math.max(0, client.planCredit || 0) : 0;
+    const creditApplied = Math.min(availableCredit, commission);
+    const billableAmount = commission - creditApplied;
 
-    toast.success(`Gasto em Ads: ${fmt(adSpend)} → Comissão pendente: ${fmt(commission)}`);
+    if (creditApplied > 0) {
+      const newCredit = Math.max(0, availableCredit - creditApplied);
+      await supabase.from('clients').update({ plan_credit: newCredit } as any).eq('id', clientId);
+      await fetchClients();
+    }
+
+    if (billableAmount > 0) {
+      const categoryType = client.clientType === 'venda' ? 'Comissão Fixa' : 'Comissão Semanal';
+      const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
+      await supabase.from('transactions').insert({
+        date: format(commissionDate, 'yyyy-MM-dd'),
+        type: 'receita',
+        category: categoryType,
+        client_id: clientId,
+        amount: billableAmount,
+        description: `Comissão do cliente ${client.name} - período ${periodoStr}${creditApplied > 0 ? ` (crédito abatido: ${fmt(creditApplied)})` : ''}`,
+      });
+    }
+
+    const msg = creditApplied > 0
+      ? `Comissão ${fmt(commission)} • crédito abatido ${fmt(creditApplied)}${billableAmount > 0 ? ` • faturado ${fmt(billableAmount)}` : ' (100% pelo crédito)'}`
+      : `Gasto em Ads: ${fmt(adSpend)} → Comissão pendente: ${fmt(commission)}`;
+    toast.success(msg);
     setAdSpendAmount(''); setCommissionNote(''); setCommissionDate(new Date()); setShowCommissionForm(null);
     fetchCommissions();
   };
@@ -354,38 +396,19 @@ const Clients: React.FC = () => {
       return;
     }
 
-    // Abate o crédito do plano (se houver) — não conta como faturamento
-    const availableCredit = Math.max(0, client.planCredit || 0);
-    const creditApplied = Math.min(availableCredit, totalCommission);
-    const billedAmount = Math.max(0, totalCommission - creditApplied);
-    const noteSuffix = creditApplied > 0
-      ? ` · Crédito aplicado: ${fmt(creditApplied)} (saldo restante: ${fmt(availableCredit - creditApplied)})`
-      : '';
-
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: now.toISOString(), amount: billedAmount,
+      client_id: clientId, date: now.toISOString(), amount: totalCommission,
       ad_spend: totalAdSpend, type: 'weekly_billing',
       billing_week_start: format(weekStart, 'yyyy-MM-dd'),
       billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
       is_weekly_billing: true,
-      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}${noteSuffix}`,
+      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
       valor_pago: 0,
-      valor_pendente: billedAmount,
-      status: billedAmount <= 0 ? 'pago' : 'pendente',
+      valor_pendente: totalCommission,
+      status: 'pendente',
     } as any);
     if (error) { toast.error('Erro ao gerar cobrança'); return; }
-
-    // Atualiza o saldo de crédito do cliente
-    if (creditApplied > 0) {
-      const newCredit = Math.max(0, availableCredit - creditApplied);
-      await supabase.from('clients').update({ plan_credit: newCredit } as any).eq('id', clientId);
-      await fetchClients();
-    }
-
-    const msg = creditApplied > 0
-      ? `Cobrança gerada: ${fmt(billedAmount)} (crédito de ${fmt(creditApplied)} abatido)`
-      : `Cobrança semanal de ${fmt(billedAmount)} gerada!`;
-    toast.success(msg);
+    toast.success(`Cobrança semanal de ${fmt(totalCommission)} gerada!`);
     fetchCommissions();
   };
 
