@@ -14,17 +14,34 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
 
 type DateFilter = 'today' | '7days' | 'custom' | 'range';
-
+type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
+type Currency = 'USD' | 'BRL';
 const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)', 'hsl(200,100%,55%)', 'hsl(280,80%,60%)'];
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
+  const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('geral');
+  const [currency, setCurrency] = useState<Currency>('USD');
+  const [usdToBrl, setUsdToBrl] = useState<number>(5.0);
   const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined);
   const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+
+  // Cotação USD → BRL (atualiza ao montar e quando o usuário troca para BRL)
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+        const json = await res.json();
+        const bid = parseFloat(json?.USDBRL?.bid);
+        if (!isNaN(bid) && bid > 0) setUsdToBrl(bid);
+      } catch { /* mantém fallback */ }
+    };
+    fetchRate();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,9 +55,23 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, []);
 
+  // Mapa client_id → client_type para filtrar transações por tipo de cliente
+  const clientTypeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    clients.forEach((c: any) => m.set(c.id, (c.client_type as string) || 'aluguel'));
+    return m;
+  }, [clients]);
+
+  const matchesClientType = (t: any) => {
+    if (clientTypeFilter === 'geral') return true;
+    if (!t.client_id) return false;
+    return clientTypeMap.get(t.client_id) === clientTypeFilter;
+  };
+
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     return transactions.filter((t: any) => {
+      if (!matchesClientType(t)) return false;
       const d = parseDateLocal(t.date);
       if (dateFilter === 'today') return d.toDateString() === now.toDateString();
       if (dateFilter === '7days') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -51,10 +82,22 @@ const Dashboard: React.FC = () => {
       }
       return true;
     });
-  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo]);
+  }, [transactions, dateFilter, customDate, rangeFrom, rangeTo, clientTypeFilter, clientTypeMap]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+  // Custo de Produtos = soma de custo_produto nas vendas (receitas) + custo de gastos da estrutura
+  // Mais útil: total de "custo de produto" lançado nas transações
+  const productCost = filteredTransactions.reduce(
+    (s: number, t: any) => s + (Number(t.custo_produto) || 0),
+    0,
+  );
+
+  // Ticket Médio = faturamento médio por venda (transação tipo receita)
+  const salesCount = filteredTransactions.filter((t: any) => t.type === 'receita').length;
+  const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
+
   const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
   const profit = revenue - expenses;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
@@ -87,17 +130,23 @@ const Dashboard: React.FC = () => {
   const clientProfitsVenda = useMemo(() => buildClientProfits('venda'), [clients, filteredTransactions]);
   const clientProfits = [...clientProfitsAluguel, ...clientProfitsVenda];
 
+  // Para os gráficos temporais (diário/mensal) também respeitamos o filtro de tipo de cliente
+  const baseTimeTransactions = useMemo(
+    () => transactions.filter((t: any) => matchesClientType(t)),
+    [transactions, clientTypeFilter, clientTypeMap],
+  );
+
   const dailyData = useMemo(() => {
     const days: any[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const dayStr = d.toDateString();
-      const dayRevenue = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const dayExpenses = transactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayRevenue = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const dayExpenses = baseTimeTransactions.filter((t: any) => parseDateLocal(t.date).toDateString() === dayStr && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
     }
     return days;
-  }, [transactions]);
+  }, [baseTimeTransactions]);
 
   const monthlyData = useMemo(() => {
     const months: any[] = [];
@@ -106,15 +155,26 @@ const Dashboard: React.FC = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = d.getMonth();
       const year = d.getFullYear();
-      const monthRevenue = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const monthExpenses = transactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthRevenue = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'receita'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const monthExpenses = baseTimeTransactions.filter((t: any) => { const td = parseDateLocal(t.date); return td.getMonth() === month && td.getFullYear() === year && t.type === 'gasto'; }).reduce((s: number, t: any) => s + Number(t.amount), 0);
       months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;
-  }, [transactions]);
+  }, [baseTimeTransactions]);
 
-  const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  const fmtCompact = (v: number) => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}`;
+  // Conversão de moeda — todas as somas no banco são em USD
+  const conv = (v: number) => currency === 'BRL' ? v * usdToBrl : v;
+  const fmt = (v: number) => {
+    const n = conv(v);
+    return currency === 'BRL'
+      ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  };
+  const fmtCompact = (v: number) => {
+    const n = conv(v);
+    const symbol = currency === 'BRL' ? 'R$' : '$';
+    return `${symbol}${Math.abs(n) >= 1000 ? (n / 1000).toFixed(1) + 'k' : n.toFixed(0)}`;
+  };
 
   const tooltipStyle = {
     backgroundColor: 'hsl(0,0%,5% / 0.95)',
@@ -239,11 +299,53 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
+      {/* CLIENT TYPE + CURRENCY TOGGLES */}
+      <div className="flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">Tipo:</span>
+          {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setClientTypeFilter(t)}
+              className={cn(
+                'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border',
+                clientTypeFilter === t
+                  ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_16px_hsl(var(--primary)/0.35)]'
+                  : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
+              )}
+            >
+              {t === 'geral' ? 'Geral' : t === 'aluguel' ? 'Aluguel' : 'Vendas'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Moeda:</span>
+          <div className="flex rounded-full border border-border/60 bg-card/40 backdrop-blur p-0.5">
+            {(['USD', 'BRL'] as Currency[]).map(c => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className={cn(
+                  'px-3 py-1 rounded-full text-xs font-semibold transition-all',
+                  currency === c ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          {currency === 'BRL' && (
+            <span className="text-[10px] text-muted-foreground font-mono">@ R${usdToBrl.toFixed(2)}</span>
+          )}
+        </div>
+      </div>
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(120,100%,50%)" />
         <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(120,100%,50%)' : 'hsl(0,84%,60%)'} />
         <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta="—" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
         <KpiCard label="Clientes Ativos" value={String(activeClients)} delta={`${clients.length} total`} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
       </div>
 
