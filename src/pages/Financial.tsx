@@ -125,10 +125,11 @@ const Financial: React.FC = () => {
       amount, description: form.description,
       custo_produto: isGasto || isVenda ? custo : 0,
       valor_venda: isVenda ? venda : 0,
+      quantidade: isVenda ? (parseInt(form.quantidade) || 0) : 0,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success('Transação salva!');
-    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
+    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
     setShowForm(false);
     setErrors({});
     fetchData();
