@@ -426,11 +426,12 @@ const Dashboard: React.FC = () => {
       </PanelCard>
 
       {/* STRUCTURE BREAKDOWN MINI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         {[
           { label: 'Perfil', value: perfilCosts, color: 'hsl(160,80%,45%)' },
           { label: 'BM Comum', value: bmComumCosts, color: 'hsl(120,100%,50%)' },
           { label: 'BM Verificada', value: bmVerifCosts, color: 'hsl(180,100%,50%)' },
+          { label: 'BM API', value: bmApiCosts, color: 'hsl(280,80%,60%)' },
           { label: 'BM Disparo', value: bmDisparoCosts, color: 'hsl(45,100%,55%)' },
           { label: 'Pagina', value: paginaCosts, color: 'hsl(200,100%,55%)' },
         ].map(item => (
