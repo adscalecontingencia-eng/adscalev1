@@ -39,7 +39,7 @@ const Financial: React.FC = () => {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
+  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -97,7 +97,7 @@ const Financial: React.FC = () => {
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    const valueField = form.type === 'gasto' ? form.custoProduto : form.valorVenda;
+    const valueField = form.type === 'gasto' ? form.custoProduto : form.type === 'receita' ? form.valorVenda : form.amount;
     const amount = parseFloat(valueField);
     if (isNaN(amount) || amount <= 0) errs.amount = 'O valor deve ser um número positivo';
     if (!form.date) errs.date = 'Data é obrigatória';
@@ -109,15 +109,21 @@ const Financial: React.FC = () => {
   const handleSave = async () => {
     if (!validate()) return;
     const isGasto = form.type === 'gasto';
+    const isVenda = form.type === 'receita';
+    const isOutros = form.type === 'outros';
     const custo = parseFloat(form.custoProduto) || 0;
     const venda = parseFloat(form.valorVenda) || 0;
-    const amount = isGasto ? custo : venda;
+    const outros = parseFloat(form.amount) || 0;
+    const amount = isGasto ? custo : isVenda ? venda : outros;
+    const dbType = isVenda ? 'receita' : 'gasto';
+    const subcategory = isOutros ? 'outros_gastos' : (form.subcategory || null);
+    const dbCategory = isOutros ? 'Outros' : form.category;
     const { error } = await supabase.from('transactions').insert({
-      date: form.date, type: form.type, category: form.category,
-      subcategory: form.subcategory || null, client_id: form.clientId || null,
+      date: form.date, type: dbType, category: dbCategory,
+      subcategory, client_id: form.clientId || null,
       amount, description: form.description,
       custo_produto: isGasto ? custo : 0,
-      valor_venda: isGasto ? 0 : venda,
+      valor_venda: isVenda ? venda : 0,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success('Transação salva!');
@@ -254,14 +260,17 @@ const Financial: React.FC = () => {
                 <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as any }))} className={inputClass}>
                   <option value="gasto">Gasto da Estrutura de aluguel</option>
                   <option value="receita">Venda</option>
+                  <option value="outros">Outros gastos</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
-                <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+              {form.type !== 'outros' && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Cliente (opcional)</label>
                 <select value={form.clientId} onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))} className={inputClass}>
@@ -269,16 +278,24 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              {form.type === 'gasto' ? (
+              {form.type === 'gasto' && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
                   <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                   {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
                 </div>
-              ) : (
+              )}
+              {form.type === 'receita' && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
                   <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                </div>
+              )}
+              {form.type === 'outros' && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Valor ($)</label>
+                  <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                   {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
                 </div>
               )}
