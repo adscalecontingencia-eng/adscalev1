@@ -20,6 +20,8 @@ interface Transaction {
   clientId?: string;
   amount: number;
   description: string;
+  custoProduto: number;
+  valorVenda: number;
 }
 
 interface ClientOption {
@@ -29,14 +31,15 @@ interface ClientOption {
 
 type DateFilter = 'all' | 'today' | '7days' | 'month' | 'custom' | 'range';
 
-const CATEGORIES = ['BMs', 'Perfis', 'Proxy', 'Multilogin', 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
+const ASSET_CATEGORIES = ['Perfil', 'BM Comum', 'BM Verificada', 'BM Disparo', 'Pagina'];
+const CATEGORIES = [...ASSET_CATEGORIES, 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
 
 const Financial: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto', category: 'BMs', subcategory: '', clientId: '', amount: '', description: '' });
+  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -53,9 +56,10 @@ const Financial: React.FC = () => {
       supabase.from('clients').select('id, name'),
     ]);
     if (txRes.data) {
-      setTransactions(txRes.data.map(t => ({
+      setTransactions(txRes.data.map((t: any) => ({
         id: t.id, date: t.date, type: t.type as 'receita' | 'gasto', category: t.category,
         subcategory: t.subcategory || '', clientId: t.client_id || undefined, amount: Number(t.amount), description: t.description,
+        custoProduto: Number(t.custo_produto || 0), valorVenda: Number(t.valor_venda || 0),
       })));
     }
     if (clientRes.data) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
@@ -107,10 +111,12 @@ const Financial: React.FC = () => {
       date: form.date, type: form.type, category: form.category,
       subcategory: form.subcategory || null, client_id: form.clientId || null,
       amount: parseFloat(form.amount), description: form.description,
-    });
+      custo_produto: parseFloat(form.custoProduto) || 0,
+      valor_venda: parseFloat(form.valorVenda) || 0,
+    } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success('Transação salva!');
-    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BMs', subcategory: '', clientId: '', amount: '', description: '' });
+    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '' });
     setShowForm(false);
     setErrors({});
     fetchData();
@@ -263,6 +269,21 @@ const Financial: React.FC = () => {
                 <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                 {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
+                  <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
+                  <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={inputClass} />
+                </div>
+              </div>
+              {(parseFloat(form.valorVenda) > 0 || parseFloat(form.custoProduto) > 0) && (
+                <div className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+                  Lucro estimado: <span className={`font-semibold ${(parseFloat(form.valorVenda || '0') - parseFloat(form.custoProduto || '0')) >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt((parseFloat(form.valorVenda || '0') - parseFloat(form.custoProduto || '0')))}</span>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Descrição</label>
                 <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={errors.description ? errorInputClass : inputClass} />
@@ -286,6 +307,11 @@ const Financial: React.FC = () => {
               </div>
               <p className="text-sm mt-1">{t.description}</p>
               <p className="text-xs text-muted-foreground">{formatDateBR(t.date)}</p>
+              {(t.custoProduto > 0 || t.valorVenda > 0) && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Custo: <span className="text-foreground">{fmt(t.custoProduto)}</span> · Venda: <span className="text-foreground">{fmt(t.valorVenda)}</span> · Lucro: <span className={(t.valorVenda - t.custoProduto) >= 0 ? 'text-primary' : 'text-destructive'}>{fmt(t.valorVenda - t.custoProduto)}</span>
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <span className={`font-semibold ${t.type === 'receita' ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount)}</span>
