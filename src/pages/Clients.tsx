@@ -804,6 +804,9 @@ const Clients: React.FC = () => {
                           : `${c.percentageValue}% base • metas: 4/3/2/1% (>20k/40k/80k/200k)`}
                       </span>
                       <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
+                      {c.clientType === 'aluguel' && (c.planCredit || 0) > 0 && (
+                        <span className="text-success">Crédito do plano: {fmt(c.planCredit || 0)}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1 sm:gap-2 shrink-0 ml-2">
