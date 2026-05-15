@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS plan_credit numeric NOT NULL DEFAULT 0;
