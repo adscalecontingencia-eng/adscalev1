@@ -341,6 +341,16 @@ const Financial: React.FC = () => {
                     <span className="text-muted-foreground">{considerLabel} considerado:</span>
                     <span className="font-mono font-semibold text-foreground">{fmt(t.amount)}</span>
                     <span className={`${impactColor} font-medium`}>{impactLabel}</span>
+                    {isVenda && t.custoProduto > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Custo:</span>
+                        <span className="font-mono text-destructive">−{fmt(t.custoProduto)}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Lucro:</span>
+                        <span className={`font-mono font-semibold ${(t.amount - t.custoProduto) >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount - t.custoProduto)}</span>
+                      </>
+                    )}
                   </div>
                 );
               })()}
