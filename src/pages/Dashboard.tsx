@@ -21,11 +21,27 @@ const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
+  const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('geral');
+  const [currency, setCurrency] = useState<Currency>('USD');
+  const [usdToBrl, setUsdToBrl] = useState<number>(5.0);
   const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined);
   const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+
+  // Cotação USD → BRL (atualiza ao montar e quando o usuário troca para BRL)
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+        const json = await res.json();
+        const bid = parseFloat(json?.USDBRL?.bid);
+        if (!isNaN(bid) && bid > 0) setUsdToBrl(bid);
+      } catch { /* mantém fallback */ }
+    };
+    fetchRate();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
