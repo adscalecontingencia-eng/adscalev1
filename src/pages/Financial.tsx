@@ -122,7 +122,7 @@ const Financial: React.FC = () => {
       date: form.date, type: dbType, category: dbCategory,
       subcategory, client_id: form.clientId || null,
       amount, description: form.description,
-      custo_produto: isGasto ? custo : 0,
+      custo_produto: isGasto || isVenda ? custo : 0,
       valor_venda: isVenda ? venda : 0,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
