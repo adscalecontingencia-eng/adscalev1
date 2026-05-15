@@ -272,18 +272,35 @@ const Clients: React.FC = () => {
     } as any);
     if (commError) { toast.error('Erro ao lançar gasto em ads'); return; }
 
-    const categoryType = client.clientType === 'venda' ? 'Comissão Fixa' : 'Comissão Semanal';
-    const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
-    await supabase.from('transactions').insert({
-      date: format(commissionDate, 'yyyy-MM-dd'),
-      type: 'receita',
-      category: categoryType,
-      client_id: clientId,
-      amount: commission,
-      description: `Comissão do cliente ${client.name} - período ${periodoStr}`,
-    });
+    // Abate o crédito do plano (se aluguel) — a parte abatida NÃO gera receita,
+    // pois o crédito já foi lançado como faturamento no cadastro do cliente.
+    const availableCredit = client.clientType === 'aluguel' ? Math.max(0, client.planCredit || 0) : 0;
+    const creditApplied = Math.min(availableCredit, commission);
+    const billableAmount = commission - creditApplied;
 
-    toast.success(`Gasto em Ads: ${fmt(adSpend)} → Comissão pendente: ${fmt(commission)}`);
+    if (creditApplied > 0) {
+      const newCredit = Math.max(0, availableCredit - creditApplied);
+      await supabase.from('clients').update({ plan_credit: newCredit } as any).eq('id', clientId);
+      await fetchClients();
+    }
+
+    if (billableAmount > 0) {
+      const categoryType = client.clientType === 'venda' ? 'Comissão Fixa' : 'Comissão Semanal';
+      const periodoStr = `${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM')}`;
+      await supabase.from('transactions').insert({
+        date: format(commissionDate, 'yyyy-MM-dd'),
+        type: 'receita',
+        category: categoryType,
+        client_id: clientId,
+        amount: billableAmount,
+        description: `Comissão do cliente ${client.name} - período ${periodoStr}${creditApplied > 0 ? ` (crédito abatido: ${fmt(creditApplied)})` : ''}`,
+      });
+    }
+
+    const msg = creditApplied > 0
+      ? `Comissão ${fmt(commission)} • crédito abatido ${fmt(creditApplied)}${billableAmount > 0 ? ` • faturado ${fmt(billableAmount)}` : ' (100% pelo crédito)'}`
+      : `Gasto em Ads: ${fmt(adSpend)} → Comissão pendente: ${fmt(commission)}`;
+    toast.success(msg);
     setAdSpendAmount(''); setCommissionNote(''); setCommissionDate(new Date()); setShowCommissionForm(null);
     fetchCommissions();
   };
