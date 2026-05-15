@@ -31,7 +31,7 @@ interface ClientOption {
 
 type DateFilter = 'all' | 'today' | '7days' | 'month' | 'custom' | 'range';
 
-const ASSET_CATEGORIES = ['Perfil', 'BM Comum', 'BM Verificada', 'BM Disparo', 'Pagina'];
+const ASSET_CATEGORIES = ['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina'];
 const CATEGORIES = [...ASSET_CATEGORIES, 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
 
 const Financial: React.FC = () => {
