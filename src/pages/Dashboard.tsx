@@ -123,8 +123,11 @@ const Dashboard: React.FC = () => {
   const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
     .filter((c: any) => ((c.client_type as string) || 'aluguel') === typeFilter)
     .map((c: any) => {
-      const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cTx = filteredTransactions.filter((t: any) => t.client_id === c.id);
+      const cRevenue = cTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cStructure = cTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cProductCost = cTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+      const cExpenses = cStructure + cProductCost;
       return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
     })
     .filter((c: any) => c.revenue > 0 || c.expenses > 0);
