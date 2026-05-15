@@ -122,7 +122,7 @@ const Financial: React.FC = () => {
       date: form.date, type: dbType, category: dbCategory,
       subcategory, client_id: form.clientId || null,
       amount, description: form.description,
-      custo_produto: isGasto ? custo : 0,
+      custo_produto: isGasto || isVenda ? custo : 0,
       valor_venda: isVenda ? venda : 0,
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
@@ -286,10 +286,17 @@ const Financial: React.FC = () => {
                 </div>
               )}
               {form.type === 'receita' && (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
-                  <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
-                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
+                    <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                    {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
+                    <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro desta venda.</p>
+                  </div>
                 </div>
               )}
               {form.type === 'outros' && (
@@ -334,6 +341,16 @@ const Financial: React.FC = () => {
                     <span className="text-muted-foreground">{considerLabel} considerado:</span>
                     <span className="font-mono font-semibold text-foreground">{fmt(t.amount)}</span>
                     <span className={`${impactColor} font-medium`}>{impactLabel}</span>
+                    {isVenda && t.custoProduto > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Custo:</span>
+                        <span className="font-mono text-destructive">−{fmt(t.custoProduto)}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Lucro:</span>
+                        <span className={`font-mono font-semibold ${(t.amount - t.custoProduto) >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount - t.custoProduto)}</span>
+                      </>
+                    )}
                   </div>
                 );
               })()}
