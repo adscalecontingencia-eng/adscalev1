@@ -371,38 +371,19 @@ const Clients: React.FC = () => {
       return;
     }
 
-    // Abate o crédito do plano (se houver) — não conta como faturamento
-    const availableCredit = Math.max(0, client.planCredit || 0);
-    const creditApplied = Math.min(availableCredit, totalCommission);
-    const billedAmount = Math.max(0, totalCommission - creditApplied);
-    const noteSuffix = creditApplied > 0
-      ? ` · Crédito aplicado: ${fmt(creditApplied)} (saldo restante: ${fmt(availableCredit - creditApplied)})`
-      : '';
-
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: now.toISOString(), amount: billedAmount,
+      client_id: clientId, date: now.toISOString(), amount: totalCommission,
       ad_spend: totalAdSpend, type: 'weekly_billing',
       billing_week_start: format(weekStart, 'yyyy-MM-dd'),
       billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
       is_weekly_billing: true,
-      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}${noteSuffix}`,
+      note: `Cobrança semanal ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
       valor_pago: 0,
-      valor_pendente: billedAmount,
-      status: billedAmount <= 0 ? 'pago' : 'pendente',
+      valor_pendente: totalCommission,
+      status: 'pendente',
     } as any);
     if (error) { toast.error('Erro ao gerar cobrança'); return; }
-
-    // Atualiza o saldo de crédito do cliente
-    if (creditApplied > 0) {
-      const newCredit = Math.max(0, availableCredit - creditApplied);
-      await supabase.from('clients').update({ plan_credit: newCredit } as any).eq('id', clientId);
-      await fetchClients();
-    }
-
-    const msg = creditApplied > 0
-      ? `Cobrança gerada: ${fmt(billedAmount)} (crédito de ${fmt(creditApplied)} abatido)`
-      : `Cobrança semanal de ${fmt(billedAmount)} gerada!`;
-    toast.success(msg);
+    toast.success(`Cobrança semanal de ${fmt(totalCommission)} gerada!`);
     fetchCommissions();
   };
 
