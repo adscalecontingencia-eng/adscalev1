@@ -426,6 +426,15 @@ const Dashboard: React.FC = () => {
           {currency === 'BRL' && (
             <span className="text-[10px] text-muted-foreground font-mono">@ R${usdToBrl.toFixed(2)}</span>
           )}
+          <button
+            onClick={handleExportExcel}
+            translate="no"
+            className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-[0_0_16px_hsl(var(--primary)/0.25)]"
+            title="Exportar gráficos para Excel"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Exportar Excel
+          </button>
         </div>
       </div>
       {/* KPI CARDS */}
