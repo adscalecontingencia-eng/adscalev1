@@ -172,7 +172,7 @@ const Clients: React.FC = () => {
     if (editing) {
       const payload: any = {
         number: form.number || '', name: form.name || '', company_name: form.companyName || '',
-        email: form.email || '', observations: form.observations || '',
+        email: effectiveEmail, observations: form.observations || '',
         client_type: clientType,
         payment_type: paymentType, fixed_value: fixedValue, percentage_value: percentageValue,
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
@@ -181,6 +181,21 @@ const Clients: React.FC = () => {
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
       toast.success('Cliente atualizado!');
+    } else if (clientType === 'venda') {
+      // Cliente de venda: cadastro simples, sem usuário de auth/login
+      const { error } = await supabase.from('clients').insert({
+        number: form.number || '', name: form.name || '',
+        company_name: form.companyName || '',
+        email: effectiveEmail, password: '',
+        observations: form.observations || '',
+        client_type: 'venda',
+        payment_type: 'fixed', fixed_value: fixedValue, percentage_value: 0,
+        ad_accounts: 0, used_accounts: 0, blocked_accounts: 0,
+        whatsapp_phone: form.whatsappPhone || null,
+        whatsapp_group_link: form.whatsappGroupLink || null,
+      } as any);
+      if (error) { toast.error('Erro ao cadastrar cliente: ' + error.message); setSaving(false); return; }
+      toast.success('Cliente de venda cadastrado!');
     } else {
       const password = form.password || '123456';
       const res = await supabase.functions.invoke('manage-users', {
