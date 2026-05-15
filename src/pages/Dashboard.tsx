@@ -7,6 +7,7 @@ import { parseDateLocal } from '@/lib/date-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import AdScaleLogo from '@/components/AdScaleLogo';
@@ -73,11 +74,18 @@ const Dashboard: React.FC = () => {
     { name: 'Pagina', value: paginaCosts },
   ].filter(d => d.value > 0);
 
-  const clientProfits = clients.map((c: any) => {
-    const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
-  }).filter((c: any) => c.revenue > 0 || c.profit !== 0);
+  const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
+    .filter((c: any) => ((c.client_type as string) || 'aluguel') === typeFilter)
+    .map((c: any) => {
+      const cRevenue = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const cExpenses = filteredTransactions.filter((t: any) => t.client_id === c.id && t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      return { name: c.company_name || c.name, profit: cRevenue - cExpenses, revenue: cRevenue, expenses: cExpenses };
+    })
+    .filter((c: any) => c.revenue > 0 || c.expenses > 0);
+
+  const clientProfitsAluguel = useMemo(() => buildClientProfits('aluguel'), [clients, filteredTransactions]);
+  const clientProfitsVenda = useMemo(() => buildClientProfits('venda'), [clients, filteredTransactions]);
+  const clientProfits = [...clientProfitsAluguel, ...clientProfitsVenda];
 
   const dailyData = useMemo(() => {
     const days: any[] = [];
@@ -334,42 +342,80 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* CLIENT PROFITS */}
-      <PanelCard title="Lucro por Cliente" subtitle={`${clientProfits.length} clientes ativos no período`} icon={Users}>
-        {clientProfits.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma transação encontrada para o período.</p>
-        ) : (
-          <>
-            <div className="h-56 mb-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={clientProfits} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="hsl(0,0%,15%)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-                  <Bar dataKey="revenue" name="Receita" fill="hsl(120,100%,50%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                  <Bar dataKey="expenses" name="Gastos" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-1.5">
-              {clientProfits.map((c: any, i: number) => (
-                <div key={i} className="flex items-center justify-between bg-secondary/40 hover:bg-secondary/70 transition-colors rounded-lg px-4 py-2.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold">
-                      {c.name?.[0]?.toUpperCase() || '·'}
+      {/* CLIENT PROFITS — split by client_type */}
+      <PanelCard title="Lucro por Cliente" subtitle={`${clientProfitsAluguel.length} aluguel · ${clientProfitsVenda.length} vendas`} icon={Users}>
+        <Tabs defaultValue="aluguel" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="aluguel">Clientes Aluguel ({clientProfitsAluguel.length})</TabsTrigger>
+            <TabsTrigger value="venda">Clientes Vendas ({clientProfitsVenda.length})</TabsTrigger>
+          </TabsList>
+
+          {(['aluguel', 'venda'] as const).map(tab => {
+            const data = tab === 'aluguel' ? clientProfitsAluguel : clientProfitsVenda;
+            const totalRevenue = data.reduce((s, c) => s + c.revenue, 0);
+            const totalExpenses = data.reduce((s, c) => s + c.expenses, 0);
+            const totalProfit = totalRevenue - totalExpenses;
+            return (
+              <TabsContent key={tab} value={tab} className="mt-0">
+                {data.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">
+                    Nenhuma transação encontrada para clientes de {tab === 'aluguel' ? 'aluguel' : 'venda'} no período.
+                  </p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="bg-secondary/40 rounded-lg px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Faturamento</p>
+                        <p className="text-sm font-mono font-bold text-primary">{fmt(totalRevenue)}</p>
+                      </div>
+                      <div className="bg-secondary/40 rounded-lg px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo</p>
+                        <p className="text-sm font-mono font-bold text-destructive">{fmt(totalExpenses)}</p>
+                      </div>
+                      <div className="bg-secondary/40 rounded-lg px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Lucro</p>
+                        <p className={`text-sm font-mono font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(totalProfit)}</p>
+                      </div>
                     </div>
-                    <span className="text-sm">{c.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {c.profit >= 0 ? <ArrowUpRight size={14} className="text-primary" /> : <ArrowDownRight size={14} className="text-destructive" />}
-                    <span className={`text-sm font-mono font-semibold ${c.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(c.profit)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+                    <div className="h-56 mb-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="2 4" stroke="hsl(0,0%,15%)" vertical={false} />
+                          <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
+                          <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
+                          <Bar dataKey="revenue" name="Faturamento" fill="hsl(120,100%,50%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          <Bar dataKey="expenses" name="Custo" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-1.5">
+                      {data.map((c: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between bg-secondary/40 hover:bg-secondary/70 transition-colors rounded-lg px-4 py-2.5">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
+                              {c.name?.[0]?.toUpperCase() || '·'}
+                            </div>
+                            <span className="text-sm truncate">{c.name}</span>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs font-mono">
+                            <span className="text-primary">{fmt(c.revenue)}</span>
+                            <span className="text-destructive">−{fmt(c.expenses)}</span>
+                            <span className="text-muted-foreground">=</span>
+                            <span className={`font-semibold ${c.profit >= 0 ? 'text-primary' : 'text-destructive'} flex items-center gap-1`}>
+                              {c.profit >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                              {fmt(c.profit)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       </PanelCard>
     </div>
   );
