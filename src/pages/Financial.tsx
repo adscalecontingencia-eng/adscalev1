@@ -271,6 +271,30 @@ const Financial: React.FC = () => {
               <button onClick={() => { setShowForm(false); setErrors({}); }} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
+              {/* Seletor de moeda do lançamento */}
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Moeda do lançamento</label>
+                <div className="flex rounded-lg border border-border bg-secondary p-0.5 w-fit">
+                  {(['USD', 'BRL'] as const).map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setInputCurrency(c)}
+                      className={cn(
+                        'px-4 py-1.5 rounded-md text-xs font-semibold transition-all',
+                        inputCurrency === c ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {c === 'USD' ? 'USD ($)' : 'BRL (R$)'}
+                    </button>
+                  ))}
+                </div>
+                {inputCurrency === 'BRL' && (
+                  <p className="text-[10px] text-muted-foreground mt-1 font-mono">
+                    Convertido para USD @ R$ {usdToBrl.toFixed(4)} no momento do salvamento.
+                  </p>
+                )}
+              </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Data</label>
                 <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className={errors.date ? errorInputClass : inputClass} />
@@ -299,39 +323,56 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              {form.type === 'gasto' && (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
-                  <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
-                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
-                </div>
-              )}
-              {form.type === 'receita' && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Valor de venda ($)</label>
-                    <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
-                    {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Custo do produto ($)</label>
-                    <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
-                    <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro.</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Quantidade</label>
-                    <input type="number" min="0" step="1" value={form.quantidade} onChange={e => setForm(p => ({ ...p, quantidade: e.target.value }))} placeholder="0" className={inputClass} />
-                    <p className="text-[10px] text-muted-foreground mt-1">Produtos vendidos.</p>
-                  </div>
-                </div>
-              )}
-              {form.type === 'outros' && (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Valor ($)</label>
-                  <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
-                  {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
-                </div>
-              )}
+              {(() => {
+                const symbol = inputCurrency === 'BRL' ? 'R$' : '$';
+                const previewUsd = (raw: string) => {
+                  const n = parseFloat(raw);
+                  if (!n || inputCurrency !== 'BRL' || usdToBrl <= 0) return null;
+                  return `≈ $${(n / usdToBrl).toFixed(2)} USD`;
+                };
+                return (
+                  <>
+                    {form.type === 'gasto' && (
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Custo do produto ({symbol})</label>
+                        <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                        {previewUsd(form.custoProduto) && <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.custoProduto)}</p>}
+                        {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                      </div>
+                    )}
+                    {form.type === 'receita' && (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1">Valor de venda ({symbol})</label>
+                          <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                          {previewUsd(form.valorVenda) && <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.valorVenda)}</p>}
+                          {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1">Custo do produto ({symbol})</label>
+                          <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
+                          {previewUsd(form.custoProduto)
+                            ? <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.custoProduto)}</p>
+                            : <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro.</p>}
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1">Quantidade</label>
+                          <input type="number" min="0" step="1" value={form.quantidade} onChange={e => setForm(p => ({ ...p, quantidade: e.target.value }))} placeholder="0" className={inputClass} />
+                          <p className="text-[10px] text-muted-foreground mt-1">Produtos vendidos.</p>
+                        </div>
+                      </div>
+                    )}
+                    {form.type === 'outros' && (
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Valor ({symbol})</label>
+                        <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
+                        {previewUsd(form.amount) && <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.amount)}</p>}
+                        {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Descrição</label>
                 <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={errors.description ? errorInputClass : inputClass} />
