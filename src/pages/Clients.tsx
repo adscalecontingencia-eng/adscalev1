@@ -172,6 +172,12 @@ const Clients: React.FC = () => {
     const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
     const planCredit = clientType === 'aluguel' ? (form.planCredit || 0) : 0;
 
+    // Delta de crédito p/ lançar como receita (faturamento)
+    const previousCredit = editing ? (editing.planCredit || 0) : 0;
+    const creditDelta = clientType === 'aluguel' ? Math.max(0, planCredit - previousCredit) : 0;
+
+    let savedClientId: string | null = editing ? editing.id : null;
+
     if (editing) {
       const payload: any = {
         number: form.number || '', name: form.name || '', company_name: form.companyName || '',
@@ -219,7 +225,26 @@ const Clients: React.FC = () => {
         setSaving(false); return;
       }
       toast.success('Cliente cadastrado!');
+      savedClientId = (res.data as any)?.client_id || null;
+      // fallback: busca pelo email criado
+      if (!savedClientId) {
+        const { data: cs } = await supabase.from('clients').select('id').eq('email', effectiveEmail).limit(1);
+        savedClientId = cs?.[0]?.id || null;
+      }
     }
+
+    // Lança o crédito como receita (faturamento) — apenas o delta positivo
+    if (creditDelta > 0 && savedClientId) {
+      await supabase.from('transactions').insert({
+        date: new Date().toISOString().split('T')[0],
+        type: 'receita',
+        category: 'Crédito do Plano',
+        client_id: savedClientId,
+        amount: creditDelta,
+        description: `Crédito do plano ${editing ? 'adicionado' : 'inicial'} - ${form.name}`,
+      } as any);
+    }
+
     setSaving(false);
     resetForm();
     fetchClients();
