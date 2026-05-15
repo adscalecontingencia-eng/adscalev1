@@ -651,6 +651,11 @@ const Clients: React.FC = () => {
                     <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
                     <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
                   </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Crédito do Plano (USD)</label>
+                    <input type="number" step="0.01" value={form.planCredit ?? ''} onChange={e => setForm(p => ({ ...p, planCredit: parseFloat(e.target.value) || 0 }))} placeholder="0.00" className={inputClass} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
+                  </div>
                   <div className="bg-secondary/60 border border-border rounded-lg p-3">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Metas semanais de desconto (USD)</p>
                     <ul className="text-xs space-y-1 text-foreground">
