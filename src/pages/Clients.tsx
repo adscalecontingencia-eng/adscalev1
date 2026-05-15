@@ -144,13 +144,27 @@ const Clients: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.email || !form.number) {
-      toast.error('Preencha os campos obrigatórios: Número, Nome e E-mail');
-      return;
+    const clientType: 'aluguel' | 'venda' = form.clientType === 'venda' ? 'venda' : 'aluguel';
+
+    if (clientType === 'venda') {
+      if (!form.name || !form.number) {
+        toast.error('Preencha os campos obrigatórios: Nome e Número');
+        return;
+      }
+    } else {
+      if (!form.name || !form.email || !form.number) {
+        toast.error('Preencha os campos obrigatórios: Número, Nome e E-mail');
+        return;
+      }
     }
     setSaving(true);
 
-    const clientType: 'aluguel' | 'venda' = form.clientType === 'venda' ? 'venda' : 'aluguel';
+    // Para clientes de venda geramos um e-mail sintético (não usado para login)
+    const sanitizedNumber = (form.number || '').replace(/\D/g, '') || Date.now().toString();
+    const effectiveEmail = clientType === 'venda'
+      ? (form.email || `venda-${sanitizedNumber}-${Date.now()}@adscale.local`)
+      : form.email!;
+
     const paymentType: 'fixed' | 'percentage' = clientType === 'venda' ? 'fixed' : 'percentage';
     const fixedValue = clientType === 'venda' ? (form.fixedValue || 0) : 0;
     const percentageValue = clientType === 'aluguel' ? (form.percentageValue || 0) : 0;
