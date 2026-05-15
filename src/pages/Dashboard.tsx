@@ -194,6 +194,92 @@ const Dashboard: React.FC = () => {
   const sparkProfit = dailyData.map(d => ({ v: d.lucro }));
   const sparkExpenses = dailyData.map(d => ({ v: d.gastos }));
 
+  // ============ EXPORTAR DASHBOARD PARA EXCEL ============
+  const handleExportExcel = () => {
+    const sym = currency;
+    const v = (n: number) => Number(conv(n).toFixed(2));
+    const tipoLabel = clientTypeFilter === 'geral' ? 'Geral' : clientTypeFilter === 'aluguel' ? 'Aluguel' : 'Vendas';
+
+    const wb = XLSX.utils.book_new();
+
+    // 1) Resumo / KPIs
+    const resumo = [
+      ['AD SCALE — Dashboard'],
+      ['Gerado em', format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })],
+      ['Período', dateLabel],
+      ['Tipo de cliente', tipoLabel],
+      ['Moeda', sym + (sym === 'BRL' ? ` (cotação R$ ${usdToBrl.toFixed(4)})` : '')],
+      [],
+      ['Indicador', `Valor (${sym})`],
+      ['Faturamento', v(revenue)],
+      ['Gastos Estrutura', v(expenses)],
+      ['Custo de Produtos', v(productCost)],
+      ['Lucro', v(profit)],
+      ['Margem (%)', Number(margin.toFixed(2))],
+      ['Ticket Médio', v(avgTicket)],
+      ['Vendas (qtd)', salesCount],
+      ['Clientes Ativos', activeClients],
+      ['Clientes Totais', clients.length],
+    ];
+    const wsResumo = XLSX.utils.aoa_to_sheet(resumo);
+    wsResumo['!cols'] = [{ wch: 28 }, { wch: 22 }];
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+    // 2) Diário (últimos 7 dias)
+    const diario = [
+      ['Data', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+      ...dailyData.map(d => [d.date, v(d.faturamento), v(d.gastos), v(d.lucro)]),
+    ];
+    const wsDiario = XLSX.utils.aoa_to_sheet(diario);
+    wsDiario['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, wsDiario, 'Diario');
+
+    // 3) Mensal (últimos 6 meses)
+    const mensal = [
+      ['Mês', `Receitas (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+      ...monthlyData.map(m => [m.date, v(m.receitas), v(m.gastos), v(m.lucro)]),
+    ];
+    const wsMensal = XLSX.utils.aoa_to_sheet(mensal);
+    wsMensal['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, wsMensal, 'Mensal');
+
+    // 4) Custos por Estrutura
+    const totalEstrutura = pieData.reduce((s, p) => s + p.value, 0);
+    const estrutura = [
+      ['Estrutura', `Custo (${sym})`, '% do total'],
+      ...pieData.map(p => [
+        p.name,
+        v(p.value),
+        totalEstrutura > 0 ? Number(((p.value / totalEstrutura) * 100).toFixed(2)) : 0,
+      ]),
+      ['Total', v(totalEstrutura), 100],
+    ];
+    const wsEstrutura = XLSX.utils.aoa_to_sheet(estrutura);
+    wsEstrutura['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, wsEstrutura, 'Custos Estrutura');
+
+    // 5) Clientes Aluguel
+    const aluguel = [
+      ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+      ...clientProfitsAluguel.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
+    ];
+    const wsAluguel = XLSX.utils.aoa_to_sheet(aluguel);
+    wsAluguel['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, wsAluguel, 'Clientes Aluguel');
+
+    // 6) Clientes Vendas
+    const vendas = [
+      ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+      ...clientProfitsVenda.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
+    ];
+    const wsVendas = XLSX.utils.aoa_to_sheet(vendas);
+    wsVendas['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, wsVendas, 'Clientes Vendas');
+
+    const filename = `adscale-dashboard-${tipoLabel.toLowerCase()}-${sym}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
   const dateLabel =
     dateFilter === 'today' ? 'Hoje'
     : dateFilter === '7days' ? 'Últimos 7 dias'
