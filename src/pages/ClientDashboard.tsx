@@ -24,8 +24,13 @@ const ClientDashboard: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
-  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'paginas'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte'>('resumo');
   const [pages, setPages] = useState<any[]>([]);
+  const [supportRequests, setSupportRequests] = useState<any[]>([]);
+  const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
+  const [reqQty, setReqQty] = useState<number>(1);
+  const [reqDesc, setReqDesc] = useState<string>('');
+  const [submittingReq, setSubmittingReq] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
