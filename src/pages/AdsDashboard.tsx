@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { RefreshCw, BarChart3, DollarSign, Target, MousePointerClick, TrendingUp, ShoppingCart, Activity } from "lucide-react";
+import { RefreshCw, BarChart3, DollarSign, Target, MousePointerClick, TrendingUp, ShoppingCart, Activity, Users, X, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageHero } from "@/components/ui-kit";
 
