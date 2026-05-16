@@ -185,6 +185,18 @@ export default function MetaConnections() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-foreground/90 flex gap-3">
+        <Shield className="h-[18px] w-[18px] text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <div className="font-semibold text-primary">Conta de outra BM não aparece na sync?</div>
+          <p className="text-muted-foreground leading-relaxed">
+            Para uma conta de anúncio aparecer aqui, o <span className="text-foreground font-medium">System User</span> da BM dona do app precisa estar atribuído a ela.
+            Na BM externa: <span className="text-foreground">Business Settings → Ad Accounts → Add → Request Access</span> (ou a BM dona compartilha via <span className="text-foreground">Assign Partner</span> com o ID da sua BM).
+            Depois, na sua BM: <span className="text-foreground">Users → System Users → [seu user] → Add Assets → Ad Accounts</span>, selecione as contas e marque a permissão (mínimo <span className="text-foreground">View Performance</span>, ideal <span className="text-foreground">Manage Campaigns</span>). Sem isso o token ignora a conta.
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatCard label="BMs" value={stats.bms} />
         <StatCard label="Contas" value={stats.accounts} />

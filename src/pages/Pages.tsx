@@ -163,6 +163,18 @@ const PagesAdmin: React.FC = () => {
         }
       />
 
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-foreground/90 flex gap-3">
+        <Building2 size={18} className="text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <div className="font-semibold text-primary">Páginas de outras BMs não aparecem?</div>
+          <p className="text-muted-foreground leading-relaxed">
+            Para uma página aparecer aqui, o <span className="text-foreground font-medium">System User</span> da BM dona do app precisa estar atribuído a ela.
+            Na BM externa: <span className="text-foreground">Business Settings → Pages → Add → Request Access</span> (ou a BM dona compartilha via <span className="text-foreground">Assign Partner</span>).
+            Depois, na sua BM: <span className="text-foreground">Users → System Users → [seu user] → Add Assets → Pages</span>, selecione as páginas e marque a permissão. Sem essa atribuição o token não enxerga a página.
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Páginas totais" value={totals.total.toString()} />
         <StatCard label="Atribuídas" value={totals.assigned.toString()} accent="primary" />
