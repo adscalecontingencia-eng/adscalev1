@@ -759,6 +759,45 @@ export type Database = {
         }
         Relationships: []
       }
+      support_requests: {
+        Row: {
+          assigned_to: string | null
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          quantity: number
+          request_type: string
+          resolved_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          quantity?: number
+          request_type: string
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          quantity?: number
+          request_type?: string
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_users: {
         Row: {
           auth_user_id: string | null
