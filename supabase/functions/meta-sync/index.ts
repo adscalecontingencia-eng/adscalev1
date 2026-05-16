@@ -417,7 +417,8 @@ Deno.serve(async (req) => {
 
       const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name");
 
-      const PAGE_FIELDS = "id,name,category,fan_count,followers_count,created_time,picture.type(large),is_published,verification_status";
+      // created_time é restrito quando usado via System User token — removido pra evitar (#100)
+      const PAGE_FIELDS = "id,name,category,fan_count,followers_count,picture.type(large),is_published,verification_status";
       const PAGE_FALLBACK_FIELDS = ["id,name,category,picture.type(large)", "id,name", "id"];
       const errors: any[] = [];
       const warnings: any[] = [];
@@ -502,7 +503,7 @@ Deno.serve(async (req) => {
         return true;
       });
 
-      const needsDetails = unique.filter((p: any) => p._partial || !p.created_time || p.followers_count == null || p.fan_count == null);
+      const needsDetails = unique.filter((p: any) => p._partial || p.followers_count == null || p.fan_count == null);
       let detailCursor = 0;
       const detailWorker = async () => {
         while (true) {
