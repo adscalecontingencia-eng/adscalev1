@@ -169,17 +169,25 @@ const ClientDashboard: React.FC = () => {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList className="w-full grid grid-cols-4 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> Resumo
             </TabsTrigger>
             <TabsTrigger value="contrato" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <FileText size={14} /> Contrato
             </TabsTrigger>
-            <TabsTrigger value="paginas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
-              <ImageIcon size={14} /> Páginas
-              {pages.length > 0 && (
-                <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{pages.length}</span>
+            <TabsTrigger value="estrutura" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
+              <Layers size={14} /> Estrutura
+              {(activeAccounts.length + pages.length) > 0 && (
+                <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{activeAccounts.length + pages.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="suporte" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
+              <LifeBuoy size={14} /> Suporte
+              {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length > 0 && (
+                <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                  {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length}
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
