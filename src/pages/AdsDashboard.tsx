@@ -105,21 +105,31 @@ export default function AdsDashboard() {
   }, [assignments]);
 
   const filteredAccountIds = useMemo(() => {
+    const includeAll = filterClients.length === 0;
+    const onlyUnassigned = filterClients.length === 1 && filterClients[0] === "__unassigned__";
+    const clientSet = new Set(filterClients.filter((c) => c !== "__unassigned__"));
+    const includeUnassigned = filterClients.includes("__unassigned__");
+
     return new Set(
       accounts
         .filter((a) => {
           if (filterBm !== "all" && a.bm_id !== filterBm) return false;
           if (filterAccount !== "all" && a.id !== filterAccount) return false;
-          if (filterClient !== "all") {
+          if (!includeAll) {
             const cid = clientByAccount.get(a.id);
-            if (filterClient === "unassigned" && cid) return false;
-            if (filterClient !== "unassigned" && cid !== filterClient) return false;
+            if (onlyUnassigned) {
+              if (cid) return false;
+            } else {
+              const matchesClient = cid && clientSet.has(cid);
+              const matchesUnassigned = includeUnassigned && !cid;
+              if (!matchesClient && !matchesUnassigned) return false;
+            }
           }
           return true;
         })
         .map((a) => a.id)
     );
-  }, [accounts, filterBm, filterAccount, filterClient, clientByAccount]);
+  }, [accounts, filterBm, filterAccount, filterClients, clientByAccount]);
 
   const filteredInsights = useMemo(
     () => insights.filter((i) => filteredAccountIds.has(i.ad_account_id)),
