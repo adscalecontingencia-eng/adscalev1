@@ -37,9 +37,10 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "Use POST" }, 405);
 
   try {
-    const rawToken = Deno.env.get("META_SYSTEM_USER_TOKEN");
+    // Prefer User Access Token (lists ALL BMs the user admins). Fallback to System User Token.
+    const rawToken = Deno.env.get("META_USER_ACCESS_TOKEN") || Deno.env.get("META_SYSTEM_USER_TOKEN");
     const token = rawToken?.replace(/\s+/g, "").trim();
-    if (!token) return json({ erro: "META_SYSTEM_USER_TOKEN não configurado" }, 500);
+    if (!token) return json({ erro: "META_USER_ACCESS_TOKEN não configurado" }, 500);
 
     // Diagnostic: returns first/last chars + length without leaking the token
     if (req.url.includes("debug=1")) {
