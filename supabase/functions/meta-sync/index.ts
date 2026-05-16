@@ -522,6 +522,10 @@ Deno.serve(async (req) => {
         await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
       }
 
+      // NOTA: o campo `created_time` foi descontinuado pela Meta na Graph API para Pages.
+      // Mesmo com Page Access Token retorna (#100) nonexisting field. Não há workaround via API.
+      // Solução: campo pode ser preenchido manualmente no painel se necessário.
+
       const rows = unique.map((p: any) => ({
         meta_page_id: p.id,
         bm_id: p._bm_db_id,
