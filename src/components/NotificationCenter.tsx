@@ -116,7 +116,7 @@ export const NotificationCenter: React.FC = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const [accRes, bmRes, logRes] = await Promise.all([
+      const [accRes, bmRes, logRes, reqRes] = await Promise.all([
         supabase
           .from("meta_ad_accounts")
           .select("id, name, meta_account_id, status, disable_reason, disable_reason_label, owner_business_name, updated_at, bm:meta_business_managers(name, primary_page)")
@@ -133,6 +133,12 @@ export const NotificationCenter: React.FC = () => {
           .from("meta_blocked_accounts_log")
           .select("id, event_type, reason, detected_at, resolved_at, ad_account:meta_ad_accounts(name, meta_account_id, owner_business_name, bm:meta_business_managers(name, primary_page))")
           .order("detected_at", { ascending: false })
+          .limit(30),
+        supabase
+          .from("support_requests")
+          .select("id, request_type, description, quantity, status, created_at, client:clients(name)")
+          .in("status", ["pendente", "em_andamento"])
+          .order("created_at", { ascending: false })
           .limit(30),
       ]);
 
