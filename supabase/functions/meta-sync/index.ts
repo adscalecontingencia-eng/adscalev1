@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const CONCURRENCY = 10;
+      const CONCURRENCY = 3;
       let cursor = 0;
       const worker = async () => {
         while (true) {
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
       let totalRows = 0;
 
       // Concurrency limiter
-      const CONCURRENCY = 8;
+      const CONCURRENCY = 3;
       const list = accounts || [];
       let idx = 0;
       const allRows: any[] = [];
@@ -460,7 +460,7 @@ Deno.serve(async (req) => {
         errors.push({ source: "me/businesses", erro: (e as Error).message });
       }
 
-      const CONCURRENCY = 8;
+      const CONCURRENCY = 3;
       let cursor = 0;
       const worker = async () => {
         while (true) {
