@@ -30,6 +30,7 @@ const Dashboard: React.FC = () => {
   const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [adAccounts, setAdAccounts] = useState<any[]>([]);
 
   // Cotação USD → BRL (atualiza ao montar e quando o usuário troca para BRL)
   useEffect(() => {
