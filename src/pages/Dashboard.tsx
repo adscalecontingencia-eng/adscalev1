@@ -104,6 +104,7 @@ const Dashboard: React.FC = () => {
   const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
   const activeClients = clients.filter((c: any) => (c.ad_accounts || 0) > 0).length;
+  const activeAccounts = adAccounts.filter((a: any) => a.account_status === 1).length;
   const profit = revenue - expenses - productCost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
