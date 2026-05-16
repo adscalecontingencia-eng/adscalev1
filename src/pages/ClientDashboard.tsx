@@ -345,8 +345,8 @@ const ClientDashboard: React.FC = () => {
                 ) : (
                   <div className="bg-secondary/60 rounded-lg p-3">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual base</p>
-                    <p className="font-medium text-primary mt-1">{Number(client.percentage_value) > 0 ? client.percentage_value : 5}%</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">Percentual inicial. Conforme as metas de gasto semanal forem atingidas, a taxa diminui progressivamente.</p>
+                    <p className="font-medium text-primary mt-1">{Number(client.percentage_value) || 0}%</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Percentual definido no contrato. Conforme as metas de gasto semanal forem atingidas, a taxa diminui progressivamente.</p>
                   </div>
                 )}
                 <div className="bg-secondary/60 rounded-lg p-3">
