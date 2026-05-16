@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Search, RefreshCw, Users, Calendar, ImageIcon, Filter, Link2, X, Building2 } from 'lucide-react';
+import { Search, RefreshCw, Users, Calendar, ImageIcon, Filter, Link2, X, Building2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
