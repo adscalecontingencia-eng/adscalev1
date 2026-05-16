@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, X, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface Task {
   id: string;
@@ -22,6 +25,15 @@ const Support: React.FC = () => {
   const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structureType: 'BM Comum', status: 'pendente' });
   const [supportUsers, setSupportUsers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [clientRequests, setClientRequests] = useState<any[]>([]);
+
+  const loadClientRequests = async () => {
+    const { data } = await supabase
+      .from('support_requests')
+      .select('*, client:clients(name, email)')
+      .order('created_at', { ascending: false });
+    if (data) setClientRequests(data);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,9 +43,17 @@ const Support: React.FC = () => {
       ]);
       if (supRes.data) setSupportUsers(supRes.data);
       if (cliRes.data) setClients(cliRes.data);
+      await loadClientRequests();
     };
     fetchData();
   }, []);
+
+  const updateRequestStatus = async (id: string, status: string) => {
+    const patch: any = { status };
+    if (status === 'concluida' || status === 'cancelada') patch.resolved_at = new Date().toISOString();
+    await supabase.from('support_requests').update(patch).eq('id', id);
+    setClientRequests(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+  };
 
   useEffect(() => { localStorage.setItem('adscale_tasks', JSON.stringify(tasks)); }, [tasks]);
 
@@ -81,6 +101,67 @@ const Support: React.FC = () => {
         <span className="bg-muted/60 backdrop-blur border border-border/60 text-muted-foreground px-3 py-1.5 rounded-full">Pendentes · {tasks.filter(t => t.status === 'pendente').length}</span>
         <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full">Em andamento · {tasks.filter(t => t.status === 'em_andamento').length}</span>
         <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">Concluídas · {tasks.filter(t => t.status === 'concluida').length}</span>
+      </div>
+
+      {/* Client service requests */}
+      <div className="bg-card border border-border rounded-xl p-5 border-glow">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 className="font-display text-sm font-semibold flex items-center gap-2">
+            <LifeBuoy size={16} className="text-primary" /> Solicitações de clientes
+            {clientRequests.filter(r => r.status === 'pendente').length > 0 && (
+              <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-2 py-0.5">
+                {clientRequests.filter(r => r.status === 'pendente').length} novas
+              </span>
+            )}
+          </h3>
+          <button onClick={loadClientRequests} className="text-xs text-muted-foreground hover:text-primary">Atualizar</button>
+        </div>
+        {clientRequests.length === 0 ? (
+          <p className="text-center text-muted-foreground text-xs py-6">Nenhuma solicitação de cliente.</p>
+        ) : (
+          <div className="space-y-2">
+            {clientRequests.map((r: any) => {
+              const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : LifeBuoy;
+              const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+              return (
+                <div key={r.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <TypeIcon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold">{typeLabel}</p>
+                        {r.request_type !== 'other' && (
+                          <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
+                        )}
+                        <span className="text-[11px] text-primary">{r.client?.name || '—'}</span>
+                      </div>
+                      {r.description && <p className="text-[11px] text-muted-foreground mt-0.5">{r.description}</p>}
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">
+                        {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <select
+                    value={r.status}
+                    onChange={e => updateRequestStatus(r.id, e.target.value)}
+                    className={cn(
+                      "bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground",
+                      r.status === 'concluida' && 'text-emerald-400',
+                      r.status === 'em_andamento' && 'text-warning',
+                    )}
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {showForm && (

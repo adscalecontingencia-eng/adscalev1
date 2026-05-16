@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Ban, ShieldAlert, AlertTriangle, CheckCircle2, X, Trash2, ExternalLink, Building2, CreditCard, Globe, Settings, Filter } from "lucide-react";
+import { Bell, Ban, ShieldAlert, AlertTriangle, CheckCircle2, X, Trash2, ExternalLink, Building2, CreditCard, Globe, Settings, Filter, LifeBuoy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Severity = "critical" | "warning" | "info";
-type AssetType = "Conta" | "BM" | "Página" | "Perfil" | "Pixel";
-type EventType = "account_blocked" | "bm_unverified" | "event_detected" | "event_resolved";
+type AssetType = "Conta" | "BM" | "Página" | "Perfil" | "Pixel" | "Solicitação";
+type EventType = "account_blocked" | "bm_unverified" | "event_detected" | "event_resolved" | "client_request";
 
 interface Notification {
   id: string;
@@ -45,9 +45,10 @@ const ASSET_ICON: Record<AssetType, React.ElementType> = {
   Página: Globe,
   Perfil: ShieldAlert,
   Pixel: ShieldAlert,
+  Solicitação: LifeBuoy,
 };
 
-const ASSET_TYPES: AssetType[] = ["Conta", "BM", "Página", "Perfil", "Pixel"];
+const ASSET_TYPES: AssetType[] = ["Conta", "BM", "Página", "Perfil", "Pixel", "Solicitação"];
 const SEVERITIES: Severity[] = ["critical", "warning", "info"];
 
 interface PrefRow {
@@ -115,7 +116,7 @@ export const NotificationCenter: React.FC = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const [accRes, bmRes, logRes] = await Promise.all([
+      const [accRes, bmRes, logRes, reqRes] = await Promise.all([
         supabase
           .from("meta_ad_accounts")
           .select("id, name, meta_account_id, status, disable_reason, disable_reason_label, owner_business_name, updated_at, bm:meta_business_managers(name, primary_page)")
@@ -132,6 +133,12 @@ export const NotificationCenter: React.FC = () => {
           .from("meta_blocked_accounts_log")
           .select("id, event_type, reason, detected_at, resolved_at, ad_account:meta_ad_accounts(name, meta_account_id, owner_business_name, bm:meta_business_managers(name, primary_page))")
           .order("detected_at", { ascending: false })
+          .limit(30),
+        supabase
+          .from("support_requests")
+          .select("id, request_type, description, quantity, status, created_at, client:clients(name)")
+          .in("status", ["pendente", "em_andamento"])
+          .order("created_at", { ascending: false })
           .limit(30),
       ]);
 
@@ -193,7 +200,30 @@ export const NotificationCenter: React.FC = () => {
         actionPath: "/block-log",
       }));
 
-      const all = [...acc, ...bm, ...log]
+
+      const req = (reqRes.data || []).map<Notification>((r: any) => {
+        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+        return {
+          id: `req-${r.id}`,
+          severity: r.status === 'em_andamento' ? 'info' : 'warning',
+          assetType: 'Solicitação',
+          assetName: r.client?.name || 'Cliente',
+          assetId: r.id,
+          eventType: 'client_request',
+          title: `Solicitação: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
+          description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
+          meta: [
+            { label: 'Cliente', value: r.client?.name || '—' },
+            { label: 'Tipo', value: typeLabel },
+            { label: 'Qtd', value: String(r.quantity) },
+            { label: 'Status', value: r.status },
+          ],
+          occurredAt: r.created_at,
+          actionPath: '/support',
+        };
+      });
+
+      const all = [...acc, ...bm, ...log, ...req]
         .filter(n => !dismissed.has(n.id))
         .filter(n => isAllowedByPrefs(n, prefs, "central"))
         .sort((a, b) => +new Date(b.occurredAt) - +new Date(a.occurredAt));

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
@@ -23,8 +24,13 @@ const ClientDashboard: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
-  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'paginas'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte'>('resumo');
   const [pages, setPages] = useState<any[]>([]);
+  const [supportRequests, setSupportRequests] = useState<any[]>([]);
+  const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
+  const [reqQty, setReqQty] = useState<number>(1);
+  const [reqDesc, setReqDesc] = useState<string>('');
+  const [submittingReq, setSubmittingReq] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,21 +38,39 @@ const ClientDashboard: React.FC = () => {
       const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
       if (clientData) {
         setClient(clientData);
-        const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }] = await Promise.all([
+        const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
           supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
           supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
           supabase.from('meta_ad_account_assignments').select('*, ad_account:meta_ad_accounts(*)').eq('client_id', clientData.id).eq('active', true),
           supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
+          supabase.from('support_requests').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
         ]);
         setCommissions(commData || []);
         setSavedAccounts(blocked || []);
         setActiveAccounts(assigns || []);
         setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
+        setSupportRequests(reqs || []);
       }
       setLoading(false);
     };
     fetchData();
   }, [user]);
+
+  const submitRequest = async () => {
+    if (!client) return;
+    setSubmittingReq(true);
+    const { data, error } = await supabase.from('support_requests').insert({
+      client_id: client.id,
+      request_type: reqType,
+      quantity: reqQty,
+      description: reqDesc || null,
+    }).select().single();
+    setSubmittingReq(false);
+    if (error) { toast.error('Erro ao enviar solicitação: ' + error.message); return; }
+    setSupportRequests(prev => [data, ...prev]);
+    setReqDesc(''); setReqQty(1);
+    toast.success('Solicitação enviada! Nossa equipe foi notificada.');
+  };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -145,17 +169,25 @@ const ClientDashboard: React.FC = () => {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList className="w-full grid grid-cols-4 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> Resumo
             </TabsTrigger>
             <TabsTrigger value="contrato" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <FileText size={14} /> Contrato
             </TabsTrigger>
-            <TabsTrigger value="paginas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
-              <ImageIcon size={14} /> Páginas
-              {pages.length > 0 && (
-                <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{pages.length}</span>
+            <TabsTrigger value="estrutura" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
+              <Layers size={14} /> Estrutura
+              {(activeAccounts.length + pages.length) > 0 && (
+                <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{activeAccounts.length + pages.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="suporte" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
+              <LifeBuoy size={14} /> Suporte
+              {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length > 0 && (
+                <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                  {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length}
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
@@ -431,15 +463,84 @@ const ClientDashboard: React.FC = () => {
             </div>
           </TabsContent>
 
-          {/* COBRANÇAS */}
-          {/* PÁGINAS */}
-          <TabsContent value="paginas" className="space-y-4 mt-0">
+          {/* ESTRUTURA */}
+          <TabsContent value="estrutura" className="space-y-5 mt-0">
+            {/* Ad accounts breakdown by status */}
+            {(() => {
+              const total = client.ad_accounts || 0;
+              const used = activeAccounts.length;
+              const blockedCount = activeAccounts.filter((a: any) => a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0).length;
+              const activeCount = used - blockedCount;
+              const available = Math.max(0, total - used);
+              return (
+                <div className="bg-card border border-border rounded-xl p-5 border-glow">
+                  <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
+                    <CreditCard size={16} className="text-primary" /> Contas de Anúncio
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3 mb-5">
+                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-center">
+                      <ShieldCheck size={16} className="text-emerald-400 mx-auto mb-1" />
+                      <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Ativas</p>
+                    </div>
+                    <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-center">
+                      <Ban size={16} className="text-destructive mx-auto mb-1" />
+                      <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Banidas</p>
+                    </div>
+                    <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-center">
+                      <Sparkles size={16} className="text-primary mx-auto mb-1" />
+                      <p className="text-2xl font-bold text-primary">{available}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Disponíveis</p>
+                    </div>
+                  </div>
+
+                  {activeAccounts.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-border rounded-lg">
+                      <CreditCard size={24} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Nenhuma conta atribuída ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {activeAccounts.map((a: any) => {
+                        const acc = a.ad_account;
+                        if (!acc) return null;
+                        const isBlocked = acc.status === 'blocked' || (acc.disable_reason ?? 0) > 0;
+                        return (
+                          <div key={a.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isBlocked ? "bg-destructive/15 text-destructive" : "bg-emerald-500/15 text-emerald-400")}>
+                                {isBlocked ? <Ban size={16} /> : <ShieldCheck size={16} />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold truncate">{acc.name}</p>
+                                <p className="text-[11px] text-muted-foreground font-mono truncate">{acc.meta_account_id}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium",
+                                isBlocked ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                              )}>
+                                {isBlocked ? (acc.disable_reason_label || 'Banida') : 'Ativa'}
+                              </span>
+                              <p className="text-[10px] text-muted-foreground mt-1">Saldo: {fmt(Number(acc.balance) || 0)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Pages */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                 <ImageIcon size={16} className="text-primary" /> Suas páginas Meta
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Páginas atribuídas ao seu contrato, com data de criação e quantidade de seguidores.
+                Páginas atribuídas ao seu contrato e status atual.
               </p>
               {pages.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-border rounded-lg">
@@ -448,29 +549,146 @@ const ClientDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {pages.map((p: any) => (
-                    <div key={p.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex gap-3">
-                      {p.picture_url ? (
-                        <img src={p.picture_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-border shrink-0" loading="lazy" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground shrink-0"><ImageIcon size={20} /></div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{p.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{p.category || 'Sem categoria'}</p>
-                        <div className="flex items-center gap-3 mt-1.5 text-[11px]">
-                          <span className="flex items-center gap-1 text-primary">
-                            <UsersIcon size={11} />
-                            {(p.followers_count ?? p.fan_count ?? 0).toLocaleString('en-US')}
-                          </span>
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <CalendarIcon size={11} />
-                            {p.created_time ? format(new Date(p.created_time), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
-                          </span>
+                  {pages.map((p: any) => {
+                    const restricted = p.is_restricted;
+                    const unpublished = p.is_published === false;
+                    const statusLabel = restricted ? 'Restrita' : unpublished ? 'Despublicada' : 'Ativa';
+                    const statusClass = restricted ? 'text-destructive' : unpublished ? 'text-warning' : 'text-emerald-400';
+                    const StatusIcon = restricted || unpublished ? ShieldAlert : ShieldCheck;
+                    return (
+                      <div key={p.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex gap-3">
+                        {p.picture_url ? (
+                          <img src={p.picture_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-border shrink-0" loading="lazy" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground shrink-0"><ImageIcon size={20} /></div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{p.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{p.category || 'Sem categoria'}</p>
+                          <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+                            <span className="flex items-center gap-1 text-primary">
+                              <UsersIcon size={11} />
+                              {(p.followers_count ?? p.fan_count ?? 0).toLocaleString('en-US')}
+                            </span>
+                            <span className={cn("flex items-center gap-1", statusClass)}>
+                              <StatusIcon size={11} />
+                              {statusLabel}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* SUPORTE */}
+          <TabsContent value="suporte" className="space-y-5 mt-0">
+            <div className="bg-card border border-border rounded-xl p-5 border-glow">
+              <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
+                <LifeBuoy size={16} className="text-primary" /> Solicitar serviço
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
+              </p>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {([
+                    { v: 'add_ad_account', label: 'Adicionar conta', Icon: CreditCard },
+                    { v: 'add_page', label: 'Adicionar página', Icon: ImageIcon },
+                    { v: 'other', label: 'Outro', Icon: LifeBuoy },
+                  ] as const).map(({ v, label, Icon }) => (
+                    <button
+                      key={v}
+                      onClick={() => setReqType(v)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors",
+                        reqType === v
+                          ? "bg-primary/15 border-primary/50 text-primary"
+                          : "bg-secondary border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Icon size={14} /> {label}
+                    </button>
                   ))}
+                </div>
+
+                {reqType !== 'other' && (
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Quantidade</label>
+                    <input
+                      type="number" min={1} max={50}
+                      value={reqQty}
+                      onChange={e => setReqQty(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-32 bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
+                  <textarea
+                    value={reqDesc}
+                    onChange={e => setReqDesc(e.target.value)}
+                    placeholder="Detalhes adicionais sobre o pedido..."
+                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary h-24 resize-none"
+                  />
+                </div>
+
+                <button
+                  onClick={submitRequest}
+                  disabled={submittingReq || (reqType === 'other' && !reqDesc.trim())}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                >
+                  <Send size={14} /> {submittingReq ? 'Enviando...' : 'Enviar solicitação'}
+                </button>
+              </div>
+            </div>
+
+            {/* Histórico de solicitações */}
+            <div className="bg-card border border-border rounded-xl p-5 border-glow">
+              <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
+                <Clock size={16} className="text-primary" /> Minhas solicitações
+              </h3>
+              {supportRequests.length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-border rounded-lg">
+                  <LifeBuoy size={24} className="mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma solicitação enviada ainda.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {supportRequests.map((r: any) => {
+                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+                    const statusColor =
+                      r.status === 'concluida' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                      r.status === 'em_andamento' ? 'text-warning bg-warning/10 border-warning/30' :
+                      r.status === 'cancelada' ? 'text-muted-foreground bg-secondary border-border' :
+                      'text-primary bg-primary/10 border-primary/30';
+                    const StatusIcon = r.status === 'concluida' ? CheckCircle2 : r.status === 'em_andamento' ? Clock : r.status === 'cancelada' ? X : AlertTriangle;
+                    return (
+                      <div key={r.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold">{typeLabel}</p>
+                            {r.request_type !== 'other' && (
+                              <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
+                            )}
+                          </div>
+                          {r.description && <p className="text-[11px] text-muted-foreground">{r.description}</p>}
+                          <p className="text-[10px] text-muted-foreground/70 mt-1">
+                            {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
+                          <StatusIcon size={11} />
+                          {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
