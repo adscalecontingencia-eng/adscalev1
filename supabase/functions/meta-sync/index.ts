@@ -522,9 +522,10 @@ Deno.serve(async (req) => {
         await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
       }
 
-      // Segunda passada: created_time não é acessível via System User token.
-      // Usa o User Access Token (perfil, admin da página) pra buscar APENAS created_time.
-      if (userToken && userToken !== token) {
+      // Segunda passada: created_time requer Page Access Token.
+      // Pega access_token de cada página via System User (precisa permissão "Manage Page"),
+      // depois usa o Page Token pra buscar created_time da própria página.
+      {
         const needsCreated = unique.filter((p: any) => !p.created_time);
         let createdCursor = 0;
         const createdWorker = async () => {
@@ -533,10 +534,13 @@ Deno.serve(async (req) => {
             if (i >= needsCreated.length) return;
             const p = needsCreated[i];
             try {
-              const r = await metaFetch(`/${p.id}`, userToken, { fields: "created_time" });
+              const tokenRes = await metaFetch(`/${p.id}`, token, { fields: "access_token" });
+              const pageToken = tokenRes?.access_token;
+              if (!pageToken) continue;
+              const r = await metaFetch(`/${p.id}`, pageToken, { fields: "created_time" });
               if (r?.created_time) p.created_time = r.created_time;
             } catch (e) {
-              if (detailErrors.length < 8) detailErrors.push({ page_id: p.id, erro: `created_time fallback: ${(e as Error).message}` });
+              if (detailErrors.length < 5) detailErrors.push({ page_id: p.id, erro: `created_time: ${(e as Error).message}` });
             }
           }
         };
