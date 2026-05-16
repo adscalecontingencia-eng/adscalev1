@@ -503,7 +503,7 @@ Deno.serve(async (req) => {
         return true;
       });
 
-      const needsDetails = unique.filter((p: any) => p._partial || !p.created_time || p.followers_count == null || p.fan_count == null);
+      const needsDetails = unique.filter((p: any) => p._partial || p.followers_count == null || p.fan_count == null);
       let detailCursor = 0;
       const detailWorker = async () => {
         while (true) {
