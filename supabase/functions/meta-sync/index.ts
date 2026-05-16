@@ -522,6 +522,29 @@ Deno.serve(async (req) => {
         await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
       }
 
+      // Segunda passada: created_time não é acessível via System User token.
+      // Usa o User Access Token (perfil, admin da página) pra buscar APENAS created_time.
+      if (userToken && userToken !== token) {
+        const needsCreated = unique.filter((p: any) => !p.created_time);
+        let createdCursor = 0;
+        const createdWorker = async () => {
+          while (true) {
+            const i = createdCursor++;
+            if (i >= needsCreated.length) return;
+            const p = needsCreated[i];
+            try {
+              const r = await metaFetch(`/${p.id}`, userToken, { fields: "created_time" });
+              if (r?.created_time) p.created_time = r.created_time;
+            } catch {
+              // silencioso — página pode não estar acessível pelo token do perfil
+            }
+          }
+        };
+        if (needsCreated.length > 0) {
+          await Promise.all(Array.from({ length: Math.min(5, needsCreated.length) }, createdWorker));
+        }
+      }
+
       const rows = unique.map((p: any) => ({
         meta_page_id: p.id,
         bm_id: p._bm_db_id,
