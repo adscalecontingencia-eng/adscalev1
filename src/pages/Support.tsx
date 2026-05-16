@@ -25,6 +25,15 @@ const Support: React.FC = () => {
   const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structureType: 'BM Comum', status: 'pendente' });
   const [supportUsers, setSupportUsers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [clientRequests, setClientRequests] = useState<any[]>([]);
+
+  const loadClientRequests = async () => {
+    const { data } = await supabase
+      .from('support_requests')
+      .select('*, client:clients(name, email)')
+      .order('created_at', { ascending: false });
+    if (data) setClientRequests(data);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,9 +43,17 @@ const Support: React.FC = () => {
       ]);
       if (supRes.data) setSupportUsers(supRes.data);
       if (cliRes.data) setClients(cliRes.data);
+      await loadClientRequests();
     };
     fetchData();
   }, []);
+
+  const updateRequestStatus = async (id: string, status: string) => {
+    const patch: any = { status };
+    if (status === 'concluida' || status === 'cancelada') patch.resolved_at = new Date().toISOString();
+    await supabase.from('support_requests').update(patch).eq('id', id);
+    setClientRequests(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+  };
 
   useEffect(() => { localStorage.setItem('adscale_tasks', JSON.stringify(tasks)); }, [tasks]);
 
