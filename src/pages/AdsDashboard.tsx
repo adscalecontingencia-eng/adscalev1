@@ -57,8 +57,9 @@ export default function AdsDashboard() {
 
   const [range, setRange] = useState<Range>("7d");
   const [filterBm, setFilterBm] = useState<string>("all");
-  const [filterClient, setFilterClient] = useState<string>("all");
+  const [filterClients, setFilterClients] = useState<string[]>([]); // [] = all; ["__unassigned__"] = sem cliente
   const [filterAccount, setFilterAccount] = useState<string>("all");
+  const [clientSearch, setClientSearch] = useState("");
 
   const loadMeta = async () => {
     const [b, a, c, asn] = await Promise.all([
