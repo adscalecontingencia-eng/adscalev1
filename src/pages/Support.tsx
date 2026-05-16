@@ -103,6 +103,67 @@ const Support: React.FC = () => {
         <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">Concluídas · {tasks.filter(t => t.status === 'concluida').length}</span>
       </div>
 
+      {/* Client service requests */}
+      <div className="bg-card border border-border rounded-xl p-5 border-glow">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 className="font-display text-sm font-semibold flex items-center gap-2">
+            <LifeBuoy size={16} className="text-primary" /> Solicitações de clientes
+            {clientRequests.filter(r => r.status === 'pendente').length > 0 && (
+              <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-2 py-0.5">
+                {clientRequests.filter(r => r.status === 'pendente').length} novas
+              </span>
+            )}
+          </h3>
+          <button onClick={loadClientRequests} className="text-xs text-muted-foreground hover:text-primary">Atualizar</button>
+        </div>
+        {clientRequests.length === 0 ? (
+          <p className="text-center text-muted-foreground text-xs py-6">Nenhuma solicitação de cliente.</p>
+        ) : (
+          <div className="space-y-2">
+            {clientRequests.map((r: any) => {
+              const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : LifeBuoy;
+              const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+              return (
+                <div key={r.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <TypeIcon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold">{typeLabel}</p>
+                        {r.request_type !== 'other' && (
+                          <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
+                        )}
+                        <span className="text-[11px] text-primary">{r.client?.name || '—'}</span>
+                      </div>
+                      {r.description && <p className="text-[11px] text-muted-foreground mt-0.5">{r.description}</p>}
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">
+                        {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <select
+                    value={r.status}
+                    onChange={e => updateRequestStatus(r.id, e.target.value)}
+                    className={cn(
+                      "bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground",
+                      r.status === 'concluida' && 'text-emerald-400',
+                      r.status === 'em_andamento' && 'text-warning',
+                    )}
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {showForm && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
