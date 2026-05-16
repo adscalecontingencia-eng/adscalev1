@@ -200,7 +200,30 @@ export const NotificationCenter: React.FC = () => {
         actionPath: "/block-log",
       }));
 
-      const all = [...acc, ...bm, ...log]
+
+      const req = (reqRes.data || []).map<Notification>((r: any) => {
+        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+        return {
+          id: `req-${r.id}`,
+          severity: r.status === 'em_andamento' ? 'info' : 'warning',
+          assetType: 'Solicitação',
+          assetName: r.client?.name || 'Cliente',
+          assetId: r.id,
+          eventType: 'client_request',
+          title: `Solicitação: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
+          description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
+          meta: [
+            { label: 'Cliente', value: r.client?.name || '—' },
+            { label: 'Tipo', value: typeLabel },
+            { label: 'Qtd', value: String(r.quantity) },
+            { label: 'Status', value: r.status },
+          ],
+          occurredAt: r.created_at,
+          actionPath: '/support',
+        };
+      });
+
+      const all = [...acc, ...bm, ...log, ...req]
         .filter(n => !dismissed.has(n.id))
         .filter(n => isAllowedByPrefs(n, prefs, "central"))
         .sort((a, b) => +new Date(b.occurredAt) - +new Date(a.occurredAt));
