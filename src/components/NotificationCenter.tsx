@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Ban, ShieldAlert, AlertTriangle, CheckCircle2, X, Trash2, ExternalLink, Building2, CreditCard, Globe, Settings, Filter } from "lucide-react";
+import { Bell, Ban, ShieldAlert, AlertTriangle, CheckCircle2, X, Trash2, ExternalLink, Building2, CreditCard, Globe, Settings, Filter, LifeBuoy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
