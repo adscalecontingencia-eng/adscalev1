@@ -474,13 +474,14 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
         <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(120,100%,50%)" />
         <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(120,100%,50%)' : 'hsl(0,84%,60%)'} />
         <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
         <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta="—" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
         <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
         <KpiCard label="Clientes Ativos" value={String(activeClients)} delta={`${clients.length} total`} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
+        <KpiCard label="Contas Ativas" value={String(activeAccounts)} delta={`${adAccounts.length} total`} deltaUp tone="primary" icon={Server} sparkData={[]} sparkColor="hsl(120,100%,50%)" />
       </div>
 
       {/* MAIN CHARTS */}
