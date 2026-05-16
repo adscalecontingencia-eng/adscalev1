@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Search, RefreshCw, Users, Calendar, ImageIcon, Filter, Link2, X, Building2 } from 'lucide-react';
+import { Search, RefreshCw, Users, Calendar, ImageIcon, Filter, Link2, X, Building2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -245,9 +245,14 @@ const PagesAdmin: React.FC = () => {
                   <p className="text-sm font-bold text-primary mt-0.5">{fmtNum(p.followers_count ?? p.fan_count)}</p>
                 </div>
                 <div className="bg-secondary/60 rounded-lg p-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1"><Calendar size={10} /> Criada em</p>
-                  <p className="text-sm font-bold mt-0.5">
-                    {p.created_time ? format(new Date(p.created_time), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    {p.is_restricted ? <ShieldAlert size={10} /> : <ShieldCheck size={10} />} Status
+                  </p>
+                  <p className={cn(
+                    "text-sm font-bold mt-0.5",
+                    p.is_restricted ? 'text-destructive' : p.is_published === false ? 'text-warning' : 'text-success'
+                  )}>
+                    {p.is_restricted ? 'Restrita' : p.is_published === false ? 'Despublicada' : 'Ativa'}
                   </p>
                 </div>
               </div>
