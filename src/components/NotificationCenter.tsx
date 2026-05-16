@@ -48,7 +48,7 @@ const ASSET_ICON: Record<AssetType, React.ElementType> = {
   Solicitação: LifeBuoy,
 };
 
-const ASSET_TYPES: AssetType[] = ["Conta", "BM", "Página", "Perfil", "Pixel"];
+const ASSET_TYPES: AssetType[] = ["Conta", "BM", "Página", "Perfil", "Pixel", "Solicitação"];
 const SEVERITIES: Severity[] = ["critical", "warning", "info"];
 
 interface PrefRow {
