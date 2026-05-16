@@ -47,12 +47,14 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [txRes, clientRes] = await Promise.all([
+      const [txRes, clientRes, accRes] = await Promise.all([
         supabase.from('transactions').select('*'),
         supabase.from('clients').select('*'),
+        supabase.from('meta_ad_accounts').select('id,status,account_status'),
       ]);
       if (txRes.data) setTransactions(txRes.data);
       if (clientRes.data) setClients(clientRes.data);
+      if (accRes.data) setAdAccounts(accRes.data);
     };
     fetchData();
   }, []);
