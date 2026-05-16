@@ -535,8 +535,8 @@ Deno.serve(async (req) => {
             try {
               const r = await metaFetch(`/${p.id}`, userToken, { fields: "created_time" });
               if (r?.created_time) p.created_time = r.created_time;
-            } catch {
-              // silencioso — página pode não estar acessível pelo token do perfil
+            } catch (e) {
+              if (detailErrors.length < 8) detailErrors.push({ page_id: p.id, erro: `created_time fallback: ${(e as Error).message}` });
             }
           }
         };
