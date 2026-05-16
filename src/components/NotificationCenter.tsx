@@ -45,6 +45,7 @@ const ASSET_ICON: Record<AssetType, React.ElementType> = {
   Página: Globe,
   Perfil: ShieldAlert,
   Pixel: ShieldAlert,
+  Solicitação: LifeBuoy,
 };
 
 const ASSET_TYPES: AssetType[] = ["Conta", "BM", "Página", "Perfil", "Pixel"];
