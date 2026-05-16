@@ -37,21 +37,10 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "Use POST" }, 405);
 
   try {
-    // Prefer User Access Token (lists ALL BMs the user admins). Fallback to System User Token.
-    const rawToken = Deno.env.get("META_USER_ACCESS_TOKEN") || Deno.env.get("META_SYSTEM_USER_TOKEN");
-    const token = rawToken?.replace(/\s+/g, "").trim();
-    if (!token) return json({ erro: "META_USER_ACCESS_TOKEN não configurado" }, 500);
-
-    // Diagnostic: returns first/last chars + length without leaking the token
-    if (req.url.includes("debug=1")) {
-      return json({
-        token_length: token.length,
-        starts_with: token.slice(0, 6),
-        ends_with: token.slice(-6),
-        starts_correct: token.startsWith("EAA"),
-        raw_length: rawToken?.length,
-      });
-    }
+    const userTokenRaw = Deno.env.get("META_USER_ACCESS_TOKEN");
+    const sysTokenRaw = Deno.env.get("META_SYSTEM_USER_TOKEN");
+    const userToken = userTokenRaw?.replace(/\s+/g, "").trim() || "";
+    const sysToken = sysTokenRaw?.replace(/\s+/g, "").trim() || "";
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -60,6 +49,34 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = body.action;
+
+    // Route token by action:
+    //  - sync_pages prefers System User token (BM-level, permanent, assigned to pages)
+    //  - sync_accounts / sync_insights / sync_bms prefer User Access Token (lists all BMs the user admins)
+    // Fallback to whichever is available.
+    const token = action === "sync_pages"
+      ? (sysToken || userToken)
+      : (userToken || sysToken);
+
+    if (!token) {
+      return json({ erro: "Nenhum token Meta configurado (META_USER_ACCESS_TOKEN ou META_SYSTEM_USER_TOKEN)" }, 500);
+    }
+
+    // Diagnostic: returns first/last chars + length without leaking the token
+    if (req.url.includes("debug=1")) {
+      return json({
+        action,
+        token_source: action === "sync_pages"
+          ? (sysToken ? "META_SYSTEM_USER_TOKEN" : "META_USER_ACCESS_TOKEN (fallback)")
+          : (userToken ? "META_USER_ACCESS_TOKEN" : "META_SYSTEM_USER_TOKEN (fallback)"),
+        token_length: token.length,
+        starts_with: token.slice(0, 6),
+        ends_with: token.slice(-6),
+        starts_correct: token.startsWith("EAA"),
+        has_user_token: !!userToken,
+        has_system_token: !!sysToken,
+      });
+    }
 
     // ===== 1) SYNC BMs + ACCOUNTS (User Token: list BMs then accounts of each) =====
     if (action === "sync_bms" || action === "sync_accounts") {
