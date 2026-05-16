@@ -522,32 +522,9 @@ Deno.serve(async (req) => {
         await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
       }
 
-      // Segunda passada: created_time requer Page Access Token.
-      // Pega access_token de cada página via System User (precisa permissão "Manage Page"),
-      // depois usa o Page Token pra buscar created_time da própria página.
-      {
-        const needsCreated = unique.filter((p: any) => !p.created_time);
-        let createdCursor = 0;
-        const createdWorker = async () => {
-          while (true) {
-            const i = createdCursor++;
-            if (i >= needsCreated.length) return;
-            const p = needsCreated[i];
-            try {
-              const tokenRes = await metaFetch(`/${p.id}`, token, { fields: "access_token" });
-              const pageToken = tokenRes?.access_token;
-              if (!pageToken) continue;
-              const r = await metaFetch(`/${p.id}`, pageToken, { fields: "created_time" });
-              if (r?.created_time) p.created_time = r.created_time;
-            } catch (e) {
-              if (detailErrors.length < 5) detailErrors.push({ page_id: p.id, erro: `created_time: ${(e as Error).message}` });
-            }
-          }
-        };
-        if (needsCreated.length > 0) {
-          await Promise.all(Array.from({ length: Math.min(5, needsCreated.length) }, createdWorker));
-        }
-      }
+      // NOTA: o campo `created_time` foi descontinuado pela Meta na Graph API para Pages.
+      // Mesmo com Page Access Token retorna (#100) nonexisting field. Não há workaround via API.
+      // Solução: campo pode ser preenchido manualmente no painel se necessário.
 
       const rows = unique.map((p: any) => ({
         meta_page_id: p.id,
