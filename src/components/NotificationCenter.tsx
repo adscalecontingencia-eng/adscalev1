@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Severity = "critical" | "warning" | "info";
-type AssetType = "Conta" | "BM" | "Página" | "Perfil" | "Pixel";
-type EventType = "account_blocked" | "bm_unverified" | "event_detected" | "event_resolved";
+type AssetType = "Conta" | "BM" | "Página" | "Perfil" | "Pixel" | "Solicitação";
+type EventType = "account_blocked" | "bm_unverified" | "event_detected" | "event_resolved" | "client_request";
 
 interface Notification {
   id: string;
