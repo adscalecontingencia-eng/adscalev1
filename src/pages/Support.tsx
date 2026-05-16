@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, X, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface Task {
   id: string;
