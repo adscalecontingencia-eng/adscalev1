@@ -217,14 +217,99 @@ export default function AdsDashboard() {
             </SelectContent>
           </Select>
 
-          <Select value={filterClient} onValueChange={setFilterClient}>
-            <SelectTrigger className="w-[220px]"><SelectValue placeholder="Todos clientes" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos clientes</SelectItem>
-              <SelectItem value="unassigned">— Sem cliente —</SelectItem>
-              {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[260px] justify-between font-normal">
+                <span className="flex items-center gap-2 truncate">
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {filterClients.length === 0
+                    ? "Todos clientes"
+                    : filterClients.length === 1
+                      ? (filterClients[0] === "__unassigned__"
+                          ? "Sem cliente"
+                          : clients.find((c) => c.id === filterClients[0])?.name || "1 cliente")
+                      : `${filterClients.length} clientes`}
+                </span>
+                {filterClients.length > 0 && (
+                  <X
+                    className="h-4 w-4 text-muted-foreground hover:text-foreground"
+                    onClick={(e) => { e.stopPropagation(); setFilterClients([]); }}
+                  />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <div className="p-2 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    className="pl-7 h-8 text-xs"
+                    placeholder="Buscar cliente..."
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border text-xs">
+                <button
+                  className="text-primary hover:underline"
+                  onClick={() => setFilterClients(clients.map((c) => c.id))}
+                >
+                  Selecionar todos
+                </button>
+                <button
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => setFilterClients([])}
+                >
+                  Limpar
+                </button>
+              </div>
+              <div className="max-h-[280px] overflow-y-auto p-1">
+                <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
+                  <Checkbox
+                    checked={filterClients.includes("__unassigned__")}
+                    onCheckedChange={(v) => {
+                      setFilterClients((prev) =>
+                        v ? [...prev, "__unassigned__"] : prev.filter((x) => x !== "__unassigned__")
+                      );
+                    }}
+                  />
+                  <span className="italic text-muted-foreground">— Sem cliente —</span>
+                </label>
+                {clients
+                  .filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                  .map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
+                      <Checkbox
+                        checked={filterClients.includes(c.id)}
+                        onCheckedChange={(v) => {
+                          setFilterClients((prev) =>
+                            v ? [...prev, c.id] : prev.filter((x) => x !== c.id)
+                          );
+                        }}
+                      />
+                      <span className="truncate">{c.name}</span>
+                    </label>
+                  ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          {filterClients.length > 0 && (
+            <div className="flex flex-wrap gap-1 items-center">
+              {filterClients.slice(0, 3).map((cid) => (
+                <Badge key={cid} variant="secondary" className="gap-1">
+                  {cid === "__unassigned__" ? "Sem cliente" : clients.find((c) => c.id === cid)?.name || cid}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterClients((prev) => prev.filter((x) => x !== cid))}
+                  />
+                </Badge>
+              ))}
+              {filterClients.length > 3 && (
+                <Badge variant="outline">+{filterClients.length - 3}</Badge>
+              )}
+            </div>
+          )}
 
           <Select value={filterAccount} onValueChange={setFilterAccount}>
             <SelectTrigger className="w-[260px]"><SelectValue placeholder="Todas as contas" /></SelectTrigger>
