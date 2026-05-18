@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Unbounded:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Unbounded:wght@300;400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
@@ -49,8 +49,8 @@
     --warning: 45 100% 50%;
     --info: 200 100% 50%;
 
-    --font-display: 'Cormorant Garamond', serif;
-    --font-body: 'Inter', sans-serif;
+    --font-display: 'Unbounded', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
 
     --glow-primary: 0 0 20px hsl(120, 100%, 50%, 0.3);
     --glow-primary-strong: 0 0 40px hsl(120, 100%, 50%, 0.5);
