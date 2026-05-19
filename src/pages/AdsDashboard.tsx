@@ -115,7 +115,7 @@ export default function AdsDashboard() {
       accounts
         .filter((a) => {
           if (filterBm !== "all" && a.bm_id !== filterBm) return false;
-          if (filterAccount !== "all" && a.id !== filterAccount) return false;
+          if (filterAccounts.length > 0 && !filterAccounts.includes(a.id)) return false;
           if (!includeAll) {
             const cid = clientByAccount.get(a.id);
             if (onlyUnassigned) {
