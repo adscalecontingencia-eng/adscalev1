@@ -20,11 +20,41 @@ function json(body: unknown, status = 200) {
   });
 }
 
+async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Promise<Response> {
+  let lastErr: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status === 429 || res.status >= 500) {
+        const wait = 1000 * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      // Peek body for Meta transient errors (code 4/17/32/613 = rate limit)
+      const clone = res.clone();
+      const data = await clone.json().catch(() => null);
+      const code = data?.error?.code;
+      const transient = data?.error?.is_transient || [4, 17, 32, 613].includes(code);
+      if (transient && i < attempts - 1) {
+        const wait = 1500 * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
+    }
+  }
+  if (lastErr) throw lastErr;
+  return fetch(url, init);
+}
+
 async function metaFetch(path: string, token: string, params: Record<string, string> = {}) {
   const url = new URL(`${META_API}${path}`);
   url.searchParams.set("access_token", token);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url.toString());
+  const res = await fetchWithRetry(url.toString());
   const data = await res.json();
   if (!res.ok || data.error) {
     throw new Error(`Meta API error: ${JSON.stringify(data.error || data)}`);
