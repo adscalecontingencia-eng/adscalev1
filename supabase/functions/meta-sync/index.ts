@@ -147,7 +147,8 @@ async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
 
     const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
     const allAccounts: any[] = [];
-    const CONCURRENCY = 4;
+    const CONCURRENCY = 2;
+    const PACING_MS = 300; // pequeno gap entre requisições para não estourar rate-limit
     let cursor = 0;
     let done = 0;
 
@@ -164,14 +165,13 @@ async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
           errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
         }
         done++;
-        if (done % 2 === 0 || done === tasks.length) {
-          await update({
-            progress_current: done,
-            synced_count: allAccounts.length,
-            message: `${done}/${tasks.length} BMs processadas · ${allAccounts.length} contas coletadas`,
-            errors,
-          });
-        }
+        await update({
+          progress_current: done,
+          synced_count: allAccounts.length,
+          message: `${done}/${tasks.length} consultas concluídas · ${allAccounts.length} contas coletadas`,
+          errors,
+        });
+        await new Promise((r) => setTimeout(r, PACING_MS));
       }
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
