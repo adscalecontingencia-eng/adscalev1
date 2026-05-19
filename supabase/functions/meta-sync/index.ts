@@ -69,6 +69,196 @@ async function metaFetch(path: string, token: string, params: Record<string, str
   return data;
 }
 
+const DISABLE_REASONS: Record<number, string> = {
+  0: "Nenhum", 1: "ADS_INTEGRITY_POLICY", 2: "ADS_IP_REVIEW", 3: "RISK_PAYMENT",
+  4: "GRAY_ACCOUNT_SHUT_DOWN", 5: "ADS_AFC_REVIEW", 6: "BUSINESS_INTEGRITY_RAR",
+  7: "PERMANENT_CLOSE", 8: "UNUSED_RESELLER_ACCOUNT", 9: "UNUSED_ACCOUNT",
+  10: "UMBRELLA_AD_ACCOUNT", 11: "BUSINESS_MANAGER_INTEGRITY_POLICY",
+  12: "MISREPRESENTED_AD_ACCOUNT", 13: "AOAB_DESHARE_LEGAL_ENTITY",
+  14: "CTX_THREAD_REVIEW", 15: "COMPROMISED_AD_ACCOUNT",
+};
+
+async function paginateMeta(firstUrl: string): Promise<any[]> {
+  const out: any[] = [];
+  let url: string | null = firstUrl;
+  while (url) {
+    const r = await fetchWithRetry(url);
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
+    out.push(...(d.data || []));
+    url = d.paging?.next || null;
+  }
+  return out;
+}
+
+async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
+  const update = (patch: Record<string, any>) =>
+    supabase.from("meta_sync_jobs").update(patch).eq("id", jobId);
+
+  const errors: any[] = [];
+  onBackoff = (info) => {
+    update({ message: `Retry ${info.attempt}/4 em ${Math.round(info.waitMs / 1000)}s — ${info.reason}` });
+  };
+
+  try {
+    await update({ status: "running", started_at: new Date().toISOString(), message: "Listando Business Managers..." });
+
+    const bms = await paginateMeta(
+      `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
+    );
+
+    if (bms.length === 0) {
+      await update({ status: "completed", finished_at: new Date().toISOString(), message: "Nenhuma BM encontrada", progress_total: 0 });
+      return;
+    }
+
+    // Upsert BMs first
+    const bmRows = bms.map((bm: any) => ({
+      meta_bm_id: bm.id,
+      name: bm.name,
+      status: bm.verification_status || "active",
+      verification_status: bm.verification_status || null,
+      last_synced_at: new Date().toISOString(),
+    }));
+    await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+
+    const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
+    const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+
+    const ACCOUNT_FIELDS = [
+      "id","account_id","name","account_status","currency","amount_spent","spend_cap",
+      "timezone_name","created_time","disable_reason","funding_source",
+      "funding_source_details","is_prepay_account",
+      "balance","business_country_code","age","business",
+    ].join(",");
+
+    const tasks: { bmId: string; bmName: string; edge: string }[] = [];
+    for (const bm of bms) {
+      for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
+        tasks.push({ bmId: bm.id, bmName: bm.name, edge: e });
+      }
+    }
+
+    await update({ progress_total: tasks.length, progress_current: 0, message: `Buscando contas em ${bms.length} BMs...` });
+
+    const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
+    const allAccounts: any[] = [];
+    const CONCURRENCY = 4;
+    let cursor = 0;
+    let done = 0;
+
+    const worker = async () => {
+      while (true) {
+        const i = cursor++;
+        if (i >= tasks.length) return;
+        const t = tasks[i];
+        const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
+        try {
+          const items = await paginateMeta(url);
+          for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
+        } catch (e) {
+          errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
+        }
+        done++;
+        if (done % 2 === 0 || done === tasks.length) {
+          await update({
+            progress_current: done,
+            synced_count: allAccounts.length,
+            message: `${done}/${tasks.length} BMs processadas · ${allAccounts.length} contas coletadas`,
+            errors,
+          });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
+
+    // Dedupe + map
+    const seen = new Set<string>();
+    const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
+
+    const computeScore = (acc: any) => {
+      let s = 100;
+      if (acc.account_status !== 1) s -= 60;
+      if (acc.disable_reason && acc.disable_reason !== 0) s -= 40;
+      if (!acc.funding_source) s -= 20;
+      const bmVer = bmStatusMap.get(acc._bm_meta_id);
+      if (bmVer && bmVer !== "verified") s -= 10;
+      if (!acc.amount_spent || Number(acc.amount_spent) === 0) s -= 5;
+      s = Math.max(0, Math.min(100, s));
+      return { score: s, label: s >= 80 ? "Excelente" : s >= 60 ? "Bom" : s >= 40 ? "Atenção" : "Crítico" };
+    };
+    const maskFunding = (acc: any) => {
+      const fsd = acc.funding_source_details;
+      if (!fsd) return acc.funding_source ? "Vinculado" : null;
+      const raw: string = fsd.display_string || "";
+      const digits = (raw.match(/\d/g) || []).join("");
+      const last4 = digits.slice(-4);
+      const brand = (raw.match(/^([A-Za-z]+)/)?.[1] || "").toUpperCase();
+      if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
+      return fsd.type ? fsd.type.replace(/_/g, " ") : raw || "Vinculado";
+    };
+
+    const accRows = unique.map((acc: any) => {
+      const { score, label } = computeScore(acc);
+      return {
+        meta_account_id: acc.id,
+        bm_id: bmIdMap.get(acc._bm_meta_id) || null,
+        name: acc.name,
+        account_status: acc.account_status,
+        status: acc.account_status === 1 ? "active" : "blocked",
+        currency: acc.currency || "USD",
+        amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
+        spend_cap: acc.spend_cap ? Number(acc.spend_cap) / 100 : null,
+        timezone_name: acc.timezone_name || null,
+        account_created_time: acc.created_time || null,
+        disable_reason: acc.disable_reason ?? null,
+        disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
+        funding_source: maskFunding(acc),
+        billing_cycle: acc.is_prepay_account === true ? "Pré-paga" : acc.is_prepay_account === false ? "Pós-paga" : null,
+        balance: acc.balance ? Number(acc.balance) / 100 : 0,
+        business_country_code: acc.business_country_code || null,
+        age: acc.age ?? null,
+        owner_business_name: acc.business?.name || null,
+        score,
+        score_label: label,
+        last_synced_at: new Date().toISOString(),
+      };
+    });
+
+    await update({ message: `Salvando ${accRows.length} contas no banco...` });
+
+    const CHUNK = 200;
+    let saved = 0;
+    for (let i = 0; i < accRows.length; i += CHUNK) {
+      const { error } = await supabase.from("meta_ad_accounts")
+        .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+      if (error) throw error;
+      saved += Math.min(CHUNK, accRows.length - i);
+      await update({ synced_count: saved, message: `Salvas ${saved}/${accRows.length} contas...` });
+    }
+
+    await update({
+      status: "completed",
+      finished_at: new Date().toISOString(),
+      progress_current: tasks.length,
+      synced_count: accRows.length,
+      message: `Concluído: ${accRows.length} contas em ${bms.length} BMs${errors.length ? ` (${errors.length} erros)` : ""}`,
+      errors,
+    });
+  } catch (e) {
+    await update({
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      message: `Falhou: ${(e as Error).message}`,
+      errors: [...errors, { fatal: (e as Error).message }],
+    });
+  } finally {
+    onBackoff = null;
+  }
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ erro: "Use POST" }, 405);
