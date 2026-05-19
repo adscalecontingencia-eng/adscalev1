@@ -144,6 +144,18 @@ const ClientDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {isAdminView && (
+        <div className="bg-primary/10 border-b border-primary/30 px-4 lg:px-8 py-2 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-primary">
+            <Shield size={14} />
+            <span className="font-medium">Modo Administrador</span>
+            <span className="text-muted-foreground hidden sm:inline">— visualizando o dashboard de <strong className="text-foreground">{client.name}</strong></span>
+          </div>
+          <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-secondary hover:bg-secondary/70 text-foreground border border-border">
+            <X size={12} /> Sair da visualização
+          </button>
+        </div>
+      )}
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur z-20">
         <div className="flex items-center gap-3 text-primary">
           <AdScaleLogo size={28} />
@@ -154,11 +166,18 @@ const ClientDashboard: React.FC = () => {
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary">
-            <LogOut size={16} />
-          </button>
+          {isAdminView ? (
+            <button onClick={() => navigate('/clients')} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title="Voltar para Clientes">
+              <X size={16} />
+            </button>
+          ) : (
+            <button onClick={async () => { await logout(); navigate('/login'); }} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary">
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </header>
+
 
       <div className="p-4 lg:p-8 max-w-5xl mx-auto">
         {/* Hero header KPI strip */}
