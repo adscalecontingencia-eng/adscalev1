@@ -195,7 +195,7 @@ async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
       const last4 = digits.slice(-4);
       const brand = (raw.match(/^([A-Za-z]+)/)?.[1] || "").toUpperCase();
       if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
-      return fsd.type ? fsd.type.replace(/_/g, " ") : raw || "Vinculado";
+      return fsd.type ? String(fsd.type).replace(/_/g, " ") : raw || "Vinculado";
     };
 
     const accRows = unique.map((acc: any) => {
