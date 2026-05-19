@@ -261,9 +261,16 @@ const Clients: React.FC = () => {
   const handleEdit = (c: Client) => { setForm(c); setEditing(c); setShowForm(true); };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('clients').delete().eq('id', id);
-    if (error) { toast.error('Erro ao remover cliente'); return; }
+    const c = clients.find(x => x.id === id);
+    if (!confirm(`Excluir definitivamente o cliente "${c?.name}"?\n\nIsso removerá o login, comissões, lançamentos e atribuições deste cliente do banco de dados. Esta ação não pode ser desfeita.`)) return;
+    const res = await supabase.functions.invoke('manage-users', { body: { action: 'delete_client', client_id: id } });
+    if (res.error || (res.data as any)?.error) {
+      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao remover cliente');
+      return;
+    }
+    toast.success('Cliente removido do banco de dados');
     setClients(prev => prev.filter(c => c.id !== id));
+    fetchCommissions();
   };
 
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
@@ -834,8 +841,10 @@ const Clients: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 sm:gap-2 shrink-0 ml-2">
-                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"><Eye size={14} /></button>
+                  <div className="flex gap-1 sm:gap-2 shrink-0 ml-2 items-center">
+                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium">
+                      <Eye size={13} /> <span className="hidden sm:inline">Ver como cliente</span>
+                    </button>
                     <button onClick={() => handleEdit(c)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"><Edit2 size={14} /></button>
                     <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
