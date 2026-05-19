@@ -239,10 +239,54 @@ export default function MetaConnections() {
           </Button>
           <Button size="sm" disabled={!!syncing} onClick={() => sync("sync_accounts")}>
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing === "accounts" ? "animate-spin" : ""}`} />
-            Sync Contas
+            {syncing === "accounts" && job
+              ? `Sincronizando... ${job.progress_total > 0 ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
+              : "Sync Contas"}
           </Button>
         </div>
       </div>
+
+      {job && (
+        <Card className="p-4 border-primary/40 bg-primary/5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <RefreshCw className={`h-4 w-4 text-primary ${job.status === "running" ? "animate-spin" : ""}`} />
+              <span className="font-display font-bold text-sm text-foreground">
+                {job.status === "completed" ? "Sincronização concluída" :
+                 job.status === "failed" ? "Sincronização falhou" :
+                 "Sincronizando contas em segundo plano"}
+              </span>
+            </div>
+            <Badge variant={job.status === "failed" ? "destructive" : job.status === "completed" ? "default" : "secondary"}>
+              {job.synced_count} contas
+            </Badge>
+          </div>
+          {job.progress_total > 0 && (
+            <div className="space-y-1">
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full transition-all ${job.status === "failed" ? "bg-destructive" : "bg-primary"}`}
+                  style={{ width: `${Math.min(100, (job.progress_current / job.progress_total) * 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{job.progress_current}/{job.progress_total} BMs</span>
+                <span>{Math.round((job.progress_current / job.progress_total) * 100)}%</span>
+              </div>
+            </div>
+          )}
+          {job.message && (
+            <p className={`text-xs ${job.message.startsWith("Retry") ? "text-yellow-400" : "text-muted-foreground"}`}>
+              {job.message.startsWith("Retry") && <AlertTriangle className="inline h-3 w-3 mr-1" />}
+              {job.message}
+            </p>
+          )}
+          {Array.isArray(job.errors) && job.errors.length > 0 && (
+            <p className="text-xs text-destructive">{job.errors.length} erro(s) ao consultar BMs (sync continuou)</p>
+          )}
+        </Card>
+      )}
+
 
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-foreground/90 flex gap-3">
         <Shield className="h-[18px] w-[18px] text-primary shrink-0 mt-0.5" />
