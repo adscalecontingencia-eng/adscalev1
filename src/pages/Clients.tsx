@@ -63,6 +63,7 @@ interface Commission {
 }
 
 const Clients: React.FC = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
