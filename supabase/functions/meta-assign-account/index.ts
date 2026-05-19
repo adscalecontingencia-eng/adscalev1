@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from("meta_ad_account_assignments")
-        .insert({ ad_account_id, client_id, active: true, assigned_at: new Date().toISOString() })
+        .upsert(
+          { ad_account_id, client_id, active: true, assigned_at: new Date().toISOString() },
+          { onConflict: "ad_account_id,client_id" }
+        )
         .select()
         .single();
       if (error) return json({ erro: error.message }, 400);
