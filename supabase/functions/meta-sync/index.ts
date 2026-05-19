@@ -20,6 +20,9 @@ function json(body: unknown, status = 200) {
   });
 }
 
+type BackoffInfo = { attempt: number; waitMs: number; reason: string };
+let onBackoff: ((info: BackoffInfo) => void) | null = null;
+
 async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Promise<Response> {
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
@@ -27,28 +30,32 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Pr
       const res = await fetch(url, init);
       if (res.status === 429 || res.status >= 500) {
         const wait = 1000 * Math.pow(2, i);
+        onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `HTTP ${res.status}` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
       }
-      // Peek body for Meta transient errors (code 4/17/32/613 = rate limit)
       const clone = res.clone();
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
       const transient = data?.error?.is_transient || [4, 17, 32, 613].includes(code);
       if (transient && i < attempts - 1) {
         const wait = 1500 * Math.pow(2, i);
+        onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `Meta code ${code} (rate limit)` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
       }
       return res;
     } catch (e) {
       lastErr = e;
-      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
+      const wait = 1000 * Math.pow(2, i);
+      onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `network error` });
+      await new Promise((r) => setTimeout(r, wait));
     }
   }
   if (lastErr) throw lastErr;
   return fetch(url, init);
 }
+
 
 async function metaFetch(path: string, token: string, params: Record<string, string> = {}) {
   const url = new URL(`${META_API}${path}`);
