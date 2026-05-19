@@ -34,6 +34,26 @@ const ClientDashboard: React.FC = () => {
   const [reqDesc, setReqDesc] = useState<string>('');
   const [submittingReq, setSubmittingReq] = useState(false);
 
+  const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
+  const [refreshingAccounts, setRefreshingAccounts] = useState(false);
+  const clientIdRef = useRef<string | null>(null);
+
+  const fetchAccounts = useCallback(async (clientId: string) => {
+    const { data: assigns } = await supabase
+      .from('meta_ad_account_assignments')
+      .select('*, ad_account:meta_ad_accounts(*)')
+      .eq('client_id', clientId)
+      .eq('active', true);
+    const list = assigns || [];
+    setActiveAccounts(list);
+    const latest = list
+      .map((a: any) => a.ad_account?.last_synced_at)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    if (latest) setLastAccountsSync(new Date(latest));
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -47,23 +67,47 @@ const ClientDashboard: React.FC = () => {
       const { data: clientData } = await clientQuery.maybeSingle();
       if (clientData) {
         setClient(clientData);
-        const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
+        clientIdRef.current = clientData.id;
+        const [{ data: commData }, { data: blocked }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
           supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
           supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
-          supabase.from('meta_ad_account_assignments').select('*, ad_account:meta_ad_accounts(*)').eq('client_id', clientData.id).eq('active', true),
           supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
           supabase.from('support_requests').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
         ]);
+        await fetchAccounts(clientData.id);
         setCommissions(commData || []);
         setSavedAccounts(blocked || []);
-        setActiveAccounts(assigns || []);
         setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
         setSupportRequests(reqs || []);
       }
       setLoading(false);
     };
     fetchData();
-  }, [user, viewAsClientId, isAdminView]);
+  }, [user, viewAsClientId, isAdminView, fetchAccounts]);
+
+  // Realtime: refresh ad accounts whenever sync updates them or assignments change
+  useEffect(() => {
+    if (!client?.id) return;
+    const channel = supabase
+      .channel(`client-accounts-${client.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meta_ad_accounts' }, () => {
+        fetchAccounts(client.id);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meta_ad_account_assignments', filter: `client_id=eq.${client.id}` }, () => {
+        fetchAccounts(client.id);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [client?.id, fetchAccounts]);
+
+  const refreshAccounts = async () => {
+    if (!client?.id) return;
+    setRefreshingAccounts(true);
+    await fetchAccounts(client.id);
+    setRefreshingAccounts(false);
+    toast.success('Contas atualizadas');
+  };
+
 
   const submitRequest = async () => {
     if (!client) return;
