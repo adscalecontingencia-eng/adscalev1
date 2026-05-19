@@ -427,7 +427,7 @@ Deno.serve(async (req) => {
         const out: any[] = [];
         let url: string | null = firstUrl;
         while (url) {
-          const r = await fetch(url);
+          const r = await fetchWithRetry(url);
           const d = await r.json();
           if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
           out.push(...(d.data || []));
