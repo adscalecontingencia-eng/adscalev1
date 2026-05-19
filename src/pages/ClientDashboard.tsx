@@ -16,6 +16,8 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
+  const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
@@ -34,8 +36,15 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.email) return;
-      const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
+      setLoading(true);
+      let clientQuery = supabase.from('clients').select('*');
+      if (isAdminView) {
+        clientQuery = clientQuery.eq('id', viewAsClientId!);
+      } else {
+        if (!user?.email) return;
+        clientQuery = clientQuery.eq('email', user.email);
+      }
+      const { data: clientData } = await clientQuery.maybeSingle();
       if (clientData) {
         setClient(clientData);
         const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
@@ -54,7 +63,7 @@ const ClientDashboard: React.FC = () => {
       setLoading(false);
     };
     fetchData();
-  }, [user]);
+  }, [user, viewAsClientId, isAdminView]);
 
   const submitRequest = async () => {
     if (!client) return;
