@@ -271,9 +271,12 @@ Deno.serve(async (req) => {
       });
 
       if (accRows.length > 0) {
-        const { error: accErr } = await supabase.from("meta_ad_accounts")
-          .upsert(accRows, { onConflict: "meta_account_id" });
-        if (accErr) throw accErr;
+        const CHUNK = 200;
+        for (let i = 0; i < accRows.length; i += CHUNK) {
+          const { error: accErr } = await supabase.from("meta_ad_accounts")
+            .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+          if (accErr) throw accErr;
+        }
       }
 
       // Atualiza contadores e verification_status nas BMs
