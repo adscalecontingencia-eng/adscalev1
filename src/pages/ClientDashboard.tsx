@@ -546,9 +546,27 @@ const ClientDashboard: React.FC = () => {
               const available = Math.max(0, total - used);
               return (
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
-                  <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                    <CreditCard size={16} className="text-primary" /> Contas de Anúncio
-                  </h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                    <h3 className="font-display text-sm font-semibold flex items-center gap-2">
+                      <CreditCard size={16} className="text-primary" /> Contas de Anúncio
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {lastAccountsSync && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Sincronizado {formatDistanceToNow(lastAccountsSync, { addSuffix: true, locale: ptBR })}
+                        </span>
+                      )}
+                      <button
+                        onClick={refreshAccounts}
+                        disabled={refreshingAccounts}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] bg-secondary border border-border hover:border-primary hover:text-primary disabled:opacity-50 transition-colors"
+                        title="Atualizar"
+                      >
+                        <RefreshCw size={11} className={refreshingAccounts ? 'animate-spin' : ''} />
+                        Atualizar
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-3 mb-5">
                     <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-center">
                       <ShieldCheck size={16} className="text-emerald-400 mx-auto mb-1" />
@@ -580,22 +598,30 @@ const ClientDashboard: React.FC = () => {
                         const isBlocked = acc.status === 'blocked' || (acc.disable_reason ?? 0) > 0;
                         return (
                           <div key={a.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap">
-                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isBlocked ? "bg-destructive/15 text-destructive" : "bg-emerald-500/15 text-emerald-400")}>
                                 {isBlocked ? <Ban size={16} /> : <ShieldCheck size={16} />}
                               </div>
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold truncate">{acc.name}</p>
-                                <p className="text-[11px] text-muted-foreground font-mono truncate">{acc.meta_account_id}</p>
+                                <p className="text-[11px] text-muted-foreground font-mono truncate">ID: {acc.meta_account_id}</p>
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
+                                  <span>Saldo: <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
+                                  <span>Gasto: <span className="text-foreground/80">{fmt(Number(acc.amount_spent) || 0)}</span></span>
+                                  {acc.currency && <span>Moeda: <span className="text-foreground/80">{acc.currency}</span></span>}
+                                  {acc.last_synced_at && (
+                                    <span>Atualizado: <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: ptBR })}</span></span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium",
+                            <div className="text-right shrink-0">
+                              <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium inline-flex items-center gap-1",
                                 isBlocked ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                               )}>
+                                {isBlocked ? <Ban size={10} /> : <ShieldCheck size={10} />}
                                 {isBlocked ? (acc.disable_reason_label || 'Banida') : 'Ativa'}
                               </span>
-                              <p className="text-[10px] text-muted-foreground mt-1">Saldo: {fmt(Number(acc.balance) || 0)}</p>
                             </div>
                           </div>
                         );
@@ -605,6 +631,7 @@ const ClientDashboard: React.FC = () => {
                 </div>
               );
             })()}
+
 
             {/* Pages */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
