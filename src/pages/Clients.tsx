@@ -835,6 +835,7 @@ const Clients: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex gap-1 sm:gap-2 shrink-0 ml-2">
+                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"><Eye size={14} /></button>
                     <button onClick={() => handleEdit(c)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"><Edit2 size={14} /></button>
                     <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
