@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
         // Pixel/page counters são preenchidos por action=sync_pages — evita estourar o tempo.
       }
 
-      const CONCURRENCY = 10;
+      const CONCURRENCY = 5;
       let cursor = 0;
       const worker = async () => {
         while (true) {
