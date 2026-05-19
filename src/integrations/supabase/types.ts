@@ -699,6 +699,51 @@ export type Database = {
           },
         ]
       }
+      meta_sync_jobs: {
+        Row: {
+          created_at: string
+          errors: Json
+          finished_at: string | null
+          id: string
+          kind: string
+          message: string | null
+          progress_current: number
+          progress_total: number
+          started_at: string | null
+          status: string
+          synced_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          kind: string
+          message?: string | null
+          progress_current?: number
+          progress_total?: number
+          started_at?: string | null
+          status?: string
+          synced_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          message?: string | null
+          progress_current?: number
+          progress_total?: number
+          started_at?: string | null
+          status?: string
+          synced_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           asset_id: string
