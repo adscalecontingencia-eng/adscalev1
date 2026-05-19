@@ -23,13 +23,13 @@ function json(body: unknown, status = 200) {
 type BackoffInfo = { attempt: number; waitMs: number; reason: string };
 let onBackoff: ((info: BackoffInfo) => void) | null = null;
 
-async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Promise<Response> {
+async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Promise<Response> {
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(url, init);
       if (res.status === 429 || res.status >= 500) {
-        const wait = 1000 * Math.pow(2, i);
+        const wait = Math.min(60000, 2000 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `HTTP ${res.status}` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
@@ -37,9 +37,13 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Pr
       const clone = res.clone();
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
-      const transient = data?.error?.is_transient || [4, 17, 32, 613].includes(code);
+      const subcode = data?.error?.error_subcode;
+      // Meta rate-limit codes: 4 (app rate), 17 (user rate), 32 (page rate), 613 (custom), 80004 (BM rate)
+      const transient = data?.error?.is_transient
+        || [4, 17, 32, 613].includes(code)
+        || [2446079, 1487390, 1487742].includes(subcode);
       if (transient && i < attempts - 1) {
-        const wait = 1500 * Math.pow(2, i);
+        const wait = Math.min(90000, 3000 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `Meta code ${code} (rate limit)` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
@@ -47,7 +51,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Pr
       return res;
     } catch (e) {
       lastErr = e;
-      const wait = 1000 * Math.pow(2, i);
+      const wait = Math.min(30000, 1500 * Math.pow(2, i));
       onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `network error` });
       await new Promise((r) => setTimeout(r, wait));
     }
