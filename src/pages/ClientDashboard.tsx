@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
@@ -16,6 +16,8 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
+  const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
@@ -34,8 +36,15 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.email) return;
-      const { data: clientData } = await supabase.from('clients').select('*').eq('email', user.email).maybeSingle();
+      setLoading(true);
+      let clientQuery = supabase.from('clients').select('*');
+      if (isAdminView) {
+        clientQuery = clientQuery.eq('id', viewAsClientId!);
+      } else {
+        if (!user?.email) return;
+        clientQuery = clientQuery.eq('email', user.email);
+      }
+      const { data: clientData } = await clientQuery.maybeSingle();
       if (clientData) {
         setClient(clientData);
         const [{ data: commData }, { data: blocked }, { data: assigns }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
@@ -54,7 +63,7 @@ const ClientDashboard: React.FC = () => {
       setLoading(false);
     };
     fetchData();
-  }, [user]);
+  }, [user, viewAsClientId, isAdminView]);
 
   const submitRequest = async () => {
     if (!client) return;
@@ -135,6 +144,18 @@ const ClientDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {isAdminView && (
+        <div className="bg-primary/10 border-b border-primary/30 px-4 lg:px-8 py-2 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-primary">
+            <Shield size={14} />
+            <span className="font-medium">Modo Administrador</span>
+            <span className="text-muted-foreground hidden sm:inline">— visualizando o dashboard de <strong className="text-foreground">{client.name}</strong></span>
+          </div>
+          <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-secondary hover:bg-secondary/70 text-foreground border border-border">
+            <X size={12} /> Sair da visualização
+          </button>
+        </div>
+      )}
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur z-20">
         <div className="flex items-center gap-3 text-primary">
           <AdScaleLogo size={28} />
@@ -145,11 +166,18 @@ const ClientDashboard: React.FC = () => {
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary">
-            <LogOut size={16} />
-          </button>
+          {isAdminView ? (
+            <button onClick={() => navigate('/clients')} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title="Voltar para Clientes">
+              <X size={16} />
+            </button>
+          ) : (
+            <button onClick={async () => { await logout(); navigate('/login'); }} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary">
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </header>
+
 
       <div className="p-4 lg:p-8 max-w-5xl mx-auto">
         {/* Hero header KPI strip */}

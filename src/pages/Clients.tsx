@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -62,6 +63,7 @@ interface Commission {
 }
 
 const Clients: React.FC = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -833,6 +835,7 @@ const Clients: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex gap-1 sm:gap-2 shrink-0 ml-2">
+                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"><Eye size={14} /></button>
                     <button onClick={() => handleEdit(c)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"><Edit2 size={14} /></button>
                     <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
