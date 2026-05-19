@@ -143,6 +143,59 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "delete_client") {
+      const { client_id } = body;
+      if (!client_id) {
+        return new Response(JSON.stringify({ error: "Missing client_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch client to get auth_user_id
+      const { data: clientRow, error: fetchErr } = await supabaseAdmin
+        .from("clients")
+        .select("id, auth_user_id")
+        .eq("id", client_id)
+        .maybeSingle();
+
+      if (fetchErr || !clientRow) {
+        return new Response(JSON.stringify({ error: "Cliente não encontrado" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Remove related records (no FK cascades in DB)
+      await supabaseAdmin.from("commissions").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("transactions").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("meta_ad_account_assignments").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("meta_page_assignments").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("support_requests").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("meta_blocked_accounts_log").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("meta_critical_events").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("whatsapp_dispatch_log").delete().eq("client_id", client_id);
+      await supabaseAdmin.from("client_terms_acceptances").delete().eq("client_id", client_id);
+
+      // Delete client row
+      const { error: clientDelErr } = await supabaseAdmin.from("clients").delete().eq("id", client_id);
+      if (clientDelErr) {
+        return new Response(JSON.stringify({ error: clientDelErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete auth user (cascades user_roles)
+      if (clientRow.auth_user_id) {
+        await supabaseAdmin.auth.admin.deleteUser(clientRow.auth_user_id);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
