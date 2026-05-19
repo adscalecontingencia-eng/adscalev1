@@ -20,11 +20,41 @@ function json(body: unknown, status = 200) {
   });
 }
 
+async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Promise<Response> {
+  let lastErr: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status === 429 || res.status >= 500) {
+        const wait = 1000 * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      // Peek body for Meta transient errors (code 4/17/32/613 = rate limit)
+      const clone = res.clone();
+      const data = await clone.json().catch(() => null);
+      const code = data?.error?.code;
+      const transient = data?.error?.is_transient || [4, 17, 32, 613].includes(code);
+      if (transient && i < attempts - 1) {
+        const wait = 1500 * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
+    }
+  }
+  if (lastErr) throw lastErr;
+  return fetch(url, init);
+}
+
 async function metaFetch(path: string, token: string, params: Record<string, string> = {}) {
   const url = new URL(`${META_API}${path}`);
   url.searchParams.set("access_token", token);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url.toString());
+  const res = await fetchWithRetry(url.toString());
   const data = await res.json();
   if (!res.ok || data.error) {
     throw new Error(`Meta API error: ${JSON.stringify(data.error || data)}`);
@@ -85,7 +115,7 @@ Deno.serve(async (req) => {
         const out: any[] = [];
         let url: string | null = firstUrl;
         while (url) {
-          const r = await fetch(url);
+          const r = await fetchWithRetry(url);
           const d = await r.json();
           if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
           out.push(...(d.data || []));
@@ -152,43 +182,31 @@ Deno.serve(async (req) => {
         "balance","business_country_code","age","business",
       ].join(",");
 
-      type Task =
-        | { kind: "accounts"; bmId: string; bmName: string; edge: string }
-        | { kind: "count"; bmId: string; edge: string };
+      type Task = { kind: "accounts"; bmId: string; bmName: string; edge: string };
       const tasks: Task[] = [];
       for (const bm of bms) {
         bmCounts.set(bm.id, { accounts: 0, pixels: 0, pages: 0 });
         for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
           tasks.push({ kind: "accounts", bmId: bm.id, bmName: bm.name, edge: e });
         }
-        for (const e of ["adspixels", "owned_pages", "client_pages"]) {
-          tasks.push({ kind: "count", bmId: bm.id, edge: e });
-        }
+        // Pixel/page counters são preenchidos por action=sync_pages — evita estourar o tempo.
       }
 
-      const CONCURRENCY = 3;
+      const CONCURRENCY = 5;
       let cursor = 0;
       const worker = async () => {
         while (true) {
           const i = cursor++;
           if (i >= tasks.length) return;
           const t = tasks[i];
-          const url = t.kind === "accounts"
-            ? `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`
-            : `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=id&limit=200`;
+          const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
           try {
             const items = await paginate(url);
             const c = bmCounts.get(t.bmId)!;
-            if (t.kind === "accounts") {
-              for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
-              c.accounts += items.length;
-            } else if (t.edge === "adspixels") {
-              c.pixels += items.length;
-            } else {
-              c.pages += items.length;
-            }
+            for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
+            c.accounts += items.length;
           } catch (e) {
-            if (t.kind === "accounts") errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
+            errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
           }
         }
       };
@@ -283,9 +301,12 @@ Deno.serve(async (req) => {
       });
 
       if (accRows.length > 0) {
-        const { error: accErr } = await supabase.from("meta_ad_accounts")
-          .upsert(accRows, { onConflict: "meta_account_id" });
-        if (accErr) throw accErr;
+        const CHUNK = 200;
+        for (let i = 0; i < accRows.length; i += CHUNK) {
+          const { error: accErr } = await supabase.from("meta_ad_accounts")
+            .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+          if (accErr) throw accErr;
+        }
       }
 
       // Atualiza contadores e verification_status nas BMs
@@ -406,7 +427,7 @@ Deno.serve(async (req) => {
         const out: any[] = [];
         let url: string | null = firstUrl;
         while (url) {
-          const r = await fetch(url);
+          const r = await fetchWithRetry(url);
           const d = await r.json();
           if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
           out.push(...(d.data || []));
