@@ -152,43 +152,31 @@ Deno.serve(async (req) => {
         "balance","business_country_code","age","business",
       ].join(",");
 
-      type Task =
-        | { kind: "accounts"; bmId: string; bmName: string; edge: string }
-        | { kind: "count"; bmId: string; edge: string };
+      type Task = { kind: "accounts"; bmId: string; bmName: string; edge: string };
       const tasks: Task[] = [];
       for (const bm of bms) {
         bmCounts.set(bm.id, { accounts: 0, pixels: 0, pages: 0 });
         for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
           tasks.push({ kind: "accounts", bmId: bm.id, bmName: bm.name, edge: e });
         }
-        for (const e of ["adspixels", "owned_pages", "client_pages"]) {
-          tasks.push({ kind: "count", bmId: bm.id, edge: e });
-        }
+        // Pixel/page counters são preenchidos por action=sync_pages — evita estourar o tempo.
       }
 
-      const CONCURRENCY = 3;
+      const CONCURRENCY = 10;
       let cursor = 0;
       const worker = async () => {
         while (true) {
           const i = cursor++;
           if (i >= tasks.length) return;
           const t = tasks[i];
-          const url = t.kind === "accounts"
-            ? `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`
-            : `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=id&limit=200`;
+          const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
           try {
             const items = await paginate(url);
             const c = bmCounts.get(t.bmId)!;
-            if (t.kind === "accounts") {
-              for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
-              c.accounts += items.length;
-            } else if (t.edge === "adspixels") {
-              c.pixels += items.length;
-            } else {
-              c.pages += items.length;
-            }
+            for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
+            c.accounts += items.length;
           } catch (e) {
-            if (t.kind === "accounts") errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
+            errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
           }
         }
       };
