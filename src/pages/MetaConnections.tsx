@@ -100,24 +100,74 @@ export default function MetaConnections() {
 
   useEffect(() => { load(); }, []);
 
+  // Realtime subscription to the active job
+  useEffect(() => {
+    if (!job?.id) return;
+    const channel = supabase
+      .channel(`sync-job-${job.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "meta_sync_jobs", filter: `id=eq.${job.id}` },
+        (payload) => {
+          const j = payload.new as any;
+          setJob({
+            id: j.id,
+            status: j.status,
+            progress_current: j.progress_current,
+            progress_total: j.progress_total,
+            synced_count: j.synced_count,
+            message: j.message,
+            errors: j.errors || [],
+          });
+          if (j.status === "completed" || j.status === "failed") {
+            setSyncing(null);
+            if (j.status === "completed") {
+              toast.success(`${j.synced_count} contas sincronizadas`);
+              load();
+            } else {
+              toast.error(j.message || "Sincronização falhou");
+            }
+            setTimeout(() => setJob(null), 5000);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [job?.id]);
+
   const sync = async (action: "sync_bms" | "sync_accounts") => {
     setSyncing(action === "sync_bms" ? "bms" : "accounts");
     try {
+      if (action === "sync_accounts") {
+        const { data, error } = await supabase.functions.invoke("meta-sync", {
+          body: { action: "start_sync_accounts" },
+        });
+        if (error) throw error;
+        if ((data as any)?.erro) throw new Error((data as any).erro);
+        const jobId = (data as any).job_id;
+        const { data: j } = await supabase.from("meta_sync_jobs").select("*").eq("id", jobId).single();
+        if (j) {
+          setJob({
+            id: j.id, status: j.status, progress_current: j.progress_current,
+            progress_total: j.progress_total, synced_count: j.synced_count,
+            message: j.message, errors: (j.errors as any) || [],
+          });
+        }
+        toast.info("Sincronização iniciada em segundo plano");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("meta-sync", { body: { action } });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
-      toast.success(
-        action === "sync_bms"
-          ? `${(data as any).bms_sincronizadas} BMs sincronizadas`
-          : `${(data as any).contas_sincronizadas} contas sincronizadas`
-      );
+      toast.success(`${(data as any).bms_sincronizadas} BMs sincronizadas`);
       await load();
+      setSyncing(null);
     } catch (e: any) {
       toast.error(`Erro na sincronização: ${e.message}`);
-    } finally {
       setSyncing(null);
     }
   };
+
 
   const assign = async (ad_account_id: string, client_id: string | null) => {
     try {
