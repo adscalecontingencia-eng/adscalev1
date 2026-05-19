@@ -5,7 +5,8 @@
     <title>AD SCALE</title>
     <script>
       // Redirect all 404s to index.html for SPA routing on GitHub Pages
-      var pathSegmentsToKeep = 1; // keep "/adscalev1/" prefix
+      // With custom domain (root path), pathSegmentsToKeep = 0
+      var pathSegmentsToKeep = 0;
       var l = window.location;
       l.replace(
         l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
