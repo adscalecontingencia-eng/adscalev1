@@ -261,9 +261,16 @@ const Clients: React.FC = () => {
   const handleEdit = (c: Client) => { setForm(c); setEditing(c); setShowForm(true); };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('clients').delete().eq('id', id);
-    if (error) { toast.error('Erro ao remover cliente'); return; }
+    const c = clients.find(x => x.id === id);
+    if (!confirm(`Excluir definitivamente o cliente "${c?.name}"?\n\nIsso removerá o login, comissões, lançamentos e atribuições deste cliente do banco de dados. Esta ação não pode ser desfeita.`)) return;
+    const res = await supabase.functions.invoke('manage-users', { body: { action: 'delete_client', client_id: id } });
+    if (res.error || (res.data as any)?.error) {
+      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao remover cliente');
+      return;
+    }
+    toast.success('Cliente removido do banco de dados');
     setClients(prev => prev.filter(c => c.id !== id));
+    fetchCommissions();
   };
 
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
