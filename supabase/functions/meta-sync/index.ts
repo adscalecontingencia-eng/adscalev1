@@ -23,13 +23,13 @@ function json(body: unknown, status = 200) {
 type BackoffInfo = { attempt: number; waitMs: number; reason: string };
 let onBackoff: ((info: BackoffInfo) => void) | null = null;
 
-async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Promise<Response> {
+async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Promise<Response> {
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(url, init);
       if (res.status === 429 || res.status >= 500) {
-        const wait = 1000 * Math.pow(2, i);
+        const wait = Math.min(60000, 2000 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `HTTP ${res.status}` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
@@ -37,9 +37,13 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Pr
       const clone = res.clone();
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
-      const transient = data?.error?.is_transient || [4, 17, 32, 613].includes(code);
+      const subcode = data?.error?.error_subcode;
+      // Meta rate-limit codes: 4 (app rate), 17 (user rate), 32 (page rate), 613 (custom), 80004 (BM rate)
+      const transient = data?.error?.is_transient
+        || [4, 17, 32, 613].includes(code)
+        || [2446079, 1487390, 1487742].includes(subcode);
       if (transient && i < attempts - 1) {
-        const wait = 1500 * Math.pow(2, i);
+        const wait = Math.min(90000, 3000 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `Meta code ${code} (rate limit)` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
@@ -47,7 +51,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 4): Pr
       return res;
     } catch (e) {
       lastErr = e;
-      const wait = 1000 * Math.pow(2, i);
+      const wait = Math.min(30000, 1500 * Math.pow(2, i));
       onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `network error` });
       await new Promise((r) => setTimeout(r, wait));
     }
@@ -143,7 +147,8 @@ async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
 
     const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
     const allAccounts: any[] = [];
-    const CONCURRENCY = 4;
+    const CONCURRENCY = 2;
+    const PACING_MS = 300; // pequeno gap entre requisições para não estourar rate-limit
     let cursor = 0;
     let done = 0;
 
@@ -160,14 +165,13 @@ async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
           errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
         }
         done++;
-        if (done % 2 === 0 || done === tasks.length) {
-          await update({
-            progress_current: done,
-            synced_count: allAccounts.length,
-            message: `${done}/${tasks.length} BMs processadas · ${allAccounts.length} contas coletadas`,
-            errors,
-          });
-        }
+        await update({
+          progress_current: done,
+          synced_count: allAccounts.length,
+          message: `${done}/${tasks.length} consultas concluídas · ${allAccounts.length} contas coletadas`,
+          errors,
+        });
+        await new Promise((r) => setTimeout(r, PACING_MS));
       }
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));

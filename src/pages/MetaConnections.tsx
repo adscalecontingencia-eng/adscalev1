@@ -233,15 +233,11 @@ export default function MetaConnections() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={!!syncing} onClick={() => sync("sync_bms")}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncing === "bms" ? "animate-spin" : ""}`} />
-            Sync BMs
-          </Button>
           <Button size="sm" disabled={!!syncing} onClick={() => sync("sync_accounts")}>
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing === "accounts" ? "animate-spin" : ""}`} />
             {syncing === "accounts" && job
               ? `Sincronizando... ${job.progress_total > 0 ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
-              : "Sync Contas"}
+              : "Sincronizar BMs + Contas"}
           </Button>
         </div>
       </div>
