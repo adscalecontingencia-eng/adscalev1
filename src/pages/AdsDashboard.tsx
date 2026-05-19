@@ -130,7 +130,7 @@ export default function AdsDashboard() {
         })
         .map((a) => a.id)
     );
-  }, [accounts, filterBm, filterAccount, filterClients, clientByAccount]);
+  }, [accounts, filterBm, filterAccounts, filterClients, clientByAccount]);
 
   const filteredInsights = useMemo(
     () => insights.filter((i) => filteredAccountIds.has(i.ad_account_id)),
@@ -210,7 +210,7 @@ export default function AdsDashboard() {
           ))}
         </div>
         <div className="flex flex-wrap gap-3">
-          <Select value={filterBm} onValueChange={(v) => { setFilterBm(v); setFilterAccount("all"); }}>
+          <Select value={filterBm} onValueChange={(v) => { setFilterBm(v); setFilterAccounts([]); }}>
             <SelectTrigger className="w-[220px]"><SelectValue placeholder="Todas as BMs" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as BMs</SelectItem>
@@ -312,15 +312,86 @@ export default function AdsDashboard() {
             </div>
           )}
 
-          <Select value={filterAccount} onValueChange={setFilterAccount}>
-            <SelectTrigger className="w-[260px]"><SelectValue placeholder="Todas as contas" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as contas</SelectItem>
-              {accountOptions.map((a) => (
-                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[260px] justify-between font-normal">
+                <span className="flex items-center gap-2 truncate">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {filterAccounts.length === 0
+                    ? "Todas as contas"
+                    : filterAccounts.length === 1
+                      ? (accounts.find((a) => a.id === filterAccounts[0])?.name || "1 conta")
+                      : `${filterAccounts.length} contas`}
+                </span>
+                {filterAccounts.length > 0 && (
+                  <X
+                    className="h-4 w-4 text-muted-foreground hover:text-foreground"
+                    onClick={(e) => { e.stopPropagation(); setFilterAccounts([]); }}
+                  />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] p-0" align="start">
+              <div className="p-2 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    className="pl-7 h-8 text-xs"
+                    placeholder="Buscar conta..."
+                    value={accountSearch}
+                    onChange={(e) => setAccountSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border text-xs">
+                <button
+                  className="text-primary hover:underline"
+                  onClick={() => setFilterAccounts(accountOptions.map((a) => a.id))}
+                >
+                  Selecionar todos
+                </button>
+                <button
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => setFilterAccounts([])}
+                >
+                  Limpar
+                </button>
+              </div>
+              <div className="max-h-[280px] overflow-y-auto p-1">
+                {accountOptions
+                  .filter((a) => a.name.toLowerCase().includes(accountSearch.toLowerCase()))
+                  .map((a) => (
+                    <label key={a.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
+                      <Checkbox
+                        checked={filterAccounts.includes(a.id)}
+                        onCheckedChange={(v) => {
+                          setFilterAccounts((prev) =>
+                            v ? [...prev, a.id] : prev.filter((x) => x !== a.id)
+                          );
+                        }}
+                      />
+                      <span className="truncate">{a.name}</span>
+                    </label>
+                  ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          {filterAccounts.length > 0 && (
+            <div className="flex flex-wrap gap-1 items-center">
+              {filterAccounts.slice(0, 3).map((aid) => (
+                <Badge key={aid} variant="secondary" className="gap-1">
+                  {accounts.find((a) => a.id === aid)?.name || aid}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterAccounts((prev) => prev.filter((x) => x !== aid))}
+                  />
+                </Badge>
               ))}
-            </SelectContent>
-          </Select>
+              {filterAccounts.length > 3 && (
+                <Badge variant="outline">+{filterAccounts.length - 3}</Badge>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 
