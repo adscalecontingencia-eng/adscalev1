@@ -78,6 +78,7 @@ export default function MetaConnections() {
     errors: any[];
   } | null>(null);
   const [filterBm, setFilterBm] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterClient, setFilterClient] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Account | null>(null);
