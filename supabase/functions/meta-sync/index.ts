@@ -478,7 +478,7 @@ Deno.serve(async (req) => {
         const raw: string = fsd.display_string || "";
         const digits = (raw.match(/\d/g) || []).join("");
         const last4 = digits.slice(-4);
-        const type = fsd.type || "";
+        const type = fsd.type != null ? String(fsd.type) : "";
         const brandMatch = raw.match(/^([A-Za-z]+)/);
         const brand = brandMatch ? brandMatch[1].toUpperCase() : "";
         if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
