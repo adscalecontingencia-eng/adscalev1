@@ -841,8 +841,10 @@ const Clients: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 sm:gap-2 shrink-0 ml-2">
-                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"><Eye size={14} /></button>
+                  <div className="flex gap-1 sm:gap-2 shrink-0 ml-2 items-center">
+                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium">
+                      <Eye size={13} /> <span className="hidden sm:inline">Ver como cliente</span>
+                    </button>
                     <button onClick={() => handleEdit(c)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"><Edit2 size={14} /></button>
                     <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
