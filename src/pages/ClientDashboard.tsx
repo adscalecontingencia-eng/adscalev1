@@ -217,15 +217,15 @@ const ClientDashboard: React.FC = () => {
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <TrendingUp size={18} className="text-sky-400" />
-                <div className="text-2xl font-bold text-sky-400 mt-2">{fmt(allTimeTotals.adSpend)}</div>
+                <div className="text-2xl font-bold text-sky-400 mt-2">{fmt(periodTotals.adSpend)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Investido em Ads</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">Gasto gerenciado</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Esta semana' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
-                <Ban size={18} className="text-amber-400" />
-                <div className="text-2xl font-bold text-amber-400 mt-2">{savedAccounts.filter(s => s.resolved_at).length}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Eventos Resolvidos</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">Riscos neutralizados</div>
+                <DollarSign size={18} className="text-amber-400" />
+                <div className="text-2xl font-bold text-amber-400 mt-2">{fmt(periodTotals.commission)}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Comissão Agência</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Esta semana' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
               </div>
             </div>
 
