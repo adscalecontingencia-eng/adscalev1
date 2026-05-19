@@ -145,14 +145,14 @@ const ClientDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {isAdminView && (
-        <div className="bg-primary/10 border-b border-primary/30 px-4 lg:px-8 py-2 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-primary">
+        <div className="sticky top-0 z-50 bg-primary text-primary-foreground border-b border-primary/60 px-4 lg:px-8 py-2.5 flex items-center justify-between text-xs shadow-lg">
+          <div className="flex items-center gap-2">
             <Shield size={14} />
-            <span className="font-medium">Modo Administrador</span>
-            <span className="text-muted-foreground hidden sm:inline">— visualizando o dashboard de <strong className="text-foreground">{client.name}</strong></span>
+            <span className="font-semibold uppercase tracking-wider">Modo Administrador</span>
+            <span className="opacity-90 hidden sm:inline">— visualizando como <strong>{client.name}</strong></span>
           </div>
-          <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-secondary hover:bg-secondary/70 text-foreground border border-border">
-            <X size={12} /> Sair da visualização
+          <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 text-primary-foreground font-medium border border-background/30">
+            <X size={13} /> Sair da visualização
           </button>
         </div>
       )}
