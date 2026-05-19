@@ -115,6 +115,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ===== 0) BACKGROUND JOB: start async sync, return immediately =====
+    if (action === "start_sync_accounts") {
+      const { data: job, error: jobErr } = await supabase
+        .from("meta_sync_jobs")
+        .insert({ kind: "accounts", status: "pending", message: "Aguardando início..." })
+        .select("id")
+        .single();
+      if (jobErr) throw jobErr;
+
+      // Run in background — does not block response, escapes wall-clock of this request
+      // @ts-ignore EdgeRuntime is provided by Supabase runtime
+      EdgeRuntime.waitUntil(runAccountsSyncJob(supabase, token, job.id));
+      return json({ sucesso: true, job_id: job.id });
+    }
+
+
     // ===== 1) SYNC BMs + ACCOUNTS (User Token: list BMs then accounts of each) =====
     if (action === "sync_bms" || action === "sync_accounts") {
       // Helper: paginate any /edge URL
