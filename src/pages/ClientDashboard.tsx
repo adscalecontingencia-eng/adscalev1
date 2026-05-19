@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
