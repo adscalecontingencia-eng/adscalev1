@@ -137,7 +137,12 @@ const Support: React.FC = () => {
                         )}
                         <span className="text-[11px] text-primary">{r.client?.name || '—'}</span>
                       </div>
-                      {r.description && <p className="text-[11px] text-muted-foreground mt-0.5">{r.description}</p>}
+                      {r.description && <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{r.description}</p>}
+                      {r.bm_meta_id && (
+                        <p className="text-[11px] text-primary flex items-center gap-1 mt-1">
+                          <CreditCard size={11} /> BM destino: <span className="font-mono">{r.bm_meta_id}</span>
+                        </p>
+                      )}
                       <p className="text-[10px] text-muted-foreground/70 mt-1">
                         {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </p>
