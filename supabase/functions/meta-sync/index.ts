@@ -618,8 +618,8 @@ Deno.serve(async (req) => {
                 ctr: Number(row.ctr || 0),
                 reach: Number(row.reach || 0),
                 actions: row.actions || null,
-                purchases: sumByType(row.actions),
-                revenue: sumByType(row.action_values),
+                purchases: pickByPriority(row.actions),
+                revenue: pickByPriority(row.action_values),
               });
             }
           } catch (e) {
