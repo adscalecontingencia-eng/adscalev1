@@ -502,9 +502,9 @@ const ClientDashboard: React.FC = () => {
               const now = new Date();
               const ws = startOfWeek(now, { weekStartsOn: 1 });
               const we = endOfWeek(now, { weekStartsOn: 1 });
-              const weekSpend = commissions
-                .filter((c: any) => c.type === 'daily' && isWithinInterval(parseDateLocal(c.date), { start: ws, end: we }))
-                .reduce((s: number, c: any) => s + Number(c.ad_spend || 0), 0);
+              const weekSpend = insights
+                .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
+                .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
               const tiers = [
                 { min: 20000, pct: 4 },
                 { min: 40000, pct: 3 },
