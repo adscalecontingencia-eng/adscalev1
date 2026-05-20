@@ -367,6 +367,15 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={handleManualSync}
+              disabled={syncing}
+              className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium bg-card/40 backdrop-blur border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+              title="Gerar comissões pendentes a partir dos gastos sincronizados"
+            >
+              <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Sincronizando...' : 'Sincronizar Comissões'}
+            </button>
             <div className="text-right">
               <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Margem operacional</div>
               <div className={`font-display text-2xl font-bold ${margin >= 0 ? 'text-primary glow-text' : 'text-destructive'}`}>
