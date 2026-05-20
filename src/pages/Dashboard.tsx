@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
+import { syncAutoCommissions } from '@/lib/auto-commissions';
+import { toast } from 'sonner';
 
 type DateFilter = 'today' | '7days' | 'month' | 'custom' | 'range';
 type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
@@ -57,7 +59,19 @@ const Dashboard: React.FC = () => {
       if (accRes.data) setAdAccounts(accRes.data);
     };
     fetchData();
+    // Auto-sync pending commissions from synced ad spend (silent on mount)
+    syncAutoCommissions().catch(() => { /* silent */ });
   }, []);
+
+  const [syncing, setSyncing] = useState(false);
+  const handleManualSync = async () => {
+    setSyncing(true);
+    const r = await syncAutoCommissions();
+    setSyncing(false);
+    if (r.errors > 0) toast.error('Erro ao sincronizar comissões');
+    else if (r.inserted > 0) toast.success(`${r.inserted} comissão(ões) pendente(s) gerada(s) a partir dos gastos`);
+    else toast.info('Comissões já estão sincronizadas');
+  };
 
   // Mapa client_id → client_type para filtrar transações por tipo de cliente
   const clientTypeMap = useMemo(() => {
@@ -353,6 +367,15 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={handleManualSync}
+              disabled={syncing}
+              className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium bg-card/40 backdrop-blur border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+              title="Gerar comissões pendentes a partir dos gastos sincronizados"
+            >
+              <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Sincronizando...' : 'Sincronizar Comissões'}
+            </button>
             <div className="text-right">
               <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Margem operacional</div>
               <div className={`font-display text-2xl font-bold ${margin >= 0 ? 'text-primary glow-text' : 'text-destructive'}`}>
