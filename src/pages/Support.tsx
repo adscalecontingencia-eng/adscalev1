@@ -192,10 +192,18 @@ const Support: React.FC = () => {
                     <option value="cancelada">Cancelada</option>
                   </select>
                 </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
-        )}
+          );
+        })()}
+      </div>
+
       </div>
 
       {showForm && (
