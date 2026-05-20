@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
 
 interface Client {
   id: string;
