@@ -498,7 +498,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="relative">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                     <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — semana a semana
+                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — histórico semana a semana
                     </h3>
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> Crédito abatido</span>
@@ -506,13 +506,13 @@ const ClientDashboard: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Projeção baseada na sua comissão média semanal de <strong className="text-foreground">{fmt(creditPlan.avgWeekly)}</strong>. Seu crédito de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> abate a comissão automaticamente até zerar.
+                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · valor a pagar acumulado <strong className="text-amber-300">{fmt(creditPlan.totalPaying)}</strong>.
                   </p>
 
                   <div className="space-y-2.5">
                     {creditPlan.rows.map((r, idx) => {
                       const pct = Math.max(1, (r.creditApplied / r.commission) * 100);
-                      const isFirstPaying = r.creditApplied === 0 && idx > 0;
+                      const isFirstPaying = r.creditApplied < r.commission && (idx === 0 || creditPlan.rows[idx - 1].clientPays === 0);
                       return (
                         <div key={idx} className={cn(
                           "rounded-lg border p-3",
@@ -522,9 +522,9 @@ const ClientDashboard: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-mono text-muted-foreground">Semana {idx + 1}</span>
                               <span className="text-xs font-medium text-foreground">
-                                {format(r.weekStart, "dd 'de' MMM", { locale: ptBR })}
+                                {format(r.weekStart, "dd 'de' MMM yyyy", { locale: ptBR })}
                               </span>
-                              {isFirstPaying && (
+                              {isFirstPaying && r.clientPays > 0 && (
                                 <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
                                   Início dos pagamentos
                                 </span>
@@ -557,10 +557,10 @@ const ClientDashboard: React.FC = () => {
                             )}
                           </div>
                           <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                            <span>Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
+                            <span>Gasto: <span className="text-foreground font-medium">{fmt(r.spend)}</span> · Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
                             <span>
-                              {r.creditApplied > 0 && r.clientPays === 0 && '100% coberto pelo crédito'}
-                              {r.creditApplied > 0 && r.clientPays > 0 && 'Crédito esgotado nesta semana'}
+                              {r.creditApplied >= r.commission && '100% coberto pelo crédito'}
+                              {r.creditApplied > 0 && r.creditApplied < r.commission && 'Crédito esgotado nesta semana'}
                               {r.creditApplied === 0 && 'Pagamento integral via Pix/Cripto'}
                             </span>
                           </div>
@@ -571,6 +571,7 @@ const ClientDashboard: React.FC = () => {
                 </div>
               </div>
             )}
+
 
             {/* Saved accounts */}
             {savedAccounts.length > 0 && (
