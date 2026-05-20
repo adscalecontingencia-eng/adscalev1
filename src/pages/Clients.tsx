@@ -74,6 +74,52 @@ const Clients: React.FC = () => {
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
 
+  // Tiers admin-editable
+  const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
+  const [tierDraft, setTierDraft] = useState<CommissionTier[] | null>(null);
+  const [savingTiers, setSavingTiers] = useState(false);
+  const getTierPercentage = (weekSpend: number, basePct: number) =>
+    getTierPctFromTiers(weekSpend, basePct, commissionTiers);
+
+  const tiersToShow = tierDraft ?? commissionTiers;
+
+  const updateTierDraft = (idx: number, field: 'min_spend' | 'pct', value: number) => {
+    const base = tierDraft ?? commissionTiers.map(t => ({ ...t }));
+    const next = base.map((t, i) => i === idx ? { ...t, [field]: value } : t);
+    setTierDraft(next);
+  };
+  const addTier = () => {
+    const base = tierDraft ?? commissionTiers.map(t => ({ ...t }));
+    setTierDraft([...base, { min_spend: 0, pct: 0 }]);
+  };
+  const removeTier = (idx: number) => {
+    const base = tierDraft ?? commissionTiers.map(t => ({ ...t }));
+    setTierDraft(base.filter((_, i) => i !== idx));
+  };
+  const saveTiers = async () => {
+    if (!tierDraft) return;
+    setSavingTiers(true);
+    try {
+      // Replace all: delete then insert
+      const { error: delErr } = await supabase.from('commission_tiers').delete().not('id', 'is', null);
+      if (delErr) throw delErr;
+      const clean = tierDraft
+        .filter(t => Number.isFinite(t.min_spend) && Number.isFinite(t.pct))
+        .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }));
+      if (clean.length > 0) {
+        const { error: insErr } = await supabase.from('commission_tiers').insert(clean);
+        if (insErr) throw insErr;
+      }
+      toast.success('Metas semanais atualizadas');
+      setTierDraft(null);
+      await reloadTiers();
+    } catch (e: any) {
+      toast.error('Falha ao salvar metas: ' + (e?.message || ''));
+    } finally {
+      setSavingTiers(false);
+    }
+  };
+
   // Edit commission state
   const [editingCommission, setEditingCommission] = useState<Commission | null>(null);
   const [editCommAmount, setEditCommAmount] = useState('');
