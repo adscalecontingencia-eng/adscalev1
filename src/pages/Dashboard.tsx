@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
+import { syncAutoCommissions } from '@/lib/auto-commissions';
+import { toast } from 'sonner';
 
 type DateFilter = 'today' | '7days' | 'month' | 'custom' | 'range';
 type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
