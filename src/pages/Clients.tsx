@@ -786,13 +786,79 @@ const Clients: React.FC = () => {
                     <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
                   </div>
                   <div className="bg-secondary/60 border border-border rounded-lg p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Metas semanais de desconto (USD)</p>
-                    <ul className="text-xs space-y-1 text-foreground">
-                      <li className="flex justify-between"><span>Acima de $20k</span><span className="text-primary font-semibold">4%</span></li>
-                      <li className="flex justify-between"><span>Acima de $40k</span><span className="text-primary font-semibold">3%</span></li>
-                      <li className="flex justify-between"><span>Acima de $80k</span><span className="text-primary font-semibold">2%</span></li>
-                      <li className="flex justify-between"><span>Acima de $200k</span><span className="text-primary font-semibold">1%</span></li>
-                    </ul>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Metas semanais de desconto (USD)</p>
+                      <button
+                        type="button"
+                        onClick={addTier}
+                        className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                      >
+                        + Adicionar meta
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {[...tiersToShow]
+                        .sort((a, b) => a.min_spend - b.min_spend)
+                        .map((t, idx) => {
+                          // index in the (possibly draft) base array
+                          const baseArr = tierDraft ?? commissionTiers;
+                          const realIdx = baseArr.findIndex(x => x === t);
+                          const i = realIdx >= 0 ? realIdx : idx;
+                          return (
+                            <div key={i} className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <label className="block text-[10px] text-muted-foreground mb-0.5">Acima de (USD)</label>
+                                <input
+                                  type="number"
+                                  value={t.min_spend}
+                                  onChange={e => updateTierDraft(i, 'min_spend', parseFloat(e.target.value) || 0)}
+                                  className={inputClass}
+                                />
+                              </div>
+                              <div className="w-24">
+                                <label className="block text-[10px] text-muted-foreground mb-0.5">%</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={t.pct}
+                                  onChange={e => updateTierDraft(i, 'pct', parseFloat(e.target.value) || 0)}
+                                  className={inputClass}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeTier(i)}
+                                className="mt-4 p-2 rounded hover:bg-destructive/10 text-destructive"
+                                title="Remover meta"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    {tierDraft && (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={saveTiers}
+                          disabled={savingTiers}
+                          className="flex-1 bg-primary text-primary-foreground text-xs font-semibold py-2 rounded hover:opacity-90 disabled:opacity-50"
+                        >
+                          {savingTiers ? 'Salvando...' : 'Salvar metas'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTierDraft(null)}
+                          className="px-3 text-xs text-muted-foreground border border-border rounded hover:bg-secondary"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Estas metas são globais e valem para todos os clientes de aluguel.
+                    </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
