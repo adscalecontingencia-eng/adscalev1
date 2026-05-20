@@ -64,7 +64,9 @@ const ClientDashboard: React.FC = () => {
         .from('meta_ad_insights')
         .select('ad_account_id, date, spend')
         .in('ad_account_id', accountIds)
-        .gte('date', sinceStr);
+        .gte('date', sinceStr)
+        .order('date', { ascending: true })
+        .limit(20000);
       setInsights(ins || []);
     } else {
       setInsights([]);
