@@ -1091,7 +1091,7 @@ const ClientDashboard: React.FC = () => {
                             <StatusIcon size={11} />
                             {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
                           </span>
-                          {r.status === 'pendente' && !isAdminView && (
+                          {r.status === 'pendente' && (
                             <div className="flex gap-1">
                               <button onClick={() => startEditRequest(r)} title="Editar" className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/50">
                                 <Pencil size={12} />
