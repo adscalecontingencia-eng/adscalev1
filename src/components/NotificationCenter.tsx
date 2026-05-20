@@ -205,17 +205,18 @@ export const NotificationCenter: React.FC = () => {
         const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
         return {
           id: `req-${r.id}`,
-          severity: r.status === 'em_andamento' ? 'info' : 'warning',
+          severity: r.status === 'em_andamento' ? 'warning' : 'critical',
           assetType: 'Solicitação',
           assetName: r.client?.name || 'Cliente',
           assetId: r.id,
           eventType: 'client_request',
-          title: `Solicitação: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
+          title: `🔔 Solicitação de cliente: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
           description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
           meta: [
             { label: 'Cliente', value: r.client?.name || '—' },
             { label: 'Tipo', value: typeLabel },
             { label: 'Qtd', value: String(r.quantity) },
+            ...(r.bm_meta_id ? [{ label: 'BM destino', value: r.bm_meta_id }] : []),
             { label: 'Status', value: r.status },
           ],
           occurredAt: r.created_at,
