@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,7 +33,9 @@ const ClientDashboard: React.FC = () => {
   const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
   const [reqQty, setReqQty] = useState<number>(1);
   const [reqDesc, setReqDesc] = useState<string>('');
+  const [reqBmId, setReqBmId] = useState<string>('');
   const [submittingReq, setSubmittingReq] = useState(false);
+  const [editingReqId, setEditingReqId] = useState<string | null>(null);
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
@@ -128,20 +130,59 @@ const ClientDashboard: React.FC = () => {
   };
 
 
+  const resetReqForm = () => {
+    setReqDesc(''); setReqQty(1); setReqBmId(''); setEditingReqId(null);
+  };
+
   const submitRequest = async () => {
     if (!client) return;
+    if (reqType === 'add_ad_account' && !reqBmId.trim()) {
+      toast.error('Informe o ID da BM onde deseja receber as contas.');
+      return;
+    }
     setSubmittingReq(true);
-    const { data, error } = await supabase.from('support_requests').insert({
+    const payload: any = {
       client_id: client.id,
       request_type: reqType,
       quantity: reqQty,
       description: reqDesc || null,
-    }).select().single();
+      bm_meta_id: reqType === 'add_ad_account' ? reqBmId.trim() : null,
+    };
+    if (editingReqId) {
+      const { data, error } = await supabase.from('support_requests')
+        .update(payload).eq('id', editingReqId).select().single();
+      setSubmittingReq(false);
+      if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
+      setSupportRequests(prev => prev.map(r => r.id === editingReqId ? data : r));
+      resetReqForm();
+      toast.success('Solicitação atualizada!');
+      return;
+    }
+    const { data, error } = await supabase.from('support_requests').insert(payload).select().single();
     setSubmittingReq(false);
     if (error) { toast.error('Erro ao enviar solicitação: ' + error.message); return; }
     setSupportRequests(prev => [data, ...prev]);
-    setReqDesc(''); setReqQty(1);
+    resetReqForm();
     toast.success('Solicitação enviada! Nossa equipe foi notificada.');
+  };
+
+  const startEditRequest = (r: any) => {
+    setEditingReqId(r.id);
+    setReqType(r.request_type);
+    setReqQty(r.quantity || 1);
+    setReqDesc(r.description || '');
+    setReqBmId(r.bm_meta_id || '');
+    setTab('suporte');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteRequest = async (id: string) => {
+    if (!confirm('Excluir esta solicitação?')) return;
+    const { error } = await supabase.from('support_requests').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir: ' + error.message); return; }
+    setSupportRequests(prev => prev.filter(r => r.id !== id));
+    if (editingReqId === id) resetReqForm();
+    toast.success('Solicitação excluída.');
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -964,6 +1005,21 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {reqType === 'add_ad_account' && (
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+                      <Building2 size={11} /> ID da BM (onde receber as contas) *
+                    </label>
+                    <input
+                      type="text"
+                      value={reqBmId}
+                      onChange={e => setReqBmId(e.target.value)}
+                      placeholder="Ex: 1469807817968606"
+                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
                   <textarea
@@ -974,13 +1030,20 @@ const ClientDashboard: React.FC = () => {
                   />
                 </div>
 
-                <button
-                  onClick={submitRequest}
-                  disabled={submittingReq || (reqType === 'other' && !reqDesc.trim())}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
-                >
-                  <Send size={14} /> {submittingReq ? 'Enviando...' : 'Enviar solicitação'}
-                </button>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={submitRequest}
+                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim())}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                  >
+                    <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
+                  </button>
+                  {editingReqId && (
+                    <button onClick={resetReqForm} className="px-4 py-2.5 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:text-foreground">
+                      Cancelar edição
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1013,15 +1076,32 @@ const ClientDashboard: React.FC = () => {
                               <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                             )}
                           </div>
-                          {r.description && <p className="text-[11px] text-muted-foreground">{r.description}</p>}
+                          {r.bm_meta_id && (
+                            <p className="text-[11px] text-primary flex items-center gap-1 mt-0.5">
+                              <Building2 size={11} /> BM: {r.bm_meta_id}
+                            </p>
+                          )}
+                          {r.description && <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground/70 mt-1">
                             {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </p>
                         </div>
-                        <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
-                          <StatusIcon size={11} />
-                          {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
+                            <StatusIcon size={11} />
+                            {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
+                          </span>
+                          {r.status === 'pendente' && !isAdminView && (
+                            <div className="flex gap-1">
+                              <button onClick={() => startEditRequest(r)} title="Editar" className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/50">
+                                <Pencil size={12} />
+                              </button>
+                              <button onClick={() => deleteRequest(r.id)} title="Excluir" className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

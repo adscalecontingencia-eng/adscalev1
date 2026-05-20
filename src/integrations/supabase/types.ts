@@ -807,6 +807,7 @@ export type Database = {
       support_requests: {
         Row: {
           assigned_to: string | null
+          bm_meta_id: string | null
           client_id: string
           created_at: string
           description: string | null
@@ -819,6 +820,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          bm_meta_id?: string | null
           client_id: string
           created_at?: string
           description?: string | null
@@ -831,6 +833,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          bm_meta_id?: string | null
           client_id?: string
           created_at?: string
           description?: string | null
@@ -841,7 +844,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "support_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_users: {
         Row: {

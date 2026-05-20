@@ -136,7 +136,7 @@ export const NotificationCenter: React.FC = () => {
           .limit(30),
         supabase
           .from("support_requests")
-          .select("id, request_type, description, quantity, status, created_at, client:clients(name)")
+          .select("id, request_type, description, quantity, status, bm_meta_id, created_at, client:clients(name)")
           .in("status", ["pendente", "em_andamento"])
           .order("created_at", { ascending: false })
           .limit(30),
@@ -205,17 +205,18 @@ export const NotificationCenter: React.FC = () => {
         const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
         return {
           id: `req-${r.id}`,
-          severity: r.status === 'em_andamento' ? 'info' : 'warning',
+          severity: r.status === 'em_andamento' ? 'warning' : 'critical',
           assetType: 'Solicitação',
           assetName: r.client?.name || 'Cliente',
           assetId: r.id,
           eventType: 'client_request',
-          title: `Solicitação: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
+          title: `🔔 Solicitação de cliente: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
           description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
           meta: [
             { label: 'Cliente', value: r.client?.name || '—' },
             { label: 'Tipo', value: typeLabel },
             { label: 'Qtd', value: String(r.quantity) },
+            ...(r.bm_meta_id ? [{ label: 'BM destino', value: r.bm_meta_id }] : []),
             { label: 'Status', value: r.status },
           ],
           occurredAt: r.created_at,
@@ -226,7 +227,13 @@ export const NotificationCenter: React.FC = () => {
       const all = [...acc, ...bm, ...log, ...req]
         .filter(n => !dismissed.has(n.id))
         .filter(n => isAllowedByPrefs(n, prefs, "central"))
-        .sort((a, b) => +new Date(b.occurredAt) - +new Date(a.occurredAt));
+        .sort((a, b) => {
+          // Client requests have top priority
+          const aPriority = a.eventType === 'client_request' ? 1 : 0;
+          const bPriority = b.eventType === 'client_request' ? 1 : 0;
+          if (aPriority !== bPriority) return bPriority - aPriority;
+          return +new Date(b.occurredAt) - +new Date(a.occurredAt);
+        });
       setItems(all);
     } finally {
       setLoading(false);
