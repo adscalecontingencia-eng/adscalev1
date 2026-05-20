@@ -80,7 +80,7 @@ export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
         result.skipped++;
         continue;
       }
-      const rate = getTierPct(weekSpend, basePct);
+      const rate = getTierPctFromTiers(weekSpend, basePct, tiers);
       const commission = weekSpend * (rate / 100);
       if (commission <= 0) continue;
       const wsDate = parseDateLocal(weekKey);
