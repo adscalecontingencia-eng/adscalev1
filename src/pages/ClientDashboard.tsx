@@ -1076,15 +1076,32 @@ const ClientDashboard: React.FC = () => {
                               <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                             )}
                           </div>
-                          {r.description && <p className="text-[11px] text-muted-foreground">{r.description}</p>}
+                          {r.bm_meta_id && (
+                            <p className="text-[11px] text-primary flex items-center gap-1 mt-0.5">
+                              <Building2 size={11} /> BM: {r.bm_meta_id}
+                            </p>
+                          )}
+                          {r.description && <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground/70 mt-1">
                             {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </p>
                         </div>
-                        <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
-                          <StatusIcon size={11} />
-                          {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
+                            <StatusIcon size={11} />
+                            {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
+                          </span>
+                          {r.status === 'pendente' && !isAdminView && (
+                            <div className="flex gap-1">
+                              <button onClick={() => startEditRequest(r)} title="Editar" className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/50">
+                                <Pencil size={12} />
+                              </button>
+                              <button onClick={() => deleteRequest(r.id)} title="Excluir" className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
