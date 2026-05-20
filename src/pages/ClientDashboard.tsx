@@ -329,13 +329,24 @@ const ClientDashboard: React.FC = () => {
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-5 mt-0">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
-                <ShieldCheck size={18} className="text-primary" />
-                <div className="text-2xl font-bold text-primary mt-2">{savedAccounts.length}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Economizadas</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">Bloqueios resolvidos</div>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {(() => {
+                const blockedUnique = new Set(
+                  (savedAccounts || [])
+                    .filter((s: any) => !s.event_type || /block|bloq|disable|ban/i.test(s.event_type))
+                    .map((s: any) => s.ad_account_id)
+                ).size;
+                const currentlyBlocked = activeAccounts.filter((a: any) => a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0).length;
+                const savedTotal = Math.max(blockedUnique, currentlyBlocked);
+                return (
+                  <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
+                    <ShieldCheck size={18} className="text-primary" />
+                    <div className="text-2xl font-bold text-primary mt-2">{savedTotal}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Economizadas</div>
+                    <div className="text-[10px] text-muted-foreground/60 mt-1">Bloqueios absorvidos pela operação — você paga por performance, não por conta</div>
+                  </div>
+                );
+              })()}
               <div className="rounded-xl bg-card border border-border p-4">
                 <Shield size={18} className="text-emerald-400" />
                 <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.filter((a: any) => !(a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0)).length}</div>
@@ -353,6 +364,12 @@ const ClientDashboard: React.FC = () => {
                 <div className="text-2xl font-bold text-amber-400 mt-2">{fmt(periodTotals.commission)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Comissão Agência</div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Esta semana' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
+              </div>
+              <div className="rounded-xl bg-gradient-to-br from-primary/15 to-emerald-500/10 border border-primary/30 p-4">
+                <CreditCard size={18} className="text-primary" />
+                <div className="text-2xl font-bold text-primary mt-2">{fmt(Number(client?.plan_credit || 0))}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Crédito Disponível</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">Abatido automaticamente da comissão</div>
               </div>
             </div>
 
