@@ -913,50 +913,17 @@ const Clients: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setShowCommissionForm(showCommissionForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
-                      <DollarSign size={12} /> Lançar Gastos em Ads
-                    </button>
                     <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
-                      <CheckCircle size={12} /> Comissão Paga
-                    </button>
-                    <button onClick={() => handleGenerateWeeklyBilling(c.id)} className="flex items-center gap-1.5 text-xs bg-warning/10 text-warning px-3 py-1.5 rounded-lg hover:bg-warning/20 transition-colors">
-                      <Receipt size={12} /> Gerar Cobrança Semanal
+                      <CheckCircle size={12} /> Validar Pagamento da Comissão
                     </button>
                     <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
                     </button>
                   </div>
 
-                  {showCommissionForm === c.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 space-y-2">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors whitespace-nowrap")}>
-                              <CalendarIcon size={14} />
-                              {format(commissionDate, "dd/MM/yyyy", { locale: ptBR })}
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={commissionDate} onSelect={(d) => d && setCommissionDate(d)} initialFocus className="p-3 pointer-events-auto" />
-                          </PopoverContent>
-                        </Popover>
-                        <input type="number" placeholder="Gasto em Ads ($)" value={adSpendAmount} onChange={e => setAdSpendAmount(e.target.value)} className={`${inputClass} flex-1`} />
-                        <input placeholder="Nota (opcional)" value={commissionNote} onChange={e => setCommissionNote(e.target.value)} className={`${inputClass} flex-1`} />
-                        <button onClick={() => handleAddAdSpend(c.id)} className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Adicionar</button>
-                      </div>
-                      {previewCommission > 0 && (
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
-                          <DollarSign size={12} className="text-primary" />
-                          <span className="text-muted-foreground">
-                            Gasto: <strong className="text-foreground">{fmt(parseFloat(adSpendAmount) || 0)}</strong>
-                            {' → '}Comissão pendente ({c.clientType === 'venda' ? 'Fixo' : `${previewRate}% — semana acumulada ${fmt(accumWeekForCard + (parseFloat(adSpendAmount) || 0))}`}):
-                            <strong className="text-primary ml-1">{fmt(previewCommission)}</strong>
-                          </span>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    Comissões são geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
+                  </p>
 
                   {showPaidForm === c.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
@@ -978,108 +945,8 @@ const Clients: React.FC = () => {
                 </div>
               </div>
 
-              {isExpanded && (() => {
-                const weeklyBillings = clientComms
-                  .filter(x => x.type === 'weekly_billing')
-                  .sort((a, b) => parseDateLocal(b.date).getTime() - parseDateLocal(a.date).getTime());
-                const today = new Date();
-                const upcomingFriday = isFriday(today) ? today : nextFriday(today);
-                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-                const hasCurrentWeekBilling = weeklyBillings.some(b => b.billingWeekStart === format(currentWeekStart, 'yyyy-MM-dd'));
-                return (
+              {isExpanded && (
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="border-t border-border bg-secondary/50 p-4 space-y-5">
-                  {/* Pagamentos Semanais (Sextas) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                      <h5 className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
-                        <CalendarClock size={14} className="text-warning" /> Pagamentos Semanais — Toda Sexta-feira
-                      </h5>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground">
-                          Próxima sexta: <strong className="text-warning">{format(upcomingFriday, "dd/MM/yyyy", { locale: ptBR })}</strong>
-                        </span>
-                        {!hasCurrentWeekBilling && (
-                          <button onClick={() => handleGenerateWeeklyBilling(c.id)} className="text-[10px] bg-warning/15 text-warning px-2 py-1 rounded-md hover:bg-warning/25">
-                            Gerar cobrança da semana
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {weeklyBillings.length === 0 ? (
-                      <p className="text-xs text-muted-foreground bg-card rounded-lg p-3 border border-dashed border-border">
-                        Nenhuma cobrança semanal gerada. Use "Gerar Cobrança Semanal" para fechar a semana atual.
-                      </p>
-                    ) : (
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {weeklyBillings.map(b => {
-                          const wkStart = b.billingWeekStart ? parseDateLocal(b.billingWeekStart) : parseDateLocal(b.date);
-                          const friday = addDays(wkStart, 4);
-                          const pendente = b.valorPendente ?? b.amount;
-                          const pago = b.valorPago ?? 0;
-                          const pct = b.amount > 0 ? Math.min(100, (pago / b.amount) * 100) : 0;
-                          const isPago = b.status === 'pago' || pendente <= 0;
-                          return (
-                            <div key={b.id} className={cn(
-                              "rounded-lg p-3 border",
-                              isPago ? 'bg-success/5 border-success/20' :
-                              b.status === 'parcial' ? 'bg-warning/10 border-warning/30' :
-                              'bg-card border-border'
-                            )}>
-                              <div className="flex items-start justify-between gap-3 flex-wrap">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-warning/10 text-warning font-mono">
-                                      Sexta {format(friday, "dd/MM", { locale: ptBR })}
-                                    </span>
-                                    <span className={cn("text-[10px] px-2 py-0.5 rounded font-medium",
-                                      isPago ? 'bg-success/15 text-success' :
-                                      b.status === 'parcial' ? 'bg-warning/15 text-warning' :
-                                      'bg-muted text-muted-foreground'
-                                    )}>
-                                      {isPago ? 'PAGO' : b.status === 'parcial' ? 'PARCIAL' : 'PENDENTE'}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1.5">
-                                    Período: {b.billingWeekStart && formatDateBR(b.billingWeekStart)} — {b.billingWeekEnd && formatDateBR(b.billingWeekEnd)}
-                                  </p>
-                                  {b.adSpend > 0 && (
-                                    <p className="text-[10px] text-muted-foreground mt-0.5">Ad Spend da semana: {fmt(b.adSpend)}</p>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-base font-bold text-warning">{fmt(b.amount)}</p>
-                                  {pago > 0 && !isPago && (
-                                    <p className="text-[10px] text-success">Pago: {fmt(pago)}</p>
-                                  )}
-                                  {!isPago && (
-                                    <p className="text-[10px] text-muted-foreground">Falta: {fmt(pendente)}</p>
-                                  )}
-                                </div>
-                              </div>
-                              {/* Progress */}
-                              <div className="mt-2 h-1.5 bg-secondary rounded-full overflow-hidden">
-                                <div className={cn("h-full transition-all", isPago ? 'bg-success' : 'bg-warning')} style={{ width: `${pct}%` }} />
-                              </div>
-                              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                {!isPago && (
-                                  <button onClick={() => handleMarkBillingPaid(b)} className="flex items-center gap-1 text-[11px] bg-success/15 text-success px-2.5 py-1 rounded-md hover:bg-success/25">
-                                    <CheckCircle size={11} /> Marcar como Pago
-                                  </button>
-                                )}
-                                <button onClick={() => startEditCommission(b)} className="flex items-center gap-1 text-[11px] bg-secondary text-muted-foreground px-2.5 py-1 rounded-md hover:text-foreground">
-                                  <Pencil size={11} /> Editar
-                                </button>
-                                <button onClick={() => handleDeleteCommission(b.id)} className="flex items-center gap-1 text-[11px] text-muted-foreground px-2.5 py-1 rounded-md hover:bg-destructive/10 hover:text-destructive">
-                                  <Trash2 size={11} /> Remover
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
                   <div>
                   <h5 className="text-xs font-semibold text-muted-foreground mb-2">Histórico de Lançamentos</h5>
                   {clientComms.length === 0 ? (
@@ -1128,8 +995,7 @@ const Clients: React.FC = () => {
                   )}
                   </div>
                 </motion.div>
-                );
-              })()}
+              )}
             </motion.div>
           );
         })}
