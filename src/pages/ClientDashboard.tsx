@@ -1005,6 +1005,21 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {reqType === 'add_ad_account' && (
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+                      <Building2 size={11} /> ID da BM (onde receber as contas) *
+                    </label>
+                    <input
+                      type="text"
+                      value={reqBmId}
+                      onChange={e => setReqBmId(e.target.value)}
+                      placeholder="Ex: 1469807817968606"
+                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
                   <textarea
@@ -1015,13 +1030,20 @@ const ClientDashboard: React.FC = () => {
                   />
                 </div>
 
-                <button
-                  onClick={submitRequest}
-                  disabled={submittingReq || (reqType === 'other' && !reqDesc.trim())}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
-                >
-                  <Send size={14} /> {submittingReq ? 'Enviando...' : 'Enviar solicitação'}
-                </button>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={submitRequest}
+                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim())}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                  >
+                    <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
+                  </button>
+                  {editingReqId && (
+                    <button onClick={resetReqForm} className="px-4 py-2.5 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:text-foreground">
+                      Cancelar edição
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
