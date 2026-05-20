@@ -255,7 +255,7 @@ const ClientDashboard: React.FC = () => {
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
       adSpend,
     };
-  }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client]);
+  }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client, commissionTiers]);
 
   // Weekly commission history (real, from insights, by ISO week)
   const weeklyCommissionHistory = useMemo(() => {
