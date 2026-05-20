@@ -338,7 +338,7 @@ const ClientDashboard: React.FC = () => {
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <Shield size={18} className="text-emerald-400" />
-                <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.length}</div>
+                <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.filter((a: any) => !(a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0)).length}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Ativas</div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1">Operando para você</div>
               </div>
