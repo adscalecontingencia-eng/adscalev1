@@ -33,18 +33,7 @@ interface Client {
   whatsappGroupLink?: string;
 }
 
-// Metas de desconto por gasto semanal (apenas clientes de aluguel)
-const SPEND_TIERS: { min: number; pct: number }[] = [
-  { min: 200000, pct: 1 },
-  { min: 80000, pct: 2 },
-  { min: 40000, pct: 3 },
-  { min: 20000, pct: 4 },
-];
-
-const getTierPercentage = (weekSpend: number, basePct: number): number => {
-  for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
-  return basePct;
-};
+// Metas semanais de desconto agora vêm da tabela `commission_tiers` (admin-editável).
 
 interface Commission {
   id: string;
