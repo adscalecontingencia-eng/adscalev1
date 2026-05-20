@@ -227,7 +227,13 @@ export const NotificationCenter: React.FC = () => {
       const all = [...acc, ...bm, ...log, ...req]
         .filter(n => !dismissed.has(n.id))
         .filter(n => isAllowedByPrefs(n, prefs, "central"))
-        .sort((a, b) => +new Date(b.occurredAt) - +new Date(a.occurredAt));
+        .sort((a, b) => {
+          // Client requests have top priority
+          const aPriority = a.eventType === 'client_request' ? 1 : 0;
+          const bPriority = b.eventType === 'client_request' ? 1 : 0;
+          if (aPriority !== bPriority) return bPriority - aPriority;
+          return +new Date(b.occurredAt) - +new Date(a.occurredAt);
+        });
       setItems(all);
     } finally {
       setLoading(false);
