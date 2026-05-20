@@ -484,6 +484,87 @@ const ClientDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Credit runway: week-by-week */}
+            {creditPlan && (
+              <div className="bg-card border border-primary/30 rounded-xl p-5 border-glow relative overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/10 blur-[60px] pointer-events-none" />
+                <div className="relative">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+                    <h3 className="font-display text-sm font-semibold flex items-center gap-2">
+                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — semana a semana
+                    </h3>
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> Crédito abatido</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> A pagar</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Projeção baseada na sua comissão média semanal de <strong className="text-foreground">{fmt(creditPlan.avgWeekly)}</strong>. Seu crédito de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> abate a comissão automaticamente até zerar.
+                  </p>
+
+                  <div className="space-y-2.5">
+                    {creditPlan.rows.map((r, idx) => {
+                      const pct = Math.max(1, (r.creditApplied / r.commission) * 100);
+                      const isFirstPaying = r.creditApplied === 0 && idx > 0;
+                      return (
+                        <div key={idx} className={cn(
+                          "rounded-lg border p-3",
+                          isFirstPaying ? "border-amber-400/40 bg-amber-400/5" : "border-border bg-secondary/40"
+                        )}>
+                          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono text-muted-foreground">Semana {idx + 1}</span>
+                              <span className="text-xs font-medium text-foreground">
+                                {format(r.weekStart, "dd 'de' MMM", { locale: ptBR })}
+                              </span>
+                              {isFirstPaying && (
+                                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
+                                  Início dos pagamentos
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Saldo: <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
+                            </div>
+                          </div>
+                          <div className="relative h-6 rounded-md bg-background overflow-hidden border border-border">
+                            {r.creditApplied > 0 && (
+                              <div
+                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary/80 to-primary flex items-center px-2"
+                                style={{ width: `${pct}%` }}
+                              >
+                                <span className="text-[10px] font-bold text-primary-foreground whitespace-nowrap">
+                                  −{fmt(r.creditApplied)}
+                                </span>
+                              </div>
+                            )}
+                            {r.clientPays > 0 && (
+                              <div
+                                className="absolute inset-y-0 right-0 bg-amber-400/80 flex items-center justify-end px-2"
+                                style={{ width: `${100 - pct}%` }}
+                              >
+                                <span className="text-[10px] font-bold text-background whitespace-nowrap">
+                                  {fmt(r.clientPays)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
+                            <span>Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
+                            <span>
+                              {r.creditApplied > 0 && r.clientPays === 0 && '100% coberto pelo crédito'}
+                              {r.creditApplied > 0 && r.clientPays > 0 && 'Crédito esgotado nesta semana'}
+                              {r.creditApplied === 0 && 'Pagamento integral via Pix/Cripto'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Saved accounts */}
             {savedAccounts.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
