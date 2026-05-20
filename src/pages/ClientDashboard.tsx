@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
+import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
