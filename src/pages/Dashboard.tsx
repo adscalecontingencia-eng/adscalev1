@@ -59,7 +59,19 @@ const Dashboard: React.FC = () => {
       if (accRes.data) setAdAccounts(accRes.data);
     };
     fetchData();
+    // Auto-sync pending commissions from synced ad spend (silent on mount)
+    syncAutoCommissions().catch(() => { /* silent */ });
   }, []);
+
+  const [syncing, setSyncing] = useState(false);
+  const handleManualSync = async () => {
+    setSyncing(true);
+    const r = await syncAutoCommissions();
+    setSyncing(false);
+    if (r.errors > 0) toast.error('Erro ao sincronizar comissões');
+    else if (r.inserted > 0) toast.success(`${r.inserted} comissão(ões) pendente(s) gerada(s) a partir dos gastos`);
+    else toast.info('Comissões já estão sincronizadas');
+  };
 
   // Mapa client_id → client_type para filtrar transações por tipo de cliente
   const clientTypeMap = useMemo(() => {
