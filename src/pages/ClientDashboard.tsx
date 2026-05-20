@@ -22,6 +22,7 @@ const ClientDashboard: React.FC = () => {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
   const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
@@ -52,6 +53,22 @@ const ClientDashboard: React.FC = () => {
       .sort()
       .pop();
     if (latest) setLastAccountsSync(new Date(latest));
+
+    // Load insights for these ad accounts (last 12 months window is plenty)
+    const accountIds = list.map((a: any) => a.ad_account?.id).filter(Boolean);
+    if (accountIds.length > 0) {
+      const since = new Date();
+      since.setMonth(since.getMonth() - 12);
+      const sinceStr = since.toISOString().split('T')[0];
+      const { data: ins } = await supabase
+        .from('meta_ad_insights')
+        .select('ad_account_id, date, spend')
+        .in('ad_account_id', accountIds)
+        .gte('date', sinceStr);
+      setInsights(ins || []);
+    } else {
+      setInsights([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -145,25 +162,63 @@ const ClientDashboard: React.FC = () => {
     });
   }, [commissions, periodFilter, customStart, customEnd]);
 
+  // Tier logic (mirrors admin Clients.tsx)
+  const SPEND_TIERS = [
+    { min: 200000, pct: 1 },
+    { min: 80000, pct: 2 },
+    { min: 40000, pct: 3 },
+    { min: 20000, pct: 4 },
+  ];
+  const getTierPct = (weekSpend: number, basePct: number) => {
+    for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
+    return basePct;
+  };
+
+  // Commission for a given spend list, grouped by week so tier discount is applied correctly
+  const computeCommissionForSpend = (rows: { date: string; spend: number }[]) => {
+    if (!client) return 0;
+    if (client.client_type === 'venda') return 0; // venda uses fixed_value, not per-spend commission
+    const basePct = Number(client.percentage_value) || 0;
+    // Group by ISO week
+    const byWeek: Record<string, number> = {};
+    rows.forEach(r => {
+      const d = parseDateLocal(r.date);
+      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const key = ws.toISOString().slice(0, 10);
+      byWeek[key] = (byWeek[key] || 0) + Number(r.spend || 0);
+    });
+    let total = 0;
+    Object.values(byWeek).forEach(weekTotal => {
+      const rate = getTierPct(weekTotal, basePct);
+      total += weekTotal * (rate / 100);
+    });
+    return total;
+  };
+
   const allTimeTotals = useMemo(() => {
-    const daily = commissions.filter(c => c.type === 'daily');
     const paid = commissions.filter(c => c.type === 'paid');
+    const adSpend = insights.reduce((s, i) => s + Number(i.spend || 0), 0);
     return {
-      commission: daily.reduce((s, c) => s + Number(c.amount), 0),
+      commission: computeCommissionForSpend(insights as any),
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
-      adSpend: daily.reduce((s, c) => s + Number((c as any).ad_spend || 0), 0),
+      adSpend,
     };
-  }, [commissions]);
+  }, [commissions, insights, client]);
 
   const periodTotals = useMemo(() => {
-    const daily = filteredCommissions.filter(c => c.type === 'daily');
+    const range = getFilterRange();
+    const insightsInRange = insights.filter(i => {
+      const d = parseDateLocal(i.date);
+      return isWithinInterval(d, { start: range.start, end: range.end });
+    });
     const paid = filteredCommissions.filter(c => c.type === 'paid');
+    const adSpend = insightsInRange.reduce((s, i) => s + Number(i.spend || 0), 0);
     return {
-      commission: daily.reduce((s, c) => s + Number(c.amount), 0),
+      commission: computeCommissionForSpend(insightsInRange as any),
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
-      adSpend: daily.reduce((s, c) => s + Number((c as any).ad_spend || 0), 0),
+      adSpend,
     };
-  }, [filteredCommissions]);
+  }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client]);
 
   const pendingBillings = useMemo(
     () => commissions.filter(c => c.type === 'weekly_billing' && (c as any).status !== 'pago'),
@@ -283,7 +338,7 @@ const ClientDashboard: React.FC = () => {
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <Shield size={18} className="text-emerald-400" />
-                <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.length}</div>
+                <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.filter((a: any) => !(a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0)).length}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Ativas</div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1">Operando para você</div>
               </div>
@@ -381,20 +436,29 @@ const ClientDashboard: React.FC = () => {
               <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
                 <Shield size={16} className="text-primary" /> Contas de Anúncio
               </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-secondary rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-primary">{(client.ad_accounts || 0) - (client.used_accounts || 0) - (client.blocked_accounts || 0)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Disponíveis</p>
-                </div>
-                <div className="bg-secondary rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground">{client.used_accounts || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Em uso</p>
-                </div>
-                <div className="bg-secondary rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-destructive">{client.blocked_accounts || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Bloqueadas</p>
-                </div>
-              </div>
+              {(() => {
+                const total = client.ad_accounts || 0;
+                const used = activeAccounts.length;
+                const blockedCount = activeAccounts.filter((a: any) => a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0).length;
+                const activeCount = used - blockedCount;
+                const available = Math.max(0, total - used);
+                return (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-secondary rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-primary">{available}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Disponíveis</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Em uso</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Bloqueadas</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </TabsContent>
 
@@ -438,9 +502,9 @@ const ClientDashboard: React.FC = () => {
               const now = new Date();
               const ws = startOfWeek(now, { weekStartsOn: 1 });
               const we = endOfWeek(now, { weekStartsOn: 1 });
-              const weekSpend = commissions
-                .filter((c: any) => c.type === 'daily' && isWithinInterval(parseDateLocal(c.date), { start: ws, end: we }))
-                .reduce((s: number, c: any) => s + Number(c.ad_spend || 0), 0);
+              const weekSpend = insights
+                .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
+                .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
               const tiers = [
                 { min: 20000, pct: 4 },
                 { min: 40000, pct: 3 },
