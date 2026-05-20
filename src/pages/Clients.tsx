@@ -235,16 +235,58 @@ const Clients: React.FC = () => {
       }
     }
 
-    // Lança o crédito como receita (faturamento) — apenas o delta positivo
+    // Crédito adicionado: primeiro liquida comissões pendentes (FIFO),
+    // o restante vira saldo de crédito disponível e é lançado como receita.
     if (creditDelta > 0 && savedClientId) {
-      await supabase.from('transactions').insert({
-        date: new Date().toISOString().split('T')[0],
-        type: 'receita',
-        category: 'Crédito do Plano',
-        client_id: savedClientId,
-        amount: creditDelta,
-        description: `Crédito do plano ${editing ? 'adicionado' : 'inicial'} - ${form.name}`,
-      } as any);
+      let remaining = creditDelta;
+      let liquidated = 0;
+
+      const { data: pendingComms } = await supabase
+        .from('commissions')
+        .select('*')
+        .eq('client_id', savedClientId)
+        .in('status', ['pendente', 'parcial'])
+        .order('date', { ascending: true });
+
+      for (const comm of (pendingComms || [])) {
+        if (remaining <= 0) break;
+        const pendente = Number(comm.valor_pendente ?? (Number(comm.amount) - Number(comm.valor_pago || 0)));
+        if (pendente <= 0) continue;
+        const pay = Math.min(remaining, pendente);
+        const newPago = Number(comm.valor_pago || 0) + pay;
+        const newPend = Math.max(0, Number(comm.amount) - newPago);
+        const newStatus = newPend <= 0 ? 'pago' : 'parcial';
+        await supabase.from('commissions').update({
+          valor_pago: newPago,
+          valor_pendente: newPend,
+          status: newStatus,
+        } as any).eq('id', comm.id);
+        remaining -= pay;
+        liquidated += pay;
+      }
+
+      // Ajusta plan_credit: subtrai a parte que foi usada para liquidar comissões.
+      if (liquidated > 0) {
+        const finalCredit = Math.max(0, planCredit - liquidated);
+        await supabase.from('clients').update({ plan_credit: finalCredit } as any).eq('id', savedClientId);
+      }
+
+      // Lança como receita apenas a parte que sobrou como crédito real disponível.
+      const receitaCredito = creditDelta - liquidated;
+      if (receitaCredito > 0) {
+        await supabase.from('transactions').insert({
+          date: new Date().toISOString().split('T')[0],
+          type: 'receita',
+          category: 'Crédito do Plano',
+          client_id: savedClientId,
+          amount: receitaCredito,
+          description: `Crédito do plano ${editing ? 'adicionado' : 'inicial'} - ${form.name}`,
+        } as any);
+      }
+
+      if (liquidated > 0) {
+        toast.success(`Crédito ${fmt(creditDelta)} • liquidou ${fmt(liquidated)} em comissões pendentes${receitaCredito > 0 ? ` • saldo ${fmt(receitaCredito)}` : ''}`);
+      }
     }
 
     setSaving(false);
