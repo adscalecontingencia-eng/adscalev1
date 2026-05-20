@@ -130,20 +130,59 @@ const ClientDashboard: React.FC = () => {
   };
 
 
+  const resetReqForm = () => {
+    setReqDesc(''); setReqQty(1); setReqBmId(''); setEditingReqId(null);
+  };
+
   const submitRequest = async () => {
     if (!client) return;
+    if (reqType === 'add_ad_account' && !reqBmId.trim()) {
+      toast.error('Informe o ID da BM onde deseja receber as contas.');
+      return;
+    }
     setSubmittingReq(true);
-    const { data, error } = await supabase.from('support_requests').insert({
+    const payload: any = {
       client_id: client.id,
       request_type: reqType,
       quantity: reqQty,
       description: reqDesc || null,
-    }).select().single();
+      bm_meta_id: reqType === 'add_ad_account' ? reqBmId.trim() : null,
+    };
+    if (editingReqId) {
+      const { data, error } = await supabase.from('support_requests')
+        .update(payload).eq('id', editingReqId).select().single();
+      setSubmittingReq(false);
+      if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
+      setSupportRequests(prev => prev.map(r => r.id === editingReqId ? data : r));
+      resetReqForm();
+      toast.success('Solicitação atualizada!');
+      return;
+    }
+    const { data, error } = await supabase.from('support_requests').insert(payload).select().single();
     setSubmittingReq(false);
     if (error) { toast.error('Erro ao enviar solicitação: ' + error.message); return; }
     setSupportRequests(prev => [data, ...prev]);
-    setReqDesc(''); setReqQty(1);
+    resetReqForm();
     toast.success('Solicitação enviada! Nossa equipe foi notificada.');
+  };
+
+  const startEditRequest = (r: any) => {
+    setEditingReqId(r.id);
+    setReqType(r.request_type);
+    setReqQty(r.quantity || 1);
+    setReqDesc(r.description || '');
+    setReqBmId(r.bm_meta_id || '');
+    setTab('suporte');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteRequest = async (id: string) => {
+    if (!confirm('Excluir esta solicitação?')) return;
+    const { error } = await supabase.from('support_requests').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir: ' + error.message); return; }
+    setSupportRequests(prev => prev.filter(r => r.id !== id));
+    if (editingReqId === id) resetReqForm();
+    toast.success('Solicitação excluída.');
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
