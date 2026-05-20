@@ -206,17 +206,10 @@ const ClientDashboard: React.FC = () => {
     });
   }, [commissions, periodFilter, customStart, customEnd]);
 
-  // Tier logic (mirrors admin Clients.tsx)
-  const SPEND_TIERS = [
-    { min: 200000, pct: 1 },
-    { min: 80000, pct: 2 },
-    { min: 40000, pct: 3 },
-    { min: 20000, pct: 4 },
-  ];
-  const getTierPct = (weekSpend: number, basePct: number) => {
-    for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
-    return basePct;
-  };
+  // Tier logic — tiers come from DB (admin-configurable)
+  const { tiers: commissionTiers } = useCommissionTiers();
+  const getTierPct = (weekSpend: number, basePct: number) =>
+    getTierPctFromTiers(weekSpend, basePct, commissionTiers);
 
   // Commission for a given spend list, grouped by week so tier discount is applied correctly
   const computeCommissionForSpend = (rows: { date: string; spend: number }[]) => {
