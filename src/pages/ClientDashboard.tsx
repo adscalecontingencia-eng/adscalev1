@@ -22,6 +22,7 @@ const ClientDashboard: React.FC = () => {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
   const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
