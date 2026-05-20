@@ -274,7 +274,7 @@ const ClientDashboard: React.FC = () => {
         return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
       })
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
-  }, [insights, client]);
+  }, [insights, client, commissionTiers]);
 
   // Credit ledger: REAL week-by-week history. Applies plan_credit FIFO from the
   // earliest week with spend, week by week, until credit is exhausted.
