@@ -162,25 +162,63 @@ const ClientDashboard: React.FC = () => {
     });
   }, [commissions, periodFilter, customStart, customEnd]);
 
+  // Tier logic (mirrors admin Clients.tsx)
+  const SPEND_TIERS = [
+    { min: 200000, pct: 1 },
+    { min: 80000, pct: 2 },
+    { min: 40000, pct: 3 },
+    { min: 20000, pct: 4 },
+  ];
+  const getTierPct = (weekSpend: number, basePct: number) => {
+    for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
+    return basePct;
+  };
+
+  // Commission for a given spend list, grouped by week so tier discount is applied correctly
+  const computeCommissionForSpend = (rows: { date: string; spend: number }[]) => {
+    if (!client) return 0;
+    if (client.client_type === 'venda') return 0; // venda uses fixed_value, not per-spend commission
+    const basePct = Number(client.percentage_value) || 0;
+    // Group by ISO week
+    const byWeek: Record<string, number> = {};
+    rows.forEach(r => {
+      const d = parseDateLocal(r.date);
+      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const key = ws.toISOString().slice(0, 10);
+      byWeek[key] = (byWeek[key] || 0) + Number(r.spend || 0);
+    });
+    let total = 0;
+    Object.values(byWeek).forEach(weekTotal => {
+      const rate = getTierPct(weekTotal, basePct);
+      total += weekTotal * (rate / 100);
+    });
+    return total;
+  };
+
   const allTimeTotals = useMemo(() => {
-    const daily = commissions.filter(c => c.type === 'daily');
     const paid = commissions.filter(c => c.type === 'paid');
+    const adSpend = insights.reduce((s, i) => s + Number(i.spend || 0), 0);
     return {
-      commission: daily.reduce((s, c) => s + Number(c.amount), 0),
+      commission: computeCommissionForSpend(insights as any),
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
-      adSpend: daily.reduce((s, c) => s + Number((c as any).ad_spend || 0), 0),
+      adSpend,
     };
-  }, [commissions]);
+  }, [commissions, insights, client]);
 
   const periodTotals = useMemo(() => {
-    const daily = filteredCommissions.filter(c => c.type === 'daily');
+    const range = getFilterRange();
+    const insightsInRange = insights.filter(i => {
+      const d = parseDateLocal(i.date);
+      return isWithinInterval(d, { start: range.start, end: range.end });
+    });
     const paid = filteredCommissions.filter(c => c.type === 'paid');
+    const adSpend = insightsInRange.reduce((s, i) => s + Number(i.spend || 0), 0);
     return {
-      commission: daily.reduce((s, c) => s + Number(c.amount), 0),
+      commission: computeCommissionForSpend(insightsInRange as any),
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
-      adSpend: daily.reduce((s, c) => s + Number((c as any).ad_spend || 0), 0),
+      adSpend,
     };
-  }, [filteredCommissions]);
+  }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client]);
 
   const pendingBillings = useMemo(
     () => commissions.filter(c => c.type === 'weekly_billing' && (c as any).status !== 'pago'),
