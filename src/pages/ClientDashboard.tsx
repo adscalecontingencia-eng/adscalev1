@@ -150,7 +150,7 @@ const ClientDashboard: React.FC = () => {
     const now = new Date();
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
-      case 'week': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'week': return { start: startOfWeek(now, { weekStartsOn: 4 }), end: endOfWeek(now, { weekStartsOn: 4 }) };
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return { start: startOfDay(customStart), end: endOfDay(customEnd) };
     }
@@ -185,7 +185,7 @@ const ClientDashboard: React.FC = () => {
     const byWeek: Record<string, number> = {};
     rows.forEach(r => {
       const d = parseDateLocal(r.date);
-      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
       const key = ws.toISOString().slice(0, 10);
       byWeek[key] = (byWeek[key] || 0) + Number(r.spend || 0);
     });
@@ -229,7 +229,7 @@ const ClientDashboard: React.FC = () => {
     const byWeek: Record<string, number> = {};
     insights.forEach((i: any) => {
       const d = parseDateLocal(i.date);
-      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
       const key = ws.toISOString().slice(0, 10);
       byWeek[key] = (byWeek[key] || 0) + Number(i.spend || 0);
     });
@@ -658,8 +658,8 @@ const ClientDashboard: React.FC = () => {
 
             {client.client_type !== 'venda' && (() => {
               const now = new Date();
-              const ws = startOfWeek(now, { weekStartsOn: 1 });
-              const we = endOfWeek(now, { weekStartsOn: 1 });
+              const ws = startOfWeek(now, { weekStartsOn: 4 });
+              const we = endOfWeek(now, { weekStartsOn: 4 });
               const weekSpend = insights
                 .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
                 .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
