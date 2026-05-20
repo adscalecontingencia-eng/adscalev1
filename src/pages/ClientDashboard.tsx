@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -150,7 +150,7 @@ const ClientDashboard: React.FC = () => {
     const now = new Date();
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
-      case 'week': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'week': return { start: startOfWeek(now, { weekStartsOn: 4 }), end: endOfWeek(now, { weekStartsOn: 4 }) };
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return { start: startOfDay(customStart), end: endOfDay(customEnd) };
     }
@@ -185,7 +185,7 @@ const ClientDashboard: React.FC = () => {
     const byWeek: Record<string, number> = {};
     rows.forEach(r => {
       const d = parseDateLocal(r.date);
-      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
       const key = ws.toISOString().slice(0, 10);
       byWeek[key] = (byWeek[key] || 0) + Number(r.spend || 0);
     });
@@ -229,7 +229,7 @@ const ClientDashboard: React.FC = () => {
     const byWeek: Record<string, number> = {};
     insights.forEach((i: any) => {
       const d = parseDateLocal(i.date);
-      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
       const key = ws.toISOString().slice(0, 10);
       byWeek[key] = (byWeek[key] || 0) + Number(i.spend || 0);
     });
@@ -491,6 +491,14 @@ const ClientDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Billing cycle notice */}
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3">
+              <Info size={16} className="text-amber-300 mt-0.5 shrink-0" />
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-amber-300">Ciclo de cobrança: quinta a quinta.</strong> A semana fecha na quinta-feira e o pagamento é gerado na sexta. Isso garante que todo o gasto do período já esteja consolidado nas contas de anúncio antes do faturamento — a sexta-feira ainda está em andamento e não é incluída na semana cobrada.
+              </div>
+            </div>
+
             {/* Credit runway: week-by-week */}
             {creditPlan && (
               <div className="bg-card border border-primary/30 rounded-xl p-5 border-glow relative overflow-hidden">
@@ -658,8 +666,8 @@ const ClientDashboard: React.FC = () => {
 
             {client.client_type !== 'venda' && (() => {
               const now = new Date();
-              const ws = startOfWeek(now, { weekStartsOn: 1 });
-              const we = endOfWeek(now, { weekStartsOn: 1 });
+              const ws = startOfWeek(now, { weekStartsOn: 4 });
+              const we = endOfWeek(now, { weekStartsOn: 4 });
               const weekSpend = insights
                 .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
                 .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
