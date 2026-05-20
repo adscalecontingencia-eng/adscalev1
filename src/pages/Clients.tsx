@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
 
 interface Client {
   id: string;
@@ -32,18 +33,7 @@ interface Client {
   whatsappGroupLink?: string;
 }
 
-// Metas de desconto por gasto semanal (apenas clientes de aluguel)
-const SPEND_TIERS: { min: number; pct: number }[] = [
-  { min: 200000, pct: 1 },
-  { min: 80000, pct: 2 },
-  { min: 40000, pct: 3 },
-  { min: 20000, pct: 4 },
-];
-
-const getTierPercentage = (weekSpend: number, basePct: number): number => {
-  for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
-  return basePct;
-};
+// Metas semanais de desconto agora vêm da tabela `commission_tiers` (admin-editável).
 
 interface Commission {
   id: string;
@@ -83,6 +73,52 @@ const Clients: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+
+  // Tiers admin-editable
+  const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
+  const [tierDraft, setTierDraft] = useState<CommissionTier[] | null>(null);
+  const [savingTiers, setSavingTiers] = useState(false);
+  const getTierPercentage = (weekSpend: number, basePct: number) =>
+    getTierPctFromTiers(weekSpend, basePct, commissionTiers);
+
+  const tiersToShow = tierDraft ?? commissionTiers;
+
+  const updateTierDraft = (idx: number, field: 'min_spend' | 'pct', value: number) => {
+    const base = tierDraft ?? commissionTiers.map(t => ({ ...t }));
+    const next = base.map((t, i) => i === idx ? { ...t, [field]: value } : t);
+    setTierDraft(next);
+  };
+  const addTier = () => {
+    const base = tierDraft ?? commissionTiers.map(t => ({ ...t }));
+    setTierDraft([...base, { min_spend: 0, pct: 0 }]);
+  };
+  const removeTier = (idx: number) => {
+    const base = tierDraft ?? commissionTiers.map(t => ({ ...t }));
+    setTierDraft(base.filter((_, i) => i !== idx));
+  };
+  const saveTiers = async () => {
+    if (!tierDraft) return;
+    setSavingTiers(true);
+    try {
+      // Replace all: delete then insert
+      const { error: delErr } = await supabase.from('commission_tiers').delete().not('id', 'is', null);
+      if (delErr) throw delErr;
+      const clean = tierDraft
+        .filter(t => Number.isFinite(t.min_spend) && Number.isFinite(t.pct))
+        .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }));
+      if (clean.length > 0) {
+        const { error: insErr } = await supabase.from('commission_tiers').insert(clean);
+        if (insErr) throw insErr;
+      }
+      toast.success('Metas semanais atualizadas');
+      setTierDraft(null);
+      await reloadTiers();
+    } catch (e: any) {
+      toast.error('Falha ao salvar metas: ' + (e?.message || ''));
+    } finally {
+      setSavingTiers(false);
+    }
+  };
 
   // Edit commission state
   const [editingCommission, setEditingCommission] = useState<Commission | null>(null);
@@ -750,13 +786,79 @@ const Clients: React.FC = () => {
                     <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
                   </div>
                   <div className="bg-secondary/60 border border-border rounded-lg p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Metas semanais de desconto (USD)</p>
-                    <ul className="text-xs space-y-1 text-foreground">
-                      <li className="flex justify-between"><span>Acima de $20k</span><span className="text-primary font-semibold">4%</span></li>
-                      <li className="flex justify-between"><span>Acima de $40k</span><span className="text-primary font-semibold">3%</span></li>
-                      <li className="flex justify-between"><span>Acima de $80k</span><span className="text-primary font-semibold">2%</span></li>
-                      <li className="flex justify-between"><span>Acima de $200k</span><span className="text-primary font-semibold">1%</span></li>
-                    </ul>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Metas semanais de desconto (USD)</p>
+                      <button
+                        type="button"
+                        onClick={addTier}
+                        className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                      >
+                        + Adicionar meta
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {[...tiersToShow]
+                        .sort((a, b) => a.min_spend - b.min_spend)
+                        .map((t, idx) => {
+                          // index in the (possibly draft) base array
+                          const baseArr = tierDraft ?? commissionTiers;
+                          const realIdx = baseArr.findIndex(x => x === t);
+                          const i = realIdx >= 0 ? realIdx : idx;
+                          return (
+                            <div key={i} className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <label className="block text-[10px] text-muted-foreground mb-0.5">Acima de (USD)</label>
+                                <input
+                                  type="number"
+                                  value={t.min_spend}
+                                  onChange={e => updateTierDraft(i, 'min_spend', parseFloat(e.target.value) || 0)}
+                                  className={inputClass}
+                                />
+                              </div>
+                              <div className="w-24">
+                                <label className="block text-[10px] text-muted-foreground mb-0.5">%</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={t.pct}
+                                  onChange={e => updateTierDraft(i, 'pct', parseFloat(e.target.value) || 0)}
+                                  className={inputClass}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeTier(i)}
+                                className="mt-4 p-2 rounded hover:bg-destructive/10 text-destructive"
+                                title="Remover meta"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    {tierDraft && (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={saveTiers}
+                          disabled={savingTiers}
+                          className="flex-1 bg-primary text-primary-foreground text-xs font-semibold py-2 rounded hover:opacity-90 disabled:opacity-50"
+                        >
+                          {savingTiers ? 'Salvando...' : 'Salvar metas'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTierDraft(null)}
+                          className="px-3 text-xs text-muted-foreground border border-border rounded hover:bg-secondary"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Estas metas são globais e valem para todos os clientes de aluguel.
+                    </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>

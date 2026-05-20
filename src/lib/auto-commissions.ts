@@ -1,18 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, endOfWeek, format, addDays } from 'date-fns';
 import { parseDateLocal } from '@/lib/date-utils';
-
-// Tiered commission discount: same logic used on ClientDashboard.
-const SPEND_TIERS = [
-  { min: 200000, pct: 1 },
-  { min: 80000, pct: 2 },
-  { min: 40000, pct: 3 },
-  { min: 20000, pct: 4 },
-];
-const getTierPct = (weekSpend: number, basePct: number) => {
-  for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
-  return basePct;
-};
+import { fetchCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
 
 export interface AutoCommissionResult {
   inserted: number;
@@ -31,6 +20,8 @@ export interface AutoCommissionResult {
  */
 export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
   const result: AutoCommissionResult = { inserted: 0, skipped: 0, errors: 0 };
+
+  const tiers = await fetchCommissionTiers();
 
   const [clientsRes, assignRes, insightsRes, existingRes] = await Promise.all([
     supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value'),
@@ -89,7 +80,7 @@ export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
         result.skipped++;
         continue;
       }
-      const rate = getTierPct(weekSpend, basePct);
+      const rate = getTierPctFromTiers(weekSpend, basePct, tiers);
       const commission = weekSpend * (rate / 100);
       if (commission <= 0) continue;
       const wsDate = parseDateLocal(weekKey);

@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
+import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -205,17 +206,10 @@ const ClientDashboard: React.FC = () => {
     });
   }, [commissions, periodFilter, customStart, customEnd]);
 
-  // Tier logic (mirrors admin Clients.tsx)
-  const SPEND_TIERS = [
-    { min: 200000, pct: 1 },
-    { min: 80000, pct: 2 },
-    { min: 40000, pct: 3 },
-    { min: 20000, pct: 4 },
-  ];
-  const getTierPct = (weekSpend: number, basePct: number) => {
-    for (const t of SPEND_TIERS) if (weekSpend > t.min) return t.pct;
-    return basePct;
-  };
+  // Tier logic — tiers come from DB (admin-configurable)
+  const { tiers: commissionTiers } = useCommissionTiers();
+  const getTierPct = (weekSpend: number, basePct: number) =>
+    getTierPctFromTiers(weekSpend, basePct, commissionTiers);
 
   // Commission for a given spend list, grouped by week so tier discount is applied correctly
   const computeCommissionForSpend = (rows: { date: string; spend: number }[]) => {
@@ -246,7 +240,7 @@ const ClientDashboard: React.FC = () => {
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
       adSpend,
     };
-  }, [commissions, insights, client]);
+  }, [commissions, insights, client, commissionTiers]);
 
   const periodTotals = useMemo(() => {
     const range = getFilterRange();
@@ -261,7 +255,7 @@ const ClientDashboard: React.FC = () => {
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
       adSpend,
     };
-  }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client]);
+  }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client, commissionTiers]);
 
   // Weekly commission history (real, from insights, by ISO week)
   const weeklyCommissionHistory = useMemo(() => {
@@ -280,7 +274,7 @@ const ClientDashboard: React.FC = () => {
         return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
       })
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
-  }, [insights, client]);
+  }, [insights, client, commissionTiers]);
 
   // Credit ledger: REAL week-by-week history. Applies plan_credit FIFO from the
   // earliest week with spend, week by week, until credit is exhausted.
@@ -719,16 +713,14 @@ const ClientDashboard: React.FC = () => {
               const weekSpend = insights
                 .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
                 .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
-              const tiers = [
-                { min: 20000, pct: 4 },
-                { min: 40000, pct: 3 },
-                { min: 80000, pct: 2 },
-                { min: 200000, pct: 1 },
-              ];
+              const tiers = [...commissionTiers]
+                .map(t => ({ min: t.min_spend, pct: t.pct }))
+                .sort((a, b) => a.min - b.min);
               const currentRate = [...tiers].reverse().find(t => weekSpend > t.min)?.pct ?? (Number(client.percentage_value) || 0);
               const nextTier = tiers.find(t => weekSpend <= t.min);
               const remaining = nextTier ? Math.max(0, nextTier.min - weekSpend) : 0;
-              const progressMax = nextTier ? nextTier.min : 200000;
+              const topTier = tiers[tiers.length - 1];
+              const progressMax = nextTier ? nextTier.min : (topTier?.min || 200000);
               const progressPct = Math.min(100, (weekSpend / progressMax) * 100);
               return (
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
@@ -757,7 +749,7 @@ const ClientDashboard: React.FC = () => {
                         Faltam <strong className="text-primary">{fmt(remaining)}</strong> para atingir <strong className="text-primary">{nextTier.pct}%</strong> (acima de {fmt(nextTier.min)}).
                       </p>
                     ) : (
-                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — 1% sobre o gasto.</p>
+                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — {topTier?.pct ?? 1}% sobre o gasto.</p>
                     )}
                   </div>
                   <ul className="space-y-2">

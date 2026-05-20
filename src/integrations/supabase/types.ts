@@ -161,6 +161,30 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          min_spend: number
+          pct: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_spend: number
+          pct: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_spend?: number
+          pct?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           ad_spend: number | null
