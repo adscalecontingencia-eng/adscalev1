@@ -294,7 +294,10 @@ const ClientDashboard: React.FC = () => {
     );
   }
 
-  const pendingTotal = allTimeTotals.commission - allTimeTotals.paid;
+  const originalCredit = Number(client?.plan_credit || 0);
+  const creditUsed = creditPlan?.totalApplied || 0;
+  const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
+  const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
   const paymentMsg = (method: string) =>
