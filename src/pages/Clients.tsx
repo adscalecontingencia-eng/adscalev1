@@ -995,8 +995,7 @@ const Clients: React.FC = () => {
                   )}
                   </div>
                 </motion.div>
-                );
-              })()}
+              )}
             </motion.div>
           );
         })}
