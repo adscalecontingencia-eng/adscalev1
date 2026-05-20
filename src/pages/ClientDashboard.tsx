@@ -713,16 +713,14 @@ const ClientDashboard: React.FC = () => {
               const weekSpend = insights
                 .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
                 .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
-              const tiers = [
-                { min: 20000, pct: 4 },
-                { min: 40000, pct: 3 },
-                { min: 80000, pct: 2 },
-                { min: 200000, pct: 1 },
-              ];
+              const tiers = [...commissionTiers]
+                .map(t => ({ min: t.min_spend, pct: t.pct }))
+                .sort((a, b) => a.min - b.min);
               const currentRate = [...tiers].reverse().find(t => weekSpend > t.min)?.pct ?? (Number(client.percentage_value) || 0);
               const nextTier = tiers.find(t => weekSpend <= t.min);
               const remaining = nextTier ? Math.max(0, nextTier.min - weekSpend) : 0;
-              const progressMax = nextTier ? nextTier.min : 200000;
+              const topTier = tiers[tiers.length - 1];
+              const progressMax = nextTier ? nextTier.min : (topTier?.min || 200000);
               const progressPct = Math.min(100, (weekSpend / progressMax) * 100);
               return (
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
@@ -751,7 +749,7 @@ const ClientDashboard: React.FC = () => {
                         Faltam <strong className="text-primary">{fmt(remaining)}</strong> para atingir <strong className="text-primary">{nextTier.pct}%</strong> (acima de {fmt(nextTier.min)}).
                       </p>
                     ) : (
-                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — 1% sobre o gasto.</p>
+                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — {topTier?.pct ?? 1}% sobre o gasto.</p>
                     )}
                   </div>
                   <ul className="space-y-2">
