@@ -64,7 +64,9 @@ const ClientDashboard: React.FC = () => {
         .from('meta_ad_insights')
         .select('ad_account_id, date, spend')
         .in('ad_account_id', accountIds)
-        .gte('date', sinceStr);
+        .gte('date', sinceStr)
+        .order('date', { ascending: true })
+        .limit(20000);
       setInsights(ins || []);
     } else {
       setInsights([]);
@@ -239,38 +241,43 @@ const ClientDashboard: React.FC = () => {
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }, [insights, client]);
 
-  // Credit runway projection: shows week-by-week how plan_credit offsets commission until zero
+  // Credit ledger: REAL week-by-week history. Applies plan_credit FIFO from the
+  // earliest week with spend, week by week, until credit is exhausted.
   const creditPlan = useMemo(() => {
     const credit = Number(client?.plan_credit || 0);
-    if (!client || credit <= 0 || client.client_type === 'venda') return null;
-    // Estimate weekly commission: avg of last 6 weeks with spend; fallback to fixed_value
-    const recent = weeklyCommissionHistory.slice(-8).filter(w => w.commission > 0);
-    let avgWeekly = recent.length > 0
-      ? recent.reduce((s, w) => s + w.commission, 0) / recent.length
-      : Number(client.fixed_value || 0);
-    if (!avgWeekly || avgWeekly <= 0) return null;
+    if (!client || client.client_type === 'venda') return null;
+    const weeks = weeklyCommissionHistory.filter(w => w.commission > 0);
+    if (weeks.length === 0) return null;
+
     let remaining = credit;
-    const rows: { weekStart: Date; commission: number; creditApplied: number; clientPays: number; remainingAfter: number }[] = [];
-    let cursor = startOfWeek(new Date(), { weekStartsOn: 1 });
-    let safety = 0;
-    while (remaining > 0 && safety < 26) {
-      const applied = Math.min(remaining, avgWeekly);
-      const pays = Math.max(0, avgWeekly - applied);
+    const rows = weeks.map(w => {
+      const applied = Math.min(remaining, w.commission);
+      const pays = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
-      rows.push({ weekStart: new Date(cursor), commission: avgWeekly, creditApplied: applied, clientPays: pays, remainingAfter: remaining });
-      cursor = new Date(cursor.getTime() + 7 * 24 * 60 * 60 * 1000);
-      safety++;
-    }
-    // Add the first "paying" week after credit runs out, for clarity
-    rows.push({
-      weekStart: new Date(cursor),
-      commission: avgWeekly,
-      creditApplied: 0,
-      clientPays: avgWeekly,
-      remainingAfter: 0,
+      return {
+        weekStart: w.weekStart,
+        spend: w.spend,
+        commission: w.commission,
+        creditApplied: applied,
+        clientPays: pays,
+        remainingAfter: remaining,
+      };
     });
-    return { avgWeekly, totalCredit: credit, rows };
+
+    const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
+    const totalApplied = rows.reduce((s, r) => s + r.creditApplied, 0);
+    const totalPaying = rows.reduce((s, r) => s + r.clientPays, 0);
+
+    return {
+      totalCredit: credit,
+      remaining,
+      totalCommission,
+      totalApplied,
+      totalPaying,
+      rows,
+    };
   }, [client, weeklyCommissionHistory]);
+
 
   const pendingBillings = useMemo(
     () => commissions.filter(c => c.type === 'weekly_billing' && (c as any).status !== 'pago'),
@@ -491,7 +498,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="relative">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                     <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — semana a semana
+                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — histórico semana a semana
                     </h3>
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> Crédito abatido</span>
@@ -499,13 +506,13 @@ const ClientDashboard: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Projeção baseada na sua comissão média semanal de <strong className="text-foreground">{fmt(creditPlan.avgWeekly)}</strong>. Seu crédito de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> abate a comissão automaticamente até zerar.
+                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · valor a pagar acumulado <strong className="text-amber-300">{fmt(creditPlan.totalPaying)}</strong>.
                   </p>
 
                   <div className="space-y-2.5">
                     {creditPlan.rows.map((r, idx) => {
                       const pct = Math.max(1, (r.creditApplied / r.commission) * 100);
-                      const isFirstPaying = r.creditApplied === 0 && idx > 0;
+                      const isFirstPaying = r.creditApplied < r.commission && (idx === 0 || creditPlan.rows[idx - 1].clientPays === 0);
                       return (
                         <div key={idx} className={cn(
                           "rounded-lg border p-3",
@@ -515,9 +522,9 @@ const ClientDashboard: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-mono text-muted-foreground">Semana {idx + 1}</span>
                               <span className="text-xs font-medium text-foreground">
-                                {format(r.weekStart, "dd 'de' MMM", { locale: ptBR })}
+                                {format(r.weekStart, "dd 'de' MMM yyyy", { locale: ptBR })}
                               </span>
-                              {isFirstPaying && (
+                              {isFirstPaying && r.clientPays > 0 && (
                                 <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
                                   Início dos pagamentos
                                 </span>
@@ -550,10 +557,10 @@ const ClientDashboard: React.FC = () => {
                             )}
                           </div>
                           <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                            <span>Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
+                            <span>Gasto: <span className="text-foreground font-medium">{fmt(r.spend)}</span> · Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
                             <span>
-                              {r.creditApplied > 0 && r.clientPays === 0 && '100% coberto pelo crédito'}
-                              {r.creditApplied > 0 && r.clientPays > 0 && 'Crédito esgotado nesta semana'}
+                              {r.creditApplied >= r.commission && '100% coberto pelo crédito'}
+                              {r.creditApplied > 0 && r.creditApplied < r.commission && 'Crédito esgotado nesta semana'}
                               {r.creditApplied === 0 && 'Pagamento integral via Pix/Cripto'}
                             </span>
                           </div>
@@ -564,6 +571,7 @@ const ClientDashboard: React.FC = () => {
                 </div>
               </div>
             )}
+
 
             {/* Saved accounts */}
             {savedAccounts.length > 0 && (
