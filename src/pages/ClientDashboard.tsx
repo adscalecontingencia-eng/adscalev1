@@ -240,7 +240,7 @@ const ClientDashboard: React.FC = () => {
       paid: paid.reduce((s, c) => s + Number(c.amount), 0),
       adSpend,
     };
-  }, [commissions, insights, client]);
+  }, [commissions, insights, client, commissionTiers]);
 
   const periodTotals = useMemo(() => {
     const range = getFilterRange();
