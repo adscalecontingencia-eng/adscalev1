@@ -21,6 +21,8 @@ export interface AutoCommissionResult {
 export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
   const result: AutoCommissionResult = { inserted: 0, skipped: 0, errors: 0 };
 
+  const tiers = await fetchCommissionTiers();
+
   const [clientsRes, assignRes, insightsRes, existingRes] = await Promise.all([
     supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value'),
     supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active').eq('active', true),
