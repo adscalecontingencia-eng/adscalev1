@@ -136,7 +136,7 @@ export const NotificationCenter: React.FC = () => {
           .limit(30),
         supabase
           .from("support_requests")
-          .select("id, request_type, description, quantity, status, created_at, client:clients(name)")
+          .select("id, request_type, description, quantity, status, bm_meta_id, created_at, client:clients(name)")
           .in("status", ["pendente", "em_andamento"])
           .order("created_at", { ascending: false })
           .limit(30),
