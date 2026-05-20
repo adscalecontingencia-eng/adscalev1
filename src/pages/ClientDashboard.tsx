@@ -33,7 +33,9 @@ const ClientDashboard: React.FC = () => {
   const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
   const [reqQty, setReqQty] = useState<number>(1);
   const [reqDesc, setReqDesc] = useState<string>('');
+  const [reqBmId, setReqBmId] = useState<string>('');
   const [submittingReq, setSubmittingReq] = useState(false);
+  const [editingReqId, setEditingReqId] = useState<string | null>(null);
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
