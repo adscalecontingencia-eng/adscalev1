@@ -35,6 +35,7 @@ const ClientDashboard: React.FC = () => {
   const [reqQty, setReqQty] = useState<number>(1);
   const [reqDesc, setReqDesc] = useState<string>('');
   const [reqBmId, setReqBmId] = useState<string>('');
+  const [reqPageNames, setReqPageNames] = useState<string[]>([]);
   const [submittingReq, setSubmittingReq] = useState(false);
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
 
