@@ -565,11 +565,24 @@ Deno.serve(async (req) => {
         .select("id, meta_account_id, name");
       if (accErr) throw accErr;
 
-      const purchaseTypes = ["purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase"];
-      const sumByType = (arr: any[]) =>
-        (arr || [])
-          .filter((a) => purchaseTypes.includes(a.action_type))
-          .reduce((s: number, a: any) => s + Number(a.value || 0), 0);
+      // IMPORTANT: Meta reports the same purchase under multiple action_types
+      // (e.g. "purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase").
+      // Somar todos duplica/triplica o valor. Usamos UM tipo por linha, em ordem
+      // de prioridade: omni_purchase (já deduplicado web+app) > purchase >
+      // offsite_conversion.fb_pixel_purchase. Isso evita contagem duplicada.
+      const purchasePriority = [
+        "omni_purchase",
+        "purchase",
+        "offsite_conversion.fb_pixel_purchase",
+      ];
+      const pickByPriority = (arr: any[]) => {
+        if (!arr || arr.length === 0) return 0;
+        for (const t of purchasePriority) {
+          const found = arr.find((a) => a.action_type === t);
+          if (found) return Number(found.value || 0);
+        }
+        return 0;
+      };
 
       const errors: any[] = [];
       let totalRows = 0;
