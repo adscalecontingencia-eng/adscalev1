@@ -133,14 +133,35 @@ const ClientDashboard: React.FC = () => {
 
 
   const resetReqForm = () => {
-    setReqDesc(''); setReqQty(1); setReqBmId(''); setEditingReqId(null);
+    setReqDesc(''); setReqQty(1); setReqBmId(''); setReqPageNames([]); setEditingReqId(null);
   };
+
+  // Mantém a lista de nomes de páginas com o mesmo tamanho da quantidade
+  useEffect(() => {
+    if (reqType !== 'add_page') return;
+    setReqPageNames(prev => {
+      const next = [...prev];
+      if (next.length < reqQty) {
+        while (next.length < reqQty) next.push('');
+      } else if (next.length > reqQty) {
+        next.length = reqQty;
+      }
+      return next;
+    });
+  }, [reqQty, reqType]);
 
   const submitRequest = async () => {
     if (!client) return;
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
       return;
+    }
+    if (reqType === 'add_page') {
+      const names = reqPageNames.slice(0, reqQty).map(n => (n || '').trim());
+      if (names.some(n => !n)) {
+        toast.error(`Informe o nome de todas as ${reqQty} páginas solicitadas.`);
+        return;
+      }
     }
     setSubmittingReq(true);
     const payload: any = {
@@ -149,6 +170,7 @@ const ClientDashboard: React.FC = () => {
       quantity: reqQty,
       description: reqDesc || null,
       bm_meta_id: reqType === 'add_ad_account' ? reqBmId.trim() : null,
+      page_names: reqType === 'add_page' ? reqPageNames.slice(0, reqQty).map(n => n.trim()) : null,
     };
     if (editingReqId) {
       const { data, error } = await supabase.from('support_requests')
@@ -174,6 +196,7 @@ const ClientDashboard: React.FC = () => {
     setReqQty(r.quantity || 1);
     setReqDesc(r.description || '');
     setReqBmId(r.bm_meta_id || '');
+    setReqPageNames(Array.isArray(r.page_names) ? r.page_names : []);
     setTab('suporte');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
