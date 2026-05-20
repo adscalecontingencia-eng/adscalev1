@@ -241,38 +241,43 @@ const ClientDashboard: React.FC = () => {
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }, [insights, client]);
 
-  // Credit runway projection: shows week-by-week how plan_credit offsets commission until zero
+  // Credit ledger: REAL week-by-week history. Applies plan_credit FIFO from the
+  // earliest week with spend, week by week, until credit is exhausted.
   const creditPlan = useMemo(() => {
     const credit = Number(client?.plan_credit || 0);
-    if (!client || credit <= 0 || client.client_type === 'venda') return null;
-    // Estimate weekly commission: avg of last 6 weeks with spend; fallback to fixed_value
-    const recent = weeklyCommissionHistory.slice(-8).filter(w => w.commission > 0);
-    let avgWeekly = recent.length > 0
-      ? recent.reduce((s, w) => s + w.commission, 0) / recent.length
-      : Number(client.fixed_value || 0);
-    if (!avgWeekly || avgWeekly <= 0) return null;
+    if (!client || client.client_type === 'venda') return null;
+    const weeks = weeklyCommissionHistory.filter(w => w.commission > 0);
+    if (weeks.length === 0) return null;
+
     let remaining = credit;
-    const rows: { weekStart: Date; commission: number; creditApplied: number; clientPays: number; remainingAfter: number }[] = [];
-    let cursor = startOfWeek(new Date(), { weekStartsOn: 1 });
-    let safety = 0;
-    while (remaining > 0 && safety < 26) {
-      const applied = Math.min(remaining, avgWeekly);
-      const pays = Math.max(0, avgWeekly - applied);
+    const rows = weeks.map(w => {
+      const applied = Math.min(remaining, w.commission);
+      const pays = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
-      rows.push({ weekStart: new Date(cursor), commission: avgWeekly, creditApplied: applied, clientPays: pays, remainingAfter: remaining });
-      cursor = new Date(cursor.getTime() + 7 * 24 * 60 * 60 * 1000);
-      safety++;
-    }
-    // Add the first "paying" week after credit runs out, for clarity
-    rows.push({
-      weekStart: new Date(cursor),
-      commission: avgWeekly,
-      creditApplied: 0,
-      clientPays: avgWeekly,
-      remainingAfter: 0,
+      return {
+        weekStart: w.weekStart,
+        spend: w.spend,
+        commission: w.commission,
+        creditApplied: applied,
+        clientPays: pays,
+        remainingAfter: remaining,
+      };
     });
-    return { avgWeekly, totalCredit: credit, rows };
+
+    const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
+    const totalApplied = rows.reduce((s, r) => s + r.creditApplied, 0);
+    const totalPaying = rows.reduce((s, r) => s + r.clientPays, 0);
+
+    return {
+      totalCredit: credit,
+      remaining,
+      totalCommission,
+      totalApplied,
+      totalPaying,
+      rows,
+    };
   }, [client, weeklyCommissionHistory]);
+
 
   const pendingBillings = useMemo(
     () => commissions.filter(c => c.type === 'weekly_billing' && (c as any).status !== 'pago'),
