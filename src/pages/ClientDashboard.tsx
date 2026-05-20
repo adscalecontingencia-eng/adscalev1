@@ -220,6 +220,58 @@ const ClientDashboard: React.FC = () => {
     };
   }, [filteredCommissions, insights, periodFilter, customStart, customEnd, client]);
 
+  // Weekly commission history (real, from insights, by ISO week)
+  const weeklyCommissionHistory = useMemo(() => {
+    if (!client || client.client_type === 'venda') return [] as { weekStart: Date; spend: number; commission: number }[];
+    const basePct = Number(client.percentage_value) || 0;
+    const byWeek: Record<string, number> = {};
+    insights.forEach((i: any) => {
+      const d = parseDateLocal(i.date);
+      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const key = ws.toISOString().slice(0, 10);
+      byWeek[key] = (byWeek[key] || 0) + Number(i.spend || 0);
+    });
+    return Object.entries(byWeek)
+      .map(([k, spend]) => {
+        const rate = getTierPct(spend, basePct);
+        return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
+      })
+      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+  }, [insights, client]);
+
+  // Credit runway projection: shows week-by-week how plan_credit offsets commission until zero
+  const creditPlan = useMemo(() => {
+    const credit = Number(client?.plan_credit || 0);
+    if (!client || credit <= 0 || client.client_type === 'venda') return null;
+    // Estimate weekly commission: avg of last 6 weeks with spend; fallback to fixed_value
+    const recent = weeklyCommissionHistory.slice(-8).filter(w => w.commission > 0);
+    let avgWeekly = recent.length > 0
+      ? recent.reduce((s, w) => s + w.commission, 0) / recent.length
+      : Number(client.fixed_value || 0);
+    if (!avgWeekly || avgWeekly <= 0) return null;
+    let remaining = credit;
+    const rows: { weekStart: Date; commission: number; creditApplied: number; clientPays: number; remainingAfter: number }[] = [];
+    let cursor = startOfWeek(new Date(), { weekStartsOn: 1 });
+    let safety = 0;
+    while (remaining > 0 && safety < 26) {
+      const applied = Math.min(remaining, avgWeekly);
+      const pays = Math.max(0, avgWeekly - applied);
+      remaining = Math.max(0, remaining - applied);
+      rows.push({ weekStart: new Date(cursor), commission: avgWeekly, creditApplied: applied, clientPays: pays, remainingAfter: remaining });
+      cursor = new Date(cursor.getTime() + 7 * 24 * 60 * 60 * 1000);
+      safety++;
+    }
+    // Add the first "paying" week after credit runs out, for clarity
+    rows.push({
+      weekStart: new Date(cursor),
+      commission: avgWeekly,
+      creditApplied: 0,
+      clientPays: avgWeekly,
+      remainingAfter: 0,
+    });
+    return { avgWeekly, totalCredit: credit, rows };
+  }, [client, weeklyCommissionHistory]);
+
   const pendingBillings = useMemo(
     () => commissions.filter(c => c.type === 'weekly_billing' && (c as any).status !== 'pago'),
     [commissions]
