@@ -143,6 +143,15 @@ const Support: React.FC = () => {
                           <CreditCard size={11} /> BM destino: <span className="font-mono">{r.bm_meta_id}</span>
                         </p>
                       )}
+                      {Array.isArray(r.page_names) && r.page_names.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {r.page_names.map((n: string, i: number) => (
+                            <span key={i} className="text-[10px] bg-primary/10 text-primary border border-primary/30 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                              <ImageIcon size={9} /> {n}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <p className="text-[10px] text-muted-foreground/70 mt-1">
                         {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </p>

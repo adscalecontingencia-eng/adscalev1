@@ -35,6 +35,7 @@ const ClientDashboard: React.FC = () => {
   const [reqQty, setReqQty] = useState<number>(1);
   const [reqDesc, setReqDesc] = useState<string>('');
   const [reqBmId, setReqBmId] = useState<string>('');
+  const [reqPageNames, setReqPageNames] = useState<string[]>([]);
   const [submittingReq, setSubmittingReq] = useState(false);
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
 
@@ -132,14 +133,35 @@ const ClientDashboard: React.FC = () => {
 
 
   const resetReqForm = () => {
-    setReqDesc(''); setReqQty(1); setReqBmId(''); setEditingReqId(null);
+    setReqDesc(''); setReqQty(1); setReqBmId(''); setReqPageNames([]); setEditingReqId(null);
   };
+
+  // Mantém a lista de nomes de páginas com o mesmo tamanho da quantidade
+  useEffect(() => {
+    if (reqType !== 'add_page') return;
+    setReqPageNames(prev => {
+      const next = [...prev];
+      if (next.length < reqQty) {
+        while (next.length < reqQty) next.push('');
+      } else if (next.length > reqQty) {
+        next.length = reqQty;
+      }
+      return next;
+    });
+  }, [reqQty, reqType]);
 
   const submitRequest = async () => {
     if (!client) return;
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
       return;
+    }
+    if (reqType === 'add_page') {
+      const names = reqPageNames.slice(0, reqQty).map(n => (n || '').trim());
+      if (names.some(n => !n)) {
+        toast.error(`Informe o nome de todas as ${reqQty} páginas solicitadas.`);
+        return;
+      }
     }
     setSubmittingReq(true);
     const payload: any = {
@@ -148,6 +170,7 @@ const ClientDashboard: React.FC = () => {
       quantity: reqQty,
       description: reqDesc || null,
       bm_meta_id: reqType === 'add_ad_account' ? reqBmId.trim() : null,
+      page_names: reqType === 'add_page' ? reqPageNames.slice(0, reqQty).map(n => n.trim()) : null,
     };
     if (editingReqId) {
       const { data, error } = await supabase.from('support_requests')
@@ -173,6 +196,7 @@ const ClientDashboard: React.FC = () => {
     setReqQty(r.quantity || 1);
     setReqDesc(r.description || '');
     setReqBmId(r.bm_meta_id || '');
+    setReqPageNames(Array.isArray(r.page_names) ? r.page_names : []);
     setTab('suporte');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1012,6 +1036,31 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {reqType === 'add_page' && reqQty > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <ImageIcon size={11} /> Nomes das páginas ({reqQty}) *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {Array.from({ length: reqQty }).map((_, i) => (
+                        <input
+                          key={i}
+                          type="text"
+                          value={reqPageNames[i] || ''}
+                          onChange={e => setReqPageNames(prev => {
+                            const next = [...prev];
+                            while (next.length < reqQty) next.push('');
+                            next[i] = e.target.value;
+                            return next;
+                          })}
+                          placeholder={`Página ${i + 1}`}
+                          className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
                   <textarea
@@ -1072,6 +1121,15 @@ const ClientDashboard: React.FC = () => {
                             <p className="text-[11px] text-primary flex items-center gap-1 mt-0.5">
                               <Building2 size={11} /> BM: {r.bm_meta_id}
                             </p>
+                          )}
+                          {Array.isArray(r.page_names) && r.page_names.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {r.page_names.map((n: string, i: number) => (
+                                <span key={i} className="text-[10px] bg-primary/10 text-primary border border-primary/30 px-1.5 py-0.5 rounded">
+                                  <ImageIcon size={9} className="inline mr-1" />{n}
+                                </span>
+                              ))}
+                            </div>
                           )}
                           {r.description && <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground/70 mt-1">

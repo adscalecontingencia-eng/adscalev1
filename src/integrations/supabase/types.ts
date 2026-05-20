@@ -836,6 +836,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          page_names: string[] | null
           quantity: number
           request_type: string
           resolved_at: string | null
@@ -849,6 +850,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          page_names?: string[] | null
           quantity?: number
           request_type: string
           resolved_at?: string | null
@@ -862,6 +864,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          page_names?: string[] | null
           quantity?: number
           request_type?: string
           resolved_at?: string | null
