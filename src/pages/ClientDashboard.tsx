@@ -294,7 +294,10 @@ const ClientDashboard: React.FC = () => {
     );
   }
 
-  const pendingTotal = allTimeTotals.commission - allTimeTotals.paid;
+  const originalCredit = Number(client?.plan_credit || 0);
+  const creditUsed = creditPlan?.totalApplied || 0;
+  const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
+  const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
   const paymentMsg = (method: string) =>
@@ -426,9 +429,13 @@ const ClientDashboard: React.FC = () => {
               </div>
               <div className="rounded-xl bg-gradient-to-br from-primary/15 to-emerald-500/10 border border-primary/30 p-4">
                 <CreditCard size={18} className="text-primary" />
-                <div className="text-2xl font-bold text-primary mt-2">{fmt(Number(client?.plan_credit || 0))}</div>
+                <div className="text-2xl font-bold text-primary mt-2">{fmt(availableCredit)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Crédito Disponível</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">Abatido automaticamente da comissão</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">
+                  {creditUsed > 0
+                    ? <>Usado <span className="text-primary/80 font-semibold">{fmt(creditUsed)}</span> de {fmt(originalCredit)}</>
+                    : 'Abatido automaticamente da comissão'}
+                </div>
               </div>
             </div>
 
