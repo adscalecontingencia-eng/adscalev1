@@ -118,13 +118,33 @@ const Support: React.FC = () => {
         </div>
         {clientRequests.length === 0 ? (
           <p className="text-center text-muted-foreground text-xs py-6">Nenhuma solicitação de cliente.</p>
-        ) : (
-          <div className="space-y-2">
-            {clientRequests.map((r: any) => {
-              const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : LifeBuoy;
-              const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+        ) : (() => {
+          const columns = [
+            { key: 'pendente', label: 'Pendente', accent: 'border-amber-500/40 bg-amber-500/5', badge: 'bg-amber-500/20 text-amber-300', icon: <AlertTriangle size={14} /> },
+            { key: 'em_andamento', label: 'Em andamento', accent: 'border-blue-500/40 bg-blue-500/5', badge: 'bg-blue-500/20 text-blue-300', icon: <Clock size={14} /> },
+            { key: 'concluida', label: 'Concluída', accent: 'border-primary/40 bg-primary/5', badge: 'bg-primary/20 text-primary', icon: <CheckCircle2 size={14} /> },
+          ] as const;
+          return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {columns.map(col => {
+              const items = clientRequests.filter((r: any) => (r.status || 'pendente') === col.key);
               return (
-                <div key={r.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
+                <div key={col.key} className={cn("rounded-lg border p-3 min-h-[120px]", col.accent)}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold">
+                      {col.icon} {col.label}
+                    </div>
+                    <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", col.badge)}>{items.length}</span>
+                  </div>
+                  {items.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/60 text-center py-4">Nenhuma</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {items.map((r: any) => {
+                        const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : LifeBuoy;
+                        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+                        return (
+                <div key={r.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex flex-col gap-2">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <TypeIcon size={16} />
