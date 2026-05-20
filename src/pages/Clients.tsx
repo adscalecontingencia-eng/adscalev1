@@ -913,50 +913,17 @@ const Clients: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setShowCommissionForm(showCommissionForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
-                      <DollarSign size={12} /> Lançar Gastos em Ads
-                    </button>
                     <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
-                      <CheckCircle size={12} /> Comissão Paga
-                    </button>
-                    <button onClick={() => handleGenerateWeeklyBilling(c.id)} className="flex items-center gap-1.5 text-xs bg-warning/10 text-warning px-3 py-1.5 rounded-lg hover:bg-warning/20 transition-colors">
-                      <Receipt size={12} /> Gerar Cobrança Semanal
+                      <CheckCircle size={12} /> Validar Pagamento da Comissão
                     </button>
                     <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
                     </button>
                   </div>
 
-                  {showCommissionForm === c.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 space-y-2">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors whitespace-nowrap")}>
-                              <CalendarIcon size={14} />
-                              {format(commissionDate, "dd/MM/yyyy", { locale: ptBR })}
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={commissionDate} onSelect={(d) => d && setCommissionDate(d)} initialFocus className="p-3 pointer-events-auto" />
-                          </PopoverContent>
-                        </Popover>
-                        <input type="number" placeholder="Gasto em Ads ($)" value={adSpendAmount} onChange={e => setAdSpendAmount(e.target.value)} className={`${inputClass} flex-1`} />
-                        <input placeholder="Nota (opcional)" value={commissionNote} onChange={e => setCommissionNote(e.target.value)} className={`${inputClass} flex-1`} />
-                        <button onClick={() => handleAddAdSpend(c.id)} className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Adicionar</button>
-                      </div>
-                      {previewCommission > 0 && (
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
-                          <DollarSign size={12} className="text-primary" />
-                          <span className="text-muted-foreground">
-                            Gasto: <strong className="text-foreground">{fmt(parseFloat(adSpendAmount) || 0)}</strong>
-                            {' → '}Comissão pendente ({c.clientType === 'venda' ? 'Fixo' : `${previewRate}% — semana acumulada ${fmt(accumWeekForCard + (parseFloat(adSpendAmount) || 0))}`}):
-                            <strong className="text-primary ml-1">{fmt(previewCommission)}</strong>
-                          </span>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    Comissões são geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
+                  </p>
 
                   {showPaidForm === c.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
