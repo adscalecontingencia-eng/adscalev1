@@ -1036,6 +1036,31 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {reqType === 'add_page' && reqQty > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <ImageIcon size={11} /> Nomes das páginas ({reqQty}) *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {Array.from({ length: reqQty }).map((_, i) => (
+                        <input
+                          key={i}
+                          type="text"
+                          value={reqPageNames[i] || ''}
+                          onChange={e => setReqPageNames(prev => {
+                            const next = [...prev];
+                            while (next.length < reqQty) next.push('');
+                            next[i] = e.target.value;
+                            return next;
+                          })}
+                          placeholder={`Página ${i + 1}`}
+                          className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
                   <textarea
