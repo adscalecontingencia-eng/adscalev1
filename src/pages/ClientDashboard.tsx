@@ -53,6 +53,22 @@ const ClientDashboard: React.FC = () => {
       .sort()
       .pop();
     if (latest) setLastAccountsSync(new Date(latest));
+
+    // Load insights for these ad accounts (last 12 months window is plenty)
+    const accountIds = list.map((a: any) => a.ad_account?.id).filter(Boolean);
+    if (accountIds.length > 0) {
+      const since = new Date();
+      since.setMonth(since.getMonth() - 12);
+      const sinceStr = since.toISOString().split('T')[0];
+      const { data: ins } = await supabase
+        .from('meta_ad_insights')
+        .select('ad_account_id, date, spend')
+        .in('ad_account_id', accountIds)
+        .gte('date', sinceStr);
+      setInsights(ins || []);
+    } else {
+      setInsights([]);
+    }
   }, []);
 
   useEffect(() => {
