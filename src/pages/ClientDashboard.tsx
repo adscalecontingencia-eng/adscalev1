@@ -1122,6 +1122,15 @@ const ClientDashboard: React.FC = () => {
                               <Building2 size={11} /> BM: {r.bm_meta_id}
                             </p>
                           )}
+                          {Array.isArray(r.page_names) && r.page_names.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {r.page_names.map((n: string, i: number) => (
+                                <span key={i} className="text-[10px] bg-primary/10 text-primary border border-primary/30 px-1.5 py-0.5 rounded">
+                                  <ImageIcon size={9} className="inline mr-1" />{n}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {r.description && <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground/70 mt-1">
                             {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
