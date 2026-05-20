@@ -436,20 +436,29 @@ const ClientDashboard: React.FC = () => {
               <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
                 <Shield size={16} className="text-primary" /> Contas de Anúncio
               </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-secondary rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-primary">{(client.ad_accounts || 0) - (client.used_accounts || 0) - (client.blocked_accounts || 0)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Disponíveis</p>
-                </div>
-                <div className="bg-secondary rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground">{client.used_accounts || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Em uso</p>
-                </div>
-                <div className="bg-secondary rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-destructive">{client.blocked_accounts || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Bloqueadas</p>
-                </div>
-              </div>
+              {(() => {
+                const total = client.ad_accounts || 0;
+                const used = activeAccounts.length;
+                const blockedCount = activeAccounts.filter((a: any) => a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0).length;
+                const activeCount = used - blockedCount;
+                const available = Math.max(0, total - used);
+                return (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-secondary rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-primary">{available}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Disponíveis</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Em uso</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Bloqueadas</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </TabsContent>
 
