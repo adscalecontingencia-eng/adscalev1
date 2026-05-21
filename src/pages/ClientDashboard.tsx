@@ -381,13 +381,6 @@ const ClientDashboard: React.FC = () => {
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
   const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
-
-  // Split entre saldo da semana corrente (pendente) e saldo já vencido (atrasado)
-  const billingSplit = splitOverdueVsCurrent(
-    weeklyCommissionHistory,
-    originalCredit,
-    allTimeTotals.paid,
-  );
   const overdueTotal = billingSplit.overdue;
   const currentPendingTotal = billingSplit.currentPending;
 
