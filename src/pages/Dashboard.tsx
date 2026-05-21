@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw, Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
