@@ -945,167 +945,98 @@ const Clients: React.FC = () => {
       )}
 
       <div className="space-y-3">
-        {filtered.map(c => {
-          const acc = getAccumulated(c.id);
-          const isExpanded = expandedClient === c.id;
-          const clientComms = getClientCommissions(c.id);
-          const accumWeekForCard = getWeeklyAccumSpend(c.id, new Date());
-          const previewCommission = adSpendAmount && showCommissionForm === c.id
-            ? calculateCommission(c, parseFloat(adSpendAmount) || 0, accumWeekForCard) : 0;
-          const previewRate = c.clientType === 'aluguel'
-            ? getTierPercentage(accumWeekForCard + (parseFloat(adSpendAmount) || 0), c.percentageValue || 0)
-            : 0;
-
-          return (
-            <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border rounded-xl overflow-hidden border-glow">
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">#{c.number}</span>
-                      <h4 className="font-semibold text-sm">{c.name}</h4>
-                      <span className={cn("text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-medium",
-                        c.clientType === 'venda' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'
-                      )}>
-                        {c.clientType === 'venda' ? 'Venda' : 'Aluguel'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{c.companyName}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{c.email}</p>
-                    <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                      <span className="text-primary">
-                        {c.clientType === 'venda'
-                          ? `Fixo: $${c.fixedValue}`
-                          : `${c.percentageValue}% base • metas: 4/3/2/1% (>20k/40k/80k/200k)`}
-                      </span>
-                      <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
-                      {c.clientType === 'aluguel' && (c.planCredit || 0) > 0 && (
-                        <span className="text-success">Crédito do plano: {fmt(c.planCredit || 0)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 sm:gap-2 shrink-0 ml-2 items-center">
-                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium">
-                      <Eye size={13} /> <span className="hidden sm:inline">Ver como cliente</span>
-                    </button>
-                    <button onClick={() => handleEdit(c)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"><Edit2 size={14} /></button>
-                    <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-3">
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Gasto em Ads</p>
-                      <p className="text-xs sm:text-sm font-bold text-foreground">{fmt(acc.totalAdSpend)}</p>
-                    </div>
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Pendente</p>
-                      <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.comissaoPendente)}</p>
-                    </div>
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Paga</p>
-                      <p className="text-xs sm:text-sm font-bold text-success">{fmt(acc.comissaoPaga)}</p>
-                    </div>
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Saldo Pendente</p>
-                      <p className={`text-xs sm:text-sm font-bold ${acc.saldoPendente > 0 ? 'text-warning' : 'text-muted-foreground'}`}>{fmt(acc.saldoPendente)}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {isAdmin && (
-                      <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
-                        <CheckCircle size={12} /> Validar Pagamento da Comissão
-                      </button>
-                    )}
-                    <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
-                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
-                    </button>
-                  </div>
-
-                  <p className="text-[10px] text-muted-foreground/70 mt-1">
-                    Comissões são geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
-                  </p>
-
-                  {showPaidForm === c.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors whitespace-nowrap")}>
-                            <CalendarIcon size={14} />
-                            {format(paidDate, "dd/MM/yyyy", { locale: ptBR })}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={paidDate} onSelect={(d) => d && setPaidDate(d)} initialFocus className="p-3 pointer-events-auto" />
-                        </PopoverContent>
-                      </Popover>
-                      <input type="number" placeholder="Valor pago $" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className={`${inputClass} flex-1`} />
-                      <button onClick={() => handleAddPaid(c.id)} className="bg-success text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Registrar Pagamento</button>
-                    </motion.div>
-                  )}
+        {loading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse">
+                <div className="h-4 w-1/3 bg-secondary rounded mb-3" />
+                <div className="grid grid-cols-4 gap-2">
+                  {[0, 1, 2, 3].map(j => (
+                    <div key={j} className="h-14 bg-secondary rounded-lg" />
+                  ))}
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              {isExpanded && (
-                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="border-t border-border bg-secondary/50 p-4 space-y-5">
-                  <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground mb-2">Histórico de Lançamentos</h5>
-                  {clientComms.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nenhum lançamento encontrado.</p>
-                  ) : (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {clientComms.sort((a, b) => parseDateLocal(b.date).getTime() - parseDateLocal(a.date).getTime()).map(comm => (
-                        <div key={comm.id} className={cn(
-                          "flex items-center justify-between rounded-lg px-3 py-2 text-xs",
-                          comm.type === 'weekly_billing' ? 'bg-warning/10 border border-warning/20' : 'bg-card'
-                        )}>
-                          <div className="flex items-center gap-2 flex-wrap flex-1">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
-                            <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
-                            <span className="text-muted-foreground">
-                              {comm.type === 'daily' ? 'Gasto em Ads' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança Semanal'}
-                            </span>
-                            {comm.type === 'daily' && comm.adSpend > 0 && (
-                              <span className="text-muted-foreground">(Ads: {fmt(comm.adSpend)})</span>
-                            )}
-                            {(comm.type === 'daily' || comm.type === 'weekly_billing') && comm.status && (
-                              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium",
-                                comm.status === 'pago' ? 'bg-success/10 text-success' : 
-                                comm.status === 'parcial' ? 'bg-warning/10 text-warning' : 
-                                'bg-muted text-muted-foreground'
-                              )}>
-                                {comm.status === 'pago' ? 'Pago' : comm.status === 'parcial' ? 'Parcial' : 'Pendente'}
-                              </span>
-                            )}
-                            {comm.note && <span className="text-muted-foreground italic">- {comm.note}</span>}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={`font-semibold ${comm.type === 'daily' ? 'text-primary' : comm.type === 'paid' ? 'text-success' : 'text-warning'}`}>
-                              {comm.type === 'paid' ? '-' : '+'}{fmt(comm.amount)}
-                            </span>
-                            <button onClick={() => startEditCommission(comm)} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground" title="Editar">
-                              <Pencil size={12} />
-                            </button>
-                            <button onClick={() => handleDeleteCommission(comm.id)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title="Remover">
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          );
-        })}
-        {filtered.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhum cliente encontrado.</p>}
+        {!loading && clients.length === 0 && (
+          <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
+            <UserPlus size={36} className="mx-auto text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente cadastrado ainda</p>
+            <p className="text-xs text-muted-foreground mb-4">Adicione seu primeiro cliente para começar a gerenciar comissões.</p>
+            <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
+              <Plus size={14} /> Cadastrar primeiro cliente
+            </button>
+          </div>
+        )}
+
+        {!loading && clients.length > 0 && filteredClients.length === 0 && (
+          <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
+            <Search size={32} className="mx-auto text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente bate com os filtros atuais</p>
+            <button
+              onClick={() => { setSearch(''); setTypeFilter('all'); setStatusFilter('all'); }}
+              className="text-xs text-primary hover:underline mt-2"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )}
+
+        <AnimatePresence initial={false}>
+          {!loading && filteredClients.map(({ c, acc }) => (
+            <ClientCard
+              key={c.id}
+              client={c}
+              totalAdSpend={acc.totalAdSpend}
+              comissaoPendente={acc.comissaoPendente}
+              comissaoPaga={acc.comissaoPaga}
+              saldoPendente={acc.saldoPendente}
+              status={getClientStatus(c.id)}
+              spendByDay={spendByClient[c.id] || []}
+              isAdmin={isAdmin}
+              showPayForm={showPaidForm === c.id}
+              paidAmount={paidAmount}
+              setPaidAmount={setPaidAmount}
+              paidDate={paidDate}
+              setPaidDate={setPaidDate}
+              onView={() => navigate(`/client-view/${c.id}`)}
+              onEdit={() => handleEdit(c)}
+              onDelete={() => handleDelete(c.id)}
+              onTogglePayForm={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)}
+              onSubmitPay={() => handleAddPaid(c.id)}
+              onOpenHistory={() => setHistoryClientId(c.id)}
+            />
+          ))}
+        </AnimatePresence>
       </div>
+
+      <TiersDialog
+        open={tiersOpen}
+        onOpenChange={setTiersOpen}
+        tiersToShow={tiersToShow}
+        tierDraft={tierDraft}
+        commissionTiers={commissionTiers}
+        updateTierDraft={updateTierDraft}
+        addTier={addTier}
+        removeTier={removeTier}
+        saveTiers={saveTiers}
+        cancelDraft={() => setTierDraft(null)}
+        savingTiers={savingTiers}
+      />
+
+      <ClientHistoryDrawer
+        open={!!historyClient}
+        onOpenChange={(o) => { if (!o) setHistoryClientId(null); }}
+        clientName={historyClient?.name || ''}
+        commissions={historyClient ? getClientCommissions(historyClient.id) : []}
+        onEdit={startEditCommission}
+        onDelete={handleDeleteCommission}
+      />
     </div>
   );
 };
 
 export default Clients;
+
