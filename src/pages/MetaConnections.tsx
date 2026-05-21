@@ -16,8 +16,12 @@ import {
 import { toast } from "sonner";
 import {
   RefreshCw, Search, Link2, Unlink, Building2, Calendar, Globe,
-  CreditCard, Shield, AlertTriangle, Eye, DollarSign,
+  CreditCard, Shield, AlertTriangle, Eye, DollarSign, ArrowUpDown, X,
 } from "lucide-react";
+import MetaKpiHero from "@/components/meta/MetaKpiHero";
+import BmOverviewStrip from "@/components/meta/BmOverviewStrip";
+import SystemUserHelp from "@/components/meta/SystemUserHelp";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type BM = {
   id: string; meta_bm_id: string; name: string; status: string | null;
@@ -219,6 +223,17 @@ export default function MetaConnections() {
       avgScore,
     };
   }, [bms, accounts, assignments]);
+
+  const lastSyncAt = useMemo(() => {
+    const dates = accounts
+      .map((a) => a.account_created_time)
+      .filter(Boolean) as string[];
+    // Prefer BM last_synced_at as global sync indicator
+    const bmDates = bms.map((b) => b.last_synced_at).filter(Boolean) as string[];
+    const all = bmDates.length ? bmDates : dates;
+    if (!all.length) return null;
+    return new Date(Math.max(...all.map((d) => new Date(d).getTime())));
+  }, [bms, accounts]);
 
   const fmtDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
