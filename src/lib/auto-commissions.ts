@@ -114,5 +114,20 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     }
   }
 
+  if (opts?.logAudit) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('commission_sync_log').insert({
+        triggered_by: user?.id ?? null,
+        triggered_by_email: user?.email ?? null,
+        source: opts.source || 'manual',
+        inserted_count: result.inserted,
+        skipped_count: result.skipped,
+        error_count: result.errors,
+        duration_ms: Date.now() - startedAt,
+      });
+    } catch { /* silent */ }
+  }
+
   return result;
 }
