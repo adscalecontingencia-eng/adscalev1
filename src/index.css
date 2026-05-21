@@ -49,8 +49,8 @@
     --warning: 45 100% 50%;
     --info: 200 100% 50%;
 
-    --font-display: 'Unbounded', sans-serif;
-    --font-body: 'Space Grotesk', sans-serif;
+    --font-display: 'Sora', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
 
     --glow-primary: 0 0 20px hsl(120, 100%, 50%, 0.3);
     --glow-primary-strong: 0 0 40px hsl(120, 100%, 50%, 0.5);
@@ -62,13 +62,20 @@
     @apply border-border;
   }
 
+  html {
+    font-size: 17px;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3 {
+  h1, h2, h3, h4 {
     font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 }
 
