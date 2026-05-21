@@ -1180,6 +1180,64 @@ const ClientDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Comissões pendentes por semana (preview antes da validação) */}
+            {creditPlan && creditPlan.rows.some(r => r.clientPays > 0) && (
+              <div className="bg-card border border-border rounded-xl p-5 border-glow">
+                <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
+                  <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
+                </h3>
+                <p className="text-[11px] text-muted-foreground mb-4">
+                  Valores calculados a partir do gasto sincronizado da Meta. Prévia antes da validação do pagamento na sexta-feira.
+                </p>
+                <div className="space-y-2">
+                  {creditPlan.rows.filter(r => r.clientPays > 0).map((r, idx) => {
+                    const weekEnd = new Date(r.weekStart);
+                    weekEnd.setDate(weekEnd.getDate() + 6);
+                    const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
+                    return (
+                      <div key={idx} className="bg-secondary/40 border border-border rounded-lg p-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon size={12} className="text-primary" />
+                            <span className="text-xs font-semibold">
+                              {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
+                          </div>
+                          <span className="text-[10px] uppercase tracking-wider bg-warning/15 text-warning border border-warning/30 px-2 py-0.5 rounded">
+                            A pagar: {fmt(r.clientPays)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                          <div className="bg-background/40 rounded p-2">
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Gasto sincronizado</p>
+                            <p className="font-bold text-foreground mt-0.5">{fmt(r.spend)}</p>
+                          </div>
+                          <div className="bg-background/40 rounded p-2">
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Taxa</p>
+                            <p className="font-bold text-primary mt-0.5">{rate.toFixed(2)}%</p>
+                          </div>
+                          <div className="bg-background/40 rounded p-2">
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Comissão calc.</p>
+                            <p className="font-bold text-amber-400 mt-0.5">{fmt(r.commission)}</p>
+                          </div>
+                          <div className="bg-background/40 rounded p-2">
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Crédito aplicado</p>
+                            <p className="font-bold text-emerald-400 mt-0.5">−{fmt(r.creditApplied)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Total estimado a pagar</span>
+                  <span className="font-bold text-warning text-base">
+                    {fmt(creditPlan.rows.reduce((s, r) => s + r.clientPays, 0))}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Cobranças semanais pendentes */}
             {pendingBillings.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
