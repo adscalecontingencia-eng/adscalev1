@@ -164,7 +164,27 @@ const Clients: React.FC = () => {
     })));
   };
 
-  useEffect(() => { fetchClients(); fetchCommissions(); }, []);
+  // Insights + assignments (para calcular Saldo Pendente igual ao dashboard do cliente)
+  const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
+  const fetchInsightsByClient = async () => {
+    const [assignRes, insightsRes] = await Promise.all([
+      supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active').eq('active', true),
+      supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
+    ]);
+    if (assignRes.error || insightsRes.error) return;
+    const accToClient = new Map<string, string>();
+    (assignRes.data || []).forEach((a: any) => accToClient.set(a.ad_account_id, a.client_id));
+    const byClient: Record<string, { date: string; spend: number }[]> = {};
+    (insightsRes.data || []).forEach((i: any) => {
+      const cid = accToClient.get(i.ad_account_id);
+      if (!cid) return;
+      if (!byClient[cid]) byClient[cid] = [];
+      byClient[cid].push({ date: i.date, spend: Number(i.spend || 0) });
+    });
+    setInsightsByClient(byClient);
+  };
+
+  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); }, []);
 
   const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
     // Venda → valor fixo
@@ -601,35 +621,62 @@ const Clients: React.FC = () => {
 
   const getClientCommissions = (clientId: string) => commissions.filter(c => c.clientId === clientId);
   
+  // All-time commission from REAL insights (matches ClientDashboard logic)
+  const computeAllTimeCommissionFromInsights = (clientId: string): number => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || client.clientType === 'venda') return 0;
+    const basePct = client.percentageValue || 0;
+    const rows = insightsByClient[clientId] || [];
+    if (rows.length === 0) return 0;
+    const byWeek: Record<string, number> = {};
+    rows.forEach(r => {
+      const d = parseDateLocal(r.date);
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
+      const key = format(ws, 'yyyy-MM-dd');
+      byWeek[key] = (byWeek[key] || 0) + r.spend;
+    });
+    let total = 0;
+    Object.values(byWeek).forEach(weekTotal => {
+      const rate = getTierPercentage(weekTotal, basePct);
+      total += weekTotal * (rate / 100);
+    });
+    return total;
+  };
+
   const getAccumulated = (clientId: string) => {
     const cc = getClientCommissions(clientId);
     const range = getFilterRange();
-    
-    const filtered = range 
+
+    const filtered = range
       ? cc.filter(c => isWithinInterval(parseDateLocal(c.date), { start: range.start, end: range.end }))
       : cc;
-    
+
     const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
     const totalAdSpend = comissionTypes.reduce((s, c) => s + c.adSpend, 0);
-    
-    // Comissão Pendente: soma de valor_pendente dos registros pendentes/parciais
+
+    // Comissão Pendente (no período): soma de valor_pendente
     const comissaoPendente = comissionTypes
       .filter(c => c.status === 'pendente' || c.status === 'parcial')
       .reduce((s, c) => s + (c.valorPendente || 0), 0);
-    
-    // Comissão Paga: soma de amount dos paid + soma de valor_pago dos daily/weekly com status pago/parcial
+
+    // Comissão Paga (no período): pagamentos do tipo 'paid' + valor_pago dos daily/weekly
     const paidRecords = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
     const valorPagoFromDaily = comissionTypes
       .filter(c => c.status === 'pago' || c.status === 'parcial')
       .reduce((s, c) => s + (c.valorPago || 0), 0);
     const comissaoPaga = paidRecords + valorPagoFromDaily;
-    
-    // Comissão Total (para calcular saldo)
-    const comissaoTotal = comissionTypes.reduce((s, c) => s + c.amount, 0);
-    
-    // Saldo Pendente: total - paga
-    const saldoPendente = comissaoTotal - comissaoPaga;
-    
+
+    // Saldo Pendente: MESMO cálculo do dashboard do cliente
+    // = comissão total (all-time, dos insights por semana com tiers)
+    //   - tudo já pago (all-time, type='paid')
+    //   - crédito do plano aplicado (FIFO até a comissão total)
+    const client = clients.find(c => c.id === clientId);
+    const totalCommissionAllTime = computeAllTimeCommissionFromInsights(clientId);
+    const totalPaidAllTime = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
+    const planCredit = Number(client?.planCredit || 0);
+    const creditApplied = Math.min(planCredit, totalCommissionAllTime);
+    const saldoPendente = Math.max(0, totalCommissionAllTime - totalPaidAllTime - creditApplied);
+
     return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
   };
 
