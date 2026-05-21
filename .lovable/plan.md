@@ -1,98 +1,93 @@
+# Plano — Reestruturar Dashboard Ads
 
-# Plano — Aprimorar Dashboard Admin de Clientes
+## Diagnóstico atual (`src/pages/AdsDashboard.tsx`)
 
-Foco: reorganização visual e de informação da página `src/pages/Clients.tsx`. Sem mudar regras de negócio (cálculo de comissões, RLS, pagamentos continuam idênticos).
+- **12 cards de métrica achatados** em grid 6 col., sem hierarquia (Faturamento, Gasto, Lucro, ROAS misturados com CPM/CPC/CTR).
+- **Filtros lotados** num único Card: chips de período + 3 popovers grandes (BM, clientes, contas) na mesma linha — quebra mal e ocupa espaço demais.
+- **Sem visualização temporal**: só agregados. Não dá pra ver evolução diária de spend/revenue/ROAS.
+- **Sem detalhamento**: não existe ranking de contas, clientes ou BMs. Impossível ver quem performa.
+- **Sem estados visuais**: loading texto puro, empty state genérico, sem skeleton.
+- **Sync silencioso**: botão "Sincronizar" não mostra última sincronização nem progresso.
 
-## Diagnóstico atual
+## Proposta — 5 fases
 
-- Header simples só com "Total" de clientes — sem KPIs financeiros globais.
-- Filtros (busca + período) e botão "Novo Cliente" disputam a mesma linha, ficam apertados.
-- **Metas semanais de desconto (tiers)** moram dentro do modal "Novo Cliente", mesmo sendo configuração global — confuso e duplica o card a cada edição.
-- Card do cliente concentra muita informação em pouco espaço: chips de tipo, e-mail, %, contas, crédito, 4 KPIs, ações de pagamento e histórico — sem hierarquia clara.
-- "Histórico de Lançamentos" abre dentro do card empurrando layout; difícil escanear vários clientes.
-- Sem estados de status agregados (cliente em dia / inadimplente / sem gasto na semana).
-- Sem ordenação nem filtro por tipo (aluguel/venda) ou por status financeiro.
-- Loading sem skeleton, empty state sem ilustração.
+### Fase 1 — Hero KPIs com hierarquia clara
 
-## Fase 1 — Topo da página (resumo executivo)
+Trocar o grid plano por 2 níveis:
 
-Substituir o header atual por uma faixa de **KPIs globais filtráveis pelo período já existente**:
+```text
+┌─ Primary row (4 cards grandes) ───────────────────────────┐
+│  Faturamento  │  Gasto  │  Lucro  │  ROAS                  │
+│  + delta vs período anterior  + sparkline 14d              │
+└────────────────────────────────────────────────────────────┘
+┌─ Secondary row (6 cards menores) ─────────────────────────┐
+│  Margem │ Compras │ CPA │ CTR │ CPC │ CPM                  │
+└────────────────────────────────────────────────────────────┘
+```
 
-- Total de clientes (com split aluguel / venda)
-- Gasto em Ads agregado no período
-- Comissão pendente total (soma de `saldoPendente` de todos)
-- Comissão paga no período
-- Nº de clientes com saldo > 0 (badge "em cobrança")
+- Primary: cards glass com gradient, sparkline (Recharts) dos últimos N dias filtrados, comparativo `Δ%` vs período anterior equivalente.
+- Secondary: cards compactos sem sparkline.
+- Cliques/Impressões viram footer discreto (não merecem card).
 
-Visual: grid de 4-5 mini-cards glass, com ícone, label sutil e número em `font-display`, mesmo padrão usado em `Dashboard.tsx`.
+### Fase 2 — Barra de controles unificada
 
-## Fase 2 — Barra de controles reorganizada
+Separar em 3 zonas + colapso responsivo:
 
-Linha única, organizada em 3 zonas:
+```text
+[ Período: Hoje | Ontem | 7d | 30d | 90d | Custom ]   [ ⟳ Sync · há 4min ]
+[ 🔍 buscar conta...]  [ BM ▾ ] [ Clientes ▾ ] [ Contas ▾ ] [ Status ▾ ]
+```
 
-1. Esquerda: busca (ocupa flex-1) + chip "Mostrando X de Y".
-2. Centro: chips de período (já existem) + **novo filtro de tipo** (Todos / Aluguel / Venda) + **novo filtro de status** (Todos / Em dia / Pendente / Sem gasto) + ordenação (Maior saldo, Mais recente, A–Z).
-3. Direita: botão "Novo Cliente" + botão secundário "Metas de desconto" (abre modal dedicado, ver fase 3).
+- Chip de "última sincronização" + spinner inline (substitui botão grande).
+- Adicionar **período custom** (date range), faltava.
+- Adicionar filtro de **status da conta** (ativa/bloqueada) — já tem o dado em `meta_ad_accounts.status`.
+- Em telas <md, filtros viram `Sheet` lateral com contagem de ativos.
 
-Em mobile, vira coluna com filtros colapsáveis em um `Sheet`.
+### Fase 3 — Gráficos temporais
 
-## Fase 3 — Extrair "Metas semanais de desconto" do modal de cliente
+Adicionar uma seção com 2 charts (Recharts, glass cards):
 
-Hoje o bloco de tiers aparece dentro do form de "Novo/Editar Cliente" mesmo sendo global. Mover para um **modal/dialog próprio** acionado pelo botão "Metas de desconto" na barra de controles. Reaproveita todo o estado (`tierDraft`, `saveTiers`, `addTier`, `removeTier`).
+1. **Spend × Revenue × Profit** — area chart empilhado por dia.
+2. **ROAS diário** — line chart com linha de referência em 1.0x.
 
-Ganhos: form de cliente fica ~40% menor e o admin entende que tiers são globais.
+Tab para alternar granularidade (Diário / Semanal). Tooltip com valores formatados USD.
 
-## Fase 4 — Redesign do card do cliente
+### Fase 4 — Breakdown table (ranking)
 
-Reorganizar cada card em **3 zonas verticais claras**, mantendo padrão glass / neon green:
+Tabela com tabs:
 
-1. **Cabeçalho (identidade):** número + nome + badge tipo (Aluguel/Venda) + badge de status financeiro (Em dia ✅ / Pendente ⚠ / Sem gasto ◌). Ações (Ver como cliente, Editar, Excluir) viram um menu `…` à direita para limpar a linha.
+- **Por Cliente** — agrupa insights via `meta_ad_account_assignments`. Mostra: cliente, spend, revenue, ROAS, compras, % do total.
+- **Por Conta** — conta, BM, cliente atribuído, spend, ROAS, status, última sync.
+- **Por BM** — agregado.
 
-2. **Sub-header (metadados):** empresa, e-mail, % base / valor fixo, contas disponíveis, crédito do plano. Tipografia menor e cor `muted-foreground`, sem competir com KPIs.
+Sort por coluna, busca embutida, mini progress bar do % do total. Click na linha aplica filtro correspondente.
 
-3. **KPIs (4 stat cards):** mesmo conteúdo atual (Gasto, Pendente, Paga, Saldo) mas com:
-   - ícone à esquerda
-   - mini-sparkline de 7 dias do gasto no card "Gasto em Ads" (Recharts `<Line>` 60×24)
-   - destaque visual no "Saldo Pendente" (borda neon quando > 0, success quando = 0)
+### Fase 5 — Polimento
 
-4. **Footer de ações:** "Validar Pagamento" + "Histórico" (vira botão que abre **drawer lateral** em vez de expandir o card — escaneia melhor lista longa).
-
-## Fase 5 — Histórico em drawer lateral
-
-Substituir o expand inline por um `Sheet` (shadcn) deslizando da direita, com:
-
-- Tabs: **Lançamentos** / **Cobranças semanais** / **Pagamentos**
-- Filtro por intervalo de datas dentro do drawer
-- Edição/exclusão inline já existentes
-- Footer com totais do cliente
-
-Mantém todas as funções atuais (`startEditCommission`, `handleDeleteCommission`) — só muda o container.
-
-## Fase 6 — Polimento de estado
-
-- **Skeleton** durante `loading` (3 cards fantasma) em vez de tela vazia.
-- **Empty state** com ícone e CTA "Cadastrar primeiro cliente" quando `clients.length === 0`.
-- **Empty state filtrado** ("Nenhum cliente bate com os filtros — limpar filtros") quando `filtered.length === 0`.
-- Transições suaves (Motion) na entrada/saída de cada card e nas trocas de filtro.
+- Skeleton durante load (mesma estrutura dos KPIs/charts).
+- Empty state com CTA "Sincronizar agora".
+- Toast de sync com contagem de linhas upsertadas.
+- Estado "stale data" (badge amarelo) se última sync > 6h.
+- Animações suaves (`framer-motion` stagger) na entrada dos cards.
 
 ## Detalhes técnicos
 
-- Arquivo único impactado: `src/pages/Clients.tsx` (~1.166 linhas hoje). Para não inchar ainda mais, extrair:
-  - `src/components/clients/ClientKPIBar.tsx` (Fase 1)
-  - `src/components/clients/ClientFiltersBar.tsx` (Fase 2)
-  - `src/components/clients/TiersDialog.tsx` (Fase 3)
-  - `src/components/clients/ClientCard.tsx` (Fase 4)
-  - `src/components/clients/ClientHistoryDrawer.tsx` (Fase 5)
-- Reaproveitar `getAccumulated`, `calculateCommission`, `getWeeklyAccumSpend`, `insightsByClient` que já existem.
-- Tokens semânticos do `index.css` apenas (`primary`, `success`, `warning`, `muted-foreground`, `card`, `border`) — sem cores hardcoded.
-- Sparkline usa `meta_ad_insights` que já estamos buscando em `fetchInsightsByClient`.
-- Sem migração SQL, sem mudança de RLS, sem mudança em edge functions.
+**Novos componentes** em `src/components/ads/`:
 
-## Entrega sugerida (ordem)
+- `AdsKpiHero.tsx` — primary + secondary KPI grid.
+- `AdsFiltersBar.tsx` — toda a zona de filtros + sync chip.
+- `AdsTimeCharts.tsx` — Spend/Revenue/Profit + ROAS.
+- `AdsBreakdownTable.tsx` — tabs cliente/conta/BM com sort/busca.
+- `MiniSparkline.tsx` — reutilizável (já há lógica parecida em `ClientCard`).
 
-1. Fases 1 + 2 + 3 juntas → topo da página totalmente novo e modal de tiers separado.
-2. Fase 4 → redesign do card (commit isolado para revisão visual).
-3. Fase 5 → drawer de histórico.
-4. Fase 6 → polimento (skeleton, empty states, transições).
+**Reaproveitamentos**:
 
-Após a aprovação posso começar pela etapa 1 e seguir nessa ordem, validando o visual a cada bloco.
+- `filteredInsights`, `metrics`, `clientByAccount`, `rangeToDates` continuam — só extraídos para `useMemo`s consumidos pelos novos componentes.
+- Cálculo de delta período-anterior: rodar `loadInsights` para janela espelho (ex.: se range = 7d atual, busca 7d anteriores) e calcular `Δ%`.
+- Sparkline e gráficos usam Recharts (já no projeto).
+
+**Sem mudanças de backend**: nenhuma SQL, RLS ou edge function. Tudo é frontend sobre `meta_ad_insights`, `meta_ad_accounts`, `meta_ad_account_assignments`, `meta_business_managers` e `clients`.
+
+**Ordem sugerida de entrega**: Fases 1+2 juntas (visual imediato), depois 3, depois 4, depois 5.
+
+Aprova para implementar?
