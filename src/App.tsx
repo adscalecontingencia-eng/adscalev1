@@ -21,6 +21,8 @@ import NotFound from "./pages/NotFound";
 import NotificationSettings from "./pages/NotificationSettings";
 import Signup from "./pages/Signup";
 import AccessLogs from "./pages/AccessLogs";
+import AuditLog from "./pages/AuditLog";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
