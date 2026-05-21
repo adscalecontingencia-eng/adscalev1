@@ -248,7 +248,7 @@ export const ClientCard: React.FC<Props> = (props) => {
         </div>
 
         {/* KPIs */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           <Stat
             icon={<DollarSign size={11} />}
             label="Gasto em Ads"
@@ -264,7 +264,15 @@ export const ClientCard: React.FC<Props> = (props) => {
             tone={saldoPendente > 0 ? 'warning' : 'success'}
             highlight={saldoPendente > 0}
           />
+          <Stat
+            icon={saldoAtrasado > 0 ? <AlertTriangle size={11} /> : <CircleDot size={11} />}
+            label="Saldo Atrasado"
+            value={fmt(saldoAtrasado)}
+            tone={saldoAtrasado > 0 ? 'destructive' : 'success'}
+            highlight={saldoAtrasado > 0}
+          />
         </div>
+
 
         {/* Ações */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
