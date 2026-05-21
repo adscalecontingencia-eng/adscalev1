@@ -1019,9 +1019,11 @@ const Clients: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
-                      <CheckCircle size={12} /> Validar Pagamento da Comissão
-                    </button>
+                    {isAdmin && (
+                      <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
+                        <CheckCircle size={12} /> Validar Pagamento da Comissão
+                      </button>
+                    )}
                     <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
                     </button>
