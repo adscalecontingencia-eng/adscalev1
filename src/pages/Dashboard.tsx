@@ -704,6 +704,63 @@ const Dashboard: React.FC = () => {
           })}
         </Tabs>
       </PanelCard>
+
+      {showSyncHistory && (
+        <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4" onClick={() => setShowSyncHistory(false)}>
+          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-sm font-semibold flex items-center gap-2">
+                <Clock size={16} className="text-primary" /> Histórico de Sincronização de Comissões
+              </h3>
+              <button onClick={() => setShowSyncHistory(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+            </div>
+            {syncHistory.length === 0 ? (
+              <p className="text-center text-muted-foreground text-xs py-8">Nenhuma sincronização registrada ainda.</p>
+            ) : (
+              <div className="space-y-2">
+                {syncHistory.map((h: any) => (
+                  <div key={h.id} className="bg-secondary/40 border border-border rounded-lg p-3 text-xs">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        {h.error_count > 0
+                          ? <AlertTriangle size={14} className="text-destructive" />
+                          : <CheckCircle2 size={14} className="text-primary" />}
+                        <span className="font-semibold">
+                          {new Date(h.created_at).toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-[10px] uppercase bg-secondary px-2 py-0.5 rounded text-muted-foreground">{h.source}</span>
+                      </div>
+                      {h.duration_ms != null && (
+                        <span className="text-[10px] text-muted-foreground">{h.duration_ms}ms</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-[11px]">
+                      <div className="bg-primary/10 rounded p-2 text-center">
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">Inseridas</p>
+                        <p className="font-bold text-primary text-base mt-0.5">{h.inserted_count}</p>
+                      </div>
+                      <div className="bg-background/40 rounded p-2 text-center">
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">Ignoradas</p>
+                        <p className="font-bold text-muted-foreground text-base mt-0.5">{h.skipped_count}</p>
+                      </div>
+                      <div className={cn("rounded p-2 text-center", h.error_count > 0 ? "bg-destructive/10" : "bg-background/40")}>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">Erros</p>
+                        <p className={cn("font-bold text-base mt-0.5", h.error_count > 0 ? "text-destructive" : "text-muted-foreground")}>{h.error_count}</p>
+                      </div>
+                    </div>
+                    {h.triggered_by_email && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-2">Disparado por: {h.triggered_by_email}</p>
+                    )}
+                    {h.error_message && (
+                      <p className="text-[10px] text-destructive mt-1">{h.error_message}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
