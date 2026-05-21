@@ -347,7 +347,27 @@ const ClientDashboard: React.FC = () => {
     [commissions]
   );
 
+  // Split entre saldo da semana corrente (pendente) e saldo já vencido (atrasado)
+  const billingSplit = useMemo(
+    () => splitOverdueVsCurrent(
+      weeklyCommissionHistory,
+      Number(client?.plan_credit || 0),
+      allTimeTotals.paid,
+    ),
+    [weeklyCommissionHistory, client, allTimeTotals.paid]
+  );
+
+  // Pop-up automático quando há saldo atrasado (apenas 1x por sessão)
+  useEffect(() => {
+    if (loading || isAdminView) return;
+    if (billingSplit.overdue > 0 && !overdueDialogShownRef.current) {
+      overdueDialogShownRef.current = true;
+      setOverdueDialogOpen(true);
+    }
+  }, [loading, isAdminView, billingSplit.overdue]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+
 
   if (!client) {
     return (
