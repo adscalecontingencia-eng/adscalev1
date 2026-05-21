@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -14,6 +14,11 @@ import { toast } from 'sonner';
 import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/lib/audit';
+import ClientKPIBar from '@/components/clients/ClientKPIBar';
+import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/components/clients/ClientFiltersBar';
+import TiersDialog from '@/components/clients/TiersDialog';
+import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
+import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
 
 interface Client {
   id: string;
