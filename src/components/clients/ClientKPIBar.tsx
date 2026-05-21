@@ -20,13 +20,14 @@ const Card: React.FC<{
   label: string;
   value: string;
   hint?: string;
-  tone?: 'default' | 'primary' | 'warning' | 'success';
+  tone?: 'default' | 'primary' | 'warning' | 'success' | 'destructive';
 }> = ({ icon, label, value, hint, tone = 'default' }) => {
   const toneClass = {
     default: 'text-foreground',
     primary: 'text-primary',
     warning: 'text-warning',
     success: 'text-success',
+    destructive: 'text-destructive',
   }[tone];
   return (
     <div className="bg-card/60 backdrop-blur border border-border rounded-xl p-4 flex flex-col gap-2 hover:border-primary/40 transition-colors">
