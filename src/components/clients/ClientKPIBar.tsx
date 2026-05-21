@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, DollarSign, AlertTriangle, CheckCircle2, Wallet } from 'lucide-react';
+import { Users, DollarSign, AlertTriangle, CheckCircle2, Wallet, AlertOctagon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface KPI {
@@ -8,6 +8,7 @@ interface KPI {
   vendaCount: number;
   totalAdSpend: number;
   totalPendente: number;
+  totalAtrasado: number;
   totalPaga: number;
   inadimplentes: number;
 }
