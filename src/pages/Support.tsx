@@ -97,11 +97,20 @@ const Support: React.FC = () => {
         }
       />
 
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span className="bg-muted/60 backdrop-blur border border-border/60 text-muted-foreground px-3 py-1.5 rounded-full">Pendentes · {tasks.filter(t => t.status === 'pendente').length}</span>
-        <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full">Em andamento · {tasks.filter(t => t.status === 'em_andamento').length}</span>
-        <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">Concluídas · {tasks.filter(t => t.status === 'concluida').length}</span>
-      </div>
+      {(() => {
+        const allItems = [
+          ...tasks.map(t => ({ status: t.status })),
+          ...clientRequests.map((r: any) => ({ status: r.status || 'pendente' })),
+        ];
+        const count = (s: string) => allItems.filter(i => i.status === s).length;
+        return (
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="bg-muted/60 backdrop-blur border border-border/60 text-muted-foreground px-3 py-1.5 rounded-full">Pendentes · {count('pendente')}</span>
+            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full">Em andamento · {count('em_andamento')}</span>
+            <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">Concluídas · {count('concluida')}</span>
+          </div>
+        );
+      })()}
 
       {/* Client service requests */}
       <div className="bg-card border border-border rounded-xl p-5 border-glow">
