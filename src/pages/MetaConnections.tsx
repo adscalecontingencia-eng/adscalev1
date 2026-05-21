@@ -86,6 +86,8 @@ export default function MetaConnections() {
   const [filterClient, setFilterClient] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Account | null>(null);
+  const [sortKey, setSortKey] = useState<"score" | "spend" | "age" | "balance" | "name">("score");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const load = async () => {
     setLoading(true);
@@ -210,6 +212,33 @@ export default function MetaConnections() {
       return true;
     });
   }, [accounts, filterBm, filterStatus, filterClient, search, currentClient]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      const va: any = a[sortKey === "spend" ? "amount_spent" : sortKey] ?? 0;
+      const vb: any = b[sortKey === "spend" ? "amount_spent" : sortKey] ?? 0;
+      if (typeof va === "string") return va.localeCompare(String(vb)) * dir;
+      return ((va as number) - (vb as number)) * dir;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const toggleSort = (k: typeof sortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+  };
+
+  const hasFilters = filterBm !== "all" || filterStatus !== "all" || filterClient !== "all" || !!search;
+  const clearFilters = () => { setFilterBm("all"); setFilterStatus("all"); setFilterClient("all"); setSearch(""); };
+
+  const ageBadge = (age: number | null) => {
+    const a = Number(age || 0);
+    if (a >= 180) return { cls: "border-primary/40 text-primary", label: `${a}d` };
+    if (a >= 30) return { cls: "border-yellow-500/40 text-yellow-400", label: `${a}d` };
+    return { cls: "border-destructive/40 text-destructive", label: a ? `${a}d` : "Nova" };
+  };
 
   const stats = useMemo(() => {
     const avgScore = accounts.length
