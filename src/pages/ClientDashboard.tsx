@@ -1213,22 +1213,22 @@ const ClientDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* Saldo principal */}
+            {/* Saldo principal (semana corrente) */}
             <div className={cn(
               "rounded-2xl p-5 border",
-              pendingTotal > 0 ? "bg-gradient-to-br from-warning/15 via-card to-card border-warning/40" : "bg-gradient-to-br from-success/10 via-card to-card border-success/30"
+              currentPendingTotal > 0 ? "bg-gradient-to-br from-warning/15 via-card to-card border-warning/40" : "bg-gradient-to-br from-success/10 via-card to-card border-success/30"
             )}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Saldo Pendente</p>
-                  <p className={cn("font-display text-3xl font-bold", pendingTotal > 0 ? "text-warning" : "text-success")}>
-                    {fmt(Math.max(0, pendingTotal))}
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Saldo Pendente (semana corrente)</p>
+                  <p className={cn("font-display text-3xl font-bold", currentPendingTotal > 0 ? "text-warning" : "text-success")}>
+                    {fmt(Math.max(0, currentPendingTotal))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {pendingTotal > 0 ? 'Cobrança realizada toda sexta-feira' : 'Tudo em dia! Obrigado.'}
+                    {currentPendingTotal > 0 ? 'Cobrança realizada na próxima sexta-feira' : (overdueTotal > 0 ? 'Apenas saldo atrasado em aberto.' : 'Tudo em dia! Obrigado.')}
                   </p>
                 </div>
-                {pendingTotal > 0 && <AlertTriangle size={36} className="text-warning" />}
+                {currentPendingTotal > 0 && <AlertTriangle size={36} className="text-warning" />}
               </div>
             </div>
 
