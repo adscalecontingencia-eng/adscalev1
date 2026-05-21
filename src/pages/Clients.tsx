@@ -432,6 +432,7 @@ const Clients: React.FC = () => {
       client_id: clientId, date: paidDate.toISOString(), amount, type: 'paid',
     });
     if (error) { toast.error('Erro ao registrar pagamento'); return; }
+    logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: paidDate.toISOString() } });
 
     const clientDailyComms = commissions
       .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
