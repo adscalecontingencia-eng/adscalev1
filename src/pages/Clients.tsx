@@ -19,6 +19,7 @@ import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/component
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
+import { splitOverdueVsCurrent, WeeklyRow } from '@/lib/billing-status';
 
 interface Client {
   id: string;
