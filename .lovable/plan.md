@@ -1,69 +1,98 @@
-# Análise geral do AD SCALE
 
-Levantamento rápido do estado atual antes de propor melhorias.
+# Plano — Aprimorar Dashboard Admin de Clientes
 
-## Estado atual
+Foco: reorganização visual e de informação da página `src/pages/Clients.tsx`. Sem mudar regras de negócio (cálculo de comissões, RLS, pagamentos continuam idênticos).
 
-**Pontos fortes**
-- RBAC funcional (admin / support / client) com `user_roles` + `has_role` security definer.
-- Integração Meta robusta (BMs, contas, páginas, insights, eventos críticos).
-- Modelo de comissões por tiers + crédito FIFO já implementado.
-- Auditoria de sync de comissões e logs de acesso já existem.
-- Edge Functions cobrindo signup, gestão de usuários, consulta n8n e sync Meta.
+## Diagnóstico atual
 
-**Pontos fracos identificados**
+- Header simples só com "Total" de clientes — sem KPIs financeiros globais.
+- Filtros (busca + período) e botão "Novo Cliente" disputam a mesma linha, ficam apertados.
+- **Metas semanais de desconto (tiers)** moram dentro do modal "Novo Cliente", mesmo sendo configuração global — confuso e duplica o card a cada edição.
+- Card do cliente concentra muita informação em pouco espaço: chips de tipo, e-mail, %, contas, crédito, 4 KPIs, ações de pagamento e histórico — sem hierarquia clara.
+- "Histórico de Lançamentos" abre dentro do card empurrando layout; difícil escanear vários clientes.
+- Sem estados de status agregados (cliente em dia / inadimplente / sem gasto na semana).
+- Sem ordenação nem filtro por tipo (aluguel/venda) ou por status financeiro.
+- Loading sem skeleton, empty state sem ilustração.
 
-| Área | Observação |
-|---|---|
-| Arquitetura frontend | `ClientDashboard.tsx` (1331 linhas), `Clients.tsx` (1116), `Dashboard.tsx` (850) — monólitos difíceis de manter |
-| Data layer | TanStack Query está instalado mas **não é usado** — todo fetch é `useEffect + setState`, sem cache, sem revalidação, sem dedupe |
-| Tipagem | Muito `any` em respostas Supabase; tipos do schema já existem em `types.ts` mas não são aproveitados |
-| Tarefas internas (Support) | `tasks` salvas em `localStorage` — sem persistência multi-usuário, sem auditoria |
-| Realtime | Não há nenhum canal Realtime; solicitações de cliente, eventos críticos e tarefas exigem refresh manual |
-| Validação de formulários | Sem Zod/RHF — validação ad-hoc em vários pontos |
-| Mobile | Tela atual desenhada em 1296px; várias grids/cards quebram em viewport menor |
-| Observabilidade | Sem error boundary global, sem captura de erros, sem métricas de uso |
-| Segurança | Alertas pré-existentes do linter: leaked password protection desativado; algumas funções `security definer` executáveis por anon |
-| Performance | `meta_ad_insights` carrega `.limit(50000)` no cliente; reprocessado a cada render do dashboard |
-| Backups & rollback | Sem snapshot/exportação de dados financeiros agendada |
+## Fase 1 — Topo da página (resumo executivo)
 
-## Roadmap proposto (priorizado)
+Substituir o header atual por uma faixa de **KPIs globais filtráveis pelo período já existente**:
 
-### Fase 1 — Estabilidade & Segurança (1–2 semanas)
-1. **Habilitar leaked password protection** no Auth e revisar `SECURITY DEFINER` expostos (linter warnings pendentes).
-2. **Error boundary global** + integração com um coletor de erros (ex.: Sentry self-host ou tabela `error_log`).
-3. **Migrar `tasks` (Support) do localStorage para o banco**, com RLS, atribuição real ao `support_users` e histórico.
-4. **Auditoria estendida**: registrar em `audit_log` cada ação sensível (validar pagamento, criar/excluir cliente, atribuir conta, alterar tier de comissão).
-5. **Backup automático semanal** dos lançamentos financeiros e comissões para CSV em Storage.
+- Total de clientes (com split aluguel / venda)
+- Gasto em Ads agregado no período
+- Comissão pendente total (soma de `saldoPendente` de todos)
+- Comissão paga no período
+- Nº de clientes com saldo > 0 (badge "em cobrança")
 
-### Fase 2 — Data layer & Refactor (2–3 semanas)
-6. **Adotar TanStack Query** em todas as páginas (clients, commissions, transactions, insights) — cache, retry, invalidação após mutação.
-7. **Quebrar monólitos**: extrair de `ClientDashboard` os módulos `OverviewTab`, `BillingTab`, `RequestsTab`, `MetricsCards`. Mesma quebra em `Clients.tsx` e `Dashboard.tsx`.
-8. **Tipagem forte**: substituir `any` por tipos derivados de `Database['public']['Tables']`.
-9. **Hook único `useClientPortalData(clientId)`** consolidando os fetches paralelos hoje espalhados em `ClientDashboard`.
+Visual: grid de 4-5 mini-cards glass, com ícone, label sutil e número em `font-display`, mesmo padrão usado em `Dashboard.tsx`.
 
-### Fase 3 — Operacional & UX (2 semanas)
-10. **Realtime** para: solicitações de cliente (Support), eventos críticos Meta (badge admin) e tarefas internas — usando `supabase.channel`.
-11. **Sexta-feira automática**: edge function agendada gera as cobranças semanais (`weekly_billing`) e dispara WhatsApp via n8n, fechando o ciclo do `mem://features/payment-flow`.
-12. **Painel "Sexta de cobrança"**: visão consolidada com cada cliente, valor a cobrar, status do WhatsApp e botão único para validar pagamento.
-13. **Mobile-first revisão** das 3 páginas principais (Dashboard, ClientDashboard, Clients) — viewport ≤ 768px.
-14. **Validação com Zod + react-hook-form** nos formulários de cliente, transação e solicitação.
+## Fase 2 — Barra de controles reorganizada
 
-### Fase 4 — Inteligência & Crescimento (3+ semanas)
-15. **Projeção de receita** na home admin: comissão estimada da semana corrente baseada no ritmo de gasto sincronizado.
-16. **Alertas proativos** ao cliente: queda brusca de ROAS, conta bloqueada, saldo Meta abaixo do limite — via notificação in-app e WhatsApp.
-17. **Health score por cliente**: composto por ad spend semanal, taxa de aprovação de anúncios, frequência de bloqueio e atraso de pagamento.
-18. **Onboarding self-service** do cliente: assistente passo a passo (aceitar termos → conectar BM → escolher páginas → primeira conta atribuída).
-19. **Relatório mensal automático** (PDF) entregue ao cliente: gasto, resultados, comissão e comprovantes.
+Linha única, organizada em 3 zonas:
 
-## Detalhes técnicos (resumo)
+1. Esquerda: busca (ocupa flex-1) + chip "Mostrando X de Y".
+2. Centro: chips de período (já existem) + **novo filtro de tipo** (Todos / Aluguel / Venda) + **novo filtro de status** (Todos / Em dia / Pendente / Sem gasto) + ordenação (Maior saldo, Mais recente, A–Z).
+3. Direita: botão "Novo Cliente" + botão secundário "Metas de desconto" (abre modal dedicado, ver fase 3).
 
-- **Refactor pattern**: cada aba do ClientDashboard vira componente próprio em `src/pages/client-dashboard/<Tab>.tsx`, e os fetches viram hooks em `src/hooks/queries/*.ts`.
-- **Realtime**: habilitar `ALTER PUBLICATION supabase_realtime ADD TABLE …` para `support_requests`, `meta_critical_events`, `internal_tasks`.
-- **Cron**: usar Supabase scheduled edge function (`weekly-billing`) toda sexta às 09:00 UTC-3.
-- **Auditoria genérica**: tabela `audit_log(actor_id, actor_email, action, entity, entity_id, before, after, created_at)` + helper `logAudit()` chamado nos handlers críticos.
-- **Tipos**: criar `src/lib/db-types.ts` reexportando `Tables<'clients'>`, `Tables<'commissions'>`, etc.
+Em mobile, vira coluna com filtros colapsáveis em um `Sheet`.
 
-## Próximo passo
+## Fase 3 — Extrair "Metas semanais de desconto" do modal de cliente
 
-Confirma quais fases quer priorizar (ou se quer começar por uma melhoria específica da lista) e eu detalho a implementação.
+Hoje o bloco de tiers aparece dentro do form de "Novo/Editar Cliente" mesmo sendo global. Mover para um **modal/dialog próprio** acionado pelo botão "Metas de desconto" na barra de controles. Reaproveita todo o estado (`tierDraft`, `saveTiers`, `addTier`, `removeTier`).
+
+Ganhos: form de cliente fica ~40% menor e o admin entende que tiers são globais.
+
+## Fase 4 — Redesign do card do cliente
+
+Reorganizar cada card em **3 zonas verticais claras**, mantendo padrão glass / neon green:
+
+1. **Cabeçalho (identidade):** número + nome + badge tipo (Aluguel/Venda) + badge de status financeiro (Em dia ✅ / Pendente ⚠ / Sem gasto ◌). Ações (Ver como cliente, Editar, Excluir) viram um menu `…` à direita para limpar a linha.
+
+2. **Sub-header (metadados):** empresa, e-mail, % base / valor fixo, contas disponíveis, crédito do plano. Tipografia menor e cor `muted-foreground`, sem competir com KPIs.
+
+3. **KPIs (4 stat cards):** mesmo conteúdo atual (Gasto, Pendente, Paga, Saldo) mas com:
+   - ícone à esquerda
+   - mini-sparkline de 7 dias do gasto no card "Gasto em Ads" (Recharts `<Line>` 60×24)
+   - destaque visual no "Saldo Pendente" (borda neon quando > 0, success quando = 0)
+
+4. **Footer de ações:** "Validar Pagamento" + "Histórico" (vira botão que abre **drawer lateral** em vez de expandir o card — escaneia melhor lista longa).
+
+## Fase 5 — Histórico em drawer lateral
+
+Substituir o expand inline por um `Sheet` (shadcn) deslizando da direita, com:
+
+- Tabs: **Lançamentos** / **Cobranças semanais** / **Pagamentos**
+- Filtro por intervalo de datas dentro do drawer
+- Edição/exclusão inline já existentes
+- Footer com totais do cliente
+
+Mantém todas as funções atuais (`startEditCommission`, `handleDeleteCommission`) — só muda o container.
+
+## Fase 6 — Polimento de estado
+
+- **Skeleton** durante `loading` (3 cards fantasma) em vez de tela vazia.
+- **Empty state** com ícone e CTA "Cadastrar primeiro cliente" quando `clients.length === 0`.
+- **Empty state filtrado** ("Nenhum cliente bate com os filtros — limpar filtros") quando `filtered.length === 0`.
+- Transições suaves (Motion) na entrada/saída de cada card e nas trocas de filtro.
+
+## Detalhes técnicos
+
+- Arquivo único impactado: `src/pages/Clients.tsx` (~1.166 linhas hoje). Para não inchar ainda mais, extrair:
+  - `src/components/clients/ClientKPIBar.tsx` (Fase 1)
+  - `src/components/clients/ClientFiltersBar.tsx` (Fase 2)
+  - `src/components/clients/TiersDialog.tsx` (Fase 3)
+  - `src/components/clients/ClientCard.tsx` (Fase 4)
+  - `src/components/clients/ClientHistoryDrawer.tsx` (Fase 5)
+- Reaproveitar `getAccumulated`, `calculateCommission`, `getWeeklyAccumSpend`, `insightsByClient` que já existem.
+- Tokens semânticos do `index.css` apenas (`primary`, `success`, `warning`, `muted-foreground`, `card`, `border`) — sem cores hardcoded.
+- Sparkline usa `meta_ad_insights` que já estamos buscando em `fetchInsightsByClient`.
+- Sem migração SQL, sem mudança de RLS, sem mudança em edge functions.
+
+## Entrega sugerida (ordem)
+
+1. Fases 1 + 2 + 3 juntas → topo da página totalmente novo e modal de tiers separado.
+2. Fase 4 → redesign do card (commit isolado para revisão visual).
+3. Fase 5 → drawer de histórico.
+4. Fase 6 → polimento (skeleton, empty states, transições).
+
+Após a aprovação posso começar pela etapa 1 e seguir nessa ordem, validando o visual a cada bloco.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -14,6 +14,11 @@ import { toast } from 'sonner';
 import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/lib/audit';
+import ClientKPIBar from '@/components/clients/ClientKPIBar';
+import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/components/clients/ClientFiltersBar';
+import TiersDialog from '@/components/clients/TiersDialog';
+import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
+import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
 
 interface Client {
   id: string;
@@ -77,6 +82,11 @@ const Clients: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sort, setSort] = useState<SortKey>('saldo_desc');
+  const [tiersOpen, setTiersOpen] = useState(false);
+  const [historyClientId, setHistoryClientId] = useState<string | null>(null);
 
   // Tiers admin-editable
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
@@ -680,16 +690,56 @@ const Clients: React.FC = () => {
     return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
   };
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.companyName.toLowerCase().includes(search.toLowerCase()) ||
-    c.number.includes(search)
-  );
-
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  // Status agregado (em_dia / pendente / sem_gasto) usado para filtro e badge
+  const getClientStatus = (clientId: string): ClientStatus => {
+    const acc = getAccumulated(clientId);
+    if (acc.saldoPendente > 0) return 'pendente';
+    if (acc.totalAdSpend <= 0) return 'sem_gasto';
+    return 'em_dia';
+  };
+
+  // Lista filtrada + ordenada
+  const filteredClients = useMemo(() => {
+    const term = search.toLowerCase();
+    let arr = clients.filter(c =>
+      c.name.toLowerCase().includes(term) ||
+      c.companyName.toLowerCase().includes(term) ||
+      c.number.includes(search)
+    );
+    if (typeFilter !== 'all') arr = arr.filter(c => c.clientType === typeFilter);
+    if (statusFilter !== 'all') arr = arr.filter(c => getClientStatus(c.id) === statusFilter);
+
+    const withAcc = arr.map(c => ({ c, acc: getAccumulated(c.id) }));
+    if (sort === 'saldo_desc') withAcc.sort((a, b) => b.acc.saldoPendente - a.acc.saldoPendente);
+    else if (sort === 'az') withAcc.sort((a, b) => a.c.name.localeCompare(b.c.name));
+    // 'recent' mantém ordem do fetch (created_at desc) que é a ordem em `clients`
+    return withAcc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, commissions, insightsByClient, search, typeFilter, statusFilter, sort, periodFilter, customStart, customEnd, commissionTiers]);
+
+  // KPIs globais (somam todos os clientes do período/filtros aplicados)
+  const kpi = useMemo(() => {
+    const aluguelCount = clients.filter(c => c.clientType === 'aluguel').length;
+    const vendaCount = clients.filter(c => c.clientType === 'venda').length;
+    let totalAdSpend = 0, totalPendente = 0, totalPaga = 0, inadimplentes = 0;
+    clients.forEach(c => {
+      const acc = getAccumulated(c.id);
+      totalAdSpend += acc.totalAdSpend;
+      totalPendente += acc.saldoPendente;
+      totalPaga += acc.comissaoPaga;
+      if (acc.saldoPendente > 0) inadimplentes++;
+    });
+    return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalPaga, inadimplentes };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, commissions, insightsByClient, periodFilter, customStart, customEnd, commissionTiers]);
+
+  // Mapa de gasto diário por cliente (usado na sparkline do card)
+  const spendByClient = insightsByClient;
+
+  const historyClient = historyClientId ? clients.find(c => c.id === historyClientId) : null;
 
   return (
     <div className="space-y-6">
@@ -697,66 +747,31 @@ const Clients: React.FC = () => {
         eyebrow="Clientes & Comissões"
         title={<>Carteira de <span className="text-primary glow-text">clientes</span></>}
         description="Gestão completa de clientes, comissões diárias e fechamento semanal de Ad Spend."
-        actions={
-          <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Total</div>
-            <div className="font-display text-2xl font-bold text-foreground">{clients.length}</div>
-          </div>
-        }
       />
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..." className={`${inputClass} pl-10`} />
-        </div>
-        <div className="flex gap-1 flex-wrap items-center">
-          {([
-            { key: 'today', label: 'Hoje' },
-            { key: 'yesterday', label: 'Ontem' },
-            { key: 'week', label: 'Semana' },
-            { key: 'month', label: 'Mês' },
-            { key: 'custom', label: 'Personalizado' },
-          ] as const).map(p => (
-            <button key={p.key} onClick={() => setPeriodFilter(p.key)}
-              className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                periodFilter === p.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-              )}>
-              {p.label}
-            </button>
-          ))}
-          {periodFilter === 'custom' && (
-            <div className="flex items-center gap-2 ml-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground flex items-center gap-1">
-                    <CalendarIcon size={12} />
-                    {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <span className="text-muted-foreground text-xs">até</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground flex items-center gap-1">
-                    <CalendarIcon size={12} />
-                    {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-        </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 glow-box whitespace-nowrap">
-          <Plus size={16} /> Novo Cliente
-        </button>
-      </div>
+      <ClientKPIBar kpi={kpi} />
+
+      <ClientFiltersBar
+        search={search}
+        setSearch={setSearch}
+        periodFilter={periodFilter}
+        setPeriodFilter={setPeriodFilter}
+        customStart={customStart}
+        setCustomStart={setCustomStart}
+        customEnd={customEnd}
+        setCustomEnd={setCustomEnd}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sort={sort}
+        setSort={setSort}
+        shownCount={filteredClients.length}
+        totalCount={clients.length}
+        onNewClient={() => { resetForm(); setShowForm(true); }}
+        onOpenTiers={() => setTiersOpen(true)}
+      />
+
 
       {showForm && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
@@ -839,81 +854,11 @@ const Clients: React.FC = () => {
                     <input type="number" step="0.01" value={form.planCredit ?? ''} onChange={e => setForm(p => ({ ...p, planCredit: parseFloat(e.target.value) || 0 }))} placeholder="0.00" className={inputClass} />
                     <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
                   </div>
-                  <div className="bg-secondary/60 border border-border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Metas semanais de desconto (USD)</p>
-                      <button
-                        type="button"
-                        onClick={addTier}
-                        className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
-                      >
-                        + Adicionar meta
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {[...tiersToShow]
-                        .sort((a, b) => a.min_spend - b.min_spend)
-                        .map((t, idx) => {
-                          // index in the (possibly draft) base array
-                          const baseArr = tierDraft ?? commissionTiers;
-                          const realIdx = baseArr.findIndex(x => x === t);
-                          const i = realIdx >= 0 ? realIdx : idx;
-                          return (
-                            <div key={i} className="flex items-center gap-2">
-                              <div className="flex-1">
-                                <label className="block text-[10px] text-muted-foreground mb-0.5">Acima de (USD)</label>
-                                <input
-                                  type="number"
-                                  value={t.min_spend}
-                                  onChange={e => updateTierDraft(i, 'min_spend', parseFloat(e.target.value) || 0)}
-                                  className={inputClass}
-                                />
-                              </div>
-                              <div className="w-24">
-                                <label className="block text-[10px] text-muted-foreground mb-0.5">%</label>
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  value={t.pct}
-                                  onChange={e => updateTierDraft(i, 'pct', parseFloat(e.target.value) || 0)}
-                                  className={inputClass}
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeTier(i)}
-                                className="mt-4 p-2 rounded hover:bg-destructive/10 text-destructive"
-                                title="Remover meta"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          );
-                        })}
-                    </div>
-                    {tierDraft && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          type="button"
-                          onClick={saveTiers}
-                          disabled={savingTiers}
-                          className="flex-1 bg-primary text-primary-foreground text-xs font-semibold py-2 rounded hover:opacity-90 disabled:opacity-50"
-                        >
-                          {savingTiers ? 'Salvando...' : 'Salvar metas'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setTierDraft(null)}
-                          className="px-3 text-xs text-muted-foreground border border-border rounded hover:bg-secondary"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      Estas metas são globais e valem para todos os clientes de aluguel.
-                    </p>
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-[11px] text-muted-foreground">
+                    As <strong className="text-primary">metas semanais de desconto</strong> são globais. Configure-as no botão
+                    <strong className="text-foreground"> "Metas de Desconto"</strong> na lista de clientes.
                   </div>
+
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs text-muted-foreground mb-1">Contas disponíveis</label>
@@ -1000,167 +945,98 @@ const Clients: React.FC = () => {
       )}
 
       <div className="space-y-3">
-        {filtered.map(c => {
-          const acc = getAccumulated(c.id);
-          const isExpanded = expandedClient === c.id;
-          const clientComms = getClientCommissions(c.id);
-          const accumWeekForCard = getWeeklyAccumSpend(c.id, new Date());
-          const previewCommission = adSpendAmount && showCommissionForm === c.id
-            ? calculateCommission(c, parseFloat(adSpendAmount) || 0, accumWeekForCard) : 0;
-          const previewRate = c.clientType === 'aluguel'
-            ? getTierPercentage(accumWeekForCard + (parseFloat(adSpendAmount) || 0), c.percentageValue || 0)
-            : 0;
-
-          return (
-            <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border rounded-xl overflow-hidden border-glow">
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">#{c.number}</span>
-                      <h4 className="font-semibold text-sm">{c.name}</h4>
-                      <span className={cn("text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-medium",
-                        c.clientType === 'venda' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'
-                      )}>
-                        {c.clientType === 'venda' ? 'Venda' : 'Aluguel'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{c.companyName}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{c.email}</p>
-                    <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                      <span className="text-primary">
-                        {c.clientType === 'venda'
-                          ? `Fixo: $${c.fixedValue}`
-                          : `${c.percentageValue}% base • metas: 4/3/2/1% (>20k/40k/80k/200k)`}
-                      </span>
-                      <span className="text-muted-foreground">Contas: {c.adAccounts - c.usedAccounts - c.blockedAccounts} disponíveis</span>
-                      {c.clientType === 'aluguel' && (c.planCredit || 0) > 0 && (
-                        <span className="text-success">Crédito do plano: {fmt(c.planCredit || 0)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 sm:gap-2 shrink-0 ml-2 items-center">
-                    <button onClick={() => navigate(`/client-view/${c.id}`)} title="Ver dashboard do cliente" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium">
-                      <Eye size={13} /> <span className="hidden sm:inline">Ver como cliente</span>
-                    </button>
-                    <button onClick={() => handleEdit(c)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"><Edit2 size={14} /></button>
-                    <button onClick={() => handleDelete(c.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-3">
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Gasto em Ads</p>
-                      <p className="text-xs sm:text-sm font-bold text-foreground">{fmt(acc.totalAdSpend)}</p>
-                    </div>
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Pendente</p>
-                      <p className="text-xs sm:text-sm font-bold text-primary">{fmt(acc.comissaoPendente)}</p>
-                    </div>
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Comissão Paga</p>
-                      <p className="text-xs sm:text-sm font-bold text-success">{fmt(acc.comissaoPaga)}</p>
-                    </div>
-                    <div className="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Saldo Pendente</p>
-                      <p className={`text-xs sm:text-sm font-bold ${acc.saldoPendente > 0 ? 'text-warning' : 'text-muted-foreground'}`}>{fmt(acc.saldoPendente)}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {isAdmin && (
-                      <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
-                        <CheckCircle size={12} /> Validar Pagamento da Comissão
-                      </button>
-                    )}
-                    <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
-                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
-                    </button>
-                  </div>
-
-                  <p className="text-[10px] text-muted-foreground/70 mt-1">
-                    Comissões são geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
-                  </p>
-
-                  {showPaidForm === c.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-3 flex flex-col sm:flex-row gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors whitespace-nowrap")}>
-                            <CalendarIcon size={14} />
-                            {format(paidDate, "dd/MM/yyyy", { locale: ptBR })}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={paidDate} onSelect={(d) => d && setPaidDate(d)} initialFocus className="p-3 pointer-events-auto" />
-                        </PopoverContent>
-                      </Popover>
-                      <input type="number" placeholder="Valor pago $" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className={`${inputClass} flex-1`} />
-                      <button onClick={() => handleAddPaid(c.id)} className="bg-success text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap">Registrar Pagamento</button>
-                    </motion.div>
-                  )}
+        {loading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse">
+                <div className="h-4 w-1/3 bg-secondary rounded mb-3" />
+                <div className="grid grid-cols-4 gap-2">
+                  {[0, 1, 2, 3].map(j => (
+                    <div key={j} className="h-14 bg-secondary rounded-lg" />
+                  ))}
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              {isExpanded && (
-                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="border-t border-border bg-secondary/50 p-4 space-y-5">
-                  <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground mb-2">Histórico de Lançamentos</h5>
-                  {clientComms.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nenhum lançamento encontrado.</p>
-                  ) : (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {clientComms.sort((a, b) => parseDateLocal(b.date).getTime() - parseDateLocal(a.date).getTime()).map(comm => (
-                        <div key={comm.id} className={cn(
-                          "flex items-center justify-between rounded-lg px-3 py-2 text-xs",
-                          comm.type === 'weekly_billing' ? 'bg-warning/10 border border-warning/20' : 'bg-card'
-                        )}>
-                          <div className="flex items-center gap-2 flex-wrap flex-1">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
-                            <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
-                            <span className="text-muted-foreground">
-                              {comm.type === 'daily' ? 'Gasto em Ads' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança Semanal'}
-                            </span>
-                            {comm.type === 'daily' && comm.adSpend > 0 && (
-                              <span className="text-muted-foreground">(Ads: {fmt(comm.adSpend)})</span>
-                            )}
-                            {(comm.type === 'daily' || comm.type === 'weekly_billing') && comm.status && (
-                              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium",
-                                comm.status === 'pago' ? 'bg-success/10 text-success' : 
-                                comm.status === 'parcial' ? 'bg-warning/10 text-warning' : 
-                                'bg-muted text-muted-foreground'
-                              )}>
-                                {comm.status === 'pago' ? 'Pago' : comm.status === 'parcial' ? 'Parcial' : 'Pendente'}
-                              </span>
-                            )}
-                            {comm.note && <span className="text-muted-foreground italic">- {comm.note}</span>}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={`font-semibold ${comm.type === 'daily' ? 'text-primary' : comm.type === 'paid' ? 'text-success' : 'text-warning'}`}>
-                              {comm.type === 'paid' ? '-' : '+'}{fmt(comm.amount)}
-                            </span>
-                            <button onClick={() => startEditCommission(comm)} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground" title="Editar">
-                              <Pencil size={12} />
-                            </button>
-                            <button onClick={() => handleDeleteCommission(comm.id)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title="Remover">
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          );
-        })}
-        {filtered.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhum cliente encontrado.</p>}
+        {!loading && clients.length === 0 && (
+          <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
+            <UserPlus size={36} className="mx-auto text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente cadastrado ainda</p>
+            <p className="text-xs text-muted-foreground mb-4">Adicione seu primeiro cliente para começar a gerenciar comissões.</p>
+            <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
+              <Plus size={14} /> Cadastrar primeiro cliente
+            </button>
+          </div>
+        )}
+
+        {!loading && clients.length > 0 && filteredClients.length === 0 && (
+          <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
+            <Search size={32} className="mx-auto text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente bate com os filtros atuais</p>
+            <button
+              onClick={() => { setSearch(''); setTypeFilter('all'); setStatusFilter('all'); }}
+              className="text-xs text-primary hover:underline mt-2"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )}
+
+        <AnimatePresence initial={false}>
+          {!loading && filteredClients.map(({ c, acc }) => (
+            <ClientCard
+              key={c.id}
+              client={c}
+              totalAdSpend={acc.totalAdSpend}
+              comissaoPendente={acc.comissaoPendente}
+              comissaoPaga={acc.comissaoPaga}
+              saldoPendente={acc.saldoPendente}
+              status={getClientStatus(c.id)}
+              spendByDay={spendByClient[c.id] || []}
+              isAdmin={isAdmin}
+              showPayForm={showPaidForm === c.id}
+              paidAmount={paidAmount}
+              setPaidAmount={setPaidAmount}
+              paidDate={paidDate}
+              setPaidDate={setPaidDate}
+              onView={() => navigate(`/client-view/${c.id}`)}
+              onEdit={() => handleEdit(c)}
+              onDelete={() => handleDelete(c.id)}
+              onTogglePayForm={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)}
+              onSubmitPay={() => handleAddPaid(c.id)}
+              onOpenHistory={() => setHistoryClientId(c.id)}
+            />
+          ))}
+        </AnimatePresence>
       </div>
+
+      <TiersDialog
+        open={tiersOpen}
+        onOpenChange={setTiersOpen}
+        tiersToShow={tiersToShow}
+        tierDraft={tierDraft}
+        commissionTiers={commissionTiers}
+        updateTierDraft={updateTierDraft}
+        addTier={addTier}
+        removeTier={removeTier}
+        saveTiers={saveTiers}
+        cancelDraft={() => setTierDraft(null)}
+        savingTiers={savingTiers}
+      />
+
+      <ClientHistoryDrawer
+        open={!!historyClient}
+        onOpenChange={(o) => { if (!o) setHistoryClientId(null); }}
+        clientName={historyClient?.name || ''}
+        commissions={historyClient ? getClientCommissions(historyClient.id) : []}
+        onEdit={startEditCommission}
+        onDelete={handleDeleteCommission}
+      />
     </div>
   );
 };
 
 export default Clients;
+
