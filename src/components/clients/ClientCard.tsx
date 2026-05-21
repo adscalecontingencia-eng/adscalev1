@@ -42,6 +42,7 @@ interface Props {
   comissaoPendente: number;
   comissaoPaga: number;
   saldoPendente: number;
+  saldoAtrasado: number;
   status: ClientStatus;
   spendByDay: { date: string; spend: number }[];
   isAdmin: boolean;
