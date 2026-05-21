@@ -1184,7 +1184,7 @@ const ClientDashboard: React.FC = () => {
             {creditPlan && creditPlan.rows.some(r => r.clientPays > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                  <Calendar size={16} className="text-primary" /> Comissões Pendentes por Semana
+                  <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
                 </h3>
                 <p className="text-[11px] text-muted-foreground mb-4">
                   Valores calculados a partir do gasto sincronizado da Meta. Prévia antes da validação do pagamento na sexta-feira.
@@ -1198,7 +1198,7 @@ const ClientDashboard: React.FC = () => {
                       <div key={idx} className="bg-secondary/40 border border-border rounded-lg p-3">
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <Calendar size={12} className="text-primary" />
+                            <CalendarIcon size={12} className="text-primary" />
                             <span className="text-xs font-semibold">
                               {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
                             </span>
