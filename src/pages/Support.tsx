@@ -67,9 +67,9 @@ const Support: React.FC = () => {
             title: t.title,
             description: t.description || null,
             category: t.category || 'manutencao',
-            structure_type: t.structureType || 'BM Comum',
-            assigned_to: t.assignedTo || null,
-            client_id: t.clientId || null,
+            structure_type: t.structure_type || 'BM Comum',
+            assigned_to: t.assigned_to || null,
+            client_id: t.client_id || null,
             status: t.status || 'pendente',
           }))).then(() => {
             localStorage.removeItem('adscale_tasks');
@@ -295,21 +295,21 @@ const Support: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Estrutura</label>
-                  <select value={form.structureType} onChange={e => setForm(p => ({ ...p, structureType: e.target.value as any }))} className={inputClass}>
+                  <select value={form.structure_type} onChange={e => setForm(p => ({ ...p, structure_type: e.target.value as any }))} className={inputClass}>
                     {['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Atribuir a</label>
-                <select value={form.assignedTo || ''} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))} className={inputClass}>
+                <select value={form.assigned_to || ''} onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))} className={inputClass}>
                   <option value="">Sem atribuição</option>
                   {supportUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Cliente</label>
-                <select value={form.clientId || ''} onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))} className={inputClass}>
+                <select value={form.client_id || ''} onChange={e => setForm(p => ({ ...p, client_id: e.target.value }))} className={inputClass}>
                   <option value="">Nenhum</option>
                   {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -332,8 +332,8 @@ const Support: React.FC = () => {
                 {t.description && <p className="text-xs text-muted-foreground mb-2">{t.description}</p>}
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category === 'manutencao' ? 'Manutenção' : 'Atendimento'}</span>
-                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.structureType}</span>
-                  {t.assignedTo && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{supportUsers.find((u: any) => u.id === t.assignedTo)?.name || 'Atribuído'}</span>}
+                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.structure_type}</span>
+                  {t.assigned_to && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{supportUsers.find((u: any) => u.id === t.assigned_to)?.name || 'Atribuído'}</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1">
