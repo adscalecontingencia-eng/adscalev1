@@ -6,23 +6,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { logAudit } from '@/lib/audit';
+import { toast } from 'sonner';
 
 interface Task {
   id: string;
   title: string;
-  description: string;
-  category: 'manutencao' | 'atendimento';
-  structureType: 'Perfil' | 'BM Comum' | 'BM Verificada' | 'BM API' | 'BM Disparo' | 'Pagina' | 'Outro';
-  assignedTo?: string;
-  clientId?: string;
-  status: 'pendente' | 'em_andamento' | 'concluida';
-  createdAt: string;
+  description: string | null;
+  category: string;
+  structure_type: string;
+  assigned_to?: string | null;
+  client_id?: string | null;
+  status: string;
+  created_at: string;
 }
 
 const Support: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(() => JSON.parse(localStorage.getItem('adscale_tasks') || '[]'));
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structureType: 'BM Comum', status: 'pendente' });
+  const [form, setForm] = useState<Partial<Task>>({ category: 'manutencao', structure_type: 'BM Comum', status: 'pendente' });
   const [supportUsers, setSupportUsers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [clientRequests, setClientRequests] = useState<any[]>([]);
@@ -35,6 +37,14 @@ const Support: React.FC = () => {
     if (data) setClientRequests(data);
   };
 
+  const loadTasks = async () => {
+    const { data } = await supabase
+      .from('internal_tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setTasks(data as Task[]);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const [supRes, cliRes] = await Promise.all([
@@ -43,40 +53,85 @@ const Support: React.FC = () => {
       ]);
       if (supRes.data) setSupportUsers(supRes.data);
       if (cliRes.data) setClients(cliRes.data);
-      await loadClientRequests();
+      await Promise.all([loadClientRequests(), loadTasks()]);
     };
     fetchData();
+
+    // Migração one-shot do localStorage → DB
+    try {
+      const legacy = localStorage.getItem('adscale_tasks');
+      if (legacy) {
+        const arr = JSON.parse(legacy);
+        if (Array.isArray(arr) && arr.length > 0) {
+          supabase.from('internal_tasks').insert(arr.map((t: any) => ({
+            title: t.title,
+            description: t.description || null,
+            category: t.category || 'manutencao',
+            structure_type: t.structureType || t.structure_type || 'BM Comum',
+            assigned_to: t.assignedTo || t.assigned_to || null,
+            client_id: t.clientId || t.client_id || null,
+            status: t.status || 'pendente',
+          }))).then(() => {
+            localStorage.removeItem('adscale_tasks');
+            loadTasks();
+          });
+        } else {
+          localStorage.removeItem('adscale_tasks');
+        }
+      }
+    } catch { /* silent */ }
+
+    // Realtime: solicitações de cliente + tarefas
+    const ch = supabase
+      .channel('support-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_requests' }, () => loadClientRequests())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'internal_tasks' }, () => loadTasks())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   const updateRequestStatus = async (id: string, status: string) => {
+    const prev = clientRequests.find(r => r.id === id);
     const patch: any = { status };
     if (status === 'concluida' || status === 'cancelada') patch.resolved_at = new Date().toISOString();
     await supabase.from('support_requests').update(patch).eq('id', id);
-    setClientRequests(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+    setClientRequests(prevList => prevList.map(r => r.id === id ? { ...r, ...patch } : r));
+    logAudit({ action: 'support_request_status_changed', entity: 'support_request', entity_id: id, before: { status: prev?.status }, after: { status } });
   };
 
-  useEffect(() => { localStorage.setItem('adscale_tasks', JSON.stringify(tasks)); }, [tasks]);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title) return;
-    const t: Task = {
-      id: `task-${Date.now()}`, title: form.title || '', description: form.description || '',
-      category: form.category || 'manutencao', structureType: form.structureType || 'BM Comum',
-      assignedTo: form.assignedTo, clientId: form.clientId, status: 'pendente',
-      createdAt: new Date().toISOString(),
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = {
+      title: form.title,
+      description: form.description || null,
+      category: form.category || 'manutencao',
+      structure_type: form.structure_type || 'BM Comum',
+      assigned_to: form.assigned_to || null,
+      client_id: form.client_id || null,
+      status: 'pendente',
+      created_by: user?.id ?? null,
     };
-    setTasks(prev => [t, ...prev]);
-    setForm({ category: 'manutencao', structureType: 'BM Comum', status: 'pendente' });
+    const { data, error } = await supabase.from('internal_tasks').insert(payload).select().single();
+    if (error) { toast.error('Erro ao criar tarefa'); return; }
+    setForm({ category: 'manutencao', structure_type: 'BM Comum', status: 'pendente' });
     setShowForm(false);
+    logAudit({ action: 'internal_task_created', entity: 'internal_task', entity_id: data?.id, after: payload });
   };
 
-  const updateStatus = (id: string, status: Task['status']) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+  const updateStatus = async (id: string, status: string) => {
+    const prev = tasks.find(t => t.id === id);
+    await supabase.from('internal_tasks').update({ status }).eq('id', id);
+    logAudit({ action: 'internal_task_status_changed', entity: 'internal_task', entity_id: id, before: { status: prev?.status }, after: { status } });
   };
 
-  const deleteTask = (id: string) => setTasks(prev => prev.filter(t => t.id !== id));
+  const deleteTask = async (id: string) => {
+    const prev = tasks.find(t => t.id === id);
+    await supabase.from('internal_tasks').delete().eq('id', id);
+    logAudit({ action: 'internal_task_deleted', entity: 'internal_task', entity_id: id, before: prev as any });
+  };
 
-  const statusIcon = (s: Task['status']) => {
+  const statusIcon = (s: string) => {
     if (s === 'concluida') return <CheckCircle2 size={14} className="text-primary" />;
     if (s === 'em_andamento') return <Clock size={14} className="text-warning" />;
     return <AlertTriangle size={14} className="text-muted-foreground" />;
@@ -240,21 +295,21 @@ const Support: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Estrutura</label>
-                  <select value={form.structureType} onChange={e => setForm(p => ({ ...p, structureType: e.target.value as any }))} className={inputClass}>
+                  <select value={form.structure_type} onChange={e => setForm(p => ({ ...p, structure_type: e.target.value as any }))} className={inputClass}>
                     {['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Atribuir a</label>
-                <select value={form.assignedTo || ''} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))} className={inputClass}>
+                <select value={form.assigned_to || ''} onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))} className={inputClass}>
                   <option value="">Sem atribuição</option>
                   {supportUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Cliente</label>
-                <select value={form.clientId || ''} onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))} className={inputClass}>
+                <select value={form.client_id || ''} onChange={e => setForm(p => ({ ...p, client_id: e.target.value }))} className={inputClass}>
                   <option value="">Nenhum</option>
                   {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -277,8 +332,8 @@ const Support: React.FC = () => {
                 {t.description && <p className="text-xs text-muted-foreground mb-2">{t.description}</p>}
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category === 'manutencao' ? 'Manutenção' : 'Atendimento'}</span>
-                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.structureType}</span>
-                  {t.assignedTo && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{supportUsers.find((u: any) => u.id === t.assignedTo)?.name || 'Atribuído'}</span>}
+                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.structure_type}</span>
+                  {t.assigned_to && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{supportUsers.find((u: any) => u.id === t.assigned_to)?.name || 'Atribuído'}</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1">

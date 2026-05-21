@@ -21,6 +21,8 @@ import NotFound from "./pages/NotFound";
 import NotificationSettings from "./pages/NotificationSettings";
 import Signup from "./pages/Signup";
 import AccessLogs from "./pages/AccessLogs";
+import AuditLog from "./pages/AuditLog";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -51,30 +53,33 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <HashRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Clients /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/financial" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Financial /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/support" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Support /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute roles={['admin']}><DashboardLayout><UsersPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/meta-connections" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><MetaConnections /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/ads-dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AdsDashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/asset-map" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AssetMap /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/pages" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><PagesAdmin /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/block-log" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><BlockLog /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/notification-settings" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><NotificationSettings /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
-            <Route path="/client-view/:clientId" element={<ProtectedRoute roles={['admin', 'support']}><ClientDashboard /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </HashRouter>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <HashRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/" element={<Navigate to="/login" />} />
+              <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/clients" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Clients /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/financial" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Financial /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/support" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Support /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/users" element={<ProtectedRoute roles={['admin']}><DashboardLayout><UsersPage /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/meta-connections" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><MetaConnections /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/ads-dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AdsDashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/asset-map" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AssetMap /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/pages" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><PagesAdmin /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/block-log" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><BlockLog /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/notification-settings" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><NotificationSettings /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
+              <Route path="/client-view/:clientId" element={<ProtectedRoute roles={['admin', 'support']}><ClientDashboard /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </HashRouter>
+        </AuthProvider>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );

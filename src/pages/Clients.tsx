@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
 import { useAuth } from '@/contexts/AuthContext';
+import { logAudit } from '@/lib/audit';
 
 interface Client {
   id: string;
@@ -352,6 +353,7 @@ const Clients: React.FC = () => {
     toast.success('Cliente removido do banco de dados');
     setClients(prev => prev.filter(c => c.id !== id));
     fetchCommissions();
+    logAudit({ action: 'client_deleted', entity: 'client', entity_id: id, before: c as any });
   };
 
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
@@ -430,6 +432,7 @@ const Clients: React.FC = () => {
       client_id: clientId, date: paidDate.toISOString(), amount, type: 'paid',
     });
     if (error) { toast.error('Erro ao registrar pagamento'); return; }
+    logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: paidDate.toISOString() } });
 
     const clientDailyComms = commissions
       .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
