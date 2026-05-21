@@ -164,7 +164,27 @@ const Clients: React.FC = () => {
     })));
   };
 
-  useEffect(() => { fetchClients(); fetchCommissions(); }, []);
+  // Insights + assignments (para calcular Saldo Pendente igual ao dashboard do cliente)
+  const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
+  const fetchInsightsByClient = async () => {
+    const [assignRes, insightsRes] = await Promise.all([
+      supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active').eq('active', true),
+      supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
+    ]);
+    if (assignRes.error || insightsRes.error) return;
+    const accToClient = new Map<string, string>();
+    (assignRes.data || []).forEach((a: any) => accToClient.set(a.ad_account_id, a.client_id));
+    const byClient: Record<string, { date: string; spend: number }[]> = {};
+    (insightsRes.data || []).forEach((i: any) => {
+      const cid = accToClient.get(i.ad_account_id);
+      if (!cid) return;
+      if (!byClient[cid]) byClient[cid] = [];
+      byClient[cid].push({ date: i.date, spend: Number(i.spend || 0) });
+    });
+    setInsightsByClient(byClient);
+  };
+
+  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); }, []);
 
   const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
     // Venda → valor fixo
