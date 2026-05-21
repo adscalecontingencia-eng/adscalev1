@@ -690,16 +690,56 @@ const Clients: React.FC = () => {
     return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
   };
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.companyName.toLowerCase().includes(search.toLowerCase()) ||
-    c.number.includes(search)
-  );
-
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  // Status agregado (em_dia / pendente / sem_gasto) usado para filtro e badge
+  const getClientStatus = (clientId: string): ClientStatus => {
+    const acc = getAccumulated(clientId);
+    if (acc.saldoPendente > 0) return 'pendente';
+    if (acc.totalAdSpend <= 0) return 'sem_gasto';
+    return 'em_dia';
+  };
+
+  // Lista filtrada + ordenada
+  const filteredClients = useMemo(() => {
+    const term = search.toLowerCase();
+    let arr = clients.filter(c =>
+      c.name.toLowerCase().includes(term) ||
+      c.companyName.toLowerCase().includes(term) ||
+      c.number.includes(search)
+    );
+    if (typeFilter !== 'all') arr = arr.filter(c => c.clientType === typeFilter);
+    if (statusFilter !== 'all') arr = arr.filter(c => getClientStatus(c.id) === statusFilter);
+
+    const withAcc = arr.map(c => ({ c, acc: getAccumulated(c.id) }));
+    if (sort === 'saldo_desc') withAcc.sort((a, b) => b.acc.saldoPendente - a.acc.saldoPendente);
+    else if (sort === 'az') withAcc.sort((a, b) => a.c.name.localeCompare(b.c.name));
+    // 'recent' mantém ordem do fetch (created_at desc) que é a ordem em `clients`
+    return withAcc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, commissions, insightsByClient, search, typeFilter, statusFilter, sort, periodFilter, customStart, customEnd, commissionTiers]);
+
+  // KPIs globais (somam todos os clientes do período/filtros aplicados)
+  const kpi = useMemo(() => {
+    const aluguelCount = clients.filter(c => c.clientType === 'aluguel').length;
+    const vendaCount = clients.filter(c => c.clientType === 'venda').length;
+    let totalAdSpend = 0, totalPendente = 0, totalPaga = 0, inadimplentes = 0;
+    clients.forEach(c => {
+      const acc = getAccumulated(c.id);
+      totalAdSpend += acc.totalAdSpend;
+      totalPendente += acc.saldoPendente;
+      totalPaga += acc.comissaoPaga;
+      if (acc.saldoPendente > 0) inadimplentes++;
+    });
+    return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalPaga, inadimplentes };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, commissions, insightsByClient, periodFilter, customStart, customEnd, commissionTiers]);
+
+  // Mapa de gasto diário por cliente (usado na sparkline do card)
+  const spendByClient = insightsByClient;
+
+  const historyClient = historyClientId ? clients.find(c => c.id === historyClientId) : null;
 
   return (
     <div className="space-y-6">
@@ -707,66 +747,31 @@ const Clients: React.FC = () => {
         eyebrow="Clientes & Comissões"
         title={<>Carteira de <span className="text-primary glow-text">clientes</span></>}
         description="Gestão completa de clientes, comissões diárias e fechamento semanal de Ad Spend."
-        actions={
-          <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Total</div>
-            <div className="font-display text-2xl font-bold text-foreground">{clients.length}</div>
-          </div>
-        }
       />
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..." className={`${inputClass} pl-10`} />
-        </div>
-        <div className="flex gap-1 flex-wrap items-center">
-          {([
-            { key: 'today', label: 'Hoje' },
-            { key: 'yesterday', label: 'Ontem' },
-            { key: 'week', label: 'Semana' },
-            { key: 'month', label: 'Mês' },
-            { key: 'custom', label: 'Personalizado' },
-          ] as const).map(p => (
-            <button key={p.key} onClick={() => setPeriodFilter(p.key)}
-              className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                periodFilter === p.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-              )}>
-              {p.label}
-            </button>
-          ))}
-          {periodFilter === 'custom' && (
-            <div className="flex items-center gap-2 ml-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground flex items-center gap-1">
-                    <CalendarIcon size={12} />
-                    {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <span className="text-muted-foreground text-xs">até</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-foreground flex items-center gap-1">
-                    <CalendarIcon size={12} />
-                    {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-        </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 glow-box whitespace-nowrap">
-          <Plus size={16} /> Novo Cliente
-        </button>
-      </div>
+      <ClientKPIBar kpi={kpi} />
+
+      <ClientFiltersBar
+        search={search}
+        setSearch={setSearch}
+        periodFilter={periodFilter}
+        setPeriodFilter={setPeriodFilter}
+        customStart={customStart}
+        setCustomStart={setCustomStart}
+        customEnd={customEnd}
+        setCustomEnd={setCustomEnd}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sort={sort}
+        setSort={setSort}
+        shownCount={filteredClients.length}
+        totalCount={clients.length}
+        onNewClient={() => { resetForm(); setShowForm(true); }}
+        onOpenTiers={() => setTiersOpen(true)}
+      />
+
 
       {showForm && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
