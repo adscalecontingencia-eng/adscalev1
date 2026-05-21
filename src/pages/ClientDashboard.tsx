@@ -359,10 +359,24 @@ const ClientDashboard: React.FC = () => {
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
   const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
+
+  // Split entre saldo da semana corrente (pendente) e saldo já vencido (atrasado)
+  const billingSplit = splitOverdueVsCurrent(
+    weeklyCommissionHistory,
+    originalCredit,
+    allTimeTotals.paid,
+  );
+  const overdueTotal = billingSplit.overdue;
+  const currentPendingTotal = billingSplit.currentPending;
+
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
   const paymentMsg = (method: string) =>
     `Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *${method}*.`;
+
+  const overdueMsg = (method: string) =>
+    `Olá! Sou o cliente ${client.name}. Estou regularizando o *saldo atrasado* de ${fmt(overdueTotal)} via *${method}*.`;
+
 
   return (
     <div className="min-h-screen bg-background">
