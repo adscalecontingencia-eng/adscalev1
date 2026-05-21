@@ -110,7 +110,7 @@ const Stat: React.FC<{
   icon: React.ReactNode;
   label: string;
   value: string;
-  tone?: 'default' | 'primary' | 'warning' | 'success';
+  tone?: 'default' | 'primary' | 'warning' | 'success' | 'destructive';
   highlight?: boolean;
   right?: React.ReactNode;
 }> = ({ icon, label, value, tone = 'default', highlight, right }) => {
