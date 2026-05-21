@@ -1192,6 +1192,27 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
+            {/* Saldo Atrasado — destaque em vermelho quando há vencimento */}
+            {overdueTotal > 0 && (
+              <div className="rounded-2xl p-5 border bg-gradient-to-br from-destructive/15 via-card to-card border-destructive/50 shadow-[0_0_30px_-10px_hsl(var(--destructive)/0.5)]">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/80 mb-1">Saldo Atrasado</p>
+                    <p className="font-display text-3xl font-bold text-destructive">{fmt(overdueTotal)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vencido após a sexta-feira de cobrança. Regularize para evitar bloqueios.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setOverdueDialogOpen(true)}
+                    className="bg-destructive text-destructive-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 flex items-center gap-2"
+                  >
+                    <AlertTriangle size={16} /> Regularizar agora
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Saldo principal */}
             <div className={cn(
               "rounded-2xl p-5 border",
