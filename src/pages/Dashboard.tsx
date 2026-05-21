@@ -64,10 +64,25 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const [syncing, setSyncing] = useState(false);
+  const [syncHistory, setSyncHistory] = useState<any[]>([]);
+  const [showSyncHistory, setShowSyncHistory] = useState(false);
+  const isAdmin = user?.role === 'admin';
+
+  const loadSyncHistory = async () => {
+    const { data } = await supabase
+      .from('commission_sync_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (data) setSyncHistory(data);
+  };
+
   const handleManualSync = async () => {
+    if (!isAdmin) { toast.error('Apenas administradores podem sincronizar comissões'); return; }
     setSyncing(true);
-    const r = await syncAutoCommissions();
+    const r = await syncAutoCommissions({ logAudit: true, source: 'manual' });
     setSyncing(false);
+    await loadSyncHistory();
     if (r.errors > 0) toast.error('Erro ao sincronizar comissões');
     else if (r.inserted > 0) toast.success(`${r.inserted} comissão(ões) pendente(s) gerada(s) a partir dos gastos`);
     else toast.info('Comissões já estão sincronizadas');
