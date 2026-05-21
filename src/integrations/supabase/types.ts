@@ -782,7 +782,22 @@ export type Database = {
           id?: string
           page_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meta_page_assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_page_assignments_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "meta_pages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_pages: {
         Row: {
