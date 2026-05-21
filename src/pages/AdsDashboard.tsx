@@ -114,7 +114,11 @@ export default function AdsDashboard() {
     if (maxSync > 0) setLastSyncAt(new Date(maxSync));
   };
 
+  // Generation guard: drop responses from a previous range/sync race
+  const loadGen = useRef(0);
+
   const loadInsights = async (opts?: { background?: boolean }) => {
+    const myGen = ++loadGen.current;
     if (!opts?.background) setLoading(true);
     const { since, until } = rangeToDates(range, customStart, customEnd);
     const prev = previousRange(since, until);
@@ -129,6 +133,8 @@ export default function AdsDashboard() {
         .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
         .gte("date", prev.since).lte("date", prev.until),
     ]);
+    // Ignore stale results if a newer load started or filters changed
+    if (myGen !== loadGen.current) return;
     if (curRes.error && !opts?.background) toast.error(curRes.error.message);
     setInsights((curRes.data as Insight[]) || []);
     setPrevInsights((prevRes.data as Insight[]) || []);
@@ -136,10 +142,21 @@ export default function AdsDashboard() {
   };
 
   useEffect(() => { loadMeta(); }, []);
+
+  // Reload on period change. Auto-sync only on the very first mount to avoid
+  // races where a slow sync from a previous period overwrites fresh data.
+  const didAutoSync = useRef(false);
   useEffect(() => {
     (async () => {
       await loadInsights();
-      sync({ silent: true }).then(() => loadInsights({ background: true }));
+      if (!didAutoSync.current) {
+        didAutoSync.current = true;
+        const gen = loadGen.current;
+        sync({ silent: true }).then(() => {
+          // Only refresh if no newer load happened meanwhile
+          if (gen === loadGen.current) loadInsights({ background: true });
+        });
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, customStart, customEnd]);
