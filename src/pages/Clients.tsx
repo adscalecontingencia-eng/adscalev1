@@ -654,6 +654,26 @@ const Clients: React.FC = () => {
     return total;
   };
 
+  // Weekly breakdown per client (uses ISO week starting Thursday, same as dashboard)
+  const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || client.clientType === 'venda') return [];
+    const basePct = client.percentageValue || 0;
+    const rows = insightsByClient[clientId] || [];
+    if (rows.length === 0) return [];
+    const byWeek: Record<string, number> = {};
+    rows.forEach(r => {
+      const d = parseDateLocal(r.date);
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
+      const key = format(ws, 'yyyy-MM-dd');
+      byWeek[key] = (byWeek[key] || 0) + r.spend;
+    });
+    return Object.entries(byWeek).map(([k, spend]) => {
+      const rate = getTierPercentage(spend, basePct);
+      return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
+    });
+  };
+
   const getAccumulated = (clientId: string) => {
     const cc = getClientCommissions(clientId);
     const range = getFilterRange();
@@ -677,26 +697,26 @@ const Clients: React.FC = () => {
       .reduce((s, c) => s + (c.valorPago || 0), 0);
     const comissaoPaga = paidRecords + valorPagoFromDaily;
 
-    // Saldo Pendente: MESMO cálculo do dashboard do cliente
-    // = comissão total (all-time, dos insights por semana com tiers)
-    //   - tudo já pago (all-time, type='paid')
-    //   - crédito do plano aplicado (FIFO até a comissão total)
+    // Saldo Pendente vs Saldo Atrasado: separa semana corrente (ainda não venceu)
+    // do que já passou da sexta de cobrança sem pagamento.
     const client = clients.find(c => c.id === clientId);
-    const totalCommissionAllTime = computeAllTimeCommissionFromInsights(clientId);
+    const weeks = computeWeeklyForClient(clientId);
     const totalPaidAllTime = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    const creditApplied = Math.min(planCredit, totalCommissionAllTime);
-    const saldoPendente = Math.max(0, totalCommissionAllTime - totalPaidAllTime - creditApplied);
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime);
+    const saldoPendente = split.currentPending;
+    const saldoAtrasado = split.overdue;
 
-    return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
+    return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend };
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
-  // Status agregado (em_dia / pendente / sem_gasto) usado para filtro e badge
+  // Status agregado (em_dia / pendente / atrasado / sem_gasto)
   const getClientStatus = (clientId: string): ClientStatus => {
     const acc = getAccumulated(clientId);
+    if (acc.saldoAtrasado > 0) return 'atrasado';
     if (acc.saldoPendente > 0) return 'pendente';
     if (acc.totalAdSpend <= 0) return 'sem_gasto';
     return 'em_dia';
