@@ -164,6 +164,7 @@ export const ClientFiltersBar: React.FC<Props> = (p) => {
           <Chip active={p.statusFilter === 'all'} onClick={() => p.setStatusFilter('all')}>Todos</Chip>
           <Chip active={p.statusFilter === 'em_dia'} onClick={() => p.setStatusFilter('em_dia')}>Em dia</Chip>
           <Chip active={p.statusFilter === 'pendente'} onClick={() => p.setStatusFilter('pendente')}>Pendente</Chip>
+          <Chip active={p.statusFilter === 'atrasado'} onClick={() => p.setStatusFilter('atrasado')}>Atrasado</Chip>
           <Chip active={p.statusFilter === 'sem_gasto'} onClick={() => p.setStatusFilter('sem_gasto')}>Sem gasto</Chip>
         </Group>
 
