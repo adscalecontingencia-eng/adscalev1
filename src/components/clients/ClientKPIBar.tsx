@@ -43,7 +43,7 @@ const Card: React.FC<{
 
 export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <Card
         icon={<Users size={14} />}
         label="Clientes"
@@ -58,10 +58,17 @@ export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
       />
       <Card
         icon={<AlertTriangle size={14} />}
-        label="Comissão Pendente"
+        label="Saldo Pendente"
         value={fmt(kpi.totalPendente)}
-        hint="saldo a receber"
+        hint="semana corrente"
         tone="warning"
+      />
+      <Card
+        icon={<AlertOctagon size={14} />}
+        label="Saldo Atrasado"
+        value={fmt(kpi.totalAtrasado)}
+        hint="vencido após sexta"
+        tone={kpi.totalAtrasado > 0 ? 'destructive' : 'success'}
       />
       <Card
         icon={<CheckCircle2 size={14} />}
@@ -72,10 +79,10 @@ export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
       />
       <Card
         icon={<Wallet size={14} />}
-        label="Em Cobrança"
+        label="Inadimplentes"
         value={String(kpi.inadimplentes)}
-        hint="clientes com saldo > 0"
-        tone={kpi.inadimplentes > 0 ? 'warning' : 'success'}
+        hint="clientes com atraso"
+        tone={kpi.inadimplentes > 0 ? 'destructive' : 'success'}
       />
     </div>
   );
