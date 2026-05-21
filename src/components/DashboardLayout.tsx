@@ -3,22 +3,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon, Shield
 } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
 
 const adminLinks = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/ads-dashboard', label: 'Ads', icon: BarChart3 },
-  { path: '/clients', label: 'Clientes', icon: Users },
-  { path: '/financial', label: 'Financeiro', icon: DollarSign },
-  { path: '/support', label: 'Suporte', icon: HeadphonesIcon },
-  { path: '/meta-connections', label: 'Conexões Meta', icon: Plug },
-  { path: '/pages', label: 'Páginas', icon: ImageIcon },
-  { path: '/asset-map', label: 'Mapa de Ativos', icon: Network },
-  { path: '/block-log', label: 'Log de Bloqueios', icon: Ban },
-  { path: '/access-logs', label: 'Acessos', icon: Activity },
-  { path: '/users', label: 'Usuários', icon: UserCog },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
+  { path: '/ads-dashboard', label: 'Ads', icon: BarChart3, adminOnly: false },
+  { path: '/clients', label: 'Clientes', icon: Users, adminOnly: false },
+  { path: '/financial', label: 'Financeiro', icon: DollarSign, adminOnly: false },
+  { path: '/support', label: 'Suporte', icon: HeadphonesIcon, adminOnly: false },
+  { path: '/meta-connections', label: 'Conexões Meta', icon: Plug, adminOnly: false },
+  { path: '/pages', label: 'Páginas', icon: ImageIcon, adminOnly: false },
+  { path: '/asset-map', label: 'Mapa de Ativos', icon: Network, adminOnly: false },
+  { path: '/block-log', label: 'Log de Bloqueios', icon: Ban, adminOnly: false },
+  { path: '/access-logs', label: 'Acessos', icon: Activity, adminOnly: false },
+  { path: '/audit-log', label: 'Auditoria', icon: Shield, adminOnly: true },
+  { path: '/users', label: 'Usuários', icon: UserCog, adminOnly: true },
 ];
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
