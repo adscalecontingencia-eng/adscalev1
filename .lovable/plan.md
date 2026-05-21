@@ -1,116 +1,127 @@
 
-# Plano — Otimizar Dashboard de Conexões Meta
+# Plano v2 — Conexões Meta focado em uso, não em decoração
 
-## Diagnóstico atual (`src/pages/MetaConnections.tsx`, 557 linhas)
+## O que está ruim hoje
 
-- **Header + sync** num único bloco, sem indicação de "última sync" nem agendamento.
-- **Card de info** (System User / Request Access) fixo no topo, ocupa muito espaço — deveria ser collapsible.
-- **5 StatCards planos** (BMs, Contas, Atribuídas, Bloqueadas, Score médio), sem hierarquia, sem delta, sem agrupamento por significado.
-- **Filtros achatados** em linha única (busca + 3 selects), sem chips de filtros ativos, sem multi-select.
-- **Tabela única e densa**: 8 colunas, sem ordenação, sem agrupamento por BM, score/status misturados, sem cor para idade ou saldo.
-- **Sem visão por BM**: impossível ver quantas contas/score/bloqueios por BM sem filtrar manualmente.
-- **Detalhe da conta** em Dialog padrão, sem aba de histórico/insights.
-- **Empty/loading states** texto puro.
+- Atribuir cliente é via `<Select>` apertado dentro de célula da tabela — fácil errar conta.
+- Não dá pra ver "qual BM" de relance: o nome da BM é só uma célula de texto pequena.
+- Status (ativa/bloqueada) é um Badge fino misturado com 10 colunas.
+- Detalhes da conta só num Dialog que precisa clicar no olho.
+- Tabela horizontal scrolla, perde contexto.
 
-## Proposta — 5 fases
-
-### Fase 1 — Header executivo + KPIs com hierarquia
-
-Trocar grid 5 plano por 2 níveis:
+## Solução — layout em 2 colunas, BM-first
 
 ```text
-┌─ Primary (4 cards grandes) ──────────────────────────────┐
-│ Contas Ativas │ Bloqueadas │ Atribuídas │ Score Médio    │
-│ + spark/% do total + tag de tendência                    │
-└──────────────────────────────────────────────────────────┘
-┌─ Secondary (chips compactos) ────────────────────────────┐
-│ BMs · Contas totais · Sem cliente · Sem pagamento · Última sync
-└──────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  KPIs compactos (Ativas / Bloqueadas / Atribuídas / Sem cliente)    │
+├──────────────────────┬──────────────────────────────────────────────┤
+│  COLUNA ESQUERDA     │  COLUNA DIREITA — Contas da BM selecionada   │
+│  (sidebar BMs)       │                                              │
+│                      │  🔍 buscar  · status ▾ · cliente ▾           │
+│  ┌──────────────┐    │                                              │
+│  │ ● BM ABC     │    │  ┌─ AccountCard ──────────────────────────┐ │
+│  │ 18 contas    │    │  │ Conta XPTO    [● Ativa]  Score 78 ✅  │ │
+│  │ 2 bloqueadas │    │  │ ID act_123... · USD 1.245,30 gasto    │ │
+│  └──────────────┘    │  │ Idade 240d · Saldo $50 · Pgto vinculado│ │
+│  ┌──────────────┐    │  │                                        │ │
+│  │   BM XYZ     │    │  │ 👤 Atribuir cliente: [Combobox com    │ │
+│  │ 9 · 0 bloq.  │    │  │     busca: digite "joao"...]   [Ver+] │ │
+│  └──────────────┘    │  └────────────────────────────────────────┘ │
+│  ┌──────────────┐    │  ┌─ AccountCard ──────────────────────────┐ │
+│  │ Sem BM       │    │  │ Conta YYY     [⚠ Bloqueada]  Score 32 │ │
+│  └──────────────┘    │  └────────────────────────────────────────┘ │
+└──────────────────────┴──────────────────────────────────────────────┘
 ```
 
-- **Mover "Contas Ativas" do Dashboard para cá** (card primary com destaque verde neon, mostrando ativas / total).
-- **Remover** o KpiCard `Contas Ativas` em `src/pages/Dashboard.tsx` (linha 533) e o cálculo `activeAccounts` (linha 136). Ajustar grid para não deixar buraco.
-- Chip "última sync · há Xmin" (igual ao usado em AdsDashboard).
-- Card de "System User / Request Access" vira `Collapsible` fechado por padrão, com gatilho discreto "Por que minha conta não aparece?".
+### Sidebar de BMs (esquerda, sticky)
 
-### Fase 2 — Visão por BM (novo bloco)
+- Lista vertical de BMs com:
+  - Nome + bolinha verde/vermelha (sync status).
+  - Contagem `N contas · X bloqueadas`.
+  - BM ativa destacada (borda neon).
+- Item "Todas as BMs" no topo (mostra todas as contas).
+- Item "Sem BM" no final (contas órfãs).
+- Clicar = troca o conteúdo da direita. **Resolve o "não sei de qual BM"**.
 
-Acima da tabela de contas, adicionar uma seção **"Business Managers"** com cards horizontais (carousel/scroll-x em mobile):
+### Lista de contas (direita) — AccountCard, não tabela
+
+Cada conta vira um **card horizontal**, fácil de ler e atribuir:
 
 ```text
-┌─ BM: AGÊNCIA ABC ────────────┐  ┌─ BM: XYZ ─────────────────┐
-│ 18 contas · 2 bloqueadas     │  │ 9 contas · 0 bloqueadas   │
-│ Score médio: 72 ✅           │  │ Score médio: 58 ⚠         │
-│ Última sync: há 12min        │  │ Última sync: há 1h        │
-│ [Filtrar contas →]           │  │ [Filtrar contas →]        │
-└──────────────────────────────┘  └───────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ Nome da Conta                          [● Ativa]   Score: 78 OK   │
+│ act_123456789 · USD 1.245,30 gasto · BM ABC                       │
+│                                                                    │
+│ 🟢 Vinculado  · ⏱ 240d · 💰 Saldo $50 · 🌎 BR                     │
+│                                                                    │
+│ ┌─ Cliente atual: João Silva ─────────────────┐  [Trocar] [Ver+]  │
+│ │ Não atribuída → [🔍 Buscar e atribuir... ▾] │                   │
+│ └─────────────────────────────────────────────┘                   │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-- Click no card aplica `filterBm`.
-- Badge de verificação (`verification_status`) no header de cada BM.
-- Esconder/expandir tudo via toggle "Ver todas as BMs (N)".
+- **Status sempre em destaque** no topo direito: pílula verde "Ativa" ou vermelha "Bloqueada — motivo" com tooltip do `disable_reason_label`.
+- **Score colorido** ao lado do status.
+- Linha de metadados com ícones (idade, saldo, país, pagamento).
+- **Bloco de atribuição grande e óbvio**:
+  - Se já tem cliente: mostra avatar/nome + botão "Trocar".
+  - Se não tem: input de busca (Command/Combobox) com lista filtrada — digita 2 letras e atribui.
+  - Confirmação inline ("Atribuído ✓") sem refresh agressivo.
+- Botão "Ver+" abre o `Sheet` lateral com todos os detalhes técnicos (timezone, country, spend_cap, billing_cycle, balance, score breakdown, link "Abrir no Meta Business Manager").
+- Borda esquerda colorida do card: verde (ativa+atribuída), amarela (ativa+sem cliente), vermelha (bloqueada).
 
-### Fase 3 — Filtros e tabela melhorados
+### Filtros (topo da coluna direita)
 
-**Filtros (`AdsFiltersBar`-style)**:
-- Busca à esquerda, popovers BM (já tem) + **multi-select clientes** + status + **novo "Saúde"** (Crítico / Atenção / OK baseado em score_label).
-- Chips de filtros ativos com X.
-- Botão "Limpar filtros" quando houver algum ativo.
+- Busca por nome/ID.
+- Status: Todas / Ativas / Bloqueadas.
+- Cliente: Todos / Sem cliente / [nome].
+- Score: Todos / OK / Atenção / Crítico.
+- Chips de filtros ativos com X individuais.
 
-**Tabela**:
-- **Ordenação por coluna** (score, gasto, criação, status).
-- **Coluna "Idade"** (já há `age` na tabela) com badge colorido (verde >180d, amarelo 30-180d, vermelho <30d — contas novas costumam bloquear mais).
-- **Coluna "Saldo"** (`balance`) com cor vermelha quando 0 e funding_source null.
-- **Status** com tooltip do `disable_reason_label` e ícone.
-- **Mini-progress** do gasto vs spend_cap quando houver cap.
-- **Linhas zebra + sticky header** em scroll vertical, altura máxima da tabela com scroll interno.
-- **Bulk actions**: checkbox na linha + barra superior "N selecionadas → Atribuir a cliente / Marcar como…".
+### KPIs (topo, compactos)
 
-### Fase 4 — Drawer de detalhe enriquecido
+4 cards pequenos numa linha — sem hero gigante:
 
-Trocar o `Dialog` por `Sheet` lateral mais largo com 3 tabs:
+- **Contas Ativas** (verde neon)
+- **Bloqueadas** (vermelho se >0)
+- **Atribuídas** (azul)
+- **Sem cliente** (amarelo se >0)
 
-1. **Visão geral** — campos atuais (criação, país, billing cycle, balance, score breakdown).
-2. **Performance** — últimos 30d de `meta_ad_insights` (mini line chart spend, bar chart purchases).
-3. **Histórico** — eventos de `meta_blocked_accounts_log` + `meta_critical_events` daquela conta.
-
-Botão "Abrir no Meta Business Manager" (link `https://business.facebook.com/adsmanager/manage/accounts?act={meta_account_id}`).
-
-### Fase 5 — Polimento
-
-- **Skeleton** dos cards/tabela durante load (substituir "Carregando...").
-- **Empty state** com ilustração + CTA "Sincronizar agora".
-- **Badge "stale data"** amarelo no header se última sync > 6h.
-- **Tooltip "?"** ao lado do Score explicando a fórmula (idade + funding + pixels + páginas).
-- **Animações** `framer-motion` stagger na entrada das BM cards e linhas da tabela.
-- **Acessibilidade**: aria-labels nos botões de ícone (Eye, Link2, Unlink).
+Chip à direita: "Sync · há Xmin" + botão Sincronizar.
 
 ## Detalhes técnicos
 
-**Novos componentes** em `src/components/meta/`:
-- `MetaKpiHero.tsx` — primary + secondary KPIs.
-- `BmOverviewStrip.tsx` — strip horizontal de cards por BM.
-- `AccountsFiltersBar.tsx` — filtros unificados (reusa padrão do AdsFiltersBar).
-- `AccountsTable.tsx` — tabela com sort/bulk/mini-progress.
-- `AccountDetailSheet.tsx` — substitui `AccountDetailDialog` com tabs.
-- `SystemUserHelpCollapsible.tsx` — info técnica colapsável.
+**Componentes novos** em `src/components/meta/`:
 
-**Mudanças em arquivos existentes**:
-- `src/pages/MetaConnections.tsx` — vira composição leve dos componentes acima (~200 linhas).
-- `src/pages/Dashboard.tsx` — remover `activeAccounts` (linha 136) e o KpiCard "Contas Ativas" (linha 533); ajustar grid de KPIs para 7 colunas ou redistribuir.
+- `BmSidebar.tsx` — lista vertical de BMs com seleção; emite `bmId | "all" | "none"`.
+- `AccountCard.tsx` — o card horizontal com status, metadados, e ClientPicker integrado.
+- `ClientPicker.tsx` — Combobox (`Command` + `Popover`) com busca por nome/email, atribuir/desatribuir, estado de loading inline.
+- `AccountDetailSheet.tsx` — Sheet lateral com 2 tabs (Visão geral, Histórico de bloqueio), substitui o `Dialog` atual.
+- `MetaKpiBar.tsx` — versão enxuta (4 cards pequenos) — substitui o `MetaKpiHero` que criamos antes.
 
-**Reaproveitamentos**:
-- `bms`, `accounts`, `assignments`, `clients`, `currentClient`, `bmName`, `filtered`, `stats` continuam — extraídos em `useMemo`s passados via props.
-- Estado de `job` (realtime) permanece no container.
-- Score helpers (`scoreColor`, `scoreBadgeVariant`) movem para `src/lib/meta-score.ts`.
+**Mantém/reaproveita**:
 
-**Sem mudanças de backend**: nenhuma SQL, RLS, edge function. Tudo é frontend sobre tabelas já existentes (`meta_business_managers`, `meta_ad_accounts`, `meta_ad_account_assignments`, `meta_ad_insights`, `meta_blocked_accounts_log`, `meta_critical_events`, `clients`).
+- `load()`, realtime de `meta_sync_jobs`, `assign()`, `bmName`, `currentClient`, `stats`, `lastSyncAt` continuam no container `MetaConnections.tsx`.
+- `scoreColor`, `scoreBadgeVariant` movem para `src/lib/meta-score.ts` para reuso.
+- Help collapsível (`SystemUserHelp`) já criado — só repositionar para o final da página ou um botão "?" no header.
 
-**Ordem sugerida de entrega**:
-1. **Fase 1** (KPIs + mover métrica do Dashboard) — entrega visual imediata.
-2. **Fase 2** (strip de BMs).
-3. **Fase 3** (filtros + tabela com sort e novas colunas).
-4. **Fase 4** (Sheet com tabs).
-5. **Fase 5** (polimento).
+**Remove**:
 
-Aprova para implementar?
+- `MetaKpiHero.tsx` (hero gigante) — substituído por `MetaKpiBar` compacto.
+- `BmOverviewStrip.tsx` (strip horizontal) — substituído pelo sidebar vertical mais útil.
+- Tabela `<Table>` atual e `AccountDetailDialog` — substituídos por `AccountCard` + `Sheet`.
+
+**Layout responsivo**:
+
+- `lg:grid-cols-[260px_1fr]` — sidebar fixa esquerda, conteúdo flexível direita.
+- `<lg`: sidebar vira `Sheet` aberto por botão "Selecionar BM (N)".
+
+**Sem mudanças de backend**: tudo continua sobre `meta_business_managers`, `meta_ad_accounts`, `meta_ad_account_assignments`, `clients`.
+
+**Ordem de entrega (uma única passada)**:
+
+1. Criar `BmSidebar`, `AccountCard`, `ClientPicker`, `AccountDetailSheet`, `MetaKpiBar`.
+2. Reescrever `MetaConnections.tsx` como composição (sidebar + lista de cards), descartando tabela e Dialog atual.
+3. Deletar/desreferenciar `MetaKpiHero.tsx` e `BmOverviewStrip.tsx`.
+
+Aprova essa direção?
