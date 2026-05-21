@@ -43,6 +43,8 @@ const ClientDashboard: React.FC = () => {
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
+  const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
+  const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
 
   const fetchAccounts = useCallback(async (clientId: string) => {
