@@ -18,7 +18,8 @@ export interface AutoCommissionResult {
  * of client_type 'aluguel' are processed. The current week (still open)
  * is skipped because Saturday's spend isn't closed yet.
  */
-export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
+export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 'manual' | 'auto' }): Promise<AutoCommissionResult> {
+  const startedAt = Date.now();
   const result: AutoCommissionResult = { inserted: 0, skipped: 0, errors: 0 };
 
   const tiers = await fetchCommissionTiers();
