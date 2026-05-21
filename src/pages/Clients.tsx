@@ -353,6 +353,7 @@ const Clients: React.FC = () => {
     toast.success('Cliente removido do banco de dados');
     setClients(prev => prev.filter(c => c.id !== id));
     fetchCommissions();
+    logAudit({ action: 'client_deleted', entity: 'client', entity_id: id, before: c as any });
   };
 
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
