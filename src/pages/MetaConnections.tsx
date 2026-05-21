@@ -396,29 +396,94 @@ export default function MetaConnections() {
           </Select>
         </div>
 
+        {hasFilters && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {filterBm !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                BM: {bmName(filterBm)}
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterBm("all")} />
+              </Badge>
+            )}
+            {filterStatus !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Status: {filterStatus === "active" ? "Ativas" : "Bloqueadas"}
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterStatus("all")} />
+              </Badge>
+            )}
+            {filterClient !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Cliente: {filterClient === "unassigned" ? "Sem cliente" : clients.find((c) => c.id === filterClient)?.name}
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterClient("all")} />
+              </Badge>
+            )}
+            {search && (
+              <Badge variant="secondary" className="gap-1">
+                "{search}"
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
+              </Badge>
+            )}
+            <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground ml-1">
+              Limpar tudo
+            </button>
+          </div>
+        )}
+
         <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Conta</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Conta <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead>BM</TableHead>
-                <TableHead>Score</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("score")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Score <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("age")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Idade <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead>Pagamento</TableHead>
-                <TableHead>Gasto</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("balance")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Saldo <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("spend")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Gasto <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead className="min-w-[220px]">Cliente</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma conta encontrada.</TableCell></TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 10 }).map((__, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : sorted.length === 0 ? (
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">
+                  Nenhuma conta encontrada.{hasFilters && <> <button onClick={clearFilters} className="text-primary underline ml-1">Limpar filtros</button></>}
+                </TableCell></TableRow>
               ) : (
-                filtered.map((a) => {
+                sorted.map((a) => {
                   const clientId = currentClient(a.id);
                   const score = a.score ?? 0;
+                  const age = ageBadge(a.age);
+                  const balance = Number(a.balance || 0);
+                  const noFunding = !a.funding_source;
                   return (
                     <TableRow key={a.id}>
                       <TableCell>
@@ -445,12 +510,18 @@ export default function MetaConnections() {
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[10px] ${age.cls}`}>{age.label}</Badge>
+                      </TableCell>
                       <TableCell className="text-xs">
                         {a.funding_source ? (
                           <span className="text-foreground">Vinculado</span>
                         ) : (
                           <span className="text-yellow-400">Sem pagamento</span>
                         )}
+                      </TableCell>
+                      <TableCell className={`text-sm font-mono ${balance === 0 && noFunding ? "text-destructive" : "text-foreground"}`}>
+                        {a.currency} {balance.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-sm font-mono">
                         {a.currency} {(a.amount_spent || 0).toFixed(2)}
@@ -475,7 +546,7 @@ export default function MetaConnections() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="ghost" onClick={() => setDetail(a)}>
+                        <Button size="sm" variant="ghost" onClick={() => setDetail(a)} aria-label="Ver detalhes">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>
