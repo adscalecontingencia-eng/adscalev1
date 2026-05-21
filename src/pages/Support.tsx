@@ -67,9 +67,9 @@ const Support: React.FC = () => {
             title: t.title,
             description: t.description || null,
             category: t.category || 'manutencao',
-            structure_type: t.structure_type || 'BM Comum',
-            assigned_to: t.assigned_to || null,
-            client_id: t.client_id || null,
+            structure_type: t.structureType || t.structure_type || 'BM Comum',
+            assigned_to: t.assignedTo || t.assigned_to || null,
+            client_id: t.clientId || t.client_id || null,
             status: t.status || 'pendente',
           }))).then(() => {
             localStorage.removeItem('adscale_tasks');
