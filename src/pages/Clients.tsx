@@ -12,6 +12,7 @@ import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Client {
   id: string;
@@ -54,6 +55,8 @@ interface Commission {
 
 const Clients: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [clients, setClients] = useState<Client[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -419,6 +422,7 @@ const Clients: React.FC = () => {
 
   // "Comissão Paga" — subtracts from pending commissions
   const handleAddPaid = async (clientId: string) => {
+    if (!isAdmin) { toast.error('Apenas administradores podem validar pagamentos'); return; }
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
 
@@ -1015,9 +1019,11 @@ const Clients: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
-                      <CheckCircle size={12} /> Validar Pagamento da Comissão
-                    </button>
+                    {isAdmin && (
+                      <button onClick={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 transition-colors">
+                        <CheckCircle size={12} /> Validar Pagamento da Comissão
+                      </button>
+                    )}
                     <button onClick={() => setExpandedClient(isExpanded ? null : c.id)} className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors ml-auto">
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Histórico
                     </button>

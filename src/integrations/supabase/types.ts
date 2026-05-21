@@ -161,6 +161,45 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_sync_log: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_count: number
+          error_message: string | null
+          id: string
+          inserted_count: number
+          skipped_count: number
+          source: string
+          triggered_by: string | null
+          triggered_by_email: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_count?: number
+          error_message?: string | null
+          id?: string
+          inserted_count?: number
+          skipped_count?: number
+          source?: string
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_count?: number
+          error_message?: string | null
+          id?: string
+          inserted_count?: number
+          skipped_count?: number
+          source?: string
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+        }
+        Relationships: []
+      }
       commission_tiers: {
         Row: {
           created_at: string

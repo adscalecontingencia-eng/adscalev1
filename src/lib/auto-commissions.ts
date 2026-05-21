@@ -18,7 +18,8 @@ export interface AutoCommissionResult {
  * of client_type 'aluguel' are processed. The current week (still open)
  * is skipped because Saturday's spend isn't closed yet.
  */
-export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
+export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 'manual' | 'auto' }): Promise<AutoCommissionResult> {
+  const startedAt = Date.now();
   const result: AutoCommissionResult = { inserted: 0, skipped: 0, errors: 0 };
 
   const tiers = await fetchCommissionTiers();
@@ -111,6 +112,21 @@ export async function syncAutoCommissions(): Promise<AutoCommissionResult> {
       if (error) result.errors++;
       else result.inserted += chunk.length;
     }
+  }
+
+  if (opts?.logAudit) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('commission_sync_log').insert({
+        triggered_by: user?.id ?? null,
+        triggered_by_email: user?.email ?? null,
+        source: opts.source || 'manual',
+        inserted_count: result.inserted,
+        skipped_count: result.skipped,
+        error_count: result.errors,
+        duration_ms: Date.now() - startedAt,
+      });
+    } catch { /* silent */ }
   }
 
   return result;
