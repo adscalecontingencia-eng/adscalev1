@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
+import { splitOverdueVsCurrent } from '@/lib/billing-status';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
