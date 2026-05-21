@@ -29,8 +29,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const links = user?.role === 'admin' ? adminLinks :
-    user?.role === 'support' ? adminLinks.filter(l => 
-      user.permissions?.includes(l.path.replace('/', ''))
+    user?.role === 'support' ? adminLinks.filter(l =>
+      !l.adminOnly && user.permissions?.includes(l.path.replace('/', ''))
     ) : [];
 
   const handleLogout = async () => {
