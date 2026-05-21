@@ -683,7 +683,12 @@ const Clients: React.FC = () => {
       : cc;
 
     const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
-    const totalAdSpend = comissionTypes.reduce((s, c) => s + c.adSpend, 0);
+    // Ad Spend real vem dos insights da Meta (mesma fonte do dashboard do cliente),
+    // não das comissões manuais. Filtra pelo período selecionado.
+    const insightRows = insightsByClient[clientId] || [];
+    const totalAdSpend = insightRows
+      .filter(r => !range || isWithinInterval(parseDateLocal(r.date), { start: range.start, end: range.end }))
+      .reduce((s, r) => s + (r.spend || 0), 0);
 
     // Comissão Pendente (no período): soma de valor_pendente
     const comissaoPendente = comissionTypes
