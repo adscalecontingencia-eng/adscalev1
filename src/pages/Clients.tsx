@@ -745,15 +745,16 @@ const Clients: React.FC = () => {
   const kpi = useMemo(() => {
     const aluguelCount = clients.filter(c => c.clientType === 'aluguel').length;
     const vendaCount = clients.filter(c => c.clientType === 'venda').length;
-    let totalAdSpend = 0, totalPendente = 0, totalPaga = 0, inadimplentes = 0;
+    let totalAdSpend = 0, totalPendente = 0, totalAtrasado = 0, totalPaga = 0, inadimplentes = 0;
     clients.forEach(c => {
       const acc = getAccumulated(c.id);
       totalAdSpend += acc.totalAdSpend;
       totalPendente += acc.saldoPendente;
+      totalAtrasado += acc.saldoAtrasado;
       totalPaga += acc.comissaoPaga;
-      if (acc.saldoPendente > 0) inadimplentes++;
+      if (acc.saldoAtrasado > 0) inadimplentes++;
     });
-    return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalPaga, inadimplentes };
+    return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalAtrasado, totalPaga, inadimplentes };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, commissions, insightsByClient, periodFilter, customStart, customEnd, commissionTiers]);
 
