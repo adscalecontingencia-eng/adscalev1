@@ -422,6 +422,7 @@ const Clients: React.FC = () => {
 
   // "Comissão Paga" — subtracts from pending commissions
   const handleAddPaid = async (clientId: string) => {
+    if (!isAdmin) { toast.error('Apenas administradores podem validar pagamentos'); return; }
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
 
