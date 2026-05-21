@@ -68,6 +68,7 @@ const StatusBadge: React.FC<{ status: ClientStatus }> = ({ status }) => {
   const cfg = {
     em_dia: { label: 'Em dia', cls: 'bg-success/15 text-success border-success/30', dot: 'bg-success' },
     pendente: { label: 'Pendente', cls: 'bg-warning/15 text-warning border-warning/30', dot: 'bg-warning' },
+    atrasado: { label: 'Atrasado', cls: 'bg-destructive/15 text-destructive border-destructive/30', dot: 'bg-destructive' },
     sem_gasto: { label: 'Sem gasto', cls: 'bg-muted/40 text-muted-foreground border-border', dot: 'bg-muted-foreground' },
   }[status];
   return (
