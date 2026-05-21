@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, DollarSign, AlertTriangle, CheckCircle2, Wallet } from 'lucide-react';
+import { Users, DollarSign, AlertTriangle, CheckCircle2, Wallet, AlertOctagon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface KPI {
@@ -8,6 +8,7 @@ interface KPI {
   vendaCount: number;
   totalAdSpend: number;
   totalPendente: number;
+  totalAtrasado: number;
   totalPaga: number;
   inadimplentes: number;
 }
@@ -19,13 +20,14 @@ const Card: React.FC<{
   label: string;
   value: string;
   hint?: string;
-  tone?: 'default' | 'primary' | 'warning' | 'success';
+  tone?: 'default' | 'primary' | 'warning' | 'success' | 'destructive';
 }> = ({ icon, label, value, hint, tone = 'default' }) => {
   const toneClass = {
     default: 'text-foreground',
     primary: 'text-primary',
     warning: 'text-warning',
     success: 'text-success',
+    destructive: 'text-destructive',
   }[tone];
   return (
     <div className="bg-card/60 backdrop-blur border border-border rounded-xl p-4 flex flex-col gap-2 hover:border-primary/40 transition-colors">
@@ -41,7 +43,7 @@ const Card: React.FC<{
 
 export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <Card
         icon={<Users size={14} />}
         label="Clientes"
@@ -56,10 +58,17 @@ export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
       />
       <Card
         icon={<AlertTriangle size={14} />}
-        label="Comissão Pendente"
+        label="Saldo Pendente"
         value={fmt(kpi.totalPendente)}
-        hint="saldo a receber"
+        hint="semana corrente"
         tone="warning"
+      />
+      <Card
+        icon={<AlertOctagon size={14} />}
+        label="Saldo Atrasado"
+        value={fmt(kpi.totalAtrasado)}
+        hint="vencido após sexta"
+        tone={kpi.totalAtrasado > 0 ? 'destructive' : 'success'}
       />
       <Card
         icon={<CheckCircle2 size={14} />}
@@ -70,10 +79,10 @@ export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
       />
       <Card
         icon={<Wallet size={14} />}
-        label="Em Cobrança"
+        label="Inadimplentes"
         value={String(kpi.inadimplentes)}
-        hint="clientes com saldo > 0"
-        tone={kpi.inadimplentes > 0 ? 'warning' : 'success'}
+        hint="clientes com atraso"
+        tone={kpi.inadimplentes > 0 ? 'destructive' : 'success'}
       />
     </div>
   );

@@ -19,6 +19,7 @@ import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/component
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
+import { splitOverdueVsCurrent, WeeklyRow } from '@/lib/billing-status';
 
 interface Client {
   id: string;
@@ -653,6 +654,26 @@ const Clients: React.FC = () => {
     return total;
   };
 
+  // Weekly breakdown per client (uses ISO week starting Thursday, same as dashboard)
+  const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || client.clientType === 'venda') return [];
+    const basePct = client.percentageValue || 0;
+    const rows = insightsByClient[clientId] || [];
+    if (rows.length === 0) return [];
+    const byWeek: Record<string, number> = {};
+    rows.forEach(r => {
+      const d = parseDateLocal(r.date);
+      const ws = startOfWeek(d, { weekStartsOn: 4 });
+      const key = format(ws, 'yyyy-MM-dd');
+      byWeek[key] = (byWeek[key] || 0) + r.spend;
+    });
+    return Object.entries(byWeek).map(([k, spend]) => {
+      const rate = getTierPercentage(spend, basePct);
+      return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
+    });
+  };
+
   const getAccumulated = (clientId: string) => {
     const cc = getClientCommissions(clientId);
     const range = getFilterRange();
@@ -676,26 +697,26 @@ const Clients: React.FC = () => {
       .reduce((s, c) => s + (c.valorPago || 0), 0);
     const comissaoPaga = paidRecords + valorPagoFromDaily;
 
-    // Saldo Pendente: MESMO cálculo do dashboard do cliente
-    // = comissão total (all-time, dos insights por semana com tiers)
-    //   - tudo já pago (all-time, type='paid')
-    //   - crédito do plano aplicado (FIFO até a comissão total)
+    // Saldo Pendente vs Saldo Atrasado: separa semana corrente (ainda não venceu)
+    // do que já passou da sexta de cobrança sem pagamento.
     const client = clients.find(c => c.id === clientId);
-    const totalCommissionAllTime = computeAllTimeCommissionFromInsights(clientId);
+    const weeks = computeWeeklyForClient(clientId);
     const totalPaidAllTime = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    const creditApplied = Math.min(planCredit, totalCommissionAllTime);
-    const saldoPendente = Math.max(0, totalCommissionAllTime - totalPaidAllTime - creditApplied);
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime);
+    const saldoPendente = split.currentPending;
+    const saldoAtrasado = split.overdue;
 
-    return { comissaoPendente, comissaoPaga, saldoPendente, totalAdSpend };
+    return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend };
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
-  // Status agregado (em_dia / pendente / sem_gasto) usado para filtro e badge
+  // Status agregado (em_dia / pendente / atrasado / sem_gasto)
   const getClientStatus = (clientId: string): ClientStatus => {
     const acc = getAccumulated(clientId);
+    if (acc.saldoAtrasado > 0) return 'atrasado';
     if (acc.saldoPendente > 0) return 'pendente';
     if (acc.totalAdSpend <= 0) return 'sem_gasto';
     return 'em_dia';
@@ -724,15 +745,16 @@ const Clients: React.FC = () => {
   const kpi = useMemo(() => {
     const aluguelCount = clients.filter(c => c.clientType === 'aluguel').length;
     const vendaCount = clients.filter(c => c.clientType === 'venda').length;
-    let totalAdSpend = 0, totalPendente = 0, totalPaga = 0, inadimplentes = 0;
+    let totalAdSpend = 0, totalPendente = 0, totalAtrasado = 0, totalPaga = 0, inadimplentes = 0;
     clients.forEach(c => {
       const acc = getAccumulated(c.id);
       totalAdSpend += acc.totalAdSpend;
       totalPendente += acc.saldoPendente;
+      totalAtrasado += acc.saldoAtrasado;
       totalPaga += acc.comissaoPaga;
-      if (acc.saldoPendente > 0) inadimplentes++;
+      if (acc.saldoAtrasado > 0) inadimplentes++;
     });
-    return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalPaga, inadimplentes };
+    return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalAtrasado, totalPaga, inadimplentes };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, commissions, insightsByClient, periodFilter, customStart, customEnd, commissionTiers]);
 
@@ -993,6 +1015,7 @@ const Clients: React.FC = () => {
               comissaoPendente={acc.comissaoPendente}
               comissaoPaga={acc.comissaoPaga}
               saldoPendente={acc.saldoPendente}
+              saldoAtrasado={acc.saldoAtrasado}
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
               isAdmin={isAdmin}

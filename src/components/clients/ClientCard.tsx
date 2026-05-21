@@ -34,7 +34,7 @@ export interface ClientLite {
   blockedAccounts: number;
 }
 
-export type ClientStatus = 'em_dia' | 'pendente' | 'sem_gasto';
+export type ClientStatus = 'em_dia' | 'pendente' | 'atrasado' | 'sem_gasto';
 
 interface Props {
   client: ClientLite;
@@ -42,6 +42,7 @@ interface Props {
   comissaoPendente: number;
   comissaoPaga: number;
   saldoPendente: number;
+  saldoAtrasado: number;
   status: ClientStatus;
   spendByDay: { date: string; spend: number }[];
   isAdmin: boolean;
@@ -67,6 +68,7 @@ const StatusBadge: React.FC<{ status: ClientStatus }> = ({ status }) => {
   const cfg = {
     em_dia: { label: 'Em dia', cls: 'bg-success/15 text-success border-success/30', dot: 'bg-success' },
     pendente: { label: 'Pendente', cls: 'bg-warning/15 text-warning border-warning/30', dot: 'bg-warning' },
+    atrasado: { label: 'Atrasado', cls: 'bg-destructive/15 text-destructive border-destructive/30', dot: 'bg-destructive' },
     sem_gasto: { label: 'Sem gasto', cls: 'bg-muted/40 text-muted-foreground border-border', dot: 'bg-muted-foreground' },
   }[status];
   return (
@@ -108,7 +110,7 @@ const Stat: React.FC<{
   icon: React.ReactNode;
   label: string;
   value: string;
-  tone?: 'default' | 'primary' | 'warning' | 'success';
+  tone?: 'default' | 'primary' | 'warning' | 'success' | 'destructive';
   highlight?: boolean;
   right?: React.ReactNode;
 }> = ({ icon, label, value, tone = 'default', highlight, right }) => {
@@ -117,6 +119,7 @@ const Stat: React.FC<{
     primary: 'text-primary',
     warning: 'text-warning',
     success: 'text-success',
+    destructive: 'text-destructive',
   }[tone];
   return (
     <div
@@ -142,6 +145,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     comissaoPendente,
     comissaoPaga,
     saldoPendente,
+    saldoAtrasado,
     status,
     spendByDay,
     isAdmin,
@@ -244,7 +248,7 @@ export const ClientCard: React.FC<Props> = (props) => {
         </div>
 
         {/* KPIs */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           <Stat
             icon={<DollarSign size={11} />}
             label="Gasto em Ads"
@@ -260,7 +264,15 @@ export const ClientCard: React.FC<Props> = (props) => {
             tone={saldoPendente > 0 ? 'warning' : 'success'}
             highlight={saldoPendente > 0}
           />
+          <Stat
+            icon={saldoAtrasado > 0 ? <AlertTriangle size={11} /> : <CircleDot size={11} />}
+            label="Saldo Atrasado"
+            value={fmt(saldoAtrasado)}
+            tone={saldoAtrasado > 0 ? 'destructive' : 'success'}
+            highlight={saldoAtrasado > 0}
+          />
         </div>
+
 
         {/* Ações */}
         <div className="mt-3 flex flex-wrap items-center gap-2">

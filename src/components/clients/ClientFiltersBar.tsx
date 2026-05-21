@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 
 export type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 export type TypeFilter = 'all' | 'aluguel' | 'venda';
-export type StatusFilter = 'all' | 'em_dia' | 'pendente' | 'sem_gasto';
+export type StatusFilter = 'all' | 'em_dia' | 'pendente' | 'atrasado' | 'sem_gasto';
 export type SortKey = 'saldo_desc' | 'recent' | 'az';
 
 interface Props {
@@ -164,6 +164,7 @@ export const ClientFiltersBar: React.FC<Props> = (p) => {
           <Chip active={p.statusFilter === 'all'} onClick={() => p.setStatusFilter('all')}>Todos</Chip>
           <Chip active={p.statusFilter === 'em_dia'} onClick={() => p.setStatusFilter('em_dia')}>Em dia</Chip>
           <Chip active={p.statusFilter === 'pendente'} onClick={() => p.setStatusFilter('pendente')}>Pendente</Chip>
+          <Chip active={p.statusFilter === 'atrasado'} onClick={() => p.setStatusFilter('atrasado')}>Atrasado</Chip>
           <Chip active={p.statusFilter === 'sem_gasto'} onClick={() => p.setStatusFilter('sem_gasto')}>Sem gasto</Chip>
         </Group>
 

@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
+import { splitOverdueVsCurrent } from '@/lib/billing-status';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -41,6 +43,8 @@ const ClientDashboard: React.FC = () => {
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
+  const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
+  const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
 
   const fetchAccounts = useCallback(async (clientId: string) => {
@@ -343,7 +347,27 @@ const ClientDashboard: React.FC = () => {
     [commissions]
   );
 
+  // Split entre saldo da semana corrente (pendente) e saldo já vencido (atrasado)
+  const billingSplit = useMemo(
+    () => splitOverdueVsCurrent(
+      weeklyCommissionHistory,
+      Number(client?.plan_credit || 0),
+      allTimeTotals.paid,
+    ),
+    [weeklyCommissionHistory, client, allTimeTotals.paid]
+  );
+
+  // Pop-up automático quando há saldo atrasado (apenas 1x por sessão)
+  useEffect(() => {
+    if (loading || isAdminView) return;
+    if (billingSplit.overdue > 0 && !overdueDialogShownRef.current) {
+      overdueDialogShownRef.current = true;
+      setOverdueDialogOpen(true);
+    }
+  }, [loading, isAdminView, billingSplit.overdue]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+
 
   if (!client) {
     return (
@@ -357,10 +381,17 @@ const ClientDashboard: React.FC = () => {
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
   const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
+  const overdueTotal = billingSplit.overdue;
+  const currentPendingTotal = billingSplit.currentPending;
+
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
   const paymentMsg = (method: string) =>
     `Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *${method}*.`;
+
+  const overdueMsg = (method: string) =>
+    `Olá! Sou o cliente ${client.name}. Estou regularizando o *saldo atrasado* de ${fmt(overdueTotal)} via *${method}*.`;
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -1161,22 +1192,43 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
-            {/* Saldo principal */}
+            {/* Saldo Atrasado — destaque em vermelho quando há vencimento */}
+            {overdueTotal > 0 && (
+              <div className="rounded-2xl p-5 border bg-gradient-to-br from-destructive/15 via-card to-card border-destructive/50 shadow-[0_0_30px_-10px_hsl(var(--destructive)/0.5)]">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/80 mb-1">Saldo Atrasado</p>
+                    <p className="font-display text-3xl font-bold text-destructive">{fmt(overdueTotal)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vencido após a sexta-feira de cobrança. Regularize para evitar bloqueios.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setOverdueDialogOpen(true)}
+                    className="bg-destructive text-destructive-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 flex items-center gap-2"
+                  >
+                    <AlertTriangle size={16} /> Regularizar agora
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Saldo principal (semana corrente) */}
             <div className={cn(
               "rounded-2xl p-5 border",
-              pendingTotal > 0 ? "bg-gradient-to-br from-warning/15 via-card to-card border-warning/40" : "bg-gradient-to-br from-success/10 via-card to-card border-success/30"
+              currentPendingTotal > 0 ? "bg-gradient-to-br from-warning/15 via-card to-card border-warning/40" : "bg-gradient-to-br from-success/10 via-card to-card border-success/30"
             )}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Saldo Pendente</p>
-                  <p className={cn("font-display text-3xl font-bold", pendingTotal > 0 ? "text-warning" : "text-success")}>
-                    {fmt(Math.max(0, pendingTotal))}
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Saldo Pendente (semana corrente)</p>
+                  <p className={cn("font-display text-3xl font-bold", currentPendingTotal > 0 ? "text-warning" : "text-success")}>
+                    {fmt(Math.max(0, currentPendingTotal))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {pendingTotal > 0 ? 'Cobrança realizada toda sexta-feira' : 'Tudo em dia! Obrigado.'}
+                    {currentPendingTotal > 0 ? 'Cobrança realizada na próxima sexta-feira' : (overdueTotal > 0 ? 'Apenas saldo atrasado em aberto.' : 'Tudo em dia! Obrigado.')}
                   </p>
                 </div>
-                {pendingTotal > 0 && <AlertTriangle size={36} className="text-warning" />}
+                {currentPendingTotal > 0 && <AlertTriangle size={36} className="text-warning" />}
               </div>
             </div>
 
@@ -1324,6 +1376,61 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Pop-up de Saldo Atrasado — redireciona para WhatsApp */}
+      <Dialog open={overdueDialogOpen} onOpenChange={setOverdueDialogOpen}>
+        <DialogContent className="max-w-md border-destructive/50">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-2 rounded-lg bg-destructive/15 text-destructive">
+                <AlertTriangle size={20} />
+              </div>
+              <DialogTitle className="text-destructive">Saldo atrasado em aberto</DialogTitle>
+            </div>
+            <DialogDescription>
+              Você possui <strong className="text-destructive">{fmt(overdueTotal)}</strong> em comissões que venceram na sexta-feira de cobrança. Para evitar bloqueios nas contas, regularize o pagamento agora.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <p className="text-xs text-muted-foreground">Escolha a forma de pagamento — você será redirecionado para o WhatsApp:</p>
+            <div className="grid grid-cols-3 gap-2">
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('PIX'))}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setOverdueDialogOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all"
+              >
+                <Smartphone size={20} className="text-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-500">PIX</span>
+              </a>
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('Payoneer'))}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setOverdueDialogOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all"
+              >
+                <Globe size={20} className="text-sky-500" />
+                <span className="text-xs font-semibold text-sky-500">PAYONEER</span>
+              </a>
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('Crypto'))}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setOverdueDialogOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all"
+              >
+                <Bitcoin size={20} className="text-amber-500" />
+                <span className="text-xs font-semibold text-amber-500">CRYPTO</span>
+              </a>
+            </div>
+            <button
+              onClick={() => setOverdueDialogOpen(false)}
+              className="w-full text-xs text-muted-foreground hover:text-foreground py-2"
+            >
+              Lembrar mais tarde
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
