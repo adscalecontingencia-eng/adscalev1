@@ -119,6 +119,7 @@ const Stat: React.FC<{
     primary: 'text-primary',
     warning: 'text-warning',
     success: 'text-success',
+    destructive: 'text-destructive',
   }[tone];
   return (
     <div
