@@ -1,93 +1,116 @@
-# Plano — Reestruturar Dashboard Ads
 
-## Diagnóstico atual (`src/pages/AdsDashboard.tsx`)
+# Plano — Otimizar Dashboard de Conexões Meta
 
-- **12 cards de métrica achatados** em grid 6 col., sem hierarquia (Faturamento, Gasto, Lucro, ROAS misturados com CPM/CPC/CTR).
-- **Filtros lotados** num único Card: chips de período + 3 popovers grandes (BM, clientes, contas) na mesma linha — quebra mal e ocupa espaço demais.
-- **Sem visualização temporal**: só agregados. Não dá pra ver evolução diária de spend/revenue/ROAS.
-- **Sem detalhamento**: não existe ranking de contas, clientes ou BMs. Impossível ver quem performa.
-- **Sem estados visuais**: loading texto puro, empty state genérico, sem skeleton.
-- **Sync silencioso**: botão "Sincronizar" não mostra última sincronização nem progresso.
+## Diagnóstico atual (`src/pages/MetaConnections.tsx`, 557 linhas)
+
+- **Header + sync** num único bloco, sem indicação de "última sync" nem agendamento.
+- **Card de info** (System User / Request Access) fixo no topo, ocupa muito espaço — deveria ser collapsible.
+- **5 StatCards planos** (BMs, Contas, Atribuídas, Bloqueadas, Score médio), sem hierarquia, sem delta, sem agrupamento por significado.
+- **Filtros achatados** em linha única (busca + 3 selects), sem chips de filtros ativos, sem multi-select.
+- **Tabela única e densa**: 8 colunas, sem ordenação, sem agrupamento por BM, score/status misturados, sem cor para idade ou saldo.
+- **Sem visão por BM**: impossível ver quantas contas/score/bloqueios por BM sem filtrar manualmente.
+- **Detalhe da conta** em Dialog padrão, sem aba de histórico/insights.
+- **Empty/loading states** texto puro.
 
 ## Proposta — 5 fases
 
-### Fase 1 — Hero KPIs com hierarquia clara
+### Fase 1 — Header executivo + KPIs com hierarquia
 
-Trocar o grid plano por 2 níveis:
-
-```text
-┌─ Primary row (4 cards grandes) ───────────────────────────┐
-│  Faturamento  │  Gasto  │  Lucro  │  ROAS                  │
-│  + delta vs período anterior  + sparkline 14d              │
-└────────────────────────────────────────────────────────────┘
-┌─ Secondary row (6 cards menores) ─────────────────────────┐
-│  Margem │ Compras │ CPA │ CTR │ CPC │ CPM                  │
-└────────────────────────────────────────────────────────────┘
-```
-
-- Primary: cards glass com gradient, sparkline (Recharts) dos últimos N dias filtrados, comparativo `Δ%` vs período anterior equivalente.
-- Secondary: cards compactos sem sparkline.
-- Cliques/Impressões viram footer discreto (não merecem card).
-
-### Fase 2 — Barra de controles unificada
-
-Separar em 3 zonas + colapso responsivo:
+Trocar grid 5 plano por 2 níveis:
 
 ```text
-[ Período: Hoje | Ontem | 7d | 30d | 90d | Custom ]   [ ⟳ Sync · há 4min ]
-[ 🔍 buscar conta...]  [ BM ▾ ] [ Clientes ▾ ] [ Contas ▾ ] [ Status ▾ ]
+┌─ Primary (4 cards grandes) ──────────────────────────────┐
+│ Contas Ativas │ Bloqueadas │ Atribuídas │ Score Médio    │
+│ + spark/% do total + tag de tendência                    │
+└──────────────────────────────────────────────────────────┘
+┌─ Secondary (chips compactos) ────────────────────────────┐
+│ BMs · Contas totais · Sem cliente · Sem pagamento · Última sync
+└──────────────────────────────────────────────────────────┘
 ```
 
-- Chip de "última sincronização" + spinner inline (substitui botão grande).
-- Adicionar **período custom** (date range), faltava.
-- Adicionar filtro de **status da conta** (ativa/bloqueada) — já tem o dado em `meta_ad_accounts.status`.
-- Em telas <md, filtros viram `Sheet` lateral com contagem de ativos.
+- **Mover "Contas Ativas" do Dashboard para cá** (card primary com destaque verde neon, mostrando ativas / total).
+- **Remover** o KpiCard `Contas Ativas` em `src/pages/Dashboard.tsx` (linha 533) e o cálculo `activeAccounts` (linha 136). Ajustar grid para não deixar buraco.
+- Chip "última sync · há Xmin" (igual ao usado em AdsDashboard).
+- Card de "System User / Request Access" vira `Collapsible` fechado por padrão, com gatilho discreto "Por que minha conta não aparece?".
 
-### Fase 3 — Gráficos temporais
+### Fase 2 — Visão por BM (novo bloco)
 
-Adicionar uma seção com 2 charts (Recharts, glass cards):
+Acima da tabela de contas, adicionar uma seção **"Business Managers"** com cards horizontais (carousel/scroll-x em mobile):
 
-1. **Spend × Revenue × Profit** — area chart empilhado por dia.
-2. **ROAS diário** — line chart com linha de referência em 1.0x.
+```text
+┌─ BM: AGÊNCIA ABC ────────────┐  ┌─ BM: XYZ ─────────────────┐
+│ 18 contas · 2 bloqueadas     │  │ 9 contas · 0 bloqueadas   │
+│ Score médio: 72 ✅           │  │ Score médio: 58 ⚠         │
+│ Última sync: há 12min        │  │ Última sync: há 1h        │
+│ [Filtrar contas →]           │  │ [Filtrar contas →]        │
+└──────────────────────────────┘  └───────────────────────────┘
+```
 
-Tab para alternar granularidade (Diário / Semanal). Tooltip com valores formatados USD.
+- Click no card aplica `filterBm`.
+- Badge de verificação (`verification_status`) no header de cada BM.
+- Esconder/expandir tudo via toggle "Ver todas as BMs (N)".
 
-### Fase 4 — Breakdown table (ranking)
+### Fase 3 — Filtros e tabela melhorados
 
-Tabela com tabs:
+**Filtros (`AdsFiltersBar`-style)**:
+- Busca à esquerda, popovers BM (já tem) + **multi-select clientes** + status + **novo "Saúde"** (Crítico / Atenção / OK baseado em score_label).
+- Chips de filtros ativos com X.
+- Botão "Limpar filtros" quando houver algum ativo.
 
-- **Por Cliente** — agrupa insights via `meta_ad_account_assignments`. Mostra: cliente, spend, revenue, ROAS, compras, % do total.
-- **Por Conta** — conta, BM, cliente atribuído, spend, ROAS, status, última sync.
-- **Por BM** — agregado.
+**Tabela**:
+- **Ordenação por coluna** (score, gasto, criação, status).
+- **Coluna "Idade"** (já há `age` na tabela) com badge colorido (verde >180d, amarelo 30-180d, vermelho <30d — contas novas costumam bloquear mais).
+- **Coluna "Saldo"** (`balance`) com cor vermelha quando 0 e funding_source null.
+- **Status** com tooltip do `disable_reason_label` e ícone.
+- **Mini-progress** do gasto vs spend_cap quando houver cap.
+- **Linhas zebra + sticky header** em scroll vertical, altura máxima da tabela com scroll interno.
+- **Bulk actions**: checkbox na linha + barra superior "N selecionadas → Atribuir a cliente / Marcar como…".
 
-Sort por coluna, busca embutida, mini progress bar do % do total. Click na linha aplica filtro correspondente.
+### Fase 4 — Drawer de detalhe enriquecido
+
+Trocar o `Dialog` por `Sheet` lateral mais largo com 3 tabs:
+
+1. **Visão geral** — campos atuais (criação, país, billing cycle, balance, score breakdown).
+2. **Performance** — últimos 30d de `meta_ad_insights` (mini line chart spend, bar chart purchases).
+3. **Histórico** — eventos de `meta_blocked_accounts_log` + `meta_critical_events` daquela conta.
+
+Botão "Abrir no Meta Business Manager" (link `https://business.facebook.com/adsmanager/manage/accounts?act={meta_account_id}`).
 
 ### Fase 5 — Polimento
 
-- Skeleton durante load (mesma estrutura dos KPIs/charts).
-- Empty state com CTA "Sincronizar agora".
-- Toast de sync com contagem de linhas upsertadas.
-- Estado "stale data" (badge amarelo) se última sync > 6h.
-- Animações suaves (`framer-motion` stagger) na entrada dos cards.
+- **Skeleton** dos cards/tabela durante load (substituir "Carregando...").
+- **Empty state** com ilustração + CTA "Sincronizar agora".
+- **Badge "stale data"** amarelo no header se última sync > 6h.
+- **Tooltip "?"** ao lado do Score explicando a fórmula (idade + funding + pixels + páginas).
+- **Animações** `framer-motion` stagger na entrada das BM cards e linhas da tabela.
+- **Acessibilidade**: aria-labels nos botões de ícone (Eye, Link2, Unlink).
 
 ## Detalhes técnicos
 
-**Novos componentes** em `src/components/ads/`:
+**Novos componentes** em `src/components/meta/`:
+- `MetaKpiHero.tsx` — primary + secondary KPIs.
+- `BmOverviewStrip.tsx` — strip horizontal de cards por BM.
+- `AccountsFiltersBar.tsx` — filtros unificados (reusa padrão do AdsFiltersBar).
+- `AccountsTable.tsx` — tabela com sort/bulk/mini-progress.
+- `AccountDetailSheet.tsx` — substitui `AccountDetailDialog` com tabs.
+- `SystemUserHelpCollapsible.tsx` — info técnica colapsável.
 
-- `AdsKpiHero.tsx` — primary + secondary KPI grid.
-- `AdsFiltersBar.tsx` — toda a zona de filtros + sync chip.
-- `AdsTimeCharts.tsx` — Spend/Revenue/Profit + ROAS.
-- `AdsBreakdownTable.tsx` — tabs cliente/conta/BM com sort/busca.
-- `MiniSparkline.tsx` — reutilizável (já há lógica parecida em `ClientCard`).
+**Mudanças em arquivos existentes**:
+- `src/pages/MetaConnections.tsx` — vira composição leve dos componentes acima (~200 linhas).
+- `src/pages/Dashboard.tsx` — remover `activeAccounts` (linha 136) e o KpiCard "Contas Ativas" (linha 533); ajustar grid de KPIs para 7 colunas ou redistribuir.
 
 **Reaproveitamentos**:
+- `bms`, `accounts`, `assignments`, `clients`, `currentClient`, `bmName`, `filtered`, `stats` continuam — extraídos em `useMemo`s passados via props.
+- Estado de `job` (realtime) permanece no container.
+- Score helpers (`scoreColor`, `scoreBadgeVariant`) movem para `src/lib/meta-score.ts`.
 
-- `filteredInsights`, `metrics`, `clientByAccount`, `rangeToDates` continuam — só extraídos para `useMemo`s consumidos pelos novos componentes.
-- Cálculo de delta período-anterior: rodar `loadInsights` para janela espelho (ex.: se range = 7d atual, busca 7d anteriores) e calcular `Δ%`.
-- Sparkline e gráficos usam Recharts (já no projeto).
+**Sem mudanças de backend**: nenhuma SQL, RLS, edge function. Tudo é frontend sobre tabelas já existentes (`meta_business_managers`, `meta_ad_accounts`, `meta_ad_account_assignments`, `meta_ad_insights`, `meta_blocked_accounts_log`, `meta_critical_events`, `clients`).
 
-**Sem mudanças de backend**: nenhuma SQL, RLS ou edge function. Tudo é frontend sobre `meta_ad_insights`, `meta_ad_accounts`, `meta_ad_account_assignments`, `meta_business_managers` e `clients`.
-
-**Ordem sugerida de entrega**: Fases 1+2 juntas (visual imediato), depois 3, depois 4, depois 5.
+**Ordem sugerida de entrega**:
+1. **Fase 1** (KPIs + mover métrica do Dashboard) — entrega visual imediata.
+2. **Fase 2** (strip de BMs).
+3. **Fase 3** (filtros + tabela com sort e novas colunas).
+4. **Fase 4** (Sheet com tabs).
+5. **Fase 5** (polimento).
 
 Aprova para implementar?

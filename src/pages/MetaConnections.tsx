@@ -16,8 +16,12 @@ import {
 import { toast } from "sonner";
 import {
   RefreshCw, Search, Link2, Unlink, Building2, Calendar, Globe,
-  CreditCard, Shield, AlertTriangle, Eye, DollarSign,
+  CreditCard, Shield, AlertTriangle, Eye, DollarSign, ArrowUpDown, X,
 } from "lucide-react";
+import MetaKpiHero from "@/components/meta/MetaKpiHero";
+import BmOverviewStrip from "@/components/meta/BmOverviewStrip";
+import SystemUserHelp from "@/components/meta/SystemUserHelp";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type BM = {
   id: string; meta_bm_id: string; name: string; status: string | null;
@@ -82,6 +86,8 @@ export default function MetaConnections() {
   const [filterClient, setFilterClient] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Account | null>(null);
+  const [sortKey, setSortKey] = useState<"score" | "spend" | "age" | "balance" | "name">("score");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const load = async () => {
     setLoading(true);
@@ -207,6 +213,33 @@ export default function MetaConnections() {
     });
   }, [accounts, filterBm, filterStatus, filterClient, search, currentClient]);
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      const va: any = a[sortKey === "spend" ? "amount_spent" : sortKey] ?? 0;
+      const vb: any = b[sortKey === "spend" ? "amount_spent" : sortKey] ?? 0;
+      if (typeof va === "string") return va.localeCompare(String(vb)) * dir;
+      return ((va as number) - (vb as number)) * dir;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const toggleSort = (k: typeof sortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+  };
+
+  const hasFilters = filterBm !== "all" || filterStatus !== "all" || filterClient !== "all" || !!search;
+  const clearFilters = () => { setFilterBm("all"); setFilterStatus("all"); setFilterClient("all"); setSearch(""); };
+
+  const ageBadge = (age: number | null) => {
+    const a = Number(age || 0);
+    if (a >= 180) return { cls: "border-primary/40 text-primary", label: `${a}d` };
+    if (a >= 30) return { cls: "border-yellow-500/40 text-yellow-400", label: `${a}d` };
+    return { cls: "border-destructive/40 text-destructive", label: a ? `${a}d` : "Nova" };
+  };
+
   const stats = useMemo(() => {
     const avgScore = accounts.length
       ? Math.round(accounts.reduce((s, a) => s + (a.score || 0), 0) / accounts.length)
@@ -219,6 +252,17 @@ export default function MetaConnections() {
       avgScore,
     };
   }, [bms, accounts, assignments]);
+
+  const lastSyncAt = useMemo(() => {
+    const dates = accounts
+      .map((a) => a.account_created_time)
+      .filter(Boolean) as string[];
+    // Prefer BM last_synced_at as global sync indicator
+    const bmDates = bms.map((b) => b.last_synced_at).filter(Boolean) as string[];
+    const all = bmDates.length ? bmDates : dates;
+    if (!all.length) return null;
+    return new Date(Math.max(...all.map((d) => new Date(d).getTime())));
+  }, [bms, accounts]);
 
   const fmtDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
@@ -284,25 +328,27 @@ export default function MetaConnections() {
       )}
 
 
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-foreground/90 flex gap-3">
-        <Shield className="h-[18px] w-[18px] text-primary shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <div className="font-semibold text-primary">Conta de outra BM não aparece na sync?</div>
-          <p className="text-muted-foreground leading-relaxed">
-            Para uma conta de anúncio aparecer aqui, o <span className="text-foreground font-medium">System User</span> da BM dona do app precisa estar atribuído a ela.
-            Na BM externa: <span className="text-foreground">Business Settings → Ad Accounts → Add → Request Access</span> (ou a BM dona compartilha via <span className="text-foreground">Assign Partner</span> com o ID da sua BM).
-            Depois, na sua BM: <span className="text-foreground">Users → System Users → [seu user] → Add Assets → Ad Accounts</span>, selecione as contas e marque a permissão (mínimo <span className="text-foreground">View Performance</span>, ideal <span className="text-foreground">Manage Campaigns</span>). Sem isso o token ignora a conta.
-          </p>
-        </div>
-      </div>
+      <MetaKpiHero
+        loading={loading}
+        bms={stats.bms}
+        accountsTotal={stats.accounts}
+        accountsActive={stats.accounts - stats.blocked}
+        blocked={stats.blocked}
+        assigned={stats.assigned}
+        unassigned={stats.accounts - stats.assigned}
+        withoutPayment={accounts.filter((a) => !a.funding_source).length}
+        avgScore={stats.avgScore}
+        lastSyncAt={lastSyncAt}
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard label="BMs" value={stats.bms} />
-        <StatCard label="Contas" value={stats.accounts} />
-        <StatCard label="Atribuídas" value={stats.assigned} accent />
-        <StatCard label="Bloqueadas" value={stats.blocked} danger />
-        <StatCard label="Score médio" value={stats.avgScore} accent={stats.avgScore >= 60} danger={stats.avgScore < 40} />
-      </div>
+      <SystemUserHelp />
+
+      <BmOverviewStrip
+        bms={bms}
+        accounts={accounts}
+        activeBmId={filterBm}
+        onPick={setFilterBm}
+      />
 
       <Card className="p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
@@ -350,29 +396,94 @@ export default function MetaConnections() {
           </Select>
         </div>
 
+        {hasFilters && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {filterBm !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                BM: {bmName(filterBm)}
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterBm("all")} />
+              </Badge>
+            )}
+            {filterStatus !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Status: {filterStatus === "active" ? "Ativas" : "Bloqueadas"}
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterStatus("all")} />
+              </Badge>
+            )}
+            {filterClient !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Cliente: {filterClient === "unassigned" ? "Sem cliente" : clients.find((c) => c.id === filterClient)?.name}
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterClient("all")} />
+              </Badge>
+            )}
+            {search && (
+              <Badge variant="secondary" className="gap-1">
+                "{search}"
+                <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
+              </Badge>
+            )}
+            <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground ml-1">
+              Limpar tudo
+            </button>
+          </div>
+        )}
+
         <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Conta</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Conta <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead>BM</TableHead>
-                <TableHead>Score</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("score")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Score <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("age")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Idade <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead>Pagamento</TableHead>
-                <TableHead>Gasto</TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("balance")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Saldo <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button onClick={() => toggleSort("spend")} className="inline-flex items-center gap-1 hover:text-foreground">
+                    Gasto <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableHead>
                 <TableHead className="min-w-[220px]">Cliente</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma conta encontrada.</TableCell></TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 10 }).map((__, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : sorted.length === 0 ? (
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">
+                  Nenhuma conta encontrada.{hasFilters && <> <button onClick={clearFilters} className="text-primary underline ml-1">Limpar filtros</button></>}
+                </TableCell></TableRow>
               ) : (
-                filtered.map((a) => {
+                sorted.map((a) => {
                   const clientId = currentClient(a.id);
                   const score = a.score ?? 0;
+                  const age = ageBadge(a.age);
+                  const balance = Number(a.balance || 0);
+                  const noFunding = !a.funding_source;
                   return (
                     <TableRow key={a.id}>
                       <TableCell>
@@ -399,12 +510,18 @@ export default function MetaConnections() {
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[10px] ${age.cls}`}>{age.label}</Badge>
+                      </TableCell>
                       <TableCell className="text-xs">
                         {a.funding_source ? (
                           <span className="text-foreground">Vinculado</span>
                         ) : (
                           <span className="text-yellow-400">Sem pagamento</span>
                         )}
+                      </TableCell>
+                      <TableCell className={`text-sm font-mono ${balance === 0 && noFunding ? "text-destructive" : "text-foreground"}`}>
+                        {a.currency} {balance.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-sm font-mono">
                         {a.currency} {(a.amount_spent || 0).toFixed(2)}
@@ -429,7 +546,7 @@ export default function MetaConnections() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="ghost" onClick={() => setDetail(a)}>
+                        <Button size="sm" variant="ghost" onClick={() => setDetail(a)} aria-label="Ver detalhes">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>
