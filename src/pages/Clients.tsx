@@ -82,6 +82,11 @@ const Clients: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sort, setSort] = useState<SortKey>('saldo_desc');
+  const [tiersOpen, setTiersOpen] = useState(false);
+  const [historyClientId, setHistoryClientId] = useState<string | null>(null);
 
   // Tiers admin-editable
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
