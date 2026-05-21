@@ -55,6 +55,8 @@ interface Commission {
 
 const Clients: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [clients, setClients] = useState<Client[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
