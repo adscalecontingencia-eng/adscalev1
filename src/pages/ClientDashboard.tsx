@@ -1376,6 +1376,61 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Pop-up de Saldo Atrasado — redireciona para WhatsApp */}
+      <Dialog open={overdueDialogOpen} onOpenChange={setOverdueDialogOpen}>
+        <DialogContent className="max-w-md border-destructive/50">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-2 rounded-lg bg-destructive/15 text-destructive">
+                <AlertTriangle size={20} />
+              </div>
+              <DialogTitle className="text-destructive">Saldo atrasado em aberto</DialogTitle>
+            </div>
+            <DialogDescription>
+              Você possui <strong className="text-destructive">{fmt(overdueTotal)}</strong> em comissões que venceram na sexta-feira de cobrança. Para evitar bloqueios nas contas, regularize o pagamento agora.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <p className="text-xs text-muted-foreground">Escolha a forma de pagamento — você será redirecionado para o WhatsApp:</p>
+            <div className="grid grid-cols-3 gap-2">
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('PIX'))}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setOverdueDialogOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all"
+              >
+                <Smartphone size={20} className="text-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-500">PIX</span>
+              </a>
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('Payoneer'))}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setOverdueDialogOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all"
+              >
+                <Globe size={20} className="text-sky-500" />
+                <span className="text-xs font-semibold text-sky-500">PAYONEER</span>
+              </a>
+              <a
+                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('Crypto'))}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={() => setOverdueDialogOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all"
+              >
+                <Bitcoin size={20} className="text-amber-500" />
+                <span className="text-xs font-semibold text-amber-500">CRYPTO</span>
+              </a>
+            </div>
+            <button
+              onClick={() => setOverdueDialogOpen(false)}
+              className="w-full text-xs text-muted-foreground hover:text-foreground py-2"
+            >
+              Lembrar mais tarde
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
