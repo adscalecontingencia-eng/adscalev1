@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 
 export type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 export type TypeFilter = 'all' | 'aluguel' | 'venda';
-export type StatusFilter = 'all' | 'em_dia' | 'pendente' | 'sem_gasto';
+export type StatusFilter = 'all' | 'em_dia' | 'pendente' | 'atrasado' | 'sem_gasto';
 export type SortKey = 'saldo_desc' | 'recent' | 'az';
 
 interface Props {
