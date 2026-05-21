@@ -34,7 +34,7 @@ export interface ClientLite {
   blockedAccounts: number;
 }
 
-export type ClientStatus = 'em_dia' | 'pendente' | 'sem_gasto';
+export type ClientStatus = 'em_dia' | 'pendente' | 'atrasado' | 'sem_gasto';
 
 interface Props {
   client: ClientLite;
