@@ -453,17 +453,35 @@ const Clients: React.FC = () => {
     fetchCommissions();
   };
 
-  // "Comissão Paga" — subtracts from pending commissions
+  // "Comissão Paga" — subtracts from pending commissions AND books revenue in Faturamento
   const handleAddPaid = async (clientId: string) => {
     if (!isAdmin) { toast.error('Apenas administradores podem validar pagamentos'); return; }
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
 
+    const client = clients.find(c => c.id === clientId);
+    const dateISO = paidDate.toISOString();
+    const dateOnly = format(paidDate, 'yyyy-MM-dd');
+
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: paidDate.toISOString(), amount, type: 'paid',
+      client_id: clientId, date: dateISO, amount, type: 'paid',
     });
     if (error) { toast.error('Erro ao registrar pagamento'); return; }
-    logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: paidDate.toISOString() } });
+
+    // Lança também em transactions p/ aparecer no Faturamento
+    const { error: txError } = await supabase.from('transactions').insert({
+      date: dateOnly,
+      type: 'receita',
+      category: 'Comissão Semanal',
+      client_id: clientId,
+      amount,
+      description: `Pagamento de comissão — ${client?.name || 'cliente'}`,
+    } as any);
+    if (txError) {
+      toast.error('Pagamento salvo, mas falhou ao lançar no Faturamento: ' + txError.message);
+    }
+
+    logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: dateISO } });
 
     const clientDailyComms = commissions
       .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
@@ -477,17 +495,17 @@ const Clients: React.FC = () => {
       const newPago = (comm.valorPago || 0) + payThis;
       const newPendente = comm.amount - newPago;
       const newStatus = newPendente <= 0 ? 'pago' : newPago > 0 ? 'parcial' : 'pendente';
-      
+
       await supabase.from('commissions').update({
         valor_pago: newPago,
         valor_pendente: Math.max(0, newPendente),
         status: newStatus,
       } as any).eq('id', comm.id);
-      
+
       remaining -= payThis;
     }
 
-    toast.success('Pagamento registrado! Comissões pendentes atualizadas.');
+    toast.success('Pagamento registrado e lançado no Faturamento!');
     setPaidAmount(''); setPaidDate(new Date()); setShowPaidForm(null);
     fetchCommissions();
   };
