@@ -33,7 +33,15 @@ type Insight = {
   revenue: number;
 };
 
-const fmtISO = (d: Date) => d.toISOString().slice(0, 10);
+// Use LOCAL date (not UTC). toISOString() shifts the date in negative timezones
+// (e.g. BRT after 21h becomes "tomorrow" in UTC), which made the sync request
+// the wrong day and the DB filter return inconsistent values.
+const fmtISO = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 function rangeToDates(r: AdsRange, customStart?: Date, customEnd?: Date): { since: string; until: string } {
   const today = new Date();
