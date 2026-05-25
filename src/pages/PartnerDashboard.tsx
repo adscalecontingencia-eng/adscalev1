@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Users, DollarSign, Clock, CheckCircle2, LogOut, Handshake, Copy } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { toast } from "sonner";
-import { formatDateBR, parseDateLocal } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
 
 interface Partner {
   id: string;

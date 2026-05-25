@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Handshake, Users, DollarSign, Clock, CheckCircle2, Search, Pencil, Save, X } from "lucide-react";
 import { PageHero } from "@/components/ui-kit";
 import { toast } from "sonner";
-import { formatDateBR, parseDateLocal } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
 
 interface Partner {
   id: string;

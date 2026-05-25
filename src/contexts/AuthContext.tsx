@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'admin' | 'support' | 'client';
+export type UserRole = 'admin' | 'support' | 'client' | 'partner';
 
 export interface User {
   id: string;
@@ -67,6 +67,17 @@ async function fetchUserProfile(authUserId: string, email: string): Promise<User
         name: clientUser.name,
         role: 'client',
       };
+    }
+  }
+
+  if (role === 'partner') {
+    const { data: partnerUser } = await supabase
+      .from('partners')
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+    if (partnerUser) {
+      return { id: partnerUser.id, email: partnerUser.email, name: partnerUser.name, role: 'partner' };
     }
   }
 

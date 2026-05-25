@@ -16,7 +16,10 @@ const Login: React.FC = () => {
 
   React.useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      navigate(user.role === 'client' ? '/client-dashboard' : '/dashboard');
+      const dest = user.role === 'client' ? '/client-dashboard'
+        : user.role === 'partner' ? '/partner-dashboard'
+        : '/dashboard';
+      navigate(dest);
     }
   }, [loading, isAuthenticated, user, navigate]);
 
@@ -170,6 +173,9 @@ const Login: React.FC = () => {
 
         <p className="text-center text-muted-foreground text-xs mt-6">
           Primeiro acesso? <Link to="/signup" className="text-primary hover:underline font-medium">Cadastre-se</Link>
+        </p>
+        <p className="text-center text-muted-foreground text-xs mt-2">
+          Quer indicar clientes? <Link to="/partner-signup" className="text-primary hover:underline font-medium">Seja um parceiro</Link>
         </p>
         <p className="text-center text-muted-foreground/40 text-xs mt-4">
           © {new Date().getFullYear()} AD Scale · Todos os direitos reservados
