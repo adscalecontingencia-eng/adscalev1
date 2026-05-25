@@ -94,9 +94,9 @@ const Partners: React.FC = () => {
   return (
     <div className="space-y-6">
       <PageHero
-        icon={Handshake}
-        title="Parceiros"
-        subtitle="Gerencie os parceiros do programa de indicação e suas comissões"
+        eyebrow="Programa de indicação"
+        title={<span className="flex items-center gap-3"><Handshake size={22} className="text-primary" /> Parceiros</span>}
+        description="Gerencie os parceiros do programa de indicação e suas comissões"
       />
 
       {/* KPIs */}
@@ -226,7 +226,7 @@ const Partners: React.FC = () => {
                           <tbody>
                             {myCommissions.map(c => (
                               <tr key={c.id} className="border-t border-border/40">
-                                <td className="px-3 py-2 text-muted-foreground">{formatDateBR(parseDateLocal(c.created_at.slice(0,10)))}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{formatDateBR(c.created_at.slice(0,10))}</td>
                                 <td className="px-3 py-2 text-right text-muted-foreground">{fmt(Number(c.base_amount))}</td>
                                 <td className="px-3 py-2 text-right text-muted-foreground">{Number(c.pct_applied)}%</td>
                                 <td className="px-3 py-2 text-right font-semibold text-primary">{fmt(Number(c.amount))}</td>

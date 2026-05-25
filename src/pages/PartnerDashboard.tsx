@@ -153,7 +153,7 @@ const PartnerDashboard: React.FC = () => {
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.id} className="border-t border-border/40">
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{formatDateBR(parseDateLocal(r.created_at.slice(0,10)))}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{formatDateBR(r.created_at.slice(0,10))}</td>
                       <td className="px-4 py-3 text-foreground">{clientsMap[r.client_id] || "—"}</td>
                       <td className="px-4 py-3 text-right text-muted-foreground">{fmt(Number(r.base_amount))}</td>
                       <td className="px-4 py-3 text-right text-muted-foreground">{Number(r.pct_applied)}%</td>
