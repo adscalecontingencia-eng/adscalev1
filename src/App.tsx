@@ -22,6 +22,9 @@ import NotificationSettings from "./pages/NotificationSettings";
 import Signup from "./pages/Signup";
 import AccessLogs from "./pages/AccessLogs";
 import AuditLog from "./pages/AuditLog";
+import Partners from "./pages/Partners";
+import PartnerSignup from "./pages/PartnerSignup";
+import PartnerDashboard from "./pages/PartnerDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -59,6 +62,9 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/partner-signup" element={<PartnerSignup />} />
+              <Route path="/partner-dashboard" element={<ProtectedRoute roles={['partner']}><PartnerDashboard /></ProtectedRoute>} />
+              <Route path="/partners" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Partners /></DashboardLayout></ProtectedRoute>} />
               <Route path="/" element={<Navigate to="/login" />} />
               <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
