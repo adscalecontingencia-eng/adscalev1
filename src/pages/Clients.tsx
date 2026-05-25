@@ -66,6 +66,7 @@ const Clients: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [clients, setClients] = useState<Client[]>([]);
+  const [partners, setPartners] = useState<{ id: string; name: string; email: string }[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showCommissionForm, setShowCommissionForm] = useState<string | null>(null);
@@ -197,7 +198,12 @@ const Clients: React.FC = () => {
     setInsightsByClient(byClient);
   };
 
-  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); }, []);
+  const fetchPartners = async () => {
+    const { data } = await supabase.from('partners').select('id, name, email').order('name');
+    setPartners((data as any) || []);
+  };
+
+  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); fetchPartners(); }, []);
 
   const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
     // Venda → valor fixo
@@ -262,6 +268,7 @@ const Clients: React.FC = () => {
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
         plan_credit: planCredit,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
+        partner_id: form.partnerId || null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
@@ -278,6 +285,7 @@ const Clients: React.FC = () => {
         ad_accounts: 0, used_accounts: 0, blocked_accounts: 0,
         whatsapp_phone: form.whatsappPhone || null,
         whatsapp_group_link: form.whatsappGroupLink || null,
+        partner_id: form.partnerId || null,
       } as any);
       if (error) { toast.error('Erro ao cadastrar cliente: ' + error.message); setSaving(false); return; }
       toast.success('Cliente de venda cadastrado!');
@@ -307,6 +315,12 @@ const Clients: React.FC = () => {
         savedClientId = cs?.[0]?.id || null;
       }
     }
+
+    // Vincular ao parceiro indicado (separado para garantir que funciona via edge function de criação)
+    if (savedClientId && form.partnerId !== undefined) {
+      await supabase.from('clients').update({ partner_id: form.partnerId || null } as any).eq('id', savedClientId);
+    }
+
 
     // Crédito adicionado: primeiro liquida comissões pendentes (FIFO),
     // o restante vira saldo de crédito disponível e é lançado como receita.
