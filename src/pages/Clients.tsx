@@ -920,6 +920,22 @@ const Clients: React.FC = () => {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Parceiro indicador (opcional)</label>
+                    <select
+                      value={form.partnerId || ''}
+                      onChange={e => setForm(p => ({ ...p, partnerId: e.target.value || null }))}
+                      className={inputClass}
+                    >
+                      <option value="">— Sem parceiro —</option>
+                      {partners.map(pt => (
+                        <option key={pt.id} value={pt.id}>{pt.name} ({pt.email})</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Vincula este cliente a um parceiro. A comissão do parceiro é gerada automaticamente a cada pagamento recebido.
+                    </p>
+                  </div>
+                  <div>
                     <label className="block text-xs text-muted-foreground mb-1">Percentual base (%)</label>
                     <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
                     <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
