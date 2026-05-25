@@ -146,6 +146,7 @@ export type Database = {
           notify_whatsapp: boolean
           number: string | null
           observations: string | null
+          partner_id: string | null
           password: string
           payment_type: string
           percentage_value: number | null
@@ -169,6 +170,7 @@ export type Database = {
           notify_whatsapp?: boolean
           number?: string | null
           observations?: string | null
+          partner_id?: string | null
           password: string
           payment_type?: string
           percentage_value?: number | null
@@ -192,6 +194,7 @@ export type Database = {
           notify_whatsapp?: boolean
           number?: string | null
           observations?: string | null
+          partner_id?: string | null
           password?: string
           payment_type?: string
           percentage_value?: number | null
@@ -201,7 +204,15 @@ export type Database = {
           whatsapp_group_link?: string | null
           whatsapp_phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       commission_sync_log: {
         Row: {
@@ -966,6 +977,111 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_commissions: {
+        Row: {
+          amount: number
+          base_amount: number
+          client_id: string
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string | null
+          partner_id: string
+          pct_applied: number
+          source_commission_id: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          base_amount?: number
+          client_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          partner_id: string
+          pct_applied?: number
+          source_commission_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          base_amount?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          partner_id?: string
+          pct_applied?: number
+          source_commission_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_commissions_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_commissions_source_commission_id_fkey"
+            columns: ["source_commission_id"]
+            isOneToOne: false
+            referencedRelation: "commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          auth_user_id: string | null
+          commission_pct: number
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          pix_key: string | null
+          status: string
+          updated_at: string
+          whatsapp_phone: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          commission_pct?: number
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          pix_key?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_phone?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          commission_pct?: number
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          pix_key?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_phone?: string | null
+        }
+        Relationships: []
+      }
       support_requests: {
         Row: {
           assigned_to: string | null
@@ -1176,7 +1292,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "support" | "client"
+      app_role: "admin" | "support" | "client" | "partner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1304,7 +1420,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "support", "client"],
+      app_role: ["admin", "support", "client", "partner"],
     },
   },
 } as const

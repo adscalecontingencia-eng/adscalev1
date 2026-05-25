@@ -39,6 +39,7 @@ interface Client {
   blockedAccounts: number;
   whatsappPhone?: string;
   whatsappGroupLink?: string;
+  partnerId?: string | null;
 }
 
 // Metas semanais de desconto agora vêm da tabela `commission_tiers` (admin-editável).
@@ -65,6 +66,7 @@ const Clients: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [clients, setClients] = useState<Client[]>([]);
+  const [partners, setPartners] = useState<{ id: string; name: string; email: string }[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showCommissionForm, setShowCommissionForm] = useState<string | null>(null);
@@ -154,6 +156,7 @@ const Clients: React.FC = () => {
       planCredit: Number((c as any).plan_credit) || 0,
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
       whatsappPhone: (c as any).whatsapp_phone || '', whatsappGroupLink: (c as any).whatsapp_group_link || '',
+      partnerId: (c as any).partner_id || null,
     })));
     setLoading(false);
   };
@@ -195,7 +198,12 @@ const Clients: React.FC = () => {
     setInsightsByClient(byClient);
   };
 
-  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); }, []);
+  const fetchPartners = async () => {
+    const { data } = await supabase.from('partners').select('id, name, email').order('name');
+    setPartners((data as any) || []);
+  };
+
+  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); fetchPartners(); }, []);
 
   const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
     // Venda → valor fixo
@@ -260,6 +268,7 @@ const Clients: React.FC = () => {
         ad_accounts: form.adAccounts || 0, used_accounts: form.usedAccounts || 0, blocked_accounts: form.blockedAccounts || 0,
         plan_credit: planCredit,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
+        partner_id: form.partnerId || null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
@@ -276,6 +285,7 @@ const Clients: React.FC = () => {
         ad_accounts: 0, used_accounts: 0, blocked_accounts: 0,
         whatsapp_phone: form.whatsappPhone || null,
         whatsapp_group_link: form.whatsappGroupLink || null,
+        partner_id: form.partnerId || null,
       } as any);
       if (error) { toast.error('Erro ao cadastrar cliente: ' + error.message); setSaving(false); return; }
       toast.success('Cliente de venda cadastrado!');
@@ -305,6 +315,12 @@ const Clients: React.FC = () => {
         savedClientId = cs?.[0]?.id || null;
       }
     }
+
+    // Vincular ao parceiro indicado (separado para garantir que funciona via edge function de criação)
+    if (savedClientId && form.partnerId !== undefined) {
+      await supabase.from('clients').update({ partner_id: form.partnerId || null } as any).eq('id', savedClientId);
+    }
+
 
     // Crédito adicionado: primeiro liquida comissões pendentes (FIFO),
     // o restante vira saldo de crédito disponível e é lançado como receita.
@@ -902,6 +918,22 @@ const Clients: React.FC = () => {
                       <label className="block text-xs text-muted-foreground mb-1">Link do Grupo WhatsApp</label>
                       <input value={form.whatsappGroupLink || ''} onChange={e => setForm(p => ({ ...p, whatsappGroupLink: e.target.value }))} placeholder="https://chat.whatsapp.com/..." className={inputClass} />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Parceiro indicador (opcional)</label>
+                    <select
+                      value={form.partnerId || ''}
+                      onChange={e => setForm(p => ({ ...p, partnerId: e.target.value || null }))}
+                      className={inputClass}
+                    >
+                      <option value="">— Sem parceiro —</option>
+                      {partners.map(pt => (
+                        <option key={pt.id} value={pt.id}>{pt.name} ({pt.email})</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Vincula este cliente a um parceiro. A comissão do parceiro é gerada automaticamente a cada pagamento recebido.
+                    </p>
                   </div>
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">Percentual base (%)</label>
