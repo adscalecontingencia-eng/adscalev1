@@ -1064,6 +1064,10 @@ const ClientDashboard: React.FC = () => {
                       placeholder="Ex: 1469807817968606"
                       className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                     />
+                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
+                      <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                      <span>Por segurança, envie os dados do cartão <strong>somente no grupo do WhatsApp</strong>. Nunca compartilhe aqui na plataforma.</span>
+                    </div>
                   </div>
                 )}
 
