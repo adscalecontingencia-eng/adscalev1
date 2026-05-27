@@ -9,12 +9,18 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+const normalizePhone = (raw: string) => {
+  const digits = (raw || "").replace(/\D+/g, "");
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { email, password, accept_terms, terms_version } = await req.json();
+    const { email, password, accept_terms, terms_version, phone, name } = await req.json();
 
     if (!email || !password) return json({ error: "E-mail e senha obrigatórios" }, 400);
     if (typeof email !== "string" || email.length > 255) return json({ error: "E-mail inválido" }, 400);
@@ -23,13 +29,15 @@ Deno.serve(async (req) => {
     if (!accept_terms) return json({ error: "É necessário aceitar o termo de uso" }, 400);
     if (!terms_version || typeof terms_version !== "string") return json({ error: "Versão do termo ausente" }, 400);
 
+    const normalizedPhone = normalizePhone(phone || "");
+    if (!normalizedPhone) return json({ error: "Telefone inválido (somente números, DDD + número)" }, 400);
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
     const normEmail = email.trim().toLowerCase();
 
-    // Find existing client record (may have been pre-registered by admin)
     const { data: existing, error: cliErr } = await admin
       .from("clients")
       .select("id, email, auth_user_id, name")
@@ -40,9 +48,8 @@ Deno.serve(async (req) => {
     if (existing?.auth_user_id) return json({ error: "Este e-mail já possui acesso ativo. Faça login." }, 409);
 
     let client = existing;
-    // Auto-register: if no client row exists, create a pending one
     if (!client) {
-      const defaultName = normEmail.split("@")[0];
+      const defaultName = (name && String(name).trim()) || normEmail.split("@")[0];
       const { data: created, error: insErr } = await admin
         .from("clients")
         .insert({
@@ -55,29 +62,33 @@ Deno.serve(async (req) => {
           ad_accounts: 0,
           used_accounts: 0,
           blocked_accounts: 0,
+          phone: normalizedPhone,
+          whatsapp_phone: normalizedPhone,
         })
         .select("id, email, auth_user_id, name")
         .single();
       if (insErr || !created) return json({ error: "Erro ao registrar cliente" }, 500);
       client = created;
+    } else {
+      await admin
+        .from("clients")
+        .update({ phone: normalizedPhone, whatsapp_phone: normalizedPhone })
+        .eq("id", client.id);
     }
 
-    // Create auth user
     const { data: created, error: authErr } = await admin.auth.admin.createUser({
       email: normEmail,
       password,
       email_confirm: true,
-      user_metadata: { name: client.name, role: "client" },
+      user_metadata: { name: client.name, role: "client", phone: normalizedPhone },
     });
     if (authErr || !created.user) return json({ error: authErr?.message || "Erro ao criar usuário" }, 400);
 
     const uid = created.user.id;
 
-    // Link client + grant role
     await admin.from("clients").update({ auth_user_id: uid }).eq("id", client.id);
     await admin.from("user_roles").insert({ user_id: uid, role: "client" });
 
-    // Capture connection info
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.headers.get("cf-connecting-ip") ||
@@ -87,7 +98,6 @@ Deno.serve(async (req) => {
     const country = req.headers.get("cf-ipcountry") || req.headers.get("x-vercel-ip-country") || "";
     const city = req.headers.get("cf-ipcity") || req.headers.get("x-vercel-ip-city") || "";
 
-    // Record terms acceptance
     await admin.from("client_terms_acceptances").insert({
       client_id: client.id,
       auth_user_id: uid,
@@ -97,7 +107,6 @@ Deno.serve(async (req) => {
       user_agent: ua,
     });
 
-    // Record signup access log
     await admin.from("access_logs").insert({
       auth_user_id: uid,
       email: normEmail,
@@ -107,7 +116,7 @@ Deno.serve(async (req) => {
       user_agent: ua,
       country,
       city,
-      metadata: { terms_version },
+      metadata: { terms_version, phone: normalizedPhone },
     });
 
     return json({ success: true });
