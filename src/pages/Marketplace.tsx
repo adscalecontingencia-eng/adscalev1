@@ -63,7 +63,7 @@ const STATS = [
   { label: "Reposição em até 24h", value: "100%", icon: ShieldCheck },
 ];
 
-const WHATSAPP_URL = "https://wa.me/5511999999999?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
+const WHATSAPP_URL = "https://wa.me/5531998416336?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
 
 const TESTIMONIALS = [
   {
