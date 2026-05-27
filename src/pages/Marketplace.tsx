@@ -255,7 +255,6 @@ const Marketplace: React.FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.3em] mb-8">
             <Sparkles size={12} />
             <span className="notranslate" translate="no">AD SCALE</span> Marketplace
-            <span className="text-muted-foreground normal-case tracking-normal">— ativos premium</span>
           </div>
 
           <h1 className="font-display text-5xl md:text-7xl font-bold leading-[1.02] tracking-tight">
@@ -264,27 +263,29 @@ const Marketplace: React.FC = () => {
             </span>
             <br />
             <span className="relative inline-block text-primary drop-shadow-[0_0_40px_hsl(var(--primary)/0.5)]">
-              sem travar no ativo.
+              sem travar na contingência.
               <span className="absolute -inset-x-4 -bottom-2 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
             </span>
           </h1>
           <p className="text-muted-foreground mt-7 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
-            <span className="text-foreground font-semibold">TikTok</span>,{" "}
-            <span className="text-foreground font-semibold">Google Ads</span>, perfis, proxies e multilogin —
-            entregues automaticamente, com garantia e suporte humano no WhatsApp.
+            <span className="text-foreground font-semibold">TikTok</span> e{" "}
+            <span className="text-foreground font-semibold">Google Ads</span> de qualidade,
+            com o melhor custo benefício do mercado.
           </p>
 
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
-              <ShoppingCart size={16} className="mr-2" /> Ver catálogo
+              <ShoppingCart size={16} className="mr-2" /> Conferir produtos <ArrowRight size={16} className="ml-1" />
             </Button>
-            {!isAuthenticated && (
-              <Button size="lg" variant="outline" onClick={() => navigate("/signup")}>
-                Criar conta grátis <ArrowRight size={16} className="ml-2" />
-              </Button>
-            )}
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => window.open(WHATSAPP_URL, "_blank", "noopener,noreferrer")}
+            >
+              <MessageCircle size={16} className="mr-2" /> Entrar em contato
+            </Button>
           </div>
 
           {/* Trust row */}
