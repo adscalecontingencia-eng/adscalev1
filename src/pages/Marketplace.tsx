@@ -110,6 +110,11 @@ const FAQ = [
   },
 ];
 
+const scrollToId = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 const Marketplace: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -121,6 +126,7 @@ const Marketplace: React.FC = () => {
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
 
   useEffect(() => {
     (async () => {
@@ -209,9 +215,11 @@ const Marketplace: React.FC = () => {
             <Link to="/marketplace" className="px-3 py-1.5 rounded-md text-foreground bg-primary/10">
               <ShoppingCart size={14} className="inline mr-1" /> Marketplace
             </Link>
-            <a href="#beneficios" className="px-3 py-1.5 rounded-md hover:text-foreground">Benefícios</a>
-            <a href="#depoimentos" className="px-3 py-1.5 rounded-md hover:text-foreground">Depoimentos</a>
-            <a href="#faq" className="px-3 py-1.5 rounded-md hover:text-foreground">FAQ</a>
+            <button type="button" onClick={() => scrollToId("catalogo")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Catálogo</button>
+            <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Benefícios</button>
+            <button type="button" onClick={() => scrollToId("depoimentos")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Depoimentos</button>
+            <button type="button" onClick={() => scrollToId("faq")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">FAQ</button>
+
           </nav>
           <div className="ml-auto flex items-center gap-2">
             {isAuthenticated ? (
@@ -248,19 +256,23 @@ const Marketplace: React.FC = () => {
             <span className="text-muted-foreground normal-case tracking-normal">— ativos premium</span>
           </div>
 
-          <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground leading-[1.05] tracking-tight">
-            Escale suas campanhas
+          <h1 className="font-display text-5xl md:text-7xl font-bold leading-[1.02] tracking-tight">
+            <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+              Escale suas campanhas
+            </span>
             <br />
-            <span className="text-primary drop-shadow-[0_0_30px_hsl(var(--primary)/0.35)]">
+            <span className="relative inline-block text-primary drop-shadow-[0_0_40px_hsl(var(--primary)/0.5)]">
               sem travar no ativo.
+              <span className="absolute -inset-x-4 -bottom-2 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
             </span>
           </h1>
-          <p className="text-muted-foreground mt-6 max-w-2xl mx-auto text-base md:text-lg">
+          <p className="text-muted-foreground mt-7 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
             <span className="text-foreground font-semibold">TikTok</span>,{" "}
             <span className="text-foreground font-semibold">Google Ads</span>, perfis, proxies e multilogin —
             entregues automaticamente, com garantia e suporte humano no WhatsApp.
           </p>
+
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
