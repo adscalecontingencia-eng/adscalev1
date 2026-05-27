@@ -145,7 +145,7 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
 
       {/* Source corner mark */}
       <div
-        className={`absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-2 py-1 ring-1 ${meta.bg} ${meta.ring} backdrop-blur`}
+        className={`absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-2 py-1 ring-1 ${meta.bg} ${meta.ring}`}
         title={meta.label}
       >
         <SourceMark source={source} className={`h-3.5 w-3.5 ${meta.tint}`} />
