@@ -7,16 +7,15 @@ export interface MarketplaceProduct {
   id: string;
   name: string;
   category: string;
-  subcategory: string | null;
-  country: string | null;
-  description: string | null;
-  tags: string[] | null;
+  subcategory?: string | null;
+  country?: string | null;
+  description?: string | null;
+  tags?: string[] | null;
   sale_price: number;
-  discount_price: number | null;
-  is_featured: boolean;
-  is_new: boolean;
+  discount_price?: number | null;
+  is_featured?: boolean;
+  is_new?: boolean;
   stock_available?: number;
-  [key: string]: unknown;
 }
 
 const fmtBRL = (n: number) =>
