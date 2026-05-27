@@ -14,6 +14,8 @@ const GoogleIcon = () => (
 const Login: React.FC = () => {
   const { login, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = params.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,12 +23,21 @@ const Login: React.FC = () => {
 
   React.useEffect(() => {
     if (!loading && isAuthenticated && user) {
+      if (next === 'marketplace') return navigate('/marketplace');
       const dest = user.role === 'client' ? '/client-dashboard'
         : user.role === 'partner' ? '/partner-dashboard'
         : '/dashboard';
       navigate(dest);
     }
-  }, [loading, isAuthenticated, user, navigate]);
+  }, [loading, isAuthenticated, user, navigate, next]);
+
+  const signInWithGoogle = async () => {
+    setError('');
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: window.location.origin + '/#/completar-cadastro',
+    });
+    if (result.error) setError((result.error as any).message || 'Erro no Google Sign-In');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,10 +185,22 @@ const Login: React.FC = () => {
               'Entrar'
             )}
           </button>
+
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            <span className="flex-1 h-px bg-border" /> ou <span className="flex-1 h-px bg-border" />
+          </div>
+
+          <button type="button" onClick={signInWithGoogle}
+            className="w-full flex items-center justify-center gap-3 bg-secondary/60 hover:bg-secondary border border-border rounded-xl py-3 text-sm font-medium transition-all">
+            <GoogleIcon /> Continuar com Google
+          </button>
         </motion.form>
 
         <p className="text-center text-muted-foreground text-xs mt-6">
           Primeiro acesso? <Link to="/signup" className="text-primary hover:underline font-medium">Cadastre-se</Link>
+        </p>
+        <p className="text-center text-muted-foreground text-xs mt-2">
+          <Link to="/marketplace" className="text-primary hover:underline font-medium">Explorar marketplace</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
           Quer indicar clientes? <Link to="/partner-signup" className="text-primary hover:underline font-medium">Seja um parceiro</Link>
