@@ -380,7 +380,7 @@ const Marketplace: React.FC = () => {
       {/* Benefícios */}
       <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
         <div className="text-center mb-10">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Por que AD SCALE</p>
+          <p className="font-serif italic text-2xl text-primary/90 mb-3">Por que AD SCALE</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Infraestrutura completa para quem vive de tráfego
           </h2>
@@ -421,7 +421,7 @@ const Marketplace: React.FC = () => {
       {/* Catálogo */}
       <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
         <div className="text-center mb-8">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Catálogo</p>
+          <p className="font-serif italic text-2xl text-primary/90 mb-3">Catálogo</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto">
             Os ativos mais vendidos e com melhores avaliações dos nossos clientes.
@@ -511,7 +511,7 @@ const Marketplace: React.FC = () => {
       {/* Depoimentos */}
       <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
         <div className="text-center mb-10">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Provas sociais</p>
+          <p className="font-serif italic text-2xl text-primary/90 mb-3">Provas sociais</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Quem escala com a <span className="text-primary notranslate" translate="no">AD SCALE</span> não volta atrás
           </h2>
@@ -551,7 +551,7 @@ const Marketplace: React.FC = () => {
       {/* FAQ */}
       <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-16">
         <div className="text-center mb-10">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">FAQ</p>
+          <p className="font-serif italic text-2xl text-primary/90 mb-3">FAQ</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Perguntas frequentes
           </h2>
