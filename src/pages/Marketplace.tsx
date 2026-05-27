@@ -238,9 +238,9 @@ const Marketplace: React.FC = () => {
 
       {/* Header público */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 ">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 h-16 flex items-center gap-6">
-          <Link to="/" className="text-primary flex items-center gap-2 notranslate" translate="no">
-            <AdScaleLogo size={26} />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center gap-3 sm:gap-6">
+          <Link to="/" className="text-primary flex items-center gap-2 notranslate shrink-0" translate="no">
+            <AdScaleLogo size={22} />
           </Link>
           <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
             <Link to="/marketplace" className="px-3 py-1.5 rounded-md text-foreground bg-primary/10">
@@ -250,23 +250,25 @@ const Marketplace: React.FC = () => {
             <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Benefícios</button>
             <button type="button" onClick={() => scrollToId("depoimentos")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Depoimentos</button>
             <button type="button" onClick={() => scrollToId("faq")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">FAQ</button>
-
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             {isAuthenticated ? (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pedidos")}>
-                  <Package size={14} className="mr-1" /> Meus pedidos
+                <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pedidos")} className="px-2 sm:px-3">
+                  <Package size={14} className="sm:mr-1" />
+                  <span className="hidden sm:inline">Meus pedidos</span>
                 </Button>
                 <Button size="sm" onClick={goPainel}>Painel</Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")}>
-                  <LogIn size={14} className="mr-1" /> Entrar
+                <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")} className="px-2 sm:px-3">
+                  <LogIn size={14} className="sm:mr-1" />
+                  <span className="hidden sm:inline">Entrar</span>
                 </Button>
-                <Button size="sm" onClick={() => navigate("/signup")}>
-                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                <Button size="sm" onClick={() => navigate("/signup")} className="px-2.5 sm:px-3">
+                  <UserPlus size={14} className="sm:mr-1" />
+                  <span>Cadastrar</span>
                 </Button>
               </>
             )}
@@ -275,18 +277,18 @@ const Marketplace: React.FC = () => {
       </header>
 
       {/* Hero AD SCALE */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-20 pb-14 text-center">
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-10 sm:pt-16 md:pt-20 pb-10 sm:pb-14 text-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.3em] mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] sm:text-[11px] uppercase tracking-[0.25em] sm:tracking-[0.3em] mb-5 sm:mb-8">
             <Sparkles size={12} />
             <span className="notranslate" translate="no">AD SCALE</span> Marketplace
           </div>
 
-          <h1 className="font-display text-5xl md:text-7xl font-bold leading-[1.02] tracking-tight">
+          <h1 className="font-display text-[2rem] leading-[1.05] sm:text-5xl md:text-7xl font-bold tracking-tight">
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
               Escale suas campanhas
             </span>
@@ -296,7 +298,7 @@ const Marketplace: React.FC = () => {
               <span className="absolute -inset-x-4 -bottom-2 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
             </span>
           </h1>
-          <p className="text-muted-foreground mt-7 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
+          <p className="text-muted-foreground mt-5 sm:mt-7 max-w-2xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed px-2">
             Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
             <span className="text-foreground font-semibold">TikTok</span> e{" "}
             <span className="text-foreground font-semibold">Google Ads</span> de qualidade,
@@ -304,7 +306,7 @@ const Marketplace: React.FC = () => {
           </p>
 
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
             <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
               <ShoppingCart size={16} className="mr-2" /> Conferir produtos <ArrowRight size={16} className="ml-1" />
             </Button>
@@ -318,16 +320,17 @@ const Marketplace: React.FC = () => {
           </div>
 
           {/* Trust row */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-2"><Zap size={14} className="text-primary" /> Entrega automática via Pix</span>
-            <span className="flex items-center gap-2"><ShieldCheck size={14} className="text-primary" /> Garantia de 24h</span>
-            <span className="flex items-center gap-2"><Clock size={14} className="text-primary" /> Suporte 7 dias/semana</span>
-            <span className="flex items-center gap-2"><HeartHandshake size={14} className="text-primary" /> +2.300 clientes ativos</span>
+          <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 gap-y-2 sm:gap-y-3 text-[11px] sm:text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 sm:gap-2"><Zap size={13} className="text-primary" /> Entrega via Pix</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><ShieldCheck size={13} className="text-primary" /> Garantia de 24h</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><Clock size={13} className="text-primary" /> Suporte 7 dias</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><HeartHandshake size={13} className="text-primary" /> +2.300 clientes</span>
           </div>
         </motion.div>
 
+
         {/* Stat strip — premium AD SCALE */}
-        <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        <div className="mt-10 sm:mt-14 grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 max-w-5xl mx-auto">
           {STATS.map((s, i) => (
             <motion.div
               key={s.label}
@@ -339,37 +342,34 @@ const Marketplace: React.FC = () => {
               className="group relative rounded-2xl p-[1px] bg-gradient-to-b from-primary/40 via-border/40 to-transparent overflow-hidden"
             >
               {/* Inner card */}
-              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80  px-5 py-5 overflow-hidden">
-                {/* Corner glow */}
+              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80  px-3 sm:px-5 py-3.5 sm:py-5 overflow-hidden">
                 <div className="pointer-events-none absolute -top-16 -right-16 w-40 h-40 rounded-full bg-primary/20 blur-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
-                {/* Grid texture */}
                 <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(hsl(var(--primary))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary))_1px,transparent_1px)] [background-size:22px_22px]" />
-                {/* Top hairline */}
                 <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
-                {/* Diagonal sheen on hover */}
                 <div className="pointer-events-none absolute -inset-x-10 -top-10 h-32 rotate-12 bg-gradient-to-r from-transparent via-primary/15 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                <div className="relative flex items-start justify-between mb-3">
+                <div className="relative flex items-start justify-between mb-2 sm:mb-3">
                   <div className="relative">
                     <div className="absolute inset-0 rounded-xl bg-primary/30 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/40 flex items-center justify-center shadow-[inset_0_1px_0_hsl(var(--primary)/0.3)]">
-                      <s.icon size={18} className="text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
+                    <div className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/40 flex items-center justify-center shadow-[inset_0_1px_0_hsl(var(--primary)/0.3)]">
+                      <s.icon size={15} className="sm:hidden text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
+                      <s.icon size={18} className="hidden sm:block text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
                     </div>
                   </div>
-                  <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-primary/70 px-1.5 py-0.5 rounded border border-primary/30 bg-primary/5">
+                  <span className="hidden sm:inline-block text-[8px] font-bold uppercase tracking-[0.2em] text-primary/70 px-1.5 py-0.5 rounded border border-primary/30 bg-primary/5">
                     Live
                   </span>
                 </div>
 
-                <p className="relative font-display text-3xl md:text-[2rem] font-extrabold leading-none bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <p className="relative font-display text-xl sm:text-3xl md:text-[2rem] font-extrabold leading-none bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
                   {s.value}
                 </p>
-                <p className="relative text-[11px] uppercase tracking-[0.22em] text-muted-foreground mt-2 font-medium">
+                <p className="relative text-[9px] sm:text-[11px] uppercase tracking-[0.18em] sm:tracking-[0.22em] text-muted-foreground mt-1.5 sm:mt-2 font-medium">
                   {s.label}
                 </p>
-                <div className="relative mt-3 pt-2 border-t border-border/40 flex items-center gap-1.5">
+                <div className="relative mt-2 sm:mt-3 pt-1.5 sm:pt-2 border-t border-border/40 flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-                  <span className="text-[10px] text-primary/80 font-medium">{s.hint}</span>
+                  <span className="text-[9px] sm:text-[10px] text-primary/80 font-medium truncate">{s.hint}</span>
                 </div>
               </div>
             </motion.div>
@@ -377,11 +377,12 @@ const Marketplace: React.FC = () => {
         </div>
       </section>
 
+
       {/* Benefícios */}
-      <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
-        <div className="text-center mb-10">
+      <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+        <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Por que AD SCALE</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Infraestrutura completa para quem vive de tráfego
           </h2>
         </div>
@@ -419,11 +420,11 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* Catálogo */}
-      <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
-        <div className="text-center mb-8">
+      <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+        <div className="text-center mb-6 sm:mb-8">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Catálogo</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
+          <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto px-2">
             Os ativos mais vendidos e com melhores avaliações dos nossos clientes.
           </p>
         </div>
@@ -500,7 +501,7 @@ const Marketplace: React.FC = () => {
             Nenhum produto encontrado nesta categoria.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {filtered.map((p) => (
               <ProductCard key={p.id} product={p} onBuy={handleBuy} onDetails={(prod) => setSelected(prod)} />
             ))}
@@ -509,10 +510,10 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* Depoimentos */}
-      <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
-        <div className="text-center mb-10">
+      <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
+        <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Provas sociais</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Quem escala com a <span className="text-primary notranslate" translate="no">AD SCALE</span> não volta atrás
           </h2>
           <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
@@ -549,10 +550,10 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-16">
-        <div className="text-center mb-10">
+      <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
+        <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">FAQ</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Perguntas frequentes
           </h2>
           <p className="text-muted-foreground text-sm mt-2">
@@ -598,22 +599,22 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* CTA final */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
-        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-background p-10 md:p-14 text-center">
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
+        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-background p-6 sm:p-10 md:p-14 text-center">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/40 bg-primary/15 text-primary text-[10px] uppercase tracking-[0.3em] mb-5">
               <MessageCircle size={12} /> Comunidade exclusiva
             </div>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               Pronto para escalar com a <span className="text-primary notranslate" translate="no">AD SCALE</span>?
             </h2>
-            <p className="text-muted-foreground mt-4 max-w-xl mx-auto">
+            <p className="text-muted-foreground mt-4 max-w-xl mx-auto text-sm sm:text-base">
               Crie sua conta em menos de 1 minuto, finalize sua primeira compra via Pix e entre na nossa
               comunidade de tráfego no WhatsApp.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-7 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
               {!isAuthenticated ? (
                 <>
                   <Button size="lg" onClick={() => navigate("/signup")}>
