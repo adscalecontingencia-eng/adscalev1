@@ -24,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import AnimatedBackground from "@/components/AnimatedBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
