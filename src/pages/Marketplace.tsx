@@ -369,7 +369,7 @@ const Marketplace: React.FC = () => {
                 </p>
                 <div className="relative mt-3 pt-2 border-t border-border/40 flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-                  <span className="text-[10px] text-primary/80 font-medium">{s.hint}</span>
+                  <span className="font-serif italic text-[15px] text-primary/90 leading-none">{s.hint}</span>
                 </div>
               </div>
             </motion.div>
