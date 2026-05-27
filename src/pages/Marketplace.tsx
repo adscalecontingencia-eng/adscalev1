@@ -59,10 +59,10 @@ const fmtBRL = (n: number) =>
 /* --------------------- Static social proof --------------------- */
 
 const STATS = [
-  { label: "Contas entregues", value: "+12.5k", icon: Package },
-  { label: "Clientes ativos", value: "+2.300", icon: Users },
-  { label: "Países atendidos", value: "18", icon: Globe2 },
-  { label: "Reposição em até 24h", value: "100%", icon: ShieldCheck },
+  { label: "Contas entregues", value: "+12.5k", hint: "Operação 24/7", icon: Package },
+  { label: "Clientes ativos", value: "+2.300", hint: "Gestores escalando", icon: Users },
+  { label: "Países atendidos", value: "18", hint: "Cobertura global", icon: Globe2 },
+  { label: "Reposição em até 24h", value: "100%", hint: "Garantia AD SCALE", icon: ShieldCheck },
 ];
 
 const WHATSAPP_URL = "https://wa.me/5531998416336?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
@@ -326,18 +326,53 @@ const Marketplace: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Stat strip */}
-        <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
-          {STATS.map((s) => (
-            <div
+        {/* Stat strip — premium AD SCALE */}
+        <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+          {STATS.map((s, i) => (
+            <motion.div
               key={s.label}
-              className="relative rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-4 text-left overflow-hidden"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              whileHover={{ y: -3 }}
+              className="group relative rounded-2xl p-[1px] bg-gradient-to-b from-primary/40 via-border/40 to-transparent overflow-hidden"
             >
-              <div className="absolute -top-px left-5 right-5 h-px bg-primary/40" />
-              <s.icon size={16} className="text-primary mb-2" />
-              <p className="font-display text-2xl font-bold text-foreground">{s.value}</p>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-1">{s.label}</p>
-            </div>
+              {/* Inner card */}
+              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80 backdrop-blur-xl px-5 py-5 overflow-hidden">
+                {/* Corner glow */}
+                <div className="pointer-events-none absolute -top-16 -right-16 w-40 h-40 rounded-full bg-primary/20 blur-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
+                {/* Grid texture */}
+                <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(hsl(var(--primary))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary))_1px,transparent_1px)] [background-size:22px_22px]" />
+                {/* Top hairline */}
+                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
+                {/* Diagonal sheen on hover */}
+                <div className="pointer-events-none absolute -inset-x-10 -top-10 h-32 rotate-12 bg-gradient-to-r from-transparent via-primary/15 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-xl bg-primary/30 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/40 flex items-center justify-center shadow-[inset_0_1px_0_hsl(var(--primary)/0.3)]">
+                      <s.icon size={18} className="text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
+                    </div>
+                  </div>
+                  <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-primary/70 px-1.5 py-0.5 rounded border border-primary/30 bg-primary/5">
+                    Live
+                  </span>
+                </div>
+
+                <p className="relative font-display text-3xl md:text-[2rem] font-extrabold leading-none bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  {s.value}
+                </p>
+                <p className="relative text-[11px] uppercase tracking-[0.22em] text-muted-foreground mt-2 font-medium">
+                  {s.label}
+                </p>
+                <div className="relative mt-3 pt-2 border-t border-border/40 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
+                  <span className="text-[10px] text-primary/80 font-medium">{s.hint}</span>
+                </div>
+              </div>
+            </motion.div>
           ))}
         </div>
       </section>
