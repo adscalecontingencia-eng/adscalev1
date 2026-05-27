@@ -110,6 +110,11 @@ const FAQ = [
   },
 ];
 
+const scrollToId = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 const Marketplace: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -121,6 +126,7 @@ const Marketplace: React.FC = () => {
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
 
   useEffect(() => {
     (async () => {
