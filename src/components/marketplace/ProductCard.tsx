@@ -113,13 +113,13 @@ const COUNTRY_FLAGS: Record<string, string> = {
 const flagFor = (c?: string | null) => (c ? COUNTRY_FLAGS[c.toUpperCase()] ?? "🌍" : "");
 
 /* —— Card —— */
-interface Props {
-  product: MarketplaceProduct;
-  onBuy: (p: MarketplaceProduct) => void;
-  onDetails: (p: MarketplaceProduct) => void;
+interface Props<T extends MarketplaceProduct = MarketplaceProduct> {
+  product: T;
+  onBuy: (p: T) => void;
+  onDetails: (p: T) => void;
 }
 
-const ProductCard: React.FC<Props> = ({ product: p, onBuy, onDetails }) => {
+function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetails }: Props<T>) {
   const source = detectSource(p);
   const meta = SOURCE_META[source];
   const hasDiscount = !!p.discount_price && p.discount_price < p.sale_price;
