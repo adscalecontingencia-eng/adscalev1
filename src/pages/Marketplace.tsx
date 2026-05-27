@@ -550,10 +550,10 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-16">
-        <div className="text-center mb-10">
+      <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
+        <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">FAQ</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Perguntas frequentes
           </h2>
           <p className="text-muted-foreground text-sm mt-2">
