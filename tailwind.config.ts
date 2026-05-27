@@ -16,7 +16,6 @@ export default {
       fontFamily: {
         display: ['Unbounded', 'sans-serif'],
         body: ['Space Grotesk', 'sans-serif'],
-        serif: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

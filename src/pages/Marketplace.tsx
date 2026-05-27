@@ -369,7 +369,7 @@ const Marketplace: React.FC = () => {
                 </p>
                 <div className="relative mt-3 pt-2 border-t border-border/40 flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-                  <span className="font-serif italic text-[15px] text-primary/90 leading-none">{s.hint}</span>
+                  <span className="text-[10px] text-primary/80 font-medium">{s.hint}</span>
                 </div>
               </div>
             </motion.div>
@@ -380,7 +380,7 @@ const Marketplace: React.FC = () => {
       {/* Benefícios */}
       <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
         <div className="text-center mb-10">
-          <p className="font-serif italic text-2xl text-primary/90 mb-3">Por que AD SCALE</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Por que AD SCALE</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Infraestrutura completa para quem vive de tráfego
           </h2>
@@ -421,7 +421,7 @@ const Marketplace: React.FC = () => {
       {/* Catálogo */}
       <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
         <div className="text-center mb-8">
-          <p className="font-serif italic text-2xl text-primary/90 mb-3">Catálogo</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Catálogo</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto">
             Os ativos mais vendidos e com melhores avaliações dos nossos clientes.
@@ -511,7 +511,7 @@ const Marketplace: React.FC = () => {
       {/* Depoimentos */}
       <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
         <div className="text-center mb-10">
-          <p className="font-serif italic text-2xl text-primary/90 mb-3">Provas sociais</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Provas sociais</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Quem escala com a <span className="text-primary notranslate" translate="no">AD SCALE</span> não volta atrás
           </h2>
@@ -551,7 +551,7 @@ const Marketplace: React.FC = () => {
       {/* FAQ */}
       <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-16">
         <div className="text-center mb-10">
-          <p className="font-serif italic text-2xl text-primary/90 mb-3">FAQ</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">FAQ</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Perguntas frequentes
           </h2>
