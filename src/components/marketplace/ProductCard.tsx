@@ -243,6 +243,6 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
       </div>
     </motion.article>
   );
-};
+}
 
 export default ProductCard;
