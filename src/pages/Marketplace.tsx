@@ -379,10 +379,10 @@ const Marketplace: React.FC = () => {
 
 
       {/* Benefícios */}
-      <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
-        <div className="text-center mb-10">
+      <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+        <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Por que AD SCALE</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Infraestrutura completa para quem vive de tráfego
           </h2>
         </div>
