@@ -16,6 +16,7 @@ export interface MarketplaceProduct {
   is_featured: boolean;
   is_new: boolean;
   stock_available?: number;
+  [key: string]: unknown;
 }
 
 const fmtBRL = (n: number) =>
