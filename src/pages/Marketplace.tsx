@@ -403,74 +403,10 @@ const Marketplace: React.FC = () => {
             Nenhum produto encontrado nesta categoria.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {filtered.map((p) => {
-              const hasDiscount = p.discount_price && p.discount_price < p.sale_price;
-              const finalPrice = hasDiscount ? p.discount_price! : p.sale_price;
-              const discountPct = hasDiscount
-                ? Math.round(((p.sale_price - p.discount_price!) / p.sale_price) * 100)
-                : 0;
-
-              return (
-                <motion.div
-                  key={p.id}
-                  whileHover={{ y: -3 }}
-                  className="relative bg-card/80 backdrop-blur border border-border/60 rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-colors overflow-hidden"
-                >
-                  <div className="absolute -top-px left-5 right-5 h-px bg-primary/30" />
-                  <div>
-                    <h3 className="font-display font-semibold text-foreground leading-tight">{p.name}</h3>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {p.category}
-                      </Badge>
-                      {p.country && (
-                        <Badge variant="outline" className="text-[10px]">
-                          {p.country}
-                        </Badge>
-                      )}
-                      {(p.tags || []).slice(0, 2).map((t) => (
-                        <Badge key={t} variant="outline" className="text-[10px]">
-                          {t}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {p.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
-                  )}
-
-                  <div className="mt-auto space-y-2">
-                    {hasDiscount && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="line-through text-muted-foreground">{fmtBRL(p.sale_price)}</span>
-                        <span className="bg-orange-500/15 text-orange-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">
-                          -{discountPct}%
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold text-primary">{fmtBRL(finalPrice)}</span>
-                      <span className="text-[10px] text-primary bg-primary/10 px-2 py-1 rounded-full">
-                        {p.stock_available != null && p.stock_available > 0
-                          ? `${p.stock_available} unid.`
-                          : "sob consulta"}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button className="flex-1" size="sm" onClick={() => handleBuy(p)}>
-                        <ShoppingCart size={14} className="mr-1.5" /> Comprar
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => setSelected(p)}>
-                        <Info size={14} />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {filtered.map((p) => (
+              <ProductCard key={p.id} product={p} onBuy={handleBuy} onDetails={setSelected} />
+            ))}
           </div>
         )}
       </section>
