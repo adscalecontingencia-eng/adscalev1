@@ -268,23 +268,47 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "Use POST" }, 405);
 
   try {
+    // ---- Auth: require admin/support JWT OR shared internal secret ----
+    const supabaseAuthClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const authHeader = req.headers.get("authorization") || "";
+    const sharedSecret = Deno.env.get("N8N_SECRET_KEY") || "";
+    const providedSecret = req.headers.get("x-internal-secret") || "";
+    let authorized = false;
+
+    if (sharedSecret && providedSecret && providedSecret === sharedSecret) {
+      authorized = true;
+    } else if (authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const { data: { user } } = await supabaseAuthClient.auth.getUser(token);
+      if (user) {
+        const { data: roleRow } = await supabaseAuthClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "support"])
+          .maybeSingle();
+        if (roleRow) authorized = true;
+      }
+    }
+
+    if (!authorized) {
+      return json({ erro: "Unauthorized" }, 401);
+    }
+
     const userTokenRaw = Deno.env.get("META_USER_ACCESS_TOKEN");
     const sysTokenRaw = Deno.env.get("META_SYSTEM_USER_TOKEN");
     const userToken = userTokenRaw?.replace(/\s+/g, "").trim() || "";
     const sysToken = sysTokenRaw?.replace(/\s+/g, "").trim() || "";
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = supabaseAuthClient;
 
     const body = await req.json().catch(() => ({}));
     const action = body.action;
 
-    // Route token by action:
-    //  - sync_pages prefers System User token (BM-level, permanent, assigned to pages)
-    //  - sync_accounts / sync_insights / sync_bms prefer User Access Token (lists all BMs the user admins)
-    // Fallback to whichever is available.
     const token = action === "sync_pages"
       ? (sysToken || userToken)
       : (userToken || sysToken);
@@ -293,21 +317,7 @@ Deno.serve(async (req) => {
       return json({ erro: "Nenhum token Meta configurado (META_USER_ACCESS_TOKEN ou META_SYSTEM_USER_TOKEN)" }, 500);
     }
 
-    // Diagnostic: returns first/last chars + length without leaking the token
-    if (req.url.includes("debug=1")) {
-      return json({
-        action,
-        token_source: action === "sync_pages"
-          ? (sysToken ? "META_SYSTEM_USER_TOKEN" : "META_USER_ACCESS_TOKEN (fallback)")
-          : (userToken ? "META_USER_ACCESS_TOKEN" : "META_SYSTEM_USER_TOKEN (fallback)"),
-        token_length: token.length,
-        starts_with: token.slice(0, 6),
-        ends_with: token.slice(-6),
-        starts_correct: token.startsWith("EAA"),
-        has_user_token: !!userToken,
-        has_system_token: !!sysToken,
-      });
-    }
+    // Diagnostic endpoint removed — previously leaked token prefix/suffix.
 
     // ===== 0) BACKGROUND JOB: start async sync, return immediately =====
     if (action === "start_sync_accounts") {

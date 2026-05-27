@@ -5,25 +5,43 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Seed function is locked. The initial admin already exists.
+// To re-enable, supply N8N_SECRET_KEY in the request body along with email+password.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const { chave, email, password, name } = body || {};
+
+    const secretKey = Deno.env.get("N8N_SECRET_KEY");
+    if (!secretKey || !chave || chave !== secretKey) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      typeof email !== "string" || email.length < 5 || email.length > 255 ||
+      typeof password !== "string" || password.length < 12 || password.length > 128
+    ) {
+      return new Response(JSON.stringify({ error: "Invalid email or password (min 12 chars)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const adminEmail = "adscalecontingencia@gmail.com";
-    const adminPassword = "@DSC@LE2026a";
-
-    // Check if admin already exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existing = existingUsers?.users?.find((u: any) => u.email === adminEmail);
+    const existing = existingUsers?.users?.find((u: any) => u.email === email);
 
     if (existing) {
-      // Ensure role exists
       const { data: roleExists } = await supabaseAdmin
         .from("user_roles")
         .select("id")
@@ -40,12 +58,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create admin user
     const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
-      email: adminEmail,
-      password: adminPassword,
+      email,
+      password,
       email_confirm: true,
-      user_metadata: { name: "AD Scale Admin", role: "admin" },
+      user_metadata: { name: name || "AD Scale Admin", role: "admin" },
     });
 
     if (error) {
@@ -55,14 +72,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Assign admin role
     await supabaseAdmin.from("user_roles").insert({ user_id: newUser.user.id, role: "admin" });
 
     return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
