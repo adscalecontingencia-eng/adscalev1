@@ -134,7 +134,30 @@ const Marketplace: React.FC = () => {
 
 
   useEffect(() => {
-...
+    (async () => {
+      setLoading(true);
+      const { data: prods } = await supabase
+        .from("products")
+        .select("*")
+        .eq("active", true)
+        .order("is_featured", { ascending: false })
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+
+      const { data: stockRows } = await supabase
+        .from("product_stock")
+        .select("product_id, status");
+
+      const stockMap: Record<string, number> = {};
+      (stockRows || []).forEach((r: any) => {
+        if (r.status === "disponivel") stockMap[r.product_id] = (stockMap[r.product_id] || 0) + 1;
+      });
+
+      setProducts(
+        ((prods as any[]) || []).map((p) => ({ ...p, stock_available: stockMap[p.id] ?? 0 } as Product)),
+      );
+      setLoading(false);
+    })();
   }, []);
 
   // Detect traffic source from category/subcategory/tags/name
