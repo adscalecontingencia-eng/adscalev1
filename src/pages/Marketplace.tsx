@@ -420,11 +420,11 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* Catálogo */}
-      <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
-        <div className="text-center mb-8">
+      <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+        <div className="text-center mb-6 sm:mb-8">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Catálogo</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
+          <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto px-2">
             Os ativos mais vendidos e com melhores avaliações dos nossos clientes.
           </p>
         </div>
