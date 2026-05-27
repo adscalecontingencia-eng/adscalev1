@@ -400,8 +400,9 @@ const Marketplace: React.FC = () => {
           </TabsList>
         </Tabs>
 
-        <div className="flex flex-col md:flex-row gap-3 mb-6 max-w-3xl mx-auto">
-          <div className="relative flex-1">
+        {/* Search */}
+        <div className="max-w-xl mx-auto mb-5">
+          <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
@@ -410,22 +411,52 @@ const Marketplace: React.FC = () => {
               className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
             />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {categories.map((c) => (
+        </div>
+
+        {/* Source categories */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+          {SOURCES.map((s) => {
+            const active = activeSource === s.id;
+            return (
               <button
-                key={c}
-                onClick={() => setActiveCat(c)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                  activeCat === c
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                key={s.id}
+                onClick={() => {
+                  setActiveSource(s.id as typeof activeSource);
+                  if (s.id !== "meta") setActiveMetaSub("all");
+                }}
+                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                    : "bg-card/40 backdrop-blur border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40"
                 }`}
               >
-                {c === "all" ? "Todas" : c}
+                {s.label}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+
+        {/* Meta subcategories */}
+        {activeSource === "meta" && (
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
+            {META_SUBS.map((s) => {
+              const active = activeMetaSub === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveMetaSub(s.id as typeof activeMetaSub)}
+                  className={`px-3 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                    active
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {loading ? (
           <p className="text-center text-muted-foreground text-sm py-12">Carregando produtos…</p>
