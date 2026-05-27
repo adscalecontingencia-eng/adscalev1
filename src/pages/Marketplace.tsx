@@ -238,9 +238,9 @@ const Marketplace: React.FC = () => {
 
       {/* Header público */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 ">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 h-16 flex items-center gap-6">
-          <Link to="/" className="text-primary flex items-center gap-2 notranslate" translate="no">
-            <AdScaleLogo size={26} />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center gap-3 sm:gap-6">
+          <Link to="/" className="text-primary flex items-center gap-2 notranslate shrink-0" translate="no">
+            <AdScaleLogo size={22} />
           </Link>
           <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
             <Link to="/marketplace" className="px-3 py-1.5 rounded-md text-foreground bg-primary/10">
@@ -250,23 +250,25 @@ const Marketplace: React.FC = () => {
             <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Benefícios</button>
             <button type="button" onClick={() => scrollToId("depoimentos")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Depoimentos</button>
             <button type="button" onClick={() => scrollToId("faq")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">FAQ</button>
-
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             {isAuthenticated ? (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pedidos")}>
-                  <Package size={14} className="mr-1" /> Meus pedidos
+                <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pedidos")} className="px-2 sm:px-3">
+                  <Package size={14} className="sm:mr-1" />
+                  <span className="hidden sm:inline">Meus pedidos</span>
                 </Button>
                 <Button size="sm" onClick={goPainel}>Painel</Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")}>
-                  <LogIn size={14} className="mr-1" /> Entrar
+                <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")} className="px-2 sm:px-3">
+                  <LogIn size={14} className="sm:mr-1" />
+                  <span className="hidden sm:inline">Entrar</span>
                 </Button>
-                <Button size="sm" onClick={() => navigate("/signup")}>
-                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                <Button size="sm" onClick={() => navigate("/signup")} className="px-2.5 sm:px-3">
+                  <UserPlus size={14} className="sm:mr-1" />
+                  <span>Cadastrar</span>
                 </Button>
               </>
             )}
