@@ -125,7 +125,8 @@ const Marketplace: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeCat, setActiveCat] = useState<string>("all");
+  const [activeSource, setActiveSource] = useState<"all" | "meta" | "tiktok" | "google">("all");
+  const [activeMetaSub, setActiveMetaSub] = useState<"all" | "bm-ads" | "bm-api" | "perfil">("all");
   const [tab, setTab] = useState<"destaque" | "novidades">("destaque");
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
@@ -133,41 +134,47 @@ const Marketplace: React.FC = () => {
 
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data: prods } = await supabase
-        .from("products")
-        .select("*")
-        .eq("active", true)
-        .order("is_featured", { ascending: false })
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
-
-      const { data: stockRows } = await supabase
-        .from("product_stock")
-        .select("product_id, status");
-
-      const stockMap: Record<string, number> = {};
-      (stockRows || []).forEach((r: any) => {
-        if (r.status === "disponivel") stockMap[r.product_id] = (stockMap[r.product_id] || 0) + 1;
-      });
-
-      setProducts(
-        ((prods as any[]) || []).map((p) => ({ ...p, stock_available: stockMap[p.id] ?? 0 } as Product)),
-      );
-      setLoading(false);
-    })();
+...
   }, []);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => set.add(p.category));
-    return ["all", ...Array.from(set).sort()];
-  }, [products]);
+  // Detect traffic source from category/subcategory/tags/name
+  const detectSource = (p: Product): "meta" | "tiktok" | "google" | "other" => {
+    const blob = `${p.category} ${p.subcategory ?? ""} ${p.name} ${(p.tags ?? []).join(" ")}`.toLowerCase();
+    if (/(meta|facebook|insta|fb|bm|business manager|perfil)/.test(blob)) return "meta";
+    if (/(tiktok|tt\b)/.test(blob)) return "tiktok";
+    if (/(google|youtube|gads|google ads)/.test(blob)) return "google";
+    return "other";
+  };
+
+  // Detect Meta subcategory
+  const detectMetaSub = (p: Product): "bm-ads" | "bm-api" | "perfil" | "other" => {
+    const blob = `${p.subcategory ?? ""} ${p.category} ${p.name} ${(p.tags ?? []).join(" ")}`.toLowerCase();
+    if (/perfil/.test(blob)) return "perfil";
+    if (/(api|disparo|whats|cloud api)/.test(blob)) return "bm-api";
+    if (/(bm|business manager|ads|an[úu]ncio)/.test(blob)) return "bm-ads";
+    return "other";
+  };
+
+  const SOURCES = [
+    { id: "all", label: "Todos" },
+    { id: "meta", label: "Meta" },
+    { id: "tiktok", label: "TikTok" },
+    { id: "google", label: "Google" },
+  ] as const;
+
+  const META_SUBS = [
+    { id: "all", label: "Todas" },
+    { id: "bm-ads", label: "BM para Ads" },
+    { id: "bm-api", label: "BM para disparo via API" },
+    { id: "perfil", label: "Perfil" },
+  ] as const;
 
   const filtered = useMemo(() => {
     let list = products;
-    if (activeCat !== "all") list = list.filter((p) => p.category === activeCat);
+    if (activeSource !== "all") list = list.filter((p) => detectSource(p) === activeSource);
+    if (activeSource === "meta" && activeMetaSub !== "all") {
+      list = list.filter((p) => detectMetaSub(p) === activeMetaSub);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -180,7 +187,7 @@ const Marketplace: React.FC = () => {
     if (tab === "destaque") list = list.filter((p) => p.is_featured);
     if (tab === "novidades") list = list.filter((p) => p.is_new);
     return list;
-  }, [products, activeCat, search, tab]);
+  }, [products, activeSource, activeMetaSub, search, tab]);
 
   const handleBuy = (product: Product) => {
     if (!isAuthenticated) {
