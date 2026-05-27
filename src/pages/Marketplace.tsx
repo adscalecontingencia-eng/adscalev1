@@ -60,8 +60,10 @@ const STATS = [
   { label: "Contas entregues", value: "+12.5k", icon: Package },
   { label: "Clientes ativos", value: "+2.300", icon: Users },
   { label: "Países atendidos", value: "18", icon: Globe2 },
-  { label: "Uptime de entrega", value: "99,4%", icon: TrendingUp },
+  { label: "Reposição em até 24h", value: "100%", icon: ShieldCheck },
 ];
+
+const WHATSAPP_URL = "https://wa.me/5511999999999?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
 
 const TESTIMONIALS = [
   {
