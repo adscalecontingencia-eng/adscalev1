@@ -412,9 +412,22 @@ const AdminMarketplace: React.FC = () => {
                           {new Date(s.created_at).toLocaleString("pt-BR")}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => deleteStockItem(s.id)}>
-                            <Trash2 size={14} className="text-destructive" />
-                          </Button>
+                          <div className="flex gap-1 justify-end">
+                            {s.status === "disponivel" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => replaceAsset(s)}
+                                className="h-7 text-[11px] gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                                title="Repor ativo (remove do estoque e lança custo no Dashboard)"
+                              >
+                                <RefreshCw size={12} /> Repor ativo
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => deleteStockItem(s.id)}>
+                              <Trash2 size={14} className="text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
