@@ -24,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import AnimatedBackground from "@/components/AnimatedBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -200,12 +201,9 @@ const Marketplace: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Decorative blurs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary/[0.07] blur-3xl" />
-        <div className="absolute top-[40%] right-[-10%] w-[700px] h-[700px] rounded-full bg-primary/[0.05] blur-3xl" />
-        <div className="absolute inset-0 grid-texture opacity-30" />
-      </div>
+      {/* Animated AD SCALE background */}
+      <AnimatedBackground className="fixed" />
+
 
       {/* Header público */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
