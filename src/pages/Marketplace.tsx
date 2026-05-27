@@ -510,10 +510,10 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* Depoimentos */}
-      <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
-        <div className="text-center mb-10">
+      <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
+        <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Provas sociais</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Quem escala com a <span className="text-primary notranslate" translate="no">AD SCALE</span> não volta atrás
           </h2>
           <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
