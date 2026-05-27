@@ -501,7 +501,7 @@ const Marketplace: React.FC = () => {
             Nenhum produto encontrado nesta categoria.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {filtered.map((p) => (
               <ProductCard key={p.id} product={p} onBuy={handleBuy} onDetails={(prod) => setSelected(prod)} />
             ))}
