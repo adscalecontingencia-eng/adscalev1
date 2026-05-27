@@ -330,7 +330,7 @@ const Marketplace: React.FC = () => {
 
 
         {/* Stat strip — premium AD SCALE */}
-        <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        <div className="mt-10 sm:mt-14 grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 max-w-5xl mx-auto">
           {STATS.map((s, i) => (
             <motion.div
               key={s.label}
@@ -342,43 +342,41 @@ const Marketplace: React.FC = () => {
               className="group relative rounded-2xl p-[1px] bg-gradient-to-b from-primary/40 via-border/40 to-transparent overflow-hidden"
             >
               {/* Inner card */}
-              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80  px-5 py-5 overflow-hidden">
-                {/* Corner glow */}
+              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80  px-3 sm:px-5 py-3.5 sm:py-5 overflow-hidden">
                 <div className="pointer-events-none absolute -top-16 -right-16 w-40 h-40 rounded-full bg-primary/20 blur-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
-                {/* Grid texture */}
                 <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(hsl(var(--primary))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary))_1px,transparent_1px)] [background-size:22px_22px]" />
-                {/* Top hairline */}
                 <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
-                {/* Diagonal sheen on hover */}
                 <div className="pointer-events-none absolute -inset-x-10 -top-10 h-32 rotate-12 bg-gradient-to-r from-transparent via-primary/15 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                <div className="relative flex items-start justify-between mb-3">
+                <div className="relative flex items-start justify-between mb-2 sm:mb-3">
                   <div className="relative">
                     <div className="absolute inset-0 rounded-xl bg-primary/30 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/40 flex items-center justify-center shadow-[inset_0_1px_0_hsl(var(--primary)/0.3)]">
-                      <s.icon size={18} className="text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
+                    <div className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/40 flex items-center justify-center shadow-[inset_0_1px_0_hsl(var(--primary)/0.3)]">
+                      <s.icon size={15} className="sm:hidden text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
+                      <s.icon size={18} className="hidden sm:block text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
                     </div>
                   </div>
-                  <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-primary/70 px-1.5 py-0.5 rounded border border-primary/30 bg-primary/5">
+                  <span className="hidden sm:inline-block text-[8px] font-bold uppercase tracking-[0.2em] text-primary/70 px-1.5 py-0.5 rounded border border-primary/30 bg-primary/5">
                     Live
                   </span>
                 </div>
 
-                <p className="relative font-display text-3xl md:text-[2rem] font-extrabold leading-none bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <p className="relative font-display text-xl sm:text-3xl md:text-[2rem] font-extrabold leading-none bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
                   {s.value}
                 </p>
-                <p className="relative text-[11px] uppercase tracking-[0.22em] text-muted-foreground mt-2 font-medium">
+                <p className="relative text-[9px] sm:text-[11px] uppercase tracking-[0.18em] sm:tracking-[0.22em] text-muted-foreground mt-1.5 sm:mt-2 font-medium">
                   {s.label}
                 </p>
-                <div className="relative mt-3 pt-2 border-t border-border/40 flex items-center gap-1.5">
+                <div className="relative mt-2 sm:mt-3 pt-1.5 sm:pt-2 border-t border-border/40 flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-                  <span className="text-[10px] text-primary/80 font-medium">{s.hint}</span>
+                  <span className="text-[9px] sm:text-[10px] text-primary/80 font-medium truncate">{s.hint}</span>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
+
 
       {/* Benefícios */}
       <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
