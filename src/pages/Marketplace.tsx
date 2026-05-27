@@ -125,7 +125,8 @@ const Marketplace: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeCat, setActiveCat] = useState<string>("all");
+  const [activeSource, setActiveSource] = useState<"all" | "meta" | "tiktok" | "google">("all");
+  const [activeMetaSub, setActiveMetaSub] = useState<"all" | "bm-ads" | "bm-api" | "perfil">("all");
   const [tab, setTab] = useState<"destaque" | "novidades">("destaque");
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
@@ -159,15 +160,44 @@ const Marketplace: React.FC = () => {
     })();
   }, []);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => set.add(p.category));
-    return ["all", ...Array.from(set).sort()];
-  }, [products]);
+  // Detect traffic source from category/subcategory/tags/name
+  const detectSource = (p: Product): "meta" | "tiktok" | "google" | "other" => {
+    const blob = `${p.category} ${p.subcategory ?? ""} ${p.name} ${(p.tags ?? []).join(" ")}`.toLowerCase();
+    if (/(meta|facebook|insta|fb|bm|business manager|perfil)/.test(blob)) return "meta";
+    if (/(tiktok|tt\b)/.test(blob)) return "tiktok";
+    if (/(google|youtube|gads|google ads)/.test(blob)) return "google";
+    return "other";
+  };
+
+  // Detect Meta subcategory
+  const detectMetaSub = (p: Product): "bm-ads" | "bm-api" | "perfil" | "other" => {
+    const blob = `${p.subcategory ?? ""} ${p.category} ${p.name} ${(p.tags ?? []).join(" ")}`.toLowerCase();
+    if (/perfil/.test(blob)) return "perfil";
+    if (/(api|disparo|whats|cloud api)/.test(blob)) return "bm-api";
+    if (/(bm|business manager|ads|an[úu]ncio)/.test(blob)) return "bm-ads";
+    return "other";
+  };
+
+  const SOURCES = [
+    { id: "all", label: "Todos" },
+    { id: "meta", label: "Meta" },
+    { id: "tiktok", label: "TikTok" },
+    { id: "google", label: "Google" },
+  ] as const;
+
+  const META_SUBS = [
+    { id: "all", label: "Todas" },
+    { id: "bm-ads", label: "BM para Ads" },
+    { id: "bm-api", label: "BM para disparo via API" },
+    { id: "perfil", label: "Perfil" },
+  ] as const;
 
   const filtered = useMemo(() => {
     let list = products;
-    if (activeCat !== "all") list = list.filter((p) => p.category === activeCat);
+    if (activeSource !== "all") list = list.filter((p) => detectSource(p) === activeSource);
+    if (activeSource === "meta" && activeMetaSub !== "all") {
+      list = list.filter((p) => detectMetaSub(p) === activeMetaSub);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -180,7 +210,7 @@ const Marketplace: React.FC = () => {
     if (tab === "destaque") list = list.filter((p) => p.is_featured);
     if (tab === "novidades") list = list.filter((p) => p.is_new);
     return list;
-  }, [products, activeCat, search, tab]);
+  }, [products, activeSource, activeMetaSub, search, tab]);
 
   const handleBuy = (product: Product) => {
     if (!isAuthenticated) {
@@ -370,8 +400,9 @@ const Marketplace: React.FC = () => {
           </TabsList>
         </Tabs>
 
-        <div className="flex flex-col md:flex-row gap-3 mb-6 max-w-3xl mx-auto">
-          <div className="relative flex-1">
+        {/* Search */}
+        <div className="max-w-xl mx-auto mb-5">
+          <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
@@ -380,22 +411,52 @@ const Marketplace: React.FC = () => {
               className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
             />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {categories.map((c) => (
+        </div>
+
+        {/* Source categories */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+          {SOURCES.map((s) => {
+            const active = activeSource === s.id;
+            return (
               <button
-                key={c}
-                onClick={() => setActiveCat(c)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                  activeCat === c
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                key={s.id}
+                onClick={() => {
+                  setActiveSource(s.id as typeof activeSource);
+                  if (s.id !== "meta") setActiveMetaSub("all");
+                }}
+                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                    : "bg-card/40 backdrop-blur border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40"
                 }`}
               >
-                {c === "all" ? "Todas" : c}
+                {s.label}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+
+        {/* Meta subcategories */}
+        {activeSource === "meta" && (
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
+            {META_SUBS.map((s) => {
+              const active = activeMetaSub === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveMetaSub(s.id as typeof activeMetaSub)}
+                  className={`px-3 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                    active
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {loading ? (
           <p className="text-center text-muted-foreground text-sm py-12">Carregando produtos…</p>
