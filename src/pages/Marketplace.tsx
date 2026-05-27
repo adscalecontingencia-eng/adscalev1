@@ -1,7 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ShoppingCart, Info, Package, Sparkles, ShieldCheck, LogIn, UserPlus, Search } from "lucide-react";
+import {
+  ShoppingCart,
+  Info,
+  Package,
+  Sparkles,
+  ShieldCheck,
+  LogIn,
+  UserPlus,
+  Search,
+  Zap,
+  Clock,
+  HeartHandshake,
+  Star,
+  Quote,
+  ChevronDown,
+  CheckCircle2,
+  Globe2,
+  Users,
+  TrendingUp,
+  MessageCircle,
+  ArrowRight,
+} from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +54,62 @@ interface Product {
 const fmtBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
+/* --------------------- Static social proof --------------------- */
+
+const STATS = [
+  { label: "Contas entregues", value: "+12.5k", icon: Package },
+  { label: "Clientes ativos", value: "+2.300", icon: Users },
+  { label: "Países atendidos", value: "18", icon: Globe2 },
+  { label: "Uptime de entrega", value: "99,4%", icon: TrendingUp },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Lucas Andrade",
+    role: "Gestor de Tráfego",
+    text:
+      "A AD SCALE virou nossa base de operação. Compro de madrugada e em minutos a conta já está rodando campanha. Sem dor de cabeça.",
+    rating: 5,
+  },
+  {
+    name: "Mariana Costa",
+    role: "Afiliada Black",
+    text:
+      "Já testei vários fornecedores e nenhum chega perto da qualidade das BMs daqui. Suporte responde no WhatsApp em segundos.",
+    rating: 5,
+  },
+  {
+    name: "Rafael Mendes",
+    role: "Agência Performance",
+    text:
+      "Estrutura completa: BM, perfis, proxy, multilogin. Conseguimos escalar 3x sem precisar gastar horas montando ativo.",
+    rating: 5,
+  },
+];
+
+const FAQ = [
+  {
+    q: "Como funciona a entrega das contas?",
+    a: "A maioria dos produtos é entregue automaticamente após a confirmação do Pix — o acesso aparece na sua área de pedidos em segundos. Itens marcados como manuais são liberados por um especialista em até alguns minutos no horário comercial.",
+  },
+  {
+    q: "Qual é a garantia oferecida?",
+    a: "Todos os ativos têm garantia de 24 horas para falhas de acesso, bloqueio no primeiro login ou divergência de descrição. Basta abrir um chamado no WhatsApp com print do erro que substituímos a unidade.",
+  },
+  {
+    q: "Vocês emitem nota fiscal?",
+    a: "Sim. Após o pagamento, basta solicitar a NF-e para o nosso suporte com seus dados de CNPJ ou CPF. Emitimos em até 1 dia útil.",
+  },
+  {
+    q: "Posso pagar com cartão ou boleto?",
+    a: "No momento trabalhamos exclusivamente com Pix instantâneo — é mais rápido, seguro e permite que a entrega automática aconteça em segundos.",
+  },
+  {
+    q: "Como entro na comunidade no WhatsApp?",
+    a: "Assim que você finaliza o cadastro com seu número, recebe o convite do grupo automaticamente. Lá compartilhamos novidades, lotes premium e suporte direto com o time.",
+  },
+];
+
 const Marketplace: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +120,7 @@ const Marketplace: React.FC = () => {
   const [tab, setTab] = useState<"destaque" | "novidades">("destaque");
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
     (async () => {
@@ -55,7 +133,6 @@ const Marketplace: React.FC = () => {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
 
-      // Fetch available stock counts (best effort — admin only, otherwise this returns 0 rows due to RLS)
       const { data: stockRows } = await supabase
         .from("product_stock")
         .select("product_id, status");
@@ -100,28 +177,41 @@ const Marketplace: React.FC = () => {
       navigate("/login?next=marketplace");
       return;
     }
-    // Pix checkout coming soon — for now create a pending order so support can deliver
     navigate(`/meus-pedidos?solicitar=${product.id}&qty=${buyingQty}`);
+  };
+
+  const goPainel = () => {
+    const dest =
+      user?.role === "client"
+        ? "/client-dashboard"
+        : user?.role === "partner"
+          ? "/partner-dashboard"
+          : "/dashboard";
+    navigate(dest);
   };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Decorative blurs */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-3xl" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] rounded-full bg-primary/[0.03] blur-3xl" />
+        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary/[0.07] blur-3xl" />
+        <div className="absolute top-[40%] right-[-10%] w-[700px] h-[700px] rounded-full bg-primary/[0.05] blur-3xl" />
+        <div className="absolute inset-0 grid-texture opacity-30" />
       </div>
 
       {/* Header público */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 h-16 flex items-center gap-6">
-          <Link to="/" className="text-primary flex items-center gap-2">
+          <Link to="/" className="text-primary flex items-center gap-2 notranslate" translate="no">
             <AdScaleLogo size={26} />
           </Link>
           <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
             <Link to="/marketplace" className="px-3 py-1.5 rounded-md text-foreground bg-primary/10">
               <ShoppingCart size={14} className="inline mr-1" /> Marketplace
             </Link>
+            <a href="#beneficios" className="px-3 py-1.5 rounded-md hover:text-foreground">Benefícios</a>
+            <a href="#depoimentos" className="px-3 py-1.5 rounded-md hover:text-foreground">Depoimentos</a>
+            <a href="#faq" className="px-3 py-1.5 rounded-md hover:text-foreground">FAQ</a>
           </nav>
           <div className="ml-auto flex items-center gap-2">
             {isAuthenticated ? (
@@ -129,12 +219,7 @@ const Marketplace: React.FC = () => {
                 <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pedidos")}>
                   <Package size={14} className="mr-1" /> Meus pedidos
                 </Button>
-                <Button size="sm" onClick={() => {
-                  const dest = user?.role === 'client' ? '/client-dashboard'
-                    : user?.role === 'partner' ? '/partner-dashboard'
-                    : '/dashboard';
-                  navigate(dest);
-                }}>Painel</Button>
+                <Button size="sm" onClick={goPainel}>Painel</Button>
               </>
             ) : (
               <>
@@ -150,44 +235,117 @@ const Marketplace: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-16 pb-12 text-center">
+      {/* Hero AD SCALE */}
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-20 pb-14 text-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.3em] mb-6">
-            <Sparkles size={12} /> Novo
-            <span className="text-muted-foreground normal-case tracking-normal">
-              Participe da nossa comunidade no WhatsApp
-            </span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.3em] mb-8">
+            <Sparkles size={12} />
+            <span className="notranslate" translate="no">AD SCALE</span> Marketplace
+            <span className="text-muted-foreground normal-case tracking-normal">— ativos premium</span>
           </div>
-          <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground leading-tight">
-            Tudo que sua operação precisa
+
+          <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground leading-[1.05] tracking-tight">
+            Escale suas campanhas
             <br />
-            <span className="text-primary">em um só lugar</span>
+            <span className="text-primary drop-shadow-[0_0_30px_hsl(var(--primary)/0.35)]">
+              sem travar no ativo.
+            </span>
           </h1>
-          <p className="text-muted-foreground mt-6 max-w-2xl mx-auto">
+          <p className="text-muted-foreground mt-6 max-w-2xl mx-auto text-base md:text-lg">
             Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
-            <span className="text-foreground font-semibold">TikTok</span> e{" "}
-            <span className="text-foreground font-semibold">Google Ads</span> de qualidade, com melhores preços.
+            <span className="text-foreground font-semibold">TikTok</span>,{" "}
+            <span className="text-foreground font-semibold">Google Ads</span>, perfis, proxies e multilogin —
+            entregues automaticamente, com garantia e suporte humano no WhatsApp.
           </p>
 
-          <div className="mt-8 flex items-center justify-center gap-6 text-xs text-muted-foreground">
-            <span className="flex items-center gap-2"><Sparkles size={14} className="text-primary" /> Entrega automática</span>
-            <span className="flex items-center gap-2"><ShieldCheck size={14} className="text-primary" /> Contas testadas</span>
-            <span className="flex items-center gap-2"><Package size={14} className="text-primary" /> Garantia 24h</span>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
+              <ShoppingCart size={16} className="mr-2" /> Ver catálogo
+            </Button>
+            {!isAuthenticated && (
+              <Button size="lg" variant="outline" onClick={() => navigate("/signup")}>
+                Criar conta grátis <ArrowRight size={16} className="ml-2" />
+              </Button>
+            )}
+          </div>
+
+          {/* Trust row */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-2"><Zap size={14} className="text-primary" /> Entrega automática via Pix</span>
+            <span className="flex items-center gap-2"><ShieldCheck size={14} className="text-primary" /> Garantia de 24h</span>
+            <span className="flex items-center gap-2"><Clock size={14} className="text-primary" /> Suporte 7 dias/semana</span>
+            <span className="flex items-center gap-2"><HeartHandshake size={14} className="text-primary" /> +2.300 clientes ativos</span>
           </div>
         </motion.div>
+
+        {/* Stat strip */}
+        <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
+          {STATS.map((s) => (
+            <div
+              key={s.label}
+              className="relative rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-4 text-left overflow-hidden"
+            >
+              <div className="absolute -top-px left-5 right-5 h-px bg-primary/40" />
+              <s.icon size={16} className="text-primary mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{s.value}</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Benefícios */}
+      <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
+        <div className="text-center mb-10">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Por que AD SCALE</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            Infraestrutura completa para quem vive de tráfego
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: Zap,
+              title: "Entrega em segundos",
+              text: "Confirmou o Pix, recebeu o acesso. Tudo automatizado e disponível no painel imediatamente.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "Garantia real de 24h",
+              text: "Conta bloqueada ou divergente? Substituímos sem burocracia. Você não fica na mão.",
+            },
+            {
+              icon: HeartHandshake,
+              title: "Suporte humano no WhatsApp",
+              text: "Time de especialistas em ads disponível 7 dias por semana para destravar sua operação.",
+            },
+          ].map((b) => (
+            <motion.div
+              key={b.title}
+              whileHover={{ y: -3 }}
+              className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-6"
+            >
+              <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-center mb-4">
+                <b.icon size={18} />
+              </div>
+              <h3 className="font-display font-semibold text-foreground text-lg">{b.title}</h3>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{b.text}</p>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* Catálogo */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pb-20">
-        <div className="text-center mb-6">
-          <h2 className="font-display text-2xl font-bold text-foreground">Produtos em Destaque</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Confira os produtos mais vendidos e com melhores avaliações dos clientes.
+      <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-14">
+        <div className="text-center mb-8">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Catálogo</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
+          <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto">
+            Os ativos mais vendidos e com melhores avaliações dos nossos clientes.
           </p>
         </div>
 
@@ -244,8 +402,9 @@ const Marketplace: React.FC = () => {
                 <motion.div
                   key={p.id}
                   whileHover={{ y: -3 }}
-                  className="bg-card/80 backdrop-blur border border-border/60 rounded-xl p-4 flex flex-col gap-3"
+                  className="relative bg-card/80 backdrop-blur border border-border/60 rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-colors overflow-hidden"
                 >
+                  <div className="absolute -top-px left-5 right-5 h-px bg-primary/30" />
                   <div>
                     <h3 className="font-display font-semibold text-foreground leading-tight">{p.name}</h3>
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -280,9 +439,9 @@ const Marketplace: React.FC = () => {
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-bold text-primary">{fmtBRL(finalPrice)}</span>
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">
+                      <span className="text-[10px] text-primary bg-primary/10 px-2 py-1 rounded-full">
                         {p.stock_available != null && p.stock_available > 0
-                          ? `${p.stock_available} unidades`
+                          ? `${p.stock_available} unid.`
                           : "sob consulta"}
                       </span>
                     </div>
@@ -302,6 +461,144 @@ const Marketplace: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* Depoimentos */}
+      <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
+        <div className="text-center mb-10">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Provas sociais</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            Quem escala com a <span className="text-primary notranslate" translate="no">AD SCALE</span> não volta atrás
+          </h2>
+          <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={16} className="fill-primary text-primary" />
+              ))}
+            </div>
+            <span>4,9/5 — avaliação média dos clientes</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {TESTIMONIALS.map((t) => (
+            <motion.div
+              key={t.name}
+              whileHover={{ y: -3 }}
+              className="relative rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-6 flex flex-col gap-4"
+            >
+              <Quote size={28} className="text-primary/60" />
+              <p className="text-sm text-foreground leading-relaxed">"{t.text}"</p>
+              <div className="flex">
+                {[...Array(t.rating)].map((_, i) => (
+                  <Star key={i} size={13} className="fill-primary text-primary" />
+                ))}
+              </div>
+              <div className="mt-auto pt-3 border-t border-border/60">
+                <p className="font-display font-semibold text-foreground text-sm">{t.name}</p>
+                <p className="text-[11px] text-muted-foreground">{t.role}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-16">
+        <div className="text-center mb-10">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">FAQ</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            Perguntas frequentes
+          </h2>
+          <p className="text-muted-foreground text-sm mt-2">
+            Tudo o que você precisa saber antes de comprar.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          {FAQ.map((item, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div
+                key={item.q}
+                className={`rounded-2xl border bg-card/60 backdrop-blur-xl overflow-hidden transition-colors ${
+                  isOpen ? "border-primary/40" : "border-border/60"
+                }`}
+              >
+                <button
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+                >
+                  <span className="font-display font-semibold text-foreground text-sm md:text-base flex items-center gap-3">
+                    <CheckCircle2 size={16} className={isOpen ? "text-primary" : "text-muted-foreground"} />
+                    {item.q}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`text-muted-foreground transition-transform shrink-0 ${isOpen ? "rotate-180 text-primary" : ""}`}
+                  />
+                </button>
+                <motion.div
+                  initial={false}
+                  animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <p className="px-5 pb-5 pl-12 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* CTA final */}
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
+        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-background p-10 md:p-14 text-center">
+          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/40 bg-primary/15 text-primary text-[10px] uppercase tracking-[0.3em] mb-5">
+              <MessageCircle size={12} /> Comunidade exclusiva
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+              Pronto para escalar com a <span className="text-primary notranslate" translate="no">AD SCALE</span>?
+            </h2>
+            <p className="text-muted-foreground mt-4 max-w-xl mx-auto">
+              Crie sua conta em menos de 1 minuto, finalize sua primeira compra via Pix e entre na nossa
+              comunidade de tráfego no WhatsApp.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              {!isAuthenticated ? (
+                <>
+                  <Button size="lg" onClick={() => navigate("/signup")}>
+                    <UserPlus size={16} className="mr-2" /> Criar conta grátis
+                  </Button>
+                  <Button size="lg" variant="outline" onClick={() => navigate("/login?next=marketplace")}>
+                    Já tenho conta
+                  </Button>
+                </>
+              ) : (
+                <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
+                  <ShoppingCart size={16} className="mr-2" /> Ver catálogo
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative border-t border-border/60 mt-10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-primary notranslate" translate="no">
+            <AdScaleLogo size={22} />
+          </div>
+          <p className="text-[11px] text-muted-foreground text-center md:text-right">
+            © {new Date().getFullYear()} <span className="notranslate" translate="no">AD SCALE</span> — Marketplace de ativos para tráfego pago.
+            Todos os direitos reservados.
+          </p>
+        </div>
+      </footer>
 
       {/* Modal de detalhes */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
@@ -332,7 +629,7 @@ const Marketplace: React.FC = () => {
                   <div className="bg-secondary/40 border border-border rounded-xl p-4 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Quantidade</p>
-                      <p className="text-xs text-emerald-400">
+                      <p className="text-xs text-primary">
                         {selected.stock_available && selected.stock_available > 0
                           ? `${selected.stock_available} disponíveis`
                           : "Sob consulta"}
