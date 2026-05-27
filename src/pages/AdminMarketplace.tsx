@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Plus, Boxes, ShoppingBag, Package, ImageIcon } from "lucide-react";
+import { Pencil, Trash2, Plus, Boxes, ShoppingBag, Package, ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -220,6 +220,39 @@ const AdminMarketplace: React.FC = () => {
     }
   };
 
+  const replaceAsset = async (s: Stock) => {
+    if (!stockFor) return;
+    const cost = Number(stockFor.cost_price) || 0;
+    if (!confirm(`Repor ativo "${stockFor.name}"?\n\nEsta unidade será removida do estoque e o custo de ${fmtBRL(cost)} será lançado automaticamente como gasto no Dashboard.`)) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: txErr } = await supabase.from("transactions").insert({
+      date: today,
+      type: "gasto",
+      category: stockFor.category,
+      subcategory: stockFor.subcategory || null,
+      description: `Reposição de ativo: ${stockFor.name}`,
+      amount: cost,
+      quantidade: 1,
+      custo_produto: cost,
+    });
+    if (txErr) {
+      toast.error("Erro ao lançar gasto: " + txErr.message);
+      return;
+    }
+
+    const { error: delErr } = await supabase.from("product_stock").delete().eq("id", s.id);
+    if (delErr) {
+      toast.error("Gasto lançado, mas falhou ao remover do estoque: " + delErr.message);
+      return;
+    }
+
+    toast.success(`Ativo reposto • ${fmtBRL(cost)} lançado no Dashboard`);
+    refreshStockFor(stockFor.id);
+    refreshProducts();
+  };
+
+
   return (
     <div className="space-y-4">
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
@@ -379,9 +412,22 @@ const AdminMarketplace: React.FC = () => {
                           {new Date(s.created_at).toLocaleString("pt-BR")}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => deleteStockItem(s.id)}>
-                            <Trash2 size={14} className="text-destructive" />
-                          </Button>
+                          <div className="flex gap-1 justify-end">
+                            {s.status === "disponivel" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => replaceAsset(s)}
+                                className="h-7 text-[11px] gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                                title="Repor ativo (remove do estoque e lança custo no Dashboard)"
+                              >
+                                <RefreshCw size={12} /> Repor ativo
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => deleteStockItem(s.id)}>
+                              <Trash2 size={14} className="text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
