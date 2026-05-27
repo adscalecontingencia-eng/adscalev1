@@ -599,22 +599,22 @@ const Marketplace: React.FC = () => {
       </section>
 
       {/* CTA final */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-16">
-        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-background p-10 md:p-14 text-center">
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
+        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-background p-6 sm:p-10 md:p-14 text-center">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/40 bg-primary/15 text-primary text-[10px] uppercase tracking-[0.3em] mb-5">
               <MessageCircle size={12} /> Comunidade exclusiva
             </div>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               Pronto para escalar com a <span className="text-primary notranslate" translate="no">AD SCALE</span>?
             </h2>
-            <p className="text-muted-foreground mt-4 max-w-xl mx-auto">
+            <p className="text-muted-foreground mt-4 max-w-xl mx-auto text-sm sm:text-base">
               Crie sua conta em menos de 1 minuto, finalize sua primeira compra via Pix e entre na nossa
               comunidade de tráfego no WhatsApp.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-7 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
               {!isAuthenticated ? (
                 <>
                   <Button size="lg" onClick={() => navigate("/signup")}>
