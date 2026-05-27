@@ -215,9 +215,11 @@ const Marketplace: React.FC = () => {
             <Link to="/marketplace" className="px-3 py-1.5 rounded-md text-foreground bg-primary/10">
               <ShoppingCart size={14} className="inline mr-1" /> Marketplace
             </Link>
-            <a href="#beneficios" className="px-3 py-1.5 rounded-md hover:text-foreground">Benefícios</a>
-            <a href="#depoimentos" className="px-3 py-1.5 rounded-md hover:text-foreground">Depoimentos</a>
-            <a href="#faq" className="px-3 py-1.5 rounded-md hover:text-foreground">FAQ</a>
+            <button type="button" onClick={() => scrollToId("catalogo")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Catálogo</button>
+            <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Benefícios</button>
+            <button type="button" onClick={() => scrollToId("depoimentos")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Depoimentos</button>
+            <button type="button" onClick={() => scrollToId("faq")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">FAQ</button>
+
           </nav>
           <div className="ml-auto flex items-center gap-2">
             {isAuthenticated ? (
