@@ -220,6 +220,39 @@ const AdminMarketplace: React.FC = () => {
     }
   };
 
+  const replaceAsset = async (s: Stock) => {
+    if (!stockFor) return;
+    const cost = Number(stockFor.cost_price) || 0;
+    if (!confirm(`Repor ativo "${stockFor.name}"?\n\nEsta unidade será removida do estoque e o custo de ${fmtBRL(cost)} será lançado automaticamente como gasto no Dashboard.`)) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: txErr } = await supabase.from("transactions").insert({
+      date: today,
+      type: "gasto",
+      category: stockFor.category,
+      subcategory: stockFor.subcategory || null,
+      description: `Reposição de ativo: ${stockFor.name}`,
+      amount: cost,
+      quantidade: 1,
+      custo_produto: cost,
+    });
+    if (txErr) {
+      toast.error("Erro ao lançar gasto: " + txErr.message);
+      return;
+    }
+
+    const { error: delErr } = await supabase.from("product_stock").delete().eq("id", s.id);
+    if (delErr) {
+      toast.error("Gasto lançado, mas falhou ao remover do estoque: " + delErr.message);
+      return;
+    }
+
+    toast.success(`Ativo reposto • ${fmtBRL(cost)} lançado no Dashboard`);
+    refreshStockFor(stockFor.id);
+    refreshProducts();
+  };
+
+
   return (
     <div className="space-y-4">
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
