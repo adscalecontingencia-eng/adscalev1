@@ -256,19 +256,23 @@ const Marketplace: React.FC = () => {
             <span className="text-muted-foreground normal-case tracking-normal">— ativos premium</span>
           </div>
 
-          <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground leading-[1.05] tracking-tight">
-            Escale suas campanhas
+          <h1 className="font-display text-5xl md:text-7xl font-bold leading-[1.02] tracking-tight">
+            <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+              Escale suas campanhas
+            </span>
             <br />
-            <span className="text-primary drop-shadow-[0_0_30px_hsl(var(--primary)/0.35)]">
+            <span className="relative inline-block text-primary drop-shadow-[0_0_40px_hsl(var(--primary)/0.5)]">
               sem travar no ativo.
+              <span className="absolute -inset-x-4 -bottom-2 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
             </span>
           </h1>
-          <p className="text-muted-foreground mt-6 max-w-2xl mx-auto text-base md:text-lg">
+          <p className="text-muted-foreground mt-7 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
             <span className="text-foreground font-semibold">TikTok</span>,{" "}
             <span className="text-foreground font-semibold">Google Ads</span>, perfis, proxies e multilogin —
             entregues automaticamente, com garantia e suporte humano no WhatsApp.
           </p>
+
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
