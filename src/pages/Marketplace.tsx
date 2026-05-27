@@ -277,18 +277,18 @@ const Marketplace: React.FC = () => {
       </header>
 
       {/* Hero AD SCALE */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-20 pb-14 text-center">
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-10 sm:pt-16 md:pt-20 pb-10 sm:pb-14 text-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.3em] mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] sm:text-[11px] uppercase tracking-[0.25em] sm:tracking-[0.3em] mb-5 sm:mb-8">
             <Sparkles size={12} />
             <span className="notranslate" translate="no">AD SCALE</span> Marketplace
           </div>
 
-          <h1 className="font-display text-5xl md:text-7xl font-bold leading-[1.02] tracking-tight">
+          <h1 className="font-display text-[2rem] leading-[1.05] sm:text-5xl md:text-7xl font-bold tracking-tight">
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
               Escale suas campanhas
             </span>
@@ -298,7 +298,7 @@ const Marketplace: React.FC = () => {
               <span className="absolute -inset-x-4 -bottom-2 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
             </span>
           </h1>
-          <p className="text-muted-foreground mt-7 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
+          <p className="text-muted-foreground mt-5 sm:mt-7 max-w-2xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed px-2">
             Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
             <span className="text-foreground font-semibold">TikTok</span> e{" "}
             <span className="text-foreground font-semibold">Google Ads</span> de qualidade,
@@ -306,7 +306,7 @@ const Marketplace: React.FC = () => {
           </p>
 
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
             <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
               <ShoppingCart size={16} className="mr-2" /> Conferir produtos <ArrowRight size={16} className="ml-1" />
             </Button>
@@ -320,13 +320,14 @@ const Marketplace: React.FC = () => {
           </div>
 
           {/* Trust row */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-2"><Zap size={14} className="text-primary" /> Entrega automática via Pix</span>
-            <span className="flex items-center gap-2"><ShieldCheck size={14} className="text-primary" /> Garantia de 24h</span>
-            <span className="flex items-center gap-2"><Clock size={14} className="text-primary" /> Suporte 7 dias/semana</span>
-            <span className="flex items-center gap-2"><HeartHandshake size={14} className="text-primary" /> +2.300 clientes ativos</span>
+          <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 gap-y-2 sm:gap-y-3 text-[11px] sm:text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 sm:gap-2"><Zap size={13} className="text-primary" /> Entrega via Pix</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><ShieldCheck size={13} className="text-primary" /> Garantia de 24h</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><Clock size={13} className="text-primary" /> Suporte 7 dias</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><HeartHandshake size={13} className="text-primary" /> +2.300 clientes</span>
           </div>
         </motion.div>
+
 
         {/* Stat strip — premium AD SCALE */}
         <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
