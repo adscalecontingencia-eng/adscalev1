@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Plus, Boxes, ShoppingBag, Package, ImageIcon } from "lucide-react";
+import { Pencil, Trash2, Plus, Boxes, ShoppingBag, Package, ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
