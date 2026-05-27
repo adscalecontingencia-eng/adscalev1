@@ -237,7 +237,7 @@ const Marketplace: React.FC = () => {
 
 
       {/* Header público */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 ">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 h-16 flex items-center gap-6">
           <Link to="/" className="text-primary flex items-center gap-2 notranslate" translate="no">
             <AdScaleLogo size={26} />
@@ -339,7 +339,7 @@ const Marketplace: React.FC = () => {
               className="group relative rounded-2xl p-[1px] bg-gradient-to-b from-primary/40 via-border/40 to-transparent overflow-hidden"
             >
               {/* Inner card */}
-              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80 backdrop-blur-xl px-5 py-5 overflow-hidden">
+              <div className="relative h-full rounded-[15px] bg-gradient-to-br from-card/90 via-card/70 to-background/80  px-5 py-5 overflow-hidden">
                 {/* Corner glow */}
                 <div className="pointer-events-none absolute -top-16 -right-16 w-40 h-40 rounded-full bg-primary/20 blur-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
                 {/* Grid texture */}
@@ -406,7 +406,7 @@ const Marketplace: React.FC = () => {
             <motion.div
               key={b.title}
               whileHover={{ y: -3 }}
-              className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-6"
+              className="rounded-2xl border border-border/60 bg-card/60  p-6"
             >
               <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-center mb-4">
                 <b.icon size={18} />
@@ -462,7 +462,7 @@ const Marketplace: React.FC = () => {
                 className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all ${
                   active
                     ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
-                    : "bg-card/40 backdrop-blur border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40"
+                    : "bg-card/40 border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40"
                 }`}
               >
                 {s.label}
@@ -530,7 +530,7 @@ const Marketplace: React.FC = () => {
             <motion.div
               key={t.name}
               whileHover={{ y: -3 }}
-              className="relative rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-6 flex flex-col gap-4"
+              className="relative rounded-2xl border border-border/60 bg-card/60  p-6 flex flex-col gap-4"
             >
               <Quote size={28} className="text-primary/60" />
               <p className="text-sm text-foreground leading-relaxed">"{t.text}"</p>
@@ -566,7 +566,7 @@ const Marketplace: React.FC = () => {
             return (
               <div
                 key={item.q}
-                className={`rounded-2xl border bg-card/60 backdrop-blur-xl overflow-hidden transition-colors ${
+                className={`rounded-2xl border bg-card/60  overflow-hidden transition-colors ${
                   isOpen ? "border-primary/40" : "border-border/60"
                 }`}
               >

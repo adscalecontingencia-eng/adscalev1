@@ -133,7 +133,7 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
     <motion.article
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 280, damping: 22 }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/90 to-card/40 backdrop-blur-xl shadow-[0_10px_30px_-15px_rgb(0_0_0/0.7)] hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.35)] transition-all"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/90 to-card/40  shadow-[0_10px_30px_-15px_rgb(0_0_0/0.7)] hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.35)] transition-all"
     >
       {/* Top neon hairline */}
       <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -145,7 +145,7 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
 
       {/* Source corner mark */}
       <div
-        className={`absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-2 py-1 ring-1 ${meta.bg} ${meta.ring} backdrop-blur`}
+        className={`absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-2 py-1 ring-1 ${meta.bg} ${meta.ring}`}
         title={meta.label}
       >
         <SourceMark source={source} className={`h-3.5 w-3.5 ${meta.tint}`} />
