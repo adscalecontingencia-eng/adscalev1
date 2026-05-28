@@ -137,6 +137,11 @@ const Marketplace: React.FC = () => {
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [navOpen, setNavOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [priceMax, setPriceMax] = useState<number>(0);
+
+
 
 
   useEffect(() => {
