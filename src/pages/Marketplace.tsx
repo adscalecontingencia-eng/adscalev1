@@ -384,6 +384,118 @@ const Marketplace: React.FC = () => {
         </SheetContent>
       </Sheet>
 
+      {/* Mobile filters drawer */}
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent side="bottom" className="bg-background border-t border-primary/30 rounded-t-2xl p-0 max-h-[88vh]">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
+            <SheetTitle className="flex items-center gap-2">
+              <SlidersHorizontal size={16} className="text-primary" />
+              <span className="font-display">Filtrar produtos</span>
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="overflow-y-auto px-5 py-4 space-y-5">
+            {/* Tab */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Mostrar</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["destaque", "novidades"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider border transition-all ${
+                      tab === t
+                        ? "bg-primary/15 border-primary/40 text-primary"
+                        : "bg-secondary/40 border-border text-muted-foreground"
+                    }`}
+                  >
+                    {t === "destaque" ? "Em Destaque" : "Novidades"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Source */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Categoria</p>
+              <div className="grid grid-cols-2 gap-2">
+                {SOURCES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setActiveSource(s.id as typeof activeSource);
+                      if (s.id !== "meta") setActiveMetaSub("all");
+                    }}
+                    className={`py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider border transition-all ${
+                      activeSource === s.id
+                        ? "bg-primary text-primary-foreground border-primary shadow-[0_0_18px_hsl(var(--primary)/0.4)]"
+                        : "bg-secondary/40 border-border text-muted-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Meta sub */}
+            {activeSource === "meta" && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Subcategoria Meta</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {META_SUBS.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveMetaSub(s.id as typeof activeMetaSub)}
+                      className={`py-2 rounded-lg text-[11px] font-medium border transition-all ${
+                        activeMetaSub === s.id
+                          ? "bg-primary/15 border-primary/40 text-primary"
+                          : "bg-secondary/40 border-border text-muted-foreground"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Price */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Preço máximo</p>
+                <p className="text-xs font-semibold text-primary">{fmtBRL(priceMax || priceBounds.max)}</p>
+              </div>
+              <input
+                type="range"
+                min={priceBounds.min}
+                max={priceBounds.max}
+                step={Math.max(1, Math.round((priceBounds.max - priceBounds.min) / 50))}
+                value={priceMax || priceBounds.max}
+                onChange={(e) => setPriceMax(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{fmtBRL(priceBounds.min)}</span>
+                <span>{fmtBRL(priceBounds.max)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border/60 px-5 py-3 flex items-center gap-2 bg-background">
+            <Button variant="outline" className="flex-1" onClick={clearFilters}>
+              Limpar
+            </Button>
+            <SheetClose asChild>
+              <Button className="flex-1">
+                Ver {filtered.length} {filtered.length === 1 ? "produto" : "produtos"}
+              </Button>
+            </SheetClose>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+
 
       {/* Hero AD SCALE */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-10 sm:pt-16 md:pt-20 pb-10 sm:pb-14 text-center">
