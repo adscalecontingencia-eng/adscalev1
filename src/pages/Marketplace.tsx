@@ -22,16 +22,22 @@ import {
   TrendingUp,
   MessageCircle,
   ArrowRight,
+  Menu,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
+
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
 
 interface Product {
   id: string;
@@ -131,6 +137,11 @@ const Marketplace: React.FC = () => {
   const [selected, setSelected] = useState<Product | null>(null);
   const [buyingQty, setBuyingQty] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [navOpen, setNavOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [priceMax, setPriceMax] = useState<number>(0);
+
+
 
 
   useEffect(() => {
@@ -192,6 +203,17 @@ const Marketplace: React.FC = () => {
     { id: "perfil", label: "Perfil" },
   ] as const;
 
+  // Price boundaries derived from products
+  const priceBounds = useMemo(() => {
+    if (!products.length) return { min: 0, max: 1000 };
+    const prices = products.map((p) => p.discount_price ?? p.sale_price);
+    return { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) };
+  }, [products]);
+
+  useEffect(() => {
+    if (priceBounds.max && priceMax === 0) setPriceMax(priceBounds.max);
+  }, [priceBounds.max]);
+
   const filtered = useMemo(() => {
     let list = products;
     if (activeSource !== "all") list = list.filter((p) => detectSource(p) === activeSource);
@@ -207,10 +229,30 @@ const Marketplace: React.FC = () => {
           (p.subcategory || "").toLowerCase().includes(q),
       );
     }
+    if (priceMax > 0 && priceMax < priceBounds.max) {
+      list = list.filter((p) => (p.discount_price ?? p.sale_price) <= priceMax);
+    }
     if (tab === "destaque") list = list.filter((p) => p.is_featured);
     if (tab === "novidades") list = list.filter((p) => p.is_new);
     return list;
-  }, [products, activeSource, activeMetaSub, search, tab]);
+  }, [products, activeSource, activeMetaSub, search, tab, priceMax, priceBounds.max]);
+
+  const activeFiltersCount =
+    (activeSource !== "all" ? 1 : 0) +
+    (activeMetaSub !== "all" && activeSource === "meta" ? 1 : 0) +
+    (search.trim() ? 1 : 0) +
+    (priceMax > 0 && priceMax < priceBounds.max ? 1 : 0) +
+    (tab !== "destaque" ? 1 : 0);
+
+  const clearFilters = () => {
+    setActiveSource("all");
+    setActiveMetaSub("all");
+    setSearch("");
+    setPriceMax(priceBounds.max);
+    setTab("destaque");
+  };
+
+
 
   const handleBuy = (product: Product) => {
     if (!isAuthenticated) {
@@ -272,9 +314,188 @@ const Marketplace: React.FC = () => {
                 </Button>
               </>
             )}
+            {/* Hamburger — mobile only */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9 ml-0.5"
+              onClick={() => setNavOpen(true)}
+              aria-label="Abrir menu"
+            >
+              <Menu size={18} />
+            </Button>
           </div>
         </div>
       </header>
+
+      {/* Mobile nav drawer */}
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent side="right" className="w-[78vw] sm:max-w-sm bg-background border-l border-border/60 p-0">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
+            <SheetTitle className="flex items-center gap-2 text-primary notranslate" translate="no">
+              <AdScaleLogo size={20} /> <span className="font-display">Menu</span>
+            </SheetTitle>
+          </SheetHeader>
+          <nav className="p-3 flex flex-col gap-1 text-sm">
+            {[
+              { id: "catalogo", label: "Catálogo", icon: ShoppingCart },
+              { id: "beneficios", label: "Benefícios", icon: Sparkles },
+              { id: "depoimentos", label: "Depoimentos", icon: Star },
+              { id: "faq", label: "FAQ", icon: Info },
+            ].map((it) => (
+              <button
+                key={it.id}
+                onClick={() => { setNavOpen(false); setTimeout(() => scrollToId(it.id), 80); }}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
+              >
+                <it.icon size={16} className="text-primary/80" />
+                <span className="font-medium">{it.label}</span>
+              </button>
+            ))}
+            <div className="h-px bg-border/60 my-2" />
+            <button
+              onClick={() => { setNavOpen(false); window.open(WHATSAPP_URL, "_blank", "noopener,noreferrer"); }}
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
+            >
+              <MessageCircle size={16} className="text-primary/80" />
+              <span className="font-medium">Falar no WhatsApp</span>
+            </button>
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => { setNavOpen(false); navigate("/meus-pedidos"); }}
+                  className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
+                >
+                  <Package size={16} className="text-primary/80" /> <span className="font-medium">Meus pedidos</span>
+                </button>
+                <Button className="mt-3 mx-3" onClick={() => { setNavOpen(false); goPainel(); }}>Ir para o painel</Button>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 mt-3 px-3">
+                <Button variant="outline" onClick={() => { setNavOpen(false); navigate("/login?next=marketplace"); }}>
+                  <LogIn size={14} className="mr-1" /> Entrar
+                </Button>
+                <Button onClick={() => { setNavOpen(false); navigate("/signup"); }}>
+                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                </Button>
+              </div>
+            )}
+          </nav>
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile filters drawer */}
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent side="bottom" className="bg-background border-t border-primary/30 rounded-t-2xl p-0 max-h-[88vh]">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
+            <SheetTitle className="flex items-center gap-2">
+              <SlidersHorizontal size={16} className="text-primary" />
+              <span className="font-display">Filtrar produtos</span>
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="overflow-y-auto px-5 py-4 space-y-5">
+            {/* Tab */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Mostrar</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["destaque", "novidades"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider border transition-all ${
+                      tab === t
+                        ? "bg-primary/15 border-primary/40 text-primary"
+                        : "bg-secondary/40 border-border text-muted-foreground"
+                    }`}
+                  >
+                    {t === "destaque" ? "Em Destaque" : "Novidades"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Source */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Categoria</p>
+              <div className="grid grid-cols-2 gap-2">
+                {SOURCES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setActiveSource(s.id as typeof activeSource);
+                      if (s.id !== "meta") setActiveMetaSub("all");
+                    }}
+                    className={`py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider border transition-all ${
+                      activeSource === s.id
+                        ? "bg-primary text-primary-foreground border-primary shadow-[0_0_18px_hsl(var(--primary)/0.4)]"
+                        : "bg-secondary/40 border-border text-muted-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Meta sub */}
+            {activeSource === "meta" && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Subcategoria Meta</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {META_SUBS.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveMetaSub(s.id as typeof activeMetaSub)}
+                      className={`py-2 rounded-lg text-[11px] font-medium border transition-all ${
+                        activeMetaSub === s.id
+                          ? "bg-primary/15 border-primary/40 text-primary"
+                          : "bg-secondary/40 border-border text-muted-foreground"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Price */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Preço máximo</p>
+                <p className="text-xs font-semibold text-primary">{fmtBRL(priceMax || priceBounds.max)}</p>
+              </div>
+              <input
+                type="range"
+                min={priceBounds.min}
+                max={priceBounds.max}
+                step={Math.max(1, Math.round((priceBounds.max - priceBounds.min) / 50))}
+                value={priceMax || priceBounds.max}
+                onChange={(e) => setPriceMax(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{fmtBRL(priceBounds.min)}</span>
+                <span>{fmtBRL(priceBounds.max)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border/60 px-5 py-3 flex items-center gap-2 bg-background">
+            <Button variant="outline" className="flex-1" onClick={clearFilters}>
+              Limpar
+            </Button>
+            <SheetClose asChild>
+              <Button className="flex-1">
+                Ver {filtered.length} {filtered.length === 1 ? "produto" : "produtos"}
+              </Button>
+            </SheetClose>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+
 
       {/* Hero AD SCALE */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-10 sm:pt-16 md:pt-20 pb-10 sm:pb-14 text-center">
@@ -429,15 +650,40 @@ const Marketplace: React.FC = () => {
           </p>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex justify-center mb-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="hidden sm:flex justify-center mb-6">
           <TabsList>
             <TabsTrigger value="destaque">Em Destaque</TabsTrigger>
             <TabsTrigger value="novidades">Novidades</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Search */}
-        <div className="max-w-xl mx-auto mb-5">
+        {/* Mobile compact filter bar */}
+        <div className="sm:hidden mb-4 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary"
+            />
+          </div>
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="relative shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider"
+          >
+            <SlidersHorizontal size={14} />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Desktop search */}
+        <div className="hidden sm:block max-w-xl mx-auto mb-5">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -449,8 +695,8 @@ const Marketplace: React.FC = () => {
           </div>
         </div>
 
-        {/* Source categories */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+        {/* Source categories — desktop */}
+        <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 mb-3">
           {SOURCES.map((s) => {
             const active = activeSource === s.id;
             return (
@@ -472,9 +718,9 @@ const Marketplace: React.FC = () => {
           })}
         </div>
 
-        {/* Meta subcategories */}
+        {/* Meta subcategories — desktop */}
         {activeSource === "meta" && (
-          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
+          <div className="hidden sm:flex flex-wrap items-center justify-center gap-1.5 mb-6">
             {META_SUBS.map((s) => {
               const active = activeMetaSub === s.id;
               return (
@@ -493,6 +739,43 @@ const Marketplace: React.FC = () => {
             })}
           </div>
         )}
+
+        {/* Active filters chips — mobile */}
+        {activeFiltersCount > 0 && (
+          <div className="sm:hidden flex flex-wrap gap-1.5 mb-4">
+            {activeSource !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                {SOURCES.find((s) => s.id === activeSource)?.label}
+                <button onClick={() => { setActiveSource("all"); setActiveMetaSub("all"); }}><X size={10} /></button>
+              </span>
+            )}
+            {activeSource === "meta" && activeMetaSub !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                {META_SUBS.find((s) => s.id === activeMetaSub)?.label}
+                <button onClick={() => setActiveMetaSub("all")}><X size={10} /></button>
+              </span>
+            )}
+            {tab !== "destaque" && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                Novidades
+                <button onClick={() => setTab("destaque")}><X size={10} /></button>
+              </span>
+            )}
+            {priceMax > 0 && priceMax < priceBounds.max && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                Até {fmtBRL(priceMax)}
+                <button onClick={() => setPriceMax(priceBounds.max)}><X size={10} /></button>
+              </span>
+            )}
+            <button
+              onClick={clearFilters}
+              className="px-2 py-1 rounded-md border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-wider hover:text-foreground"
+            >
+              Limpar
+            </button>
+          </div>
+        )}
+
 
         {loading ? (
           <p className="text-center text-muted-foreground text-sm py-12">Carregando produtos…</p>
