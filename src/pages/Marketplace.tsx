@@ -22,7 +22,11 @@ import {
   TrendingUp,
   MessageCircle,
   ArrowRight,
+  Menu,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
+
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
