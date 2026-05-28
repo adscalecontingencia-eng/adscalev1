@@ -538,15 +538,40 @@ const Marketplace: React.FC = () => {
           </p>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex justify-center mb-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="hidden sm:flex justify-center mb-6">
           <TabsList>
             <TabsTrigger value="destaque">Em Destaque</TabsTrigger>
             <TabsTrigger value="novidades">Novidades</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Search */}
-        <div className="max-w-xl mx-auto mb-5">
+        {/* Mobile compact filter bar */}
+        <div className="sm:hidden mb-4 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary"
+            />
+          </div>
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="relative shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider"
+          >
+            <SlidersHorizontal size={14} />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Desktop search */}
+        <div className="hidden sm:block max-w-xl mx-auto mb-5">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -558,8 +583,8 @@ const Marketplace: React.FC = () => {
           </div>
         </div>
 
-        {/* Source categories */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+        {/* Source categories — desktop */}
+        <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 mb-3">
           {SOURCES.map((s) => {
             const active = activeSource === s.id;
             return (
@@ -581,9 +606,9 @@ const Marketplace: React.FC = () => {
           })}
         </div>
 
-        {/* Meta subcategories */}
+        {/* Meta subcategories — desktop */}
         {activeSource === "meta" && (
-          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
+          <div className="hidden sm:flex flex-wrap items-center justify-center gap-1.5 mb-6">
             {META_SUBS.map((s) => {
               const active = activeMetaSub === s.id;
               return (
@@ -602,6 +627,43 @@ const Marketplace: React.FC = () => {
             })}
           </div>
         )}
+
+        {/* Active filters chips — mobile */}
+        {activeFiltersCount > 0 && (
+          <div className="sm:hidden flex flex-wrap gap-1.5 mb-4">
+            {activeSource !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                {SOURCES.find((s) => s.id === activeSource)?.label}
+                <button onClick={() => { setActiveSource("all"); setActiveMetaSub("all"); }}><X size={10} /></button>
+              </span>
+            )}
+            {activeSource === "meta" && activeMetaSub !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                {META_SUBS.find((s) => s.id === activeMetaSub)?.label}
+                <button onClick={() => setActiveMetaSub("all")}><X size={10} /></button>
+              </span>
+            )}
+            {tab !== "destaque" && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                Novidades
+                <button onClick={() => setTab("destaque")}><X size={10} /></button>
+              </span>
+            )}
+            {priceMax > 0 && priceMax < priceBounds.max && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                Até {fmtBRL(priceMax)}
+                <button onClick={() => setPriceMax(priceBounds.max)}><X size={10} /></button>
+              </span>
+            )}
+            <button
+              onClick={clearFilters}
+              className="px-2 py-1 rounded-md border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-wider hover:text-foreground"
+            >
+              Limpar
+            </button>
+          </div>
+        )}
+
 
         {loading ? (
           <p className="text-center text-muted-foreground text-sm py-12">Carregando produtos…</p>
