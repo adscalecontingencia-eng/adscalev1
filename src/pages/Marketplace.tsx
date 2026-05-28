@@ -667,20 +667,34 @@ const Marketplace: React.FC = () => {
                     <ShieldCheck size={14} className="mr-1.5" /> Garantia
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="produto" className="space-y-4">
-                  <div className="bg-secondary/40 border border-border rounded-xl p-4">
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Descrição</p>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{selected.description || "—"}</p>
+                <TabsContent value="produto" className="space-y-3">
+                  <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+                        <Package size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-display text-sm font-semibold text-foreground mb-2">Sobre o ativo</h4>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                          {selected.description || "Sem descrição disponível para este ativo."}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="bg-secondary/40 border border-border rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Quantidade</p>
-                      <p className="text-xs text-primary">
-                        {selected.stock_available && selected.stock_available > 0
-                          ? `${selected.stock_available} disponíveis`
-                          : "Sob consulta"}
-                      </p>
+                  <div className="rounded-xl border border-border bg-secondary/40 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                        <Sparkles size={15} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Quantidade</p>
+                        <p className="text-xs text-primary mt-0.5">
+                          {selected.stock_available && selected.stock_available > 0
+                            ? `${selected.stock_available} disponíveis`
+                            : "Sob consulta"}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="icon" onClick={() => setBuyingQty(Math.max(1, buyingQty - 1))}>-</Button>
@@ -689,23 +703,48 @@ const Marketplace: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-secondary/40 border border-border rounded-xl p-4 flex items-center justify-between">
+                  <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/[0.03] p-4 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Total</p>
-                      <p className="text-2xl font-bold text-primary">
+                      <p className="text-2xl font-bold text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]">
                         {fmtBRL((selected.discount_price ?? selected.sale_price) * buyingQty)}
                       </p>
                     </div>
-                    <Button onClick={() => handleBuy(selected)}>
+                    <Button onClick={() => handleBuy(selected)} className="shadow-[0_0_24px_-6px_hsl(var(--primary)/0.6)]">
                       <ShoppingCart size={14} className="mr-1.5" /> Comprar Agora
                     </Button>
                   </div>
                 </TabsContent>
-                <TabsContent value="garantia">
-                  <div className="bg-secondary/40 border border-border rounded-xl p-4 text-sm text-foreground whitespace-pre-wrap">
-                    {selected.warranty_terms || "Garantia de 24 horas válida para erros no acesso, contas bloqueadas ao fazer login ou dados diferentes da descrição informada. Verifique todos os itens dentro de 24 horas após a compra."}
+                <TabsContent value="garantia" className="space-y-3">
+                  <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+                        <ShieldCheck size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-display text-sm font-semibold text-foreground mb-2">Termos de Garantia</h4>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                          {selected.warranty_terms || "➔ Garantia de 24 horas válida para:\n• Senha incorreta\n• Informações do perfil incorretas\n• Checkpoint instantâneo no primeiro login\n• Algum tipo de restrição no perfil\n\nRequisitos para garantia:\n• Login feito corretamente\n• Aquecimento do perfil realizado de forma adequada"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-secondary/40 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground shrink-0">
+                        <Info size={15} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-display text-sm font-semibold text-foreground mb-1">Informações importantes</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Ao realizar a compra, você concorda com os termos e condições de uso do produto. Leia atentamente a política de garantia antes de finalizar sua compra.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </TabsContent>
+
               </Tabs>
             </>
           )}
