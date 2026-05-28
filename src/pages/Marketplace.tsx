@@ -314,9 +314,76 @@ const Marketplace: React.FC = () => {
                 </Button>
               </>
             )}
+            {/* Hamburger — mobile only */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9 ml-0.5"
+              onClick={() => setNavOpen(true)}
+              aria-label="Abrir menu"
+            >
+              <Menu size={18} />
+            </Button>
           </div>
         </div>
       </header>
+
+      {/* Mobile nav drawer */}
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent side="right" className="w-[78vw] sm:max-w-sm bg-background border-l border-border/60 p-0">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
+            <SheetTitle className="flex items-center gap-2 text-primary notranslate" translate="no">
+              <AdScaleLogo size={20} /> <span className="font-display">Menu</span>
+            </SheetTitle>
+          </SheetHeader>
+          <nav className="p-3 flex flex-col gap-1 text-sm">
+            {[
+              { id: "catalogo", label: "Catálogo", icon: ShoppingCart },
+              { id: "beneficios", label: "Benefícios", icon: Sparkles },
+              { id: "depoimentos", label: "Depoimentos", icon: Star },
+              { id: "faq", label: "FAQ", icon: Info },
+            ].map((it) => (
+              <button
+                key={it.id}
+                onClick={() => { setNavOpen(false); setTimeout(() => scrollToId(it.id), 80); }}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
+              >
+                <it.icon size={16} className="text-primary/80" />
+                <span className="font-medium">{it.label}</span>
+              </button>
+            ))}
+            <div className="h-px bg-border/60 my-2" />
+            <button
+              onClick={() => { setNavOpen(false); window.open(WHATSAPP_URL, "_blank", "noopener,noreferrer"); }}
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
+            >
+              <MessageCircle size={16} className="text-primary/80" />
+              <span className="font-medium">Falar no WhatsApp</span>
+            </button>
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => { setNavOpen(false); navigate("/meus-pedidos"); }}
+                  className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
+                >
+                  <Package size={16} className="text-primary/80" /> <span className="font-medium">Meus pedidos</span>
+                </button>
+                <Button className="mt-3 mx-3" onClick={() => { setNavOpen(false); goPainel(); }}>Ir para o painel</Button>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 mt-3 px-3">
+                <Button variant="outline" onClick={() => { setNavOpen(false); navigate("/login?next=marketplace"); }}>
+                  <LogIn size={14} className="mr-1" /> Entrar
+                </Button>
+                <Button onClick={() => { setNavOpen(false); navigate("/signup"); }}>
+                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                </Button>
+              </div>
+            )}
+          </nav>
+        </SheetContent>
+      </Sheet>
+
 
       {/* Hero AD SCALE */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-10 sm:pt-16 md:pt-20 pb-10 sm:pb-14 text-center">
