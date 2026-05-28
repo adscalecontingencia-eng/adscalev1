@@ -203,6 +203,17 @@ const Marketplace: React.FC = () => {
     { id: "perfil", label: "Perfil" },
   ] as const;
 
+  // Price boundaries derived from products
+  const priceBounds = useMemo(() => {
+    if (!products.length) return { min: 0, max: 1000 };
+    const prices = products.map((p) => p.discount_price ?? p.sale_price);
+    return { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) };
+  }, [products]);
+
+  useEffect(() => {
+    if (priceBounds.max && priceMax === 0) setPriceMax(priceBounds.max);
+  }, [priceBounds.max]);
+
   const filtered = useMemo(() => {
     let list = products;
     if (activeSource !== "all") list = list.filter((p) => detectSource(p) === activeSource);
@@ -218,10 +229,30 @@ const Marketplace: React.FC = () => {
           (p.subcategory || "").toLowerCase().includes(q),
       );
     }
+    if (priceMax > 0 && priceMax < priceBounds.max) {
+      list = list.filter((p) => (p.discount_price ?? p.sale_price) <= priceMax);
+    }
     if (tab === "destaque") list = list.filter((p) => p.is_featured);
     if (tab === "novidades") list = list.filter((p) => p.is_new);
     return list;
-  }, [products, activeSource, activeMetaSub, search, tab]);
+  }, [products, activeSource, activeMetaSub, search, tab, priceMax, priceBounds.max]);
+
+  const activeFiltersCount =
+    (activeSource !== "all" ? 1 : 0) +
+    (activeMetaSub !== "all" && activeSource === "meta" ? 1 : 0) +
+    (search.trim() ? 1 : 0) +
+    (priceMax > 0 && priceMax < priceBounds.max ? 1 : 0) +
+    (tab !== "destaque" ? 1 : 0);
+
+  const clearFilters = () => {
+    setActiveSource("all");
+    setActiveMetaSub("all");
+    setSearch("");
+    setPriceMax(priceBounds.max);
+    setTab("destaque");
+  };
+
+
 
   const handleBuy = (product: Product) => {
     if (!isAuthenticated) {
