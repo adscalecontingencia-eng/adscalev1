@@ -46,6 +46,8 @@ const ClientDashboard: React.FC = () => {
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
+  // Período individual por conta de anúncio (na aba Estrutura)
+  const [accountPeriods, setAccountPeriods] = useState<Record<string, 'today' | '7d' | '30d' | 'all'>>({});
 
   const fetchAccounts = useCallback(async (clientId: string) => {
     const { data: assigns } = await supabase
@@ -62,7 +64,11 @@ const ClientDashboard: React.FC = () => {
       .pop();
     if (latest) setLastAccountsSync(new Date(latest));
 
-    // Load insights for these ad accounts (last 12 months window is plenty)
+    // Load insights for these ad accounts (last 12 months window is plenty).
+    // Fetch full metric set so we can show real per-account performance
+    // (impressões, cliques, CPM, CPC, CTR, compras, receita, ROAS).
+    // Use explicit .range() to bypass the default 1000 rows limit which was
+    // causing inconsistent totals.
     const accountIds = list.map((a: any) => a.ad_account?.id).filter(Boolean);
     if (accountIds.length > 0) {
       const since = new Date();
@@ -70,11 +76,11 @@ const ClientDashboard: React.FC = () => {
       const sinceStr = since.toISOString().split('T')[0];
       const { data: ins } = await supabase
         .from('meta_ad_insights')
-        .select('ad_account_id, date, spend')
+        .select('ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue')
         .in('ad_account_id', accountIds)
         .gte('date', sinceStr)
         .order('date', { ascending: true })
-        .limit(20000);
+        .range(0, 99999);
       setInsights(ins || []);
     } else {
       setInsights([]);
@@ -921,32 +927,103 @@ const ClientDashboard: React.FC = () => {
                         const acc = a.ad_account;
                         if (!acc) return null;
                         const isBlocked = acc.status === 'blocked' || (acc.disable_reason ?? 0) > 0;
+                        const period = accountPeriods[acc.id] || '7d';
+                        const now = new Date();
+                        const since =
+                          period === 'today' ? startOfDay(now) :
+                          period === '7d' ? startOfDay(new Date(now.getTime() - 6 * 86400000)) :
+                          period === '30d' ? startOfDay(new Date(now.getTime() - 29 * 86400000)) :
+                          new Date(0);
+                        const accInsights = insights.filter((i: any) =>
+                          i.ad_account_id === acc.id && parseDateLocal(i.date) >= since
+                        );
+                        const m = accInsights.reduce((s: any, i: any) => ({
+                          spend: s.spend + Number(i.spend || 0),
+                          impressions: s.impressions + Number(i.impressions || 0),
+                          clicks: s.clicks + Number(i.clicks || 0),
+                          purchases: s.purchases + Number(i.purchases || 0),
+                          revenue: s.revenue + Number(i.revenue || 0),
+                        }), { spend: 0, impressions: 0, clicks: 0, purchases: 0, revenue: 0 });
+                        const ctr = m.impressions > 0 ? (m.clicks / m.impressions) * 100 : 0;
+                        const cpc = m.clicks > 0 ? m.spend / m.clicks : 0;
+                        const cpm = m.impressions > 0 ? (m.spend / m.impressions) * 1000 : 0;
+                        const roas = m.spend > 0 ? m.revenue / m.spend : 0;
+                        const setPeriod = (p: 'today' | '7d' | '30d' | 'all') =>
+                          setAccountPeriods(prev => ({ ...prev, [acc.id]: p }));
                         return (
-                          <div key={a.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isBlocked ? "bg-destructive/15 text-destructive" : "bg-emerald-500/15 text-emerald-400")}>
-                                {isBlocked ? <Ban size={16} /> : <ShieldCheck size={16} />}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold truncate">{acc.name}</p>
-                                <p className="text-[11px] text-muted-foreground font-mono truncate">ID: {acc.meta_account_id}</p>
-                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
-                                  <span>Saldo: <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
-                                  <span>Gasto: <span className="text-foreground/80">{fmt(Number(acc.amount_spent) || 0)}</span></span>
-                                  {acc.currency && <span>Moeda: <span className="text-foreground/80">{acc.currency}</span></span>}
-                                  {acc.last_synced_at && (
-                                    <span>Atualizado: <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: ptBR })}</span></span>
-                                  )}
+                          <div key={a.id} className="bg-secondary/40 border border-border rounded-lg p-3 space-y-3">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isBlocked ? "bg-destructive/15 text-destructive" : "bg-emerald-500/15 text-emerald-400")}>
+                                  {isBlocked ? <Ban size={16} /> : <ShieldCheck size={16} />}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold truncate">{acc.name}</p>
+                                  <p className="text-[11px] text-muted-foreground font-mono truncate">ID: {acc.meta_account_id}</p>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
+                                    <span>Saldo: <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
+                                    {acc.currency && <span>Moeda: <span className="text-foreground/80">{acc.currency}</span></span>}
+                                    {acc.last_synced_at && (
+                                      <span>Atualizado: <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: ptBR })}</span></span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium inline-flex items-center gap-1",
+                              <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium inline-flex items-center gap-1 shrink-0",
                                 isBlocked ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                               )}>
                                 {isBlocked ? <Ban size={10} /> : <ShieldCheck size={10} />}
                                 {isBlocked ? (acc.disable_reason_label || 'Banida') : 'Ativa'}
                               </span>
+                            </div>
+
+                            {/* Period selector + real metrics from insights */}
+                            <div className="border-t border-border/60 pt-3 space-y-2">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Métricas reais</span>
+                                <div className="flex gap-1">
+                                  {([
+                                    { v: 'today', l: 'Hoje' },
+                                    { v: '7d', l: '7d' },
+                                    { v: '30d', l: '30d' },
+                                    { v: 'all', l: 'Tudo' },
+                                  ] as const).map(o => (
+                                    <button
+                                      key={o.v}
+                                      onClick={() => setPeriod(o.v)}
+                                      className={cn(
+                                        "text-[10px] px-2 py-0.5 rounded-md border transition-colors",
+                                        period === o.v
+                                          ? "bg-primary text-primary-foreground border-primary"
+                                          : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                                      )}
+                                    >
+                                      {o.l}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              {accInsights.length === 0 ? (
+                                <p className="text-[11px] text-muted-foreground italic">Sem dados de anúncios neste período.</p>
+                              ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                  {[
+                                    { l: 'Gasto', v: fmt(m.spend), c: 'text-foreground' },
+                                    { l: 'Receita', v: fmt(m.revenue), c: 'text-emerald-400' },
+                                    { l: 'ROAS', v: `${roas.toFixed(2)}x`, c: roas >= 1 ? 'text-emerald-400' : 'text-destructive' },
+                                    { l: 'Compras', v: m.purchases.toLocaleString('pt-BR'), c: 'text-foreground' },
+                                    { l: 'Impressões', v: m.impressions.toLocaleString('pt-BR'), c: 'text-foreground' },
+                                    { l: 'Cliques', v: m.clicks.toLocaleString('pt-BR'), c: 'text-foreground' },
+                                    { l: 'CTR', v: `${ctr.toFixed(2)}%`, c: 'text-foreground' },
+                                    { l: 'CPC', v: fmt(cpc), c: 'text-foreground' },
+                                  ].map(k => (
+                                    <div key={k.l} className="bg-background/60 border border-border/60 rounded-md px-2 py-1.5">
+                                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{k.l}</p>
+                                      <p className={cn("text-xs font-bold mt-0.5 truncate", k.c)}>{k.v}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

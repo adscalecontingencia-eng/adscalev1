@@ -131,15 +131,22 @@ export default function AdsDashboard() {
     const { since, until } = rangeToDates(range, customStart, customEnd);
     const prev = previousRange(since, until);
 
+    // IMPORTANT: explicit range to bypass Supabase's default 1000 rows limit.
+    // Without this, long periods or many accounts return truncated data and
+    // metrics become inconsistent.
     const [curRes, prevRes] = await Promise.all([
       supabase
         .from("meta_ad_insights")
         .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
-        .gte("date", since).lte("date", until),
+        .gte("date", since).lte("date", until)
+        .order("date", { ascending: true })
+        .range(0, 99999),
       supabase
         .from("meta_ad_insights")
         .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
-        .gte("date", prev.since).lte("date", prev.until),
+        .gte("date", prev.since).lte("date", prev.until)
+        .order("date", { ascending: true })
+        .range(0, 99999),
     ]);
     // Ignore stale results if a newer load started or filters changed
     if (myGen !== loadGen.current) return;
