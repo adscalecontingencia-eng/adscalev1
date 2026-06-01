@@ -62,7 +62,11 @@ const ClientDashboard: React.FC = () => {
       .pop();
     if (latest) setLastAccountsSync(new Date(latest));
 
-    // Load insights for these ad accounts (last 12 months window is plenty)
+    // Load insights for these ad accounts (last 12 months window is plenty).
+    // Fetch full metric set so we can show real per-account performance
+    // (impressões, cliques, CPM, CPC, CTR, compras, receita, ROAS).
+    // Use explicit .range() to bypass the default 1000 rows limit which was
+    // causing inconsistent totals.
     const accountIds = list.map((a: any) => a.ad_account?.id).filter(Boolean);
     if (accountIds.length > 0) {
       const since = new Date();
@@ -70,11 +74,11 @@ const ClientDashboard: React.FC = () => {
       const sinceStr = since.toISOString().split('T')[0];
       const { data: ins } = await supabase
         .from('meta_ad_insights')
-        .select('ad_account_id, date, spend')
+        .select('ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue')
         .in('ad_account_id', accountIds)
         .gte('date', sinceStr)
         .order('date', { ascending: true })
-        .limit(20000);
+        .range(0, 99999);
       setInsights(ins || []);
     } else {
       setInsights([]);
