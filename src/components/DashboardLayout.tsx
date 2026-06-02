@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon, Shield, Handshake, ShoppingBag
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon, Shield, Handshake, ShoppingBag, AppWindow
 } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
 
