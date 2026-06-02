@@ -142,6 +142,7 @@ export type Database = {
           email: string
           fixed_value: number | null
           id: string
+          meta_app_id: string | null
           name: string
           notify_whatsapp: boolean
           number: string | null
@@ -167,6 +168,7 @@ export type Database = {
           email: string
           fixed_value?: number | null
           id?: string
+          meta_app_id?: string | null
           name: string
           notify_whatsapp?: boolean
           number?: string | null
@@ -192,6 +194,7 @@ export type Database = {
           email?: string
           fixed_value?: number | null
           id?: string
+          meta_app_id?: string | null
           name?: string
           notify_whatsapp?: boolean
           number?: string | null
@@ -208,6 +211,13 @@ export type Database = {
           whatsapp_phone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_meta_app_id_fkey"
+            columns: ["meta_app_id"]
+            isOneToOne: false
+            referencedRelation: "meta_apps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_partner_id_fkey"
             columns: ["partner_id"]
@@ -626,6 +636,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      meta_apps: {
+        Row: {
+          app_id: string
+          app_secret: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          last_used_at: string | null
+          notes: string | null
+          status: string
+          system_user_token: string | null
+          updated_at: string
+          user_access_token: string | null
+        }
+        Insert: {
+          app_id: string
+          app_secret?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label: string
+          last_used_at?: string | null
+          notes?: string | null
+          status?: string
+          system_user_token?: string | null
+          updated_at?: string
+          user_access_token?: string | null
+        }
+        Update: {
+          app_id?: string
+          app_secret?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          last_used_at?: string | null
+          notes?: string | null
+          status?: string
+          system_user_token?: string | null
+          updated_at?: string
+          user_access_token?: string | null
+        }
+        Relationships: []
       }
       meta_blocked_accounts_log: {
         Row: {
