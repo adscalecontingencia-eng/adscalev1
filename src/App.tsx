@@ -11,6 +11,7 @@ import Financial from "./pages/Financial";
 import Support from "./pages/Support";
 import UsersPage from "./pages/UsersPage";
 import MetaConnections from "./pages/MetaConnections";
+import MetaApps from "./pages/MetaApps";
 import AdsDashboard from "./pages/AdsDashboard";
 import AssetMap from "./pages/AssetMap";
 import PagesAdmin from "./pages/Pages";
