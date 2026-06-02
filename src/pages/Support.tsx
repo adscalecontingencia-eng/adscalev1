@@ -196,7 +196,16 @@ const Support: React.FC = () => {
           return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {columns.map(col => {
-              const items = merged.filter((r: any) => (r.status || 'pendente') === col.key);
+              const items = merged
+                .filter((r: any) => (r.status || 'pendente') === col.key)
+                .sort((a: any, b: any) => {
+                  // Para Pendente e Em andamento: mais antigos (maior tempo) no topo.
+                  // Para Concluída: mantém recente no topo.
+                  if (col.key === 'concluida') {
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                  }
+                  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                });
               return (
                 <div key={col.key} className={cn("rounded-lg border p-3 min-h-[120px]", col.accent)}>
                   <div className="flex items-center justify-between mb-2">
