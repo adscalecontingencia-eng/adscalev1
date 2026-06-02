@@ -183,7 +183,9 @@ const Clients: React.FC = () => {
   const fetchInsightsByClient = async () => {
     const [assignRes, insightsRes] = await Promise.all([
       supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active').eq('active', true),
-      supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
+      // IMPORTANT: explicit .range bypasses Supabase's default 1000 rows cap.
+      // Without this, totalAdSpend on the KPI bar was truncated.
+      supabase.from('meta_ad_insights').select('ad_account_id, date, spend').order('date', { ascending: true }).range(0, 99999),
     ]);
     if (assignRes.error || insightsRes.error) return;
     const accToClient = new Map<string, string>();
