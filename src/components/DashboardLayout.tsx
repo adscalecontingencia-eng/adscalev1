@@ -16,6 +16,7 @@ const adminLinks = [
   { path: '/admin-marketplace', label: 'Marketplace', icon: ShoppingBag, adminOnly: false },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon, adminOnly: false },
   { path: '/meta-connections', label: 'Conexões Meta', icon: Plug, adminOnly: false },
+  { path: '/meta-apps', label: 'Aplicativos Meta', icon: AppWindow, adminOnly: true },
   { path: '/pages', label: 'Páginas', icon: ImageIcon, adminOnly: false },
   { path: '/asset-map', label: 'Mapa de Ativos', icon: Network, adminOnly: false },
   { path: '/block-log', label: 'Log de Bloqueios', icon: Ban, adminOnly: false },
