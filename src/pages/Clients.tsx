@@ -364,7 +364,7 @@ const Clients: React.FC = () => {
       const receitaCredito = creditDelta - liquidated;
       if (receitaCredito > 0) {
         await supabase.from('transactions').insert({
-          date: new Date().toISOString().split('T')[0],
+          date: format(new Date(), 'yyyy-MM-dd'),
           type: 'receita',
           category: 'Crédito do Plano',
           client_id: savedClientId,
