@@ -100,7 +100,7 @@ const Login: React.FC = () => {
               <div className="w-[260px] h-[120px] bg-primary/25 blur-[40px] rounded-full" />
             </div>
 
-            <AdScaleLogo size={72} />
+            <AdScaleLogo size={typeof window !== 'undefined' && window.innerWidth < 640 ? 44 : 72} />
           </motion.div>
 
           <motion.div
