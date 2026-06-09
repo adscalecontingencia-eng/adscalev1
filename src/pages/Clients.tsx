@@ -158,6 +158,7 @@ const Clients: React.FC = () => {
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
       whatsappPhone: (c as any).whatsapp_phone || '', whatsappGroupLink: (c as any).whatsapp_group_link || '',
       partnerId: (c as any).partner_id || null,
+      customTiers: Array.isArray((c as any).custom_tiers) ? (c as any).custom_tiers as CommissionTier[] : null,
     })));
     setLoading(false);
   };
