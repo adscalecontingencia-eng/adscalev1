@@ -425,6 +425,7 @@ const ClientDashboard: React.FC = () => {
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
+          <ThemeToggle />
           {!isAdminView && user?.id && (
             <ClientNotificationCenter
               clientId={client.id}
