@@ -211,6 +211,47 @@ export type Database = {
         }
         Relationships: []
       }
+      bm_detected_users: {
+        Row: {
+          bm_id: string
+          id: string
+          meta_user_id: string
+          scanned_at: string
+          user_email: string | null
+          user_kind: string | null
+          user_name: string | null
+          user_role: string | null
+        }
+        Insert: {
+          bm_id: string
+          id?: string
+          meta_user_id: string
+          scanned_at?: string
+          user_email?: string | null
+          user_kind?: string | null
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          bm_id?: string
+          id?: string
+          meta_user_id?: string
+          scanned_at?: string
+          user_email?: string | null
+          user_kind?: string | null
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_detected_users_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bm_profiles: {
         Row: {
           bm_id: string
@@ -1296,6 +1337,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      meta_user_whitelist: {
+        Row: {
+          backup_id: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          meta_user_id: string
+          meta_user_kind: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          backup_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          id?: string
+          meta_user_id: string
+          meta_user_kind?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          backup_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          meta_user_id?: string
+          meta_user_kind?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_user_whitelist_backup_id_fkey"
+            columns: ["backup_id"]
+            isOneToOne: false
+            referencedRelation: "bm_backups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
