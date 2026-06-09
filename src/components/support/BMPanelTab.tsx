@@ -127,6 +127,7 @@ const BMPanelTab: React.FC = () => {
       </div>
 
       <BackupsManagerDialog open={showBackupsManager} onClose={() => setShowBackupsManager(false)} onChange={load} />
+      <DetectedProfilesDialog open={showDetected} onClose={() => setShowDetected(false)} onChanged={load} />
       <BMDetailDrawer bm={detail} open={!!detail} onClose={() => setDetail(null)} minBackups={minBackups} onChanged={load} />
     </div>
   );
