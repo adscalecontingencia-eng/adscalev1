@@ -273,6 +273,11 @@ const Clients: React.FC = () => {
         plan_credit: planCredit,
         whatsapp_phone: form.whatsappPhone || null, whatsapp_group_link: form.whatsappGroupLink || null,
         partner_id: form.partnerId || null,
+        custom_tiers: clientType === 'aluguel' && Array.isArray(form.customTiers) && form.customTiers.length > 0
+          ? form.customTiers
+              .filter(t => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
+              .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
+          : null,
       };
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
