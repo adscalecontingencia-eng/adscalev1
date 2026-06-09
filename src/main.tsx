@@ -2,8 +2,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initThemeEarly } from "./hooks/useTheme";
+import { installSystemErrorLogger } from "./lib/system-error-logger";
 
 initThemeEarly();
+installSystemErrorLogger();
 
 // If Supabase redirects back with a password-recovery code, force the hash route
 // to /reset-password BEFORE HashRouter mounts so the default redirect to
