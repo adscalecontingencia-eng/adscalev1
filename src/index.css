@@ -5,55 +5,103 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Unbounded:wght@300;400;500;600;700;800;900&display=swap');
 
 @layer base {
+  /* DARK (default): preto + azul */
   :root {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 95%;
+    --background: 220 30% 5%;
+    --foreground: 210 40% 96%;
 
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
+    --card: 220 28% 8%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 220 28% 8%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 120 100% 50%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 212 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 220 22% 13%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 55%;
+    --muted: 220 22% 13%;
+    --muted-foreground: 215 18% 60%;
 
-    --accent: 120 100% 50%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 212 100% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 95%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 120 100% 50%;
+    --border: 220 20% 16%;
+    --input: 220 20% 16%;
+    --ring: 212 100% 55%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 120 100% 50%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 120 100% 50%;
+    --sidebar-background: 220 30% 6%;
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 212 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 11%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 220 20% 16%;
+    --sidebar-ring: 212 100% 55%;
 
-    --success: 120 60% 45%;
-    --warning: 45 100% 50%;
-    --info: 200 100% 50%;
+    --success: 160 70% 45%;
+    --warning: 38 95% 55%;
+    --info: 212 100% 55%;
 
     --font-display: 'Sora', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    --glow-primary: 0 0 20px hsl(120, 100%, 50%, 0.3);
-    --glow-primary-strong: 0 0 40px hsl(120, 100%, 50%, 0.5);
+    --glow-primary: 0 0 20px hsl(212, 100%, 55%, 0.35);
+    --glow-primary-strong: 0 0 40px hsl(212, 100%, 55%, 0.55);
+  }
+
+  /* LIGHT: branco + azul */
+  .light {
+    --background: 210 40% 99%;
+    --foreground: 220 40% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 12%;
+
+    --primary: 212 100% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 30% 95%;
+    --secondary-foreground: 220 40% 12%;
+
+    --muted: 215 30% 95%;
+    --muted-foreground: 220 12% 42%;
+
+    --accent: 212 100% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 88%;
+    --input: 215 25% 88%;
+    --ring: 212 100% 48%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 25% 25%;
+    --sidebar-primary: 212 100% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 30% 95%;
+    --sidebar-accent-foreground: 220 40% 12%;
+    --sidebar-border: 215 25% 88%;
+    --sidebar-ring: 212 100% 48%;
+
+    --success: 160 70% 38%;
+    --warning: 38 95% 48%;
+    --info: 212 100% 48%;
+
+    --glow-primary: 0 0 20px hsl(212, 100%, 48%, 0.25);
+    --glow-primary-strong: 0 0 40px hsl(212, 100%, 48%, 0.4);
   }
 }
 
@@ -83,8 +131,8 @@
   .glow-text { text-shadow: var(--glow-primary); }
   .glow-box { box-shadow: var(--glow-primary); }
   .glow-box-strong { box-shadow: var(--glow-primary-strong); }
-  .card-gradient { background: linear-gradient(135deg, hsl(0, 0%, 8%) 0%, hsl(0, 0%, 5%) 100%); }
-  .border-glow { border: 1px solid hsl(120, 100%, 50%, 0.2); }
+  .card-gradient { background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%); }
+  .border-glow { border: 1px solid hsl(var(--primary) / 0.2); }
 
   /* —— AD SCALE v2 —— */
   .glass { @apply bg-card/60 backdrop-blur-xl border border-border/60 rounded-2xl; }
