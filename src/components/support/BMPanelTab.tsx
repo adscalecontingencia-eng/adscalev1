@@ -4,6 +4,8 @@ import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings
 import { cn } from '@/lib/utils';
 import BackupsManagerDialog from './BackupsManagerDialog';
 import BMDetailDrawer from './BMDetailDrawer';
+import DetectedProfilesDialog from './DetectedProfilesDialog';
+import { ScanLine } from 'lucide-react';
 
 interface BM { id: string; meta_bm_id: string; name: string; status: string | null; verification_status: string | null; account_count: number | null }
 interface Account { id: string; bm_id: string | null; status: string | null }
@@ -22,6 +24,7 @@ const BMPanelTab: React.FC = () => {
   const [minBackups, setMinBackups] = useState(2);
   const [search, setSearch] = useState('');
   const [showBackupsManager, setShowBackupsManager] = useState(false);
+  const [showDetected, setShowDetected] = useState(false);
   const [detail, setDetail] = useState<BM | null>(null);
 
   const load = async () => {
@@ -107,6 +110,9 @@ const BMPanelTab: React.FC = () => {
             className="w-full pl-9 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
+        <button onClick={() => setShowDetected(true)} className="bg-primary/15 border border-primary/40 text-primary rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:bg-primary/25">
+          <ScanLine size={12} /> Detectar perfis
+        </button>
         <button onClick={() => setShowBackupsManager(true)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:border-primary/50">
           <Settings size={12} /> Gerenciar backups
         </button>
@@ -121,6 +127,7 @@ const BMPanelTab: React.FC = () => {
       </div>
 
       <BackupsManagerDialog open={showBackupsManager} onClose={() => setShowBackupsManager(false)} onChange={load} />
+      <DetectedProfilesDialog open={showDetected} onClose={() => setShowDetected(false)} onChanged={load} />
       <BMDetailDrawer bm={detail} open={!!detail} onClose={() => setDetail(null)} minBackups={minBackups} onChanged={load} />
     </div>
   );
