@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset_login") {
-      const { client_id, user_id, new_email, new_password } = body;
+      const { client_id, support_user_id, user_id, new_email, new_password } = body;
 
       if (!new_email && !new_password) {
         return new Response(JSON.stringify({ error: "Informe novo e-mail e/ou nova senha" }), {
@@ -192,8 +192,16 @@ Deno.serve(async (req) => {
           .maybeSingle();
         targetUserId = cli?.auth_user_id || null;
       }
+      if (!targetUserId && support_user_id) {
+        const { data: su } = await supabaseAdmin
+          .from("support_users")
+          .select("auth_user_id")
+          .eq("id", support_user_id)
+          .maybeSingle();
+        targetUserId = su?.auth_user_id || null;
+      }
       if (!targetUserId) {
-        return new Response(JSON.stringify({ error: "Usuário de autenticação não encontrado para este cliente" }), {
+        return new Response(JSON.stringify({ error: "Usuário de autenticação não encontrado" }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -214,13 +222,42 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Keep clients table email in sync
+      // Sync table emails
       if (new_email && client_id) {
         await supabaseAdmin.from("clients").update({ email: new_email }).eq("id", client_id);
-      } else if (new_email && !client_id) {
+      } else if (new_email && support_user_id) {
+        await supabaseAdmin.from("support_users").update({ email: new_email }).eq("id", support_user_id);
+      } else if (new_email) {
         await supabaseAdmin.from("clients").update({ email: new_email }).eq("auth_user_id", targetUserId);
+        await supabaseAdmin.from("support_users").update({ email: new_email }).eq("auth_user_id", targetUserId);
       }
 
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update_support_permissions") {
+      const { support_user_id, name, permissions } = body;
+      if (!support_user_id) {
+        return new Response(JSON.stringify({ error: "Missing support_user_id" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const upd: Record<string, unknown> = {};
+      if (name) upd.name = name;
+      if (Array.isArray(permissions)) upd.permissions = permissions;
+      if (Object.keys(upd).length === 0) {
+        return new Response(JSON.stringify({ error: "Nada para atualizar" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabaseAdmin.from("support_users").update(upd).eq("id", support_user_id);
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
