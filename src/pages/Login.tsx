@@ -200,6 +200,9 @@ const Login: React.FC = () => {
           Primeiro acesso? <Link to="/signup" className="text-primary hover:underline font-medium">Cadastre-se</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
+          Esqueceu sua senha? <Link to="/forgot-password" className="text-primary hover:underline font-medium">Redefinir senha</Link>
+        </p>
+        <p className="text-center text-muted-foreground text-xs mt-2">
           <Link to="/marketplace" className="text-primary hover:underline font-medium">Explorar marketplace</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
