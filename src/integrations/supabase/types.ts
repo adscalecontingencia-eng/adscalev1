@@ -568,6 +568,7 @@ export type Database = {
           id: string
           last_synced_at: string | null
           meta_account_id: string
+          meta_app_id: string | null
           name: string
           owner_business_name: string | null
           page_count: number | null
@@ -596,6 +597,7 @@ export type Database = {
           id?: string
           last_synced_at?: string | null
           meta_account_id: string
+          meta_app_id?: string | null
           name: string
           owner_business_name?: string | null
           page_count?: number | null
@@ -624,6 +626,7 @@ export type Database = {
           id?: string
           last_synced_at?: string | null
           meta_account_id?: string
+          meta_app_id?: string | null
           name?: string
           owner_business_name?: string | null
           page_count?: number | null
@@ -641,6 +644,13 @@ export type Database = {
             columns: ["bm_id"]
             isOneToOne: false
             referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_ad_accounts_meta_app_id_fkey"
+            columns: ["meta_app_id"]
+            isOneToOne: false
+            referencedRelation: "meta_apps"
             referencedColumns: ["id"]
           },
         ]
@@ -850,6 +860,7 @@ export type Database = {
           created_at: string
           id: string
           last_synced_at: string | null
+          meta_app_id: string | null
           meta_bm_id: string
           name: string
           page_count: number | null
@@ -864,6 +875,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_synced_at?: string | null
+          meta_app_id?: string | null
           meta_bm_id: string
           name: string
           page_count?: number | null
@@ -878,6 +890,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_synced_at?: string | null
+          meta_app_id?: string | null
           meta_bm_id?: string
           name?: string
           page_count?: number | null
@@ -887,7 +900,15 @@ export type Database = {
           updated_at?: string
           verification_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meta_business_managers_meta_app_id_fkey"
+            columns: ["meta_app_id"]
+            isOneToOne: false
+            referencedRelation: "meta_apps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_critical_events: {
         Row: {
@@ -997,6 +1018,7 @@ export type Database = {
           is_published: boolean | null
           is_restricted: boolean | null
           last_synced_at: string | null
+          meta_app_id: string | null
           meta_page_id: string
           name: string
           picture_url: string | null
@@ -1014,6 +1036,7 @@ export type Database = {
           is_published?: boolean | null
           is_restricted?: boolean | null
           last_synced_at?: string | null
+          meta_app_id?: string | null
           meta_page_id: string
           name: string
           picture_url?: string | null
@@ -1031,6 +1054,7 @@ export type Database = {
           is_published?: boolean | null
           is_restricted?: boolean | null
           last_synced_at?: string | null
+          meta_app_id?: string | null
           meta_page_id?: string
           name?: string
           picture_url?: string | null
@@ -1043,6 +1067,13 @@ export type Database = {
             columns: ["bm_id"]
             isOneToOne: false
             referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_pages_meta_app_id_fkey"
+            columns: ["meta_app_id"]
+            isOneToOne: false
+            referencedRelation: "meta_apps"
             referencedColumns: ["id"]
           },
         ]
