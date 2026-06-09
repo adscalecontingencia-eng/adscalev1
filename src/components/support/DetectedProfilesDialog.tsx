@@ -152,8 +152,8 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
           await supabase.from('meta_user_whitelist').delete().eq('meta_user_id', id);
         }
       }
-      toast.success('Whitelist salva. Rodando sync de backups...');
-      await supabase.functions.invoke('scan-bm-backups', { body: {} });
+      toast.success('Whitelist salva. Re-escaneando em segundo plano...');
+      await supabase.functions.invoke('scan-bm-backups', { body: { action: 'start' } });
       await load();
       setDirty(new Set());
       onChanged?.();
