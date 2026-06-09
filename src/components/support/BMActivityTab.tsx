@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
-import { Building2, Plus, Users, X, Save, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { Building2, Plus, Users, X, Save, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronRight, Sparkles, RefreshCw, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -36,6 +36,33 @@ const BMActivityTab: React.FC = () => {
   const [showProfileDialog, setShowProfileDialog] = useState<string | null>(null); // bm_id
   const [newProfileName, setNewProfileName] = useState('');
   const [logForm, setLogForm] = useState<Record<string, { availability: string; accounts: number; notes: string }>>({});
+  const [metaUsers, setMetaUsers] = useState<Record<string, { id: string; name: string; email?: string | null; role?: string | null; kind: string }[]>>({});
+  const [loadingMeta, setLoadingMeta] = useState<Record<string, boolean>>({});
+
+  const fetchMetaUsers = async (bm: BM) => {
+    setLoadingMeta(p => ({ ...p, [bm.id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-bm-users', { body: { meta_bm_id: bm.meta_bm_id } });
+      if (error || data?.erro) throw new Error(error?.message || data?.erro);
+      const users = (data?.usuarios || []) as any[];
+      setMetaUsers(p => ({ ...p, [bm.id]: users }));
+      if (users.length === 0) toast.info('Nenhum usuário retornado pela Meta para essa BM');
+      else toast.success(`${users.length} usuário(s) carregado(s) da Meta`);
+      if (data?.erros?.length) console.warn('Meta errors:', data.erros);
+    } catch (e: any) {
+      toast.error('Erro Meta: ' + e.message);
+    } finally {
+      setLoadingMeta(p => ({ ...p, [bm.id]: false }));
+    }
+  };
+
+  const addProfileFromMeta = async (bmId: string, name: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('bm_profiles').insert({ bm_id: bmId, profile_name: name, created_by: user?.id });
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success(`Perfil "${name}" vinculado`);
+    load();
+  };
 
   const load = async () => {
     const [bRes, pRes, aRes] = await Promise.all([
@@ -227,10 +254,21 @@ const BMActivityTab: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perfis vinculados</h4>
-                      <button onClick={() => { setShowProfileDialog(bm.id); setNewProfileName(''); }}
-                        className="text-xs text-primary hover:underline flex items-center gap-1">
-                        <Plus size={12} /> Adicionar perfil
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => fetchMetaUsers(bm)}
+                          disabled={loadingMeta[bm.id]}
+                          className="text-xs text-sky-400 hover:underline flex items-center gap-1 disabled:opacity-50"
+                          title="Buscar usuários desta BM na Meta"
+                        >
+                          <RefreshCw size={12} className={loadingMeta[bm.id] ? 'animate-spin' : ''} />
+                          {loadingMeta[bm.id] ? 'Buscando...' : 'Buscar perfis da Meta'}
+                        </button>
+                        <button onClick={() => { setShowProfileDialog(bm.id); setNewProfileName(''); }}
+                          className="text-xs text-primary hover:underline flex items-center gap-1">
+                          <Plus size={12} /> Adicionar manualmente
+                        </button>
+                      </div>
                     </div>
                     {bmProfiles.length === 0 ? (
                       <p className="text-xs text-muted-foreground/70">Nenhum perfil cadastrado nesta BM.</p>
@@ -250,6 +288,40 @@ const BMActivityTab: React.FC = () => {
                         })}
                       </div>
                     )}
+
+                    {/* Sugestões vindas da Meta */}
+                    {metaUsers[bm.id] && metaUsers[bm.id].length > 0 && (
+                      <div className="mt-3 p-2 rounded-lg border border-sky-500/30 bg-sky-500/5">
+                        <div className="text-[10px] uppercase tracking-wider text-sky-400 mb-1.5 flex items-center gap-1">
+                          <Sparkles size={10} /> Usuários encontrados na Meta ({metaUsers[bm.id].length})
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {metaUsers[bm.id].map(u => {
+                            const already = bmProfiles.some(p => p.profile_name.toLowerCase() === (u.name || '').toLowerCase());
+                            return (
+                              <button
+                                key={u.id + u.kind}
+                                disabled={already}
+                                onClick={() => addProfileFromMeta(bm.id, u.name)}
+                                className={cn(
+                                  "text-xs px-2 py-1 rounded-md inline-flex items-center gap-1.5 border transition-colors",
+                                  already
+                                    ? "opacity-50 cursor-not-allowed bg-secondary border-border"
+                                    : "bg-secondary border-border hover:border-sky-400 hover:bg-sky-500/10"
+                                )}
+                                title={already ? 'Já vinculado' : `Adicionar ${u.name}${u.role ? ' · ' + u.role : ''}`}
+                              >
+                                {already ? <Users size={11} /> : <Download size={11} />}
+                                <span>{u.name || u.id}</span>
+                                {u.role && <span className="text-[9px] opacity-60">· {u.role}</span>}
+                                <span className="text-[9px] opacity-50">· {u.kind}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {showProfileDialog === bm.id && (
                       <div className="mt-2 flex gap-2">
                         <input
