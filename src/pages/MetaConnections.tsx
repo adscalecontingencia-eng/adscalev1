@@ -155,6 +155,12 @@ export default function MetaConnections() {
     return (id: string | null) => (id ? m.get(id) || "—" : "Sem BM");
   }, [bms]);
 
+  const bmVerifiedMap = useMemo(() => {
+    const m = new Map<string, boolean>();
+    bms.forEach((b) => m.set(b.id, (b.verification_status || "").toLowerCase().includes("verified")));
+    return m;
+  }, [bms]);
+
   const currentClient = useMemo(() => {
     const m = new Map(assignments.map((a) => [a.ad_account_id, a.client_id]));
     return (accId: string) => m.get(accId) || null;
@@ -402,6 +408,7 @@ export default function MetaConnections() {
                   key={a.id}
                   account={a}
                   bmName={bmName(a.bm_id)}
+                  bmVerified={a.bm_id ? bmVerifiedMap.get(a.bm_id) : false}
                   clients={clients}
                   currentClientId={currentClient(a.id)}
                   onAssign={(cid) => assign(a.id, cid)}

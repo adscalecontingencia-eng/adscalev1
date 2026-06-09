@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  CheckCircle2, AlertOctagon, Clock, Wallet, CreditCard, Globe, Eye, Building2, ExternalLink,
+  CheckCircle2, AlertOctagon, Clock, Wallet, CreditCard, Globe, Eye, Building2, ExternalLink, BadgeCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { scoreColor, scoreBadgeVariant } from "@/lib/meta-score";
@@ -32,13 +32,14 @@ interface Client { id: string; name: string; email: string }
 interface Props {
   account: AccountCardData;
   bmName: string;
+  bmVerified?: boolean;
   clients: Client[];
   currentClientId: string | null;
   onAssign: (clientId: string | null) => Promise<void> | void;
   onOpenDetail: () => void;
 }
 
-export default function AccountCard({ account, bmName, clients, currentClientId, onAssign, onOpenDetail }: Props) {
+export default function AccountCard({ account, bmName, bmVerified, clients, currentClientId, onAssign, onOpenDetail }: Props) {
   const isActive = account.status === "active";
   const score = account.score ?? 0;
   const noFunding = !account.funding_source;
@@ -65,7 +66,18 @@ export default function AccountCard({ account, bmName, clients, currentClientId,
             <Badge variant="outline" className="text-[10px] font-mono">{account.meta_account_id}</Badge>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-            <Building2 className="h-3 w-3" /> {bmName}
+            <Building2 className="h-3 w-3" />
+            <span>{bmName}</span>
+            {bmVerified && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <BadgeCheck className="h-3.5 w-3.5 text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent>BM verificada</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
