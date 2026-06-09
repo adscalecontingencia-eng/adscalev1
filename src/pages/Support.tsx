@@ -165,6 +165,7 @@ const Support: React.FC = () => {
         </TabsList>
 
         <TabsContent value="tarefas" className="space-y-6 mt-0">
+          {(() => {
 
         const allItems = [
           ...tasks.map(t => ({ status: t.status })),
