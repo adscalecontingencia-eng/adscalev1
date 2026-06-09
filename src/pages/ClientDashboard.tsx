@@ -93,12 +93,29 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      const t0 = performance.now();
+      const ctx = {
+        isAdminView,
+        viewAsClientId: viewAsClientId || null,
+        userId: user?.id || null,
+        userEmail: user?.email || null,
+        userRole: user?.role || null,
+        ts: new Date().toISOString(),
+      };
+
       // Aguarda o AuthContext resolver antes de tentar buscar
       if (!isAdminView && !user?.email) {
-        // Se já sabemos que não há usuário logado, paramos o loading
-        if (user === null) setLoading(false);
+        if (user === null) {
+          // Sessão resolvida porém sem usuário logado — registramos para diagnóstico
+          console.warn('[ClientDashboard][telemetry] sem user.email após resolução do AuthContext', ctx);
+          setLoading(false);
+        } else {
+          // Auth ainda carregando — apenas log de debug, sem ruído de erro
+          console.debug('[ClientDashboard][telemetry] aguardando user.email do AuthContext', ctx);
+        }
         return;
       }
+
       setLoading(true);
       try {
         let clientQuery = supabase.from('clients').select('*');
@@ -109,25 +126,58 @@ const ClientDashboard: React.FC = () => {
         }
         const { data: clientData, error: clientErr } = await clientQuery.maybeSingle();
         if (clientErr) {
-          console.error('[ClientDashboard] erro ao buscar cliente:', clientErr);
+          console.error('[ClientDashboard][telemetry] erro ao buscar cliente', {
+            ...ctx,
+            error: { code: (clientErr as any).code, message: clientErr.message, details: (clientErr as any).details },
+            elapsed_ms: Math.round(performance.now() - t0),
+          });
         }
         if (clientData) {
           setClient(clientData);
           clientIdRef.current = clientData.id;
-          const [{ data: commData }, { data: blocked }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
+          const [commRes, blockedRes, pagesRes, reqsRes] = await Promise.all([
             supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
             supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
             supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
             supabase.from('support_requests').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
           ]);
+          // Telemetria por sub-consulta para facilitar diagnóstico
+          const subErrors: Record<string, any> = {};
+          if (commRes.error) subErrors.commissions = commRes.error.message;
+          if (blockedRes.error) subErrors.blocked = blockedRes.error.message;
+          if (pagesRes.error) subErrors.pages = pagesRes.error.message;
+          if (reqsRes.error) subErrors.requests = reqsRes.error.message;
+          if (Object.keys(subErrors).length > 0) {
+            console.warn('[ClientDashboard][telemetry] falhas em sub-consultas', { ...ctx, clientId: clientData.id, subErrors });
+          }
           await fetchAccounts(clientData.id);
-          setCommissions(commData || []);
-          setSavedAccounts(blocked || []);
-          setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
-          setSupportRequests(reqs || []);
+          setCommissions(commRes.data || []);
+          setSavedAccounts(blockedRes.data || []);
+          setPages((pagesRes.data || []).map((a: any) => a.page).filter(Boolean));
+          setSupportRequests(reqsRes.data || []);
+          console.debug('[ClientDashboard][telemetry] dados carregados', {
+            ...ctx,
+            clientId: clientData.id,
+            commissions: commRes.data?.length || 0,
+            blocked: blockedRes.data?.length || 0,
+            pages: pagesRes.data?.length || 0,
+            requests: reqsRes.data?.length || 0,
+            elapsed_ms: Math.round(performance.now() - t0),
+          });
+        } else if (!clientErr) {
+          // Sem registro de cliente para este e-mail/ID — situação importante de rastrear
+          console.warn('[ClientDashboard][telemetry] cliente não encontrado', {
+            ...ctx,
+            lookup: isAdminView ? { by: 'id', value: viewAsClientId } : { by: 'email', value: user?.email },
+            elapsed_ms: Math.round(performance.now() - t0),
+          });
         }
-      } catch (e) {
-        console.error('[ClientDashboard] erro inesperado:', e);
+      } catch (e: any) {
+        console.error('[ClientDashboard][telemetry] erro inesperado', {
+          ...ctx,
+          error: { message: e?.message, stack: e?.stack },
+          elapsed_ms: Math.round(performance.now() - t0),
+        });
       } finally {
         setLoading(false);
       }
