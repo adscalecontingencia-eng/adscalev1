@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
