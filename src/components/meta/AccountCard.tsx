@@ -39,7 +39,7 @@ interface Props {
   onOpenDetail: () => void;
 }
 
-export default function AccountCard({ account, bmName, clients, currentClientId, onAssign, onOpenDetail }: Props) {
+export default function AccountCard({ account, bmName, bmVerified, clients, currentClientId, onAssign, onOpenDetail }: Props) {
   const isActive = account.status === "active";
   const score = account.score ?? 0;
   const noFunding = !account.funding_source;
