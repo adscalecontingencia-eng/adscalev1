@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BackupsManagerDialog from './BackupsManagerDialog';
 import BMDetailDrawer from './BMDetailDrawer';
 import DetectedProfilesDialog from './DetectedProfilesDialog';
 import { ScanLine } from 'lucide-react';
+import { toast } from 'sonner';
+
+type TabKey = 'all' | 'active' | 'blocked' | 'unassigned';
 
 interface BM { id: string; meta_bm_id: string; name: string; status: string | null; verification_status: string | null; account_count: number | null }
 interface Account { id: string; bm_id: string | null; status: string | null }
@@ -26,6 +29,8 @@ const BMPanelTab: React.FC = () => {
   const [showBackupsManager, setShowBackupsManager] = useState(false);
   const [showDetected, setShowDetected] = useState(false);
   const [detail, setDetail] = useState<BM | null>(null);
+  const [tab, setTab] = useState<TabKey>('all');
+  const [syncing, setSyncing] = useState(false);
 
   const load = async () => {
     const [b, a, asn, bk, ba, p, s] = await Promise.all([
@@ -88,6 +93,29 @@ const BMPanelTab: React.FC = () => {
     };
   }, [bms, groups, backupAssignments, minBackups]);
 
+  const sync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke('meta-sync', { body: { action: 'start_sync_accounts' } });
+      if (error) throw error;
+      toast.success('Sincronização iniciada em segundo plano');
+      setTimeout(load, 4000);
+    } catch (e: any) {
+      toast.error(e.message || 'Falha ao sincronizar');
+    } finally {
+      setTimeout(() => setSyncing(false), 3000);
+    }
+  };
+
+  const tabs: { key: TabKey; label: string; count: number; tone: 'primary' | 'destructive' | 'amber' | 'neutral' }[] = [
+    { key: 'all', label: 'Todas', count: filtered.length, tone: 'neutral' },
+    { key: 'active', label: 'Ativas', count: groups.active.length, tone: 'primary' },
+    { key: 'blocked', label: 'Bloqueadas', count: groups.blocked.length, tone: 'destructive' },
+    { key: 'unassigned', label: 'Sem cliente', count: groups.unassigned.length, tone: 'amber' },
+  ];
+  const currentBms = tab === 'all' ? filtered : tab === 'active' ? groups.active : tab === 'blocked' ? groups.blocked : groups.unassigned;
+
   return (
     <div className="space-y-4">
       {/* KPIs */}
@@ -110,6 +138,10 @@ const BMPanelTab: React.FC = () => {
             className="w-full pl-9 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
+        <button onClick={sync} disabled={syncing} className="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-semibold inline-flex items-center gap-1 hover:opacity-90 disabled:opacity-60">
+          <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Sincronizando...' : 'Sincronizar BMs + Contas'}
+        </button>
         <button onClick={() => setShowDetected(true)} className="bg-primary/15 border border-primary/40 text-primary rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:bg-primary/25">
           <ScanLine size={12} /> Detectar perfis
         </button>
@@ -118,13 +150,42 @@ const BMPanelTab: React.FC = () => {
         </button>
       </div>
 
-      {/* 4 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
-        <Column title="Todas" subtitle="todas as BMs cadastradas" tone="neutral" bms={filtered} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
-        <Column title="Ativas" subtitle="com cliente atribuído" tone="primary" bms={groups.active} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
-        <Column title="Bloqueadas" subtitle="status ≠ ativa" tone="destructive" bms={groups.blocked} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
-        <Column title="Sem cliente" subtitle="ativas, sem atribuição" tone="amber" bms={groups.unassigned} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-1 border-b border-border">
+        {tabs.map(t => {
+          const active = tab === t.key;
+          const toneActive = {
+            primary: 'border-primary text-primary',
+            destructive: 'border-destructive text-destructive',
+            amber: 'border-amber-400 text-amber-300',
+            neutral: 'border-foreground text-foreground',
+          }[t.tone];
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "px-4 py-2 text-xs font-semibold border-b-2 transition-colors inline-flex items-center gap-2",
+                active ? toneActive : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {t.label}
+              <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-secondary">{t.count}</span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* Grid */}
+      {currentBms.length === 0 ? (
+        <p className="text-sm text-muted-foreground/60 text-center py-12">Nenhuma BM nesta categoria</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {currentBms.map(bm => (
+            <BMCard key={bm.id} bm={bm} stats={bmStats(bm.id)} minBackups={minBackups} onOpen={() => setDetail(bm)} />
+          ))}
+        </div>
+      )}
 
       <BackupsManagerDialog open={showBackupsManager} onClose={() => setShowBackupsManager(false)} onChange={load} />
       <DetectedProfilesDialog open={showDetected} onClose={() => setShowDetected(false)} onChanged={load} />
@@ -143,84 +204,48 @@ const KPI: React.FC<{ label: string; value: number; icon: any; cls: string }> = 
   </div>
 );
 
-const Column: React.FC<{
-  title: string;
-  subtitle: string;
-  tone: 'primary' | 'destructive' | 'amber' | 'neutral';
-  bms: BM[];
-  bmStats: (id: string) => any;
+const BMCard: React.FC<{
+  bm: BM;
+  stats: any;
   minBackups: number;
-  onOpen: (bm: BM) => void;
-}> = ({ title, subtitle, tone, bms, bmStats, minBackups, onOpen }) => {
-  const toneCls = {
-    primary: 'border-primary/40 bg-primary/5',
-    destructive: 'border-destructive/40 bg-destructive/5',
-    amber: 'border-amber-500/40 bg-amber-500/5',
-    neutral: 'border-border bg-secondary/20',
-  }[tone];
-  const badgeCls = {
-    primary: 'bg-primary/20 text-primary',
-    destructive: 'bg-destructive/20 text-destructive',
-    amber: 'bg-amber-500/20 text-amber-300',
-    neutral: 'bg-secondary text-foreground',
-  }[tone];
+  onOpen: () => void;
+}> = ({ bm, stats: st, minBackups, onOpen }) => {
+  const outOfBackup = st.backupCount < minBackups;
   return (
-    <div className={cn("rounded-xl border p-3 min-h-[200px]", toneCls)}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="text-[10px] text-muted-foreground">{subtitle}</div>
+    <button
+      onClick={onOpen}
+      className="w-full text-left bg-card hover:bg-secondary border border-border hover:border-primary/40 rounded-lg p-3 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold truncate">{bm.name}</div>
+          <div className="text-[10px] font-mono text-muted-foreground">{bm.meta_bm_id}</div>
         </div>
-        <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", badgeCls)}>{bms.length}</span>
+        {bm.verification_status?.toLowerCase().includes('verified') && (
+          <CheckCircle2 size={12} className="text-primary shrink-0" />
+        )}
       </div>
-      {bms.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground/60 text-center py-8">Nenhuma BM</p>
-      ) : (
-        <div className="space-y-2">
-          {bms.map(bm => {
-            const st = bmStats(bm.id);
-            const outOfBackup = st.backupCount < minBackups;
-            return (
-              <button
-                key={bm.id}
-                onClick={() => onOpen(bm)}
-                className="w-full text-left bg-secondary/60 hover:bg-secondary border border-border hover:border-primary/40 rounded-lg p-3 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold truncate">{bm.name}</div>
-                    <div className="text-[10px] font-mono text-muted-foreground">{bm.meta_bm_id}</div>
-                  </div>
-                  {bm.verification_status?.toLowerCase().includes('verified') && (
-                    <CheckCircle2 size={12} className="text-primary shrink-0" />
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  <span className="text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5">
-                    {st.active}/{st.total} contas ok
-                  </span>
-                  {st.blocked > 0 && (
-                    <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/30 rounded px-1.5 py-0.5">
-                      {st.blocked} bloq.
-                    </span>
-                  )}
-                  <span className={cn("text-[10px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1",
-                    outOfBackup ? "bg-red-500/10 text-red-300 border-red-500/40" : "bg-primary/10 text-primary border-primary/30"
-                  )}>
-                    <HardDrive size={9} /> {st.backupCount}/{minBackups}
-                  </span>
-                  {outOfBackup && (
-                    <span className="text-[10px] bg-red-500/15 text-red-300 border border-red-500/40 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
-                      <AlertTriangle size={9} /> Fora do backup
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      <div className="flex flex-wrap gap-1 mt-2">
+        <span className="text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5">
+          {st.active}/{st.total} contas ok
+        </span>
+        {st.blocked > 0 && (
+          <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/30 rounded px-1.5 py-0.5">
+            {st.blocked} bloq.
+          </span>
+        )}
+        <span className={cn("text-[10px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1",
+          outOfBackup ? "bg-red-500/10 text-red-300 border-red-500/40" : "bg-primary/10 text-primary border-primary/30"
+        )}>
+          <HardDrive size={9} /> {st.backupCount}/{minBackups}
+        </span>
+        {outOfBackup && (
+          <span className="text-[10px] bg-red-500/15 text-red-300 border border-red-500/40 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
+            <AlertTriangle size={9} /> Fora do backup
+          </span>
+        )}
+      </div>
+    </button>
   );
 };
 
