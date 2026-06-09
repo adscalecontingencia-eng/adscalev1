@@ -23,6 +23,7 @@ import NotificationSettings from "./pages/NotificationSettings";
 import Signup from "./pages/Signup";
 import AccessLogs from "./pages/AccessLogs";
 import AuditLog from "./pages/AuditLog";
+import ClientsAuthAudit from "./pages/ClientsAuthAudit";
 import Partners from "./pages/Partners";
 import PartnerSignup from "./pages/PartnerSignup";
 import PartnerDashboard from "./pages/PartnerDashboard";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/" element={<Navigate to="/marketplace" />} />
               <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/clients-auth-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><ClientsAuthAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Clients /></DashboardLayout></ProtectedRoute>} />
               <Route path="/financial" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Financial /></DashboardLayout></ProtectedRoute>} />
