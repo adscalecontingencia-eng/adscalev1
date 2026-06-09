@@ -16,19 +16,47 @@ const ResetPassword: React.FC = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Supabase v2 puts recovery tokens in the URL hash and auto-creates a recovery session.
-    // Listen for PASSWORD_RECOVERY event or check existing session.
+    let cancelled = false;
+
+    const init = async () => {
+      // PKCE flow: Supabase appends ?code=xxx to the redirect URL.
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        // Clean the code from the URL so refreshes don't retry it.
+        url.searchParams.delete('code');
+        url.searchParams.delete('reset');
+        window.history.replaceState(null, '', url.pathname + url.search + '#/reset-password');
+        if (!cancelled) {
+          if (error) {
+            setError('Link de recuperação inválido ou expirado. Solicite um novo.');
+            toast.error('Link inválido ou expirado');
+          } else {
+            setReady(true);
+          }
+        }
+        return;
+      }
+
+      // Legacy hash-token flow fallback.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!cancelled && session) setReady(true);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setReady(true);
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    init();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
