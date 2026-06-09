@@ -55,6 +55,7 @@ interface Props {
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onResetPassword?: () => void;
   onTogglePayForm: () => void;
   onSubmitPay: () => void;
   onOpenHistory: () => void;
