@@ -194,6 +194,23 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
           </div>
         </div>
 
+        {job && (
+          <div className="px-4 py-2 border-b border-border bg-primary/5">
+            <div className="flex items-center justify-between text-[11px] mb-1">
+              <span className="text-primary font-semibold">
+                {job.status === 'running' ? 'Escaneando BMs...' : job.status === 'completed' ? 'Concluído' : job.status === 'failed' ? 'Falhou' : 'Aguardando...'}
+              </span>
+              <span className="text-muted-foreground">
+                {job.progress_total > 0 ? `${job.progress_current}/${job.progress_total}` : ''} · {job.synced_count} usuários
+              </span>
+            </div>
+            <div className="h-1.5 bg-secondary rounded overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${job.progress_total ? (job.progress_current / job.progress_total) * 100 : (job.status === 'completed' ? 100 : 5)}%` }} />
+            </div>
+            {job.message && <p className="text-[10px] text-muted-foreground mt-1 truncate">{job.message}</p>}
+          </div>
+        )}
+
         <div className="overflow-auto p-4">
           {grouped.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
