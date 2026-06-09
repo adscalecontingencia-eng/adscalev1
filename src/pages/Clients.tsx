@@ -959,9 +959,80 @@ const Clients: React.FC = () => {
                     <input type="number" step="0.01" value={form.planCredit ?? ''} onChange={e => setForm(p => ({ ...p, planCredit: parseFloat(e.target.value) || 0 }))} placeholder="0.00" className={inputClass} />
                     <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
                   </div>
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-[11px] text-muted-foreground">
-                    As <strong className="text-primary">metas semanais de desconto</strong> são globais. Configure-as no botão
-                    <strong className="text-foreground"> "Metas de Desconto"</strong> na lista de clientes.
+                  {/* Metas semanais personalizadas (sobrescrevem os tiers globais) */}
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold text-primary">Metas semanais personalizadas</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Se vazio, usa os tiers globais (configurados em "Metas de Desconto").
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForm(p => ({
+                          ...p,
+                          customTiers: [...(p.customTiers || []), { min_spend: 0, pct: 0 }],
+                        }))}
+                        className="text-[11px] px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 shrink-0"
+                      >
+                        + Adicionar meta
+                      </button>
+                    </div>
+                    {(form.customTiers && form.customTiers.length > 0) ? (
+                      <div className="space-y-1.5">
+                        {form.customTiers.map((t, idx) => (
+                          <div key={idx} className="flex items-end gap-2 bg-background/40 border border-border rounded-md p-2">
+                            <div className="flex-1">
+                              <label className="block text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Gasto acima de (USD)</label>
+                              <input
+                                type="number"
+                                value={t.min_spend}
+                                onChange={e => {
+                                  const v = parseFloat(e.target.value) || 0;
+                                  setForm(p => ({
+                                    ...p,
+                                    customTiers: (p.customTiers || []).map((x, i) => i === idx ? { ...x, min_spend: v } : x),
+                                  }));
+                                }}
+                                className={inputClass}
+                              />
+                            </div>
+                            <div className="w-20">
+                              <label className="block text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">%</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={t.pct}
+                                onChange={e => {
+                                  const v = parseFloat(e.target.value) || 0;
+                                  setForm(p => ({
+                                    ...p,
+                                    customTiers: (p.customTiers || []).map((x, i) => i === idx ? { ...x, pct: v } : x),
+                                  }));
+                                }}
+                                className={inputClass}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setForm(p => ({
+                                ...p,
+                                customTiers: (p.customTiers || []).filter((_, i) => i !== idx),
+                              }))}
+                              className="p-2 rounded hover:bg-destructive/10 text-destructive"
+                              title="Remover meta"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground italic">
+                        Nenhuma meta personalizada — este cliente usa os tiers globais.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
