@@ -30,6 +30,8 @@ import Marketplace from "./pages/Marketplace";
 import AdminMarketplace from "./pages/AdminMarketplace";
 import MyOrders from "./pages/MyOrders";
 import CompleteSignup from "./pages/CompleteSignup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
