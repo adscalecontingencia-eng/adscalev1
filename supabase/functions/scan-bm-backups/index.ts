@@ -78,6 +78,7 @@ function diagnoseError(msg: string): string {
   if (/access token/i.test(msg)) return "Token Meta inválido/expirado. Atualize META_USER_ACCESS_TOKEN com novo token (Graph API Explorer · business_management).";
   if (/permission|not authorized|do not have/i.test(msg)) return "O usuário do token não é Admin nessa BM. Adicione-o em Business Settings > Users.";
   if (/rate|limit|throttl/i.test(msg)) return "Rate limit do Meta. Aguarde alguns minutos e tente de novo.";
+  if (/não retornada|não retornou BMs/i.test(msg)) return "O token do perfil não lista essa BM em /me/businesses. Sincronize Conexões Meta e confirme que o perfil do token é Admin na BM.";
   if (/timeout|timed out|fetch/i.test(msg)) return "Timeout de rede com a Meta. Tente novamente.";
   return "Verifique logs da edge function scan-bm-backups.";
 }
@@ -95,11 +96,19 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
       .select("id, label, system_user_token, user_access_token, status, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    let sources = (appRows || [])
+    const seenTokens = new Set<string>();
+    const sources: any[] = [];
+    const addSource = (source: any) => {
+      if (!source.token || seenTokens.has(source.token)) return;
+      seenTokens.add(source.token);
+      sources.push(source);
+    };
+    addSource({ id: null, label: "Token do perfil", token: cleanToken(Deno.env.get("META_USER_ACCESS_TOKEN")) });
+    (appRows || [])
       .map((a: any) => ({ id: a.id, label: a.label || "Meta App", token: cleanToken(a.user_access_token) || cleanToken(a.system_user_token) }))
-      .filter((a: any) => a.token);
+      .forEach(addSource);
     if (sources.length === 0) {
-      const envToken = cleanToken(Deno.env.get("META_USER_ACCESS_TOKEN")) || cleanToken(Deno.env.get("META_SYSTEM_USER_TOKEN"));
+      const envToken = cleanToken(Deno.env.get("META_SYSTEM_USER_TOKEN"));
       if (envToken) sources = [{ id: null, label: "Token do perfil", token: envToken }];
     }
 
