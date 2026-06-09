@@ -21,6 +21,7 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState<Set<string>>(new Set());
+  const [job, setJob] = useState<{ id: string; status: string; progress_current: number; progress_total: number; synced_count: number; message: string | null; errors: any[] } | null>(null);
 
   const load = async () => {
     const [d, w, b, m] = await Promise.all([
@@ -38,6 +39,48 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
   };
 
   useEffect(() => { if (open) { load(); setDirty(new Set()); } }, [open]);
+
+  // Polling do job em background (mesma estratégia de Conexões Meta)
+  useEffect(() => {
+    if (!job?.id) return;
+    const jobId = job.id;
+    let finished = false;
+
+    const apply = (j: any) => {
+      if (!j || finished) return;
+      setJob({
+        id: j.id, status: j.status, progress_current: j.progress_current,
+        progress_total: j.progress_total, synced_count: j.synced_count,
+        message: j.message, errors: j.errors || [],
+      });
+      if (j.status === 'completed' || j.status === 'failed') {
+        finished = true;
+        setScanning(false);
+        if (j.status === 'completed') {
+          toast.success(j.message || 'Scan concluído');
+          load();
+          onChanged?.();
+        } else {
+          toast.error(j.message || 'Scan falhou — veja a Auditoria');
+        }
+        setTimeout(() => setJob(null), 6000);
+      }
+    };
+
+    const channel = supabase
+      .channel(`scan-job-${jobId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meta_sync_jobs', filter: `id=eq.${jobId}` },
+        (payload) => apply(payload.new))
+      .subscribe();
+
+    const interval = setInterval(async () => {
+      if (finished) return;
+      const { data } = await supabase.from('meta_sync_jobs').select('*').eq('id', jobId).maybeSingle();
+      apply(data);
+    }, 2500);
+
+    return () => { supabase.removeChannel(channel); clearInterval(interval); };
+  }, [job?.id]);
 
   const grouped = useMemo(() => {
     const m = new Map<string, { meta_user_id: string; name: string; email: string | null; kind: string | null; bms: string[] }>();
@@ -77,16 +120,22 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
   };
 
   const runScan = async () => {
+    if (scanning) return;
     setScanning(true);
     try {
-      const { data, error } = await supabase.functions.invoke('scan-bm-backups', { body: {} });
+      const { data, error } = await supabase.functions.invoke('scan-bm-backups', { body: { action: 'start' } });
       if (error) throw error;
-      toast.success(`Scan ok: ${data?.bms_varridas} BMs, ${data?.usuarios_detectados} usuários, ${data?.backups_vinculados} backups vinculados`);
-      await load();
-      onChanged?.();
+      if (data?.job_id) {
+        setJob({ id: data.job_id, status: 'pending', progress_current: 0, progress_total: 0, synced_count: 0, message: 'Iniciando...', errors: [] });
+        toast.info('Scan iniciado em segundo plano');
+      } else {
+        setScanning(false);
+        toast.error('Falha ao iniciar scan');
+      }
     } catch (e: any) {
+      setScanning(false);
       toast.error(e.message || 'Falha no scan');
-    } finally { setScanning(false); }
+    }
   };
 
   const save = async () => {
