@@ -93,6 +93,29 @@ const BMPanelTab: React.FC = () => {
     };
   }, [bms, groups, backupAssignments, minBackups]);
 
+  const sync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke('meta-sync', { body: { action: 'start_sync_accounts' } });
+      if (error) throw error;
+      toast.success('Sincronização iniciada em segundo plano');
+      setTimeout(load, 4000);
+    } catch (e: any) {
+      toast.error(e.message || 'Falha ao sincronizar');
+    } finally {
+      setTimeout(() => setSyncing(false), 3000);
+    }
+  };
+
+  const tabs: { key: TabKey; label: string; count: number; tone: 'primary' | 'destructive' | 'amber' | 'neutral' }[] = [
+    { key: 'all', label: 'Todas', count: filtered.length, tone: 'neutral' },
+    { key: 'active', label: 'Ativas', count: groups.active.length, tone: 'primary' },
+    { key: 'blocked', label: 'Bloqueadas', count: groups.blocked.length, tone: 'destructive' },
+    { key: 'unassigned', label: 'Sem cliente', count: groups.unassigned.length, tone: 'amber' },
+  ];
+  const currentBms = tab === 'all' ? filtered : tab === 'active' ? groups.active : tab === 'blocked' ? groups.blocked : groups.unassigned;
+
   return (
     <div className="space-y-4">
       {/* KPIs */}
@@ -115,6 +138,10 @@ const BMPanelTab: React.FC = () => {
             className="w-full pl-9 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
+        <button onClick={sync} disabled={syncing} className="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-semibold inline-flex items-center gap-1 hover:opacity-90 disabled:opacity-60">
+          <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Sincronizando...' : 'Sincronizar BMs + Contas'}
+        </button>
         <button onClick={() => setShowDetected(true)} className="bg-primary/15 border border-primary/40 text-primary rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:bg-primary/25">
           <ScanLine size={12} /> Detectar perfis
         </button>
@@ -123,13 +150,42 @@ const BMPanelTab: React.FC = () => {
         </button>
       </div>
 
-      {/* 4 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
-        <Column title="Todas" subtitle="todas as BMs cadastradas" tone="neutral" bms={filtered} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
-        <Column title="Ativas" subtitle="com cliente atribuído" tone="primary" bms={groups.active} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
-        <Column title="Bloqueadas" subtitle="status ≠ ativa" tone="destructive" bms={groups.blocked} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
-        <Column title="Sem cliente" subtitle="ativas, sem atribuição" tone="amber" bms={groups.unassigned} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-1 border-b border-border">
+        {tabs.map(t => {
+          const active = tab === t.key;
+          const toneActive = {
+            primary: 'border-primary text-primary',
+            destructive: 'border-destructive text-destructive',
+            amber: 'border-amber-400 text-amber-300',
+            neutral: 'border-foreground text-foreground',
+          }[t.tone];
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "px-4 py-2 text-xs font-semibold border-b-2 transition-colors inline-flex items-center gap-2",
+                active ? toneActive : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {t.label}
+              <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-secondary">{t.count}</span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* Grid */}
+      {currentBms.length === 0 ? (
+        <p className="text-sm text-muted-foreground/60 text-center py-12">Nenhuma BM nesta categoria</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {currentBms.map(bm => (
+            <BMCard key={bm.id} bm={bm} stats={bmStats(bm.id)} minBackups={minBackups} onOpen={() => setDetail(bm)} />
+          ))}
+        </div>
+      )}
 
       <BackupsManagerDialog open={showBackupsManager} onClose={() => setShowBackupsManager(false)} onChange={load} />
       <DetectedProfilesDialog open={showDetected} onClose={() => setShowDetected(false)} onChanged={load} />
