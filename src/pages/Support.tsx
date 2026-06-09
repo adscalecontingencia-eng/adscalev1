@@ -419,6 +419,12 @@ const Support: React.FC = () => {
         ))}
         {tasks.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma tarefa registrada.</p>}
       </div>
+        </TabsContent>
+
+        <TabsContent value="bms" className="mt-0">
+          <BMActivityTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
