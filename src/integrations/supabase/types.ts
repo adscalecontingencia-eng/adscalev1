@@ -253,6 +253,7 @@ export type Database = {
           client_type: string
           company_name: string | null
           created_at: string
+          custom_tiers: Json | null
           email: string
           fixed_value: number | null
           id: string
@@ -279,6 +280,7 @@ export type Database = {
           client_type?: string
           company_name?: string | null
           created_at?: string
+          custom_tiers?: Json | null
           email: string
           fixed_value?: number | null
           id?: string
@@ -305,6 +307,7 @@ export type Database = {
           client_type?: string
           company_name?: string | null
           created_at?: string
+          custom_tiers?: Json | null
           email?: string
           fixed_value?: number | null
           id?: string
