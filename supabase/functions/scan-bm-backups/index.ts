@@ -89,24 +89,21 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
   try {
     const setMessage = async (message: string) => { await update({ message }); };
 
-    // ---- Tokens (mesma base de Conexões Meta: apps ativos + fallback env) ----
-    const { data: apps } = await admin
+    // ---- Fontes Meta: igual Conexões Meta, começa pelo token do perfil ----
+    const { data: appRows } = await admin
       .from("meta_apps")
       .select("id, label, system_user_token, user_access_token, status, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    const tokenByApp = new Map<string, string>();
-    for (const a of apps || []) {
-      const t = cleanToken(a.user_access_token) || cleanToken(a.system_user_token);
-      if (t) tokenByApp.set(a.id, t);
+    let sources = (appRows || [])
+      .map((a: any) => ({ id: a.id, label: a.label || "Meta App", token: cleanToken(a.user_access_token) || cleanToken(a.system_user_token) }))
+      .filter((a: any) => a.token);
+    if (sources.length === 0) {
+      const envToken = cleanToken(Deno.env.get("META_USER_ACCESS_TOKEN")) || cleanToken(Deno.env.get("META_SYSTEM_USER_TOKEN"));
+      if (envToken) sources = [{ id: null, label: "Token do perfil", token: envToken }];
     }
-    const fallbackToken =
-      cleanToken(Deno.env.get("META_USER_ACCESS_TOKEN")) ||
-      (apps || []).map((a: any) => cleanToken(a.user_access_token)).find(Boolean) ||
-      cleanToken(Deno.env.get("META_SYSTEM_USER_TOKEN")) ||
-      (apps || []).map((a: any) => cleanToken(a.system_user_token)).find(Boolean);
 
-    if (!fallbackToken && tokenByApp.size === 0) {
+    if (sources.length === 0) {
       const msg = "Sem token Meta configurado";
       await update({ status: "failed", finished_at: new Date().toISOString(), message: msg });
       await logAudit(admin, {
@@ -117,7 +114,7 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
       return;
     }
 
-    // ---- Lista BMs ----
+    // ---- Lista local de BMs ----
     const { data: bms } = await admin
       .from("meta_business_managers")
       .select("id, meta_bm_id, name, status, meta_app_id");
@@ -130,12 +127,13 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
     await update({
       status: "running", started_at: new Date().toISOString(),
       progress_total: bms.length, progress_current: 0, synced_count: 0,
-      message: `Escaneando ${bms.length} BMs em fila segura para evitar rate limit...`,
+      message: `Lendo BMs e perfis diretamente do token do perfil...`,
     });
 
-    const fetchEdge = async (metaBmId: string, edge: string, token: string) => {
+    const fetchBusinessesWithUsers = async (token: string) => {
       const out: any[] = [];
-      let url: string | null = `${GRAPH}/${metaBmId}/${edge}?fields=id,name,email,role&limit=100&access_token=${token}`;
+      const fields = "id,name,verification_status,business_users.limit(200){id,name,email,role}";
+      let url: string | null = `${GRAPH}/me/businesses?fields=${encodeURIComponent(fields)}&limit=100&access_token=${encodeURIComponent(token)}`;
       while (url) {
         const res = await fetchJsonWithRetry(url, setMessage);
         if (res.error) return { data: out, error: res.error, code: res.code, rateLimited: res.rateLimited };
@@ -148,54 +146,77 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
 
     let totalUsers = 0;
     let done = 0;
-    const detectedRows: any[] = [];
     const failures: any[] = [];
+    const bmByMetaId = new Map((bms as any[]).map((b: any) => [String(b.meta_bm_id), b]));
+    const touchedBmIds = new Set<string>();
+    const seenBusinessIds = new Set<string>();
 
-    for (const bm of bms as any[]) {
-      const token = (bm.meta_app_id && tokenByApp.get(bm.meta_app_id)) || fallbackToken!;
-      const bu = await fetchEdge(bm.meta_bm_id, "business_users", token);
-      await sleep(REQUEST_DELAY_MS);
-      let su = { data: [] as any[], error: null as string | null, code: undefined as number | undefined, rateLimited: false };
-      if (!bu.rateLimited) {
-        su = await fetchEdge(bm.meta_bm_id, "system_users", token);
-      } else {
-        su = { data: [], error: "system_users pulado para preservar rate limit após business_users", code: undefined, rateLimited: false };
+    for (const source of sources as any[]) {
+      await setMessage(`Lendo BMs acessíveis pelo token: ${source.label}`);
+      const result = await fetchBusinessesWithUsers(source.token);
+      if (result.error) {
+        failures.push({ bm_name: source.label, meta_bm_id: "me/businesses", erros: [result.error] });
+        continue;
       }
-        const users = [
-          ...bu.data.map((u: any) => ({ id: u.id, name: u.name, email: u.email || null, role: u.role || null, kind: "business" })),
-          ...su.data.map((u: any) => ({ id: u.id, name: u.name, email: null, role: u.role || null, kind: "system" })),
-        ];
-        totalUsers += users.length;
+
+      const bmRows = result.data.map((bm: any) => ({
+        meta_bm_id: String(bm.id),
+        name: bm.name || `BM ${bm.id}`,
+        status: bm.verification_status || "active",
+        verification_status: bm.verification_status || null,
+        meta_app_id: source.id,
+        last_synced_at: new Date().toISOString(),
+      }));
+      if (bmRows.length) await admin.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+
+      const { data: refreshed } = await admin.from("meta_business_managers").select("id, meta_bm_id, name, status, meta_app_id");
+      for (const b of refreshed || []) bmByMetaId.set(String(b.meta_bm_id), b);
+
+      for (const metaBm of result.data) {
+        const bm = bmByMetaId.get(String(metaBm.id));
+        if (!bm || touchedBmIds.has(bm.id)) continue;
+        const users = (metaBm.business_users?.data || [])
+          .filter((u: any) => u?.id)
+          .map((u: any) => ({ id: String(u.id), name: u.name, email: u.email || null, role: u.role || null, kind: "business" }));
         await admin.from("bm_detected_users").delete().eq("bm_id", bm.id);
-        for (const u of users) {
-          if (!u.id) continue;
-          detectedRows.push({
+        if (users.length) {
+          const rows = users.map((u: any) => ({
             bm_id: bm.id,
-            meta_user_id: String(u.id),
+            meta_user_id: u.id,
             user_name: u.name || null,
             user_email: u.email,
             user_role: u.role,
             user_kind: u.kind,
-          });
+          }));
+          await admin.from("bm_detected_users").upsert(rows, { onConflict: "bm_id,meta_user_id" });
         }
-        const errs = [bu.error, su.error].filter(Boolean);
-        if (users.length === 0 && errs.length) {
-          failures.push({ bm_id: bm.id, bm_name: bm.name, meta_bm_id: bm.meta_bm_id, erros: errs });
-        }
-      done++;
-      await update({
-        progress_current: done, synced_count: totalUsers,
-        message: `${done}/${bms.length} BMs · ${totalUsers} usuários detectados`,
-        errors: failures.slice(0, 20),
-      });
-      if (bu.rateLimited || su.rateLimited) await sleep(45000);
-      else await sleep(REQUEST_DELAY_MS);
+        touchedBmIds.add(bm.id);
+        seenBusinessIds.add(String(metaBm.id));
+        totalUsers += users.length;
+        done++;
+        await update({
+          progress_current: Math.min(done, bms.length), synced_count: totalUsers,
+          message: `${Math.min(done, bms.length)}/${bms.length} BMs · ${totalUsers} perfis detectados`,
+          errors: failures.slice(0, 20),
+        });
+      }
+      await sleep(REQUEST_DELAY_MS);
     }
 
-    if (detectedRows.length) {
-      for (let i = 0; i < detectedRows.length; i += 500) {
-        await admin.from("bm_detected_users").upsert(detectedRows.slice(i, i + 500), { onConflict: "bm_id,meta_user_id" });
-      }
+    for (const bm of bms as any[]) {
+      if (touchedBmIds.has(bm.id)) continue;
+      failures.push({
+        bm_id: bm.id,
+        bm_name: bm.name,
+        meta_bm_id: bm.meta_bm_id,
+        erros: [seenBusinessIds.size === 0 ? "Token não retornou BMs acessíveis" : "BM não retornada por /me/businesses para os tokens configurados"],
+      });
+      done++;
+      await update({
+        progress_current: Math.min(done, bms.length), synced_count: totalUsers,
+        message: `${Math.min(done, bms.length)}/${bms.length} BMs · ${totalUsers} perfis detectados`,
+        errors: failures.slice(0, 20),
+      });
     }
 
     // ---- Auto-link backups via whitelist ----
