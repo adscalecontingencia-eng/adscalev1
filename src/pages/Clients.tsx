@@ -432,6 +432,9 @@ const Clients: React.FC = () => {
     }
     toast.success(`Senha de ${c.name} redefinida com sucesso`);
     logAudit({ action: 'client_password_reset', entity: 'client', entity_id: id });
+  };
+
+
 
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
   const handleAddAdSpend = async (clientId: string) => {
