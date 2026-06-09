@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BackupsManagerDialog from './BackupsManagerDialog';
 import BMDetailDrawer from './BMDetailDrawer';
 import DetectedProfilesDialog from './DetectedProfilesDialog';
 import { ScanLine } from 'lucide-react';
+import { toast } from 'sonner';
+
+type TabKey = 'all' | 'active' | 'blocked' | 'unassigned';
 
 interface BM { id: string; meta_bm_id: string; name: string; status: string | null; verification_status: string | null; account_count: number | null }
 interface Account { id: string; bm_id: string | null; status: string | null }
