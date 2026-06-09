@@ -87,21 +87,24 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
     admin.from("meta_sync_jobs").update(patch).eq("id", jobId);
 
   try {
-    // ---- Tokens ----
+    const setMessage = async (message: string) => { await update({ message }); };
+
+    // ---- Tokens (mesma base de Conexões Meta: apps ativos + fallback env) ----
     const { data: apps } = await admin
       .from("meta_apps")
-      .select("id, system_user_token, user_access_token, created_at")
+      .select("id, label, system_user_token, user_access_token, status, created_at")
+      .eq("status", "active")
       .order("created_at", { ascending: false });
     const tokenByApp = new Map<string, string>();
     for (const a of apps || []) {
-      const t = a.user_access_token || a.system_user_token;
+      const t = cleanToken(a.user_access_token) || cleanToken(a.system_user_token);
       if (t) tokenByApp.set(a.id, t);
     }
     const fallbackToken =
-      Deno.env.get("META_USER_ACCESS_TOKEN") ||
-      (apps || []).map((a: any) => a.user_access_token).find(Boolean) ||
-      Deno.env.get("META_SYSTEM_USER_TOKEN") ||
-      (apps || []).map((a: any) => a.system_user_token).find(Boolean);
+      cleanToken(Deno.env.get("META_USER_ACCESS_TOKEN")) ||
+      (apps || []).map((a: any) => cleanToken(a.user_access_token)).find(Boolean) ||
+      cleanToken(Deno.env.get("META_SYSTEM_USER_TOKEN")) ||
+      (apps || []).map((a: any) => cleanToken(a.system_user_token)).find(Boolean);
 
     if (!fallbackToken && tokenByApp.size === 0) {
       const msg = "Sem token Meta configurado";
@@ -127,17 +130,20 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
     await update({
       status: "running", started_at: new Date().toISOString(),
       progress_total: bms.length, progress_current: 0, synced_count: 0,
-      message: `Escaneando ${bms.length} BMs...`,
+      message: `Escaneando ${bms.length} BMs em fila segura para evitar rate limit...`,
     });
 
     const fetchEdge = async (metaBmId: string, edge: string, token: string) => {
-      const url = `${GRAPH}/${metaBmId}/${edge}?fields=id,name,email,role&limit=200&access_token=${token}`;
-      try {
-        const r = await fetch(url);
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { data: [], error: j?.error?.message || `HTTP ${r.status}`, code: j?.error?.code };
-        return { data: j.data || [], error: null };
-      } catch (e) { return { data: [], error: (e as Error).message }; }
+      const out: any[] = [];
+      let url: string | null = `${GRAPH}/${metaBmId}/${edge}?fields=id,name,email,role&limit=100&access_token=${token}`;
+      while (url) {
+        const res = await fetchJsonWithRetry(url, setMessage);
+        if (res.error) return { data: out, error: res.error, code: res.code, rateLimited: res.rateLimited };
+        out.push(...(res.data?.data || []));
+        url = res.data?.paging?.next || null;
+        if (url) await sleep(REQUEST_DELAY_MS);
+      }
+      return { data: out, error: null, code: undefined, rateLimited: false };
     };
 
     let totalUsers = 0;
@@ -145,17 +151,16 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
     const detectedRows: any[] = [];
     const failures: any[] = [];
 
-    let cursor = 0;
-    const worker = async () => {
-      while (true) {
-        const i = cursor++;
-        if (i >= bms.length) return;
-        const bm: any = bms[i];
-        const token = (bm.meta_app_id && tokenByApp.get(bm.meta_app_id)) || fallbackToken!;
-        const [bu, su] = await Promise.all([
-          fetchEdge(bm.meta_bm_id, "business_users", token),
-          fetchEdge(bm.meta_bm_id, "system_users", token),
-        ]);
+    for (const bm of bms as any[]) {
+      const token = (bm.meta_app_id && tokenByApp.get(bm.meta_app_id)) || fallbackToken!;
+      const bu = await fetchEdge(bm.meta_bm_id, "business_users", token);
+      await sleep(REQUEST_DELAY_MS);
+      let su = { data: [] as any[], error: null as string | null, code: undefined as number | undefined, rateLimited: false };
+      if (!bu.rateLimited) {
+        su = await fetchEdge(bm.meta_bm_id, "system_users", token);
+      } else {
+        su = { data: [], error: "system_users pulado para preservar rate limit após business_users", code: undefined, rateLimited: false };
+      }
         const users = [
           ...bu.data.map((u: any) => ({ id: u.id, name: u.name, email: u.email || null, role: u.role || null, kind: "business" })),
           ...su.data.map((u: any) => ({ id: u.id, name: u.name, email: null, role: u.role || null, kind: "system" })),
@@ -177,17 +182,15 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
         if (users.length === 0 && errs.length) {
           failures.push({ bm_id: bm.id, bm_name: bm.name, meta_bm_id: bm.meta_bm_id, erros: errs });
         }
-        done++;
-        if (done % 5 === 0 || done === bms.length) {
-          await update({
-            progress_current: done, synced_count: totalUsers,
-            message: `${done}/${bms.length} BMs · ${totalUsers} usuários detectados`,
-            errors: failures.slice(0, 20),
-          });
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, bms.length) }, worker));
+      done++;
+      await update({
+        progress_current: done, synced_count: totalUsers,
+        message: `${done}/${bms.length} BMs · ${totalUsers} usuários detectados`,
+        errors: failures.slice(0, 20),
+      });
+      if (bu.rateLimited || su.rateLimited) await sleep(45000);
+      else await sleep(REQUEST_DELAY_MS);
+    }
 
     if (detectedRows.length) {
       for (let i = 0; i < detectedRows.length; i += 500) {
