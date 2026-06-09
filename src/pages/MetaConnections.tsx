@@ -75,35 +75,53 @@ export default function MetaConnections() {
 
   useEffect(() => { load(); }, []);
 
-  // Realtime sync job
+  // Realtime sync job + polling fallback (caso realtime não esteja disponível)
   useEffect(() => {
     if (!job?.id) return;
+    const jobId = job.id;
+    let finished = false;
+
+    const applyJob = (j: any) => {
+      if (!j || finished) return;
+      setJob({
+        id: j.id, status: j.status, progress_current: j.progress_current,
+        progress_total: j.progress_total, synced_count: j.synced_count,
+        message: j.message, errors: j.errors || [],
+      });
+      if (j.status === "completed" || j.status === "failed") {
+        finished = true;
+        setSyncing(false);
+        if (j.status === "completed") {
+          toast.success(`${j.synced_count} contas sincronizadas`);
+          load();
+        } else {
+          toast.error(j.message || "Sincronização falhou");
+        }
+        setTimeout(() => setJob(null), 5000);
+      }
+    };
+
     const channel = supabase
-      .channel(`sync-job-${job.id}`)
+      .channel(`sync-job-${jobId}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "meta_sync_jobs", filter: `id=eq.${job.id}` },
-        (payload) => {
-          const j = payload.new as any;
-          setJob({
-            id: j.id, status: j.status, progress_current: j.progress_current,
-            progress_total: j.progress_total, synced_count: j.synced_count,
-            message: j.message, errors: j.errors || [],
-          });
-          if (j.status === "completed" || j.status === "failed") {
-            setSyncing(false);
-            if (j.status === "completed") {
-              toast.success(`${j.synced_count} contas sincronizadas`);
-              load();
-            } else {
-              toast.error(j.message || "Sincronização falhou");
-            }
-            setTimeout(() => setJob(null), 5000);
-          }
-        }
+        { event: "UPDATE", schema: "public", table: "meta_sync_jobs", filter: `id=eq.${jobId}` },
+        (payload) => applyJob(payload.new),
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    // Polling fallback a cada 3s — garante que a UI atualize mesmo sem realtime
+    const interval = setInterval(async () => {
+      if (finished) return;
+      const { data } = await supabase.from("meta_sync_jobs").select("*").eq("id", jobId).maybeSingle();
+      applyJob(data);
+    }, 3000);
+
+    return () => {
+      finished = true;
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [job?.id]);
 
   const sync = async () => {
