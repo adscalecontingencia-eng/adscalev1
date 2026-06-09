@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon } from 'lucide-react';
+import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon, ListTodo, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { logAudit } from '@/lib/audit';
 import { toast } from 'sonner';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import BMActivityTab from '@/components/support/BMActivityTab';
 
 interface Task {
   id: string;
@@ -144,7 +146,7 @@ const Support: React.FC = () => {
       <PageHero
         eyebrow="Suporte"
         title={<>Operação & <span className="text-primary glow-text">tarefas</span></>}
-        description="Tarefas internas de manutenção, atendimento e estrutura — distribuídas para o time de suporte."
+        description="Tarefas internas, solicitações de clientes, e registro diário de BMs e atividades do time."
         actions={
           <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
             <Plus size={16} /> Nova Tarefa
@@ -152,7 +154,19 @@ const Support: React.FC = () => {
         }
       />
 
-      {(() => {
+      <Tabs defaultValue="tarefas" className="space-y-5">
+        <TabsList className="grid grid-cols-2 w-full sm:w-auto sm:inline-grid h-auto p-1 bg-secondary/60 border border-border">
+          <TabsTrigger value="tarefas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
+            <ListTodo size={14} /> Tarefas & Solicitações
+          </TabsTrigger>
+          <TabsTrigger value="bms" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
+            <Building2 size={14} /> Atividades & BMs
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tarefas" className="space-y-6 mt-0">
+          {(() => {
+
         const allItems = [
           ...tasks.map(t => ({ status: t.status })),
           ...clientRequests.map((r: any) => ({ status: r.status || 'pendente' })),
@@ -405,6 +419,12 @@ const Support: React.FC = () => {
         ))}
         {tasks.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma tarefa registrada.</p>}
       </div>
+        </TabsContent>
+
+        <TabsContent value="bms" className="mt-0">
+          <BMActivityTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
