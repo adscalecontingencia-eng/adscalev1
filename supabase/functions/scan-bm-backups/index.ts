@@ -31,21 +31,23 @@ Deno.serve(async (req) => {
     const ok = (roles || []).some((r: any) => r.role === "admin" || r.role === "support");
     if (!ok) return json({ erro: "Acesso negado" }, 403);
 
-    // Carrega TODOS os meta_apps para montar mapa app_id -> token
+    // PRIORIDADE: User Access Token (perfil pessoal) — cobre todas as BMs onde o usuário é Admin.
+    // Fallback: System User token do meta_apps ou do env.
     const { data: apps } = await admin
       .from("meta_apps")
       .select("id, system_user_token, user_access_token, created_at")
       .order("created_at", { ascending: false });
     const tokenByApp = new Map<string, string>();
-    let fallbackToken: string | undefined;
     for (const a of apps || []) {
-      const t = a.system_user_token || a.user_access_token;
-      if (t) {
-        tokenByApp.set(a.id, t);
-        if (!fallbackToken) fallbackToken = t;
-      }
+      const t = a.user_access_token || a.system_user_token;
+      if (t) tokenByApp.set(a.id, t);
     }
-    fallbackToken = fallbackToken || Deno.env.get("META_SYSTEM_USER_TOKEN") || Deno.env.get("META_USER_ACCESS_TOKEN");
+    // Token global preferindo User Access Token do env
+    const fallbackToken =
+      Deno.env.get("META_USER_ACCESS_TOKEN") ||
+      (apps || []).map((a: any) => a.user_access_token).find(Boolean) ||
+      Deno.env.get("META_SYSTEM_USER_TOKEN") ||
+      (apps || []).map((a: any) => a.system_user_token).find(Boolean);
     if (!fallbackToken && tokenByApp.size === 0) return json({ erro: "Sem token Meta configurado" }, 400);
 
     const body = await req.json().catch(() => ({}));
@@ -70,7 +72,7 @@ Deno.serve(async (req) => {
     const detectedRows: any[] = [];
     const report: any[] = [];
     for (const bm of bms) {
-      const token = (bm.meta_app_id && tokenByApp.get(bm.meta_app_id)) || fallbackToken!;
+      const token = fallbackToken || (bm.meta_app_id && tokenByApp.get(bm.meta_app_id))!;
       const [bu, su] = await Promise.all([
         fetchEdge(bm.meta_bm_id, "business_users", token),
         fetchEdge(bm.meta_bm_id, "system_users", token),

@@ -33,16 +33,16 @@ Deno.serve(async (req) => {
     const { meta_bm_id } = await req.json();
     if (!meta_bm_id) return json({ erro: "meta_bm_id é obrigatório" }, 400);
 
-    // Try to get a token: prefer a saved meta_app token, fallback to env system user token
-    let token = Deno.env.get("META_SYSTEM_USER_TOKEN") || Deno.env.get("META_USER_ACCESS_TOKEN");
+    // PRIORIDADE: User Access Token do perfil (cobre todas as BMs onde o usuário é Admin)
+    let token = Deno.env.get("META_USER_ACCESS_TOKEN") || Deno.env.get("META_SYSTEM_USER_TOKEN");
     const { data: app } = await supabase
       .from("meta_apps")
       .select("system_user_token,user_access_token")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (app?.system_user_token) token = app.system_user_token;
-    else if (app?.user_access_token) token = app.user_access_token;
+    if (!token && app?.user_access_token) token = app.user_access_token;
+    if (!token && app?.system_user_token) token = app.system_user_token;
     if (!token) return json({ erro: "Sem token Meta configurado" }, 400);
 
     const fetchEdge = async (edge: string) => {
