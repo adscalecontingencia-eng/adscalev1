@@ -240,6 +240,15 @@ export const ClientCard: React.FC<Props> = (props) => {
             >
               <Edit2 size={14} />
             </button>
+            {onResetPassword && (
+              <button
+                onClick={onResetPassword}
+                title="Redefinir senha do cliente"
+                className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"
+              >
+                <KeyRound size={14} />
+              </button>
+            )}
             <button
               onClick={onDelete}
               title="Excluir"
