@@ -112,8 +112,9 @@ const BMPanelTab: React.FC = () => {
         </button>
       </div>
 
-      {/* 3 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* 4 colunas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+        <Column title="Todas" subtitle="todas as BMs cadastradas" tone="neutral" bms={filtered} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
         <Column title="Ativas" subtitle="com cliente atribuído" tone="primary" bms={groups.active} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
         <Column title="Bloqueadas" subtitle="status ≠ ativa" tone="destructive" bms={groups.blocked} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
         <Column title="Sem cliente" subtitle="ativas, sem atribuição" tone="amber" bms={groups.unassigned} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
@@ -138,7 +139,7 @@ const KPI: React.FC<{ label: string; value: number; icon: any; cls: string }> = 
 const Column: React.FC<{
   title: string;
   subtitle: string;
-  tone: 'primary' | 'destructive' | 'amber';
+  tone: 'primary' | 'destructive' | 'amber' | 'neutral';
   bms: BM[];
   bmStats: (id: string) => any;
   minBackups: number;
@@ -148,11 +149,13 @@ const Column: React.FC<{
     primary: 'border-primary/40 bg-primary/5',
     destructive: 'border-destructive/40 bg-destructive/5',
     amber: 'border-amber-500/40 bg-amber-500/5',
+    neutral: 'border-border bg-secondary/20',
   }[tone];
   const badgeCls = {
     primary: 'bg-primary/20 text-primary',
     destructive: 'bg-destructive/20 text-destructive',
     amber: 'bg-amber-500/20 text-amber-300',
+    neutral: 'bg-secondary text-foreground',
   }[tone];
   return (
     <div className={cn("rounded-xl border p-3 min-h-[200px]", toneCls)}>
