@@ -102,6 +102,44 @@ const ClientsAuthAudit: React.FC = () => {
     toast.success("Senha redefinida");
   };
 
+  const handleResetLogin = async (row: ReportRow) => {
+    const currentEmail = row.auth_email || row.client_email || "";
+    const newEmail = window.prompt(
+      `Redefinir LOGIN completo de ${row.name}.\n\nNovo e-mail (deixe igual para não alterar):`,
+      currentEmail
+    );
+    if (newEmail === null) return;
+    const emailTrim = newEmail.trim();
+    if (!emailTrim || !emailTrim.includes("@")) { toast.error("E-mail inválido"); return; }
+
+    const newPwd = window.prompt(
+      `Nova senha para ${row.name}.\n\nDeixe em branco para manter a senha atual. Mínimo 6 caracteres:`
+    );
+    if (newPwd === null) return;
+    const pwd = newPwd.trim();
+    if (pwd && pwd.length < 6) { toast.error("Senha precisa ter ao menos 6 caracteres"); return; }
+
+    const emailChanged = emailTrim.toLowerCase() !== currentEmail.toLowerCase();
+    if (!emailChanged && !pwd) { toast.info("Nada para alterar"); return; }
+
+    setBusyId(row.client_id);
+    const { data: res, error } = await supabase.functions.invoke("manage-users", {
+      body: {
+        action: "reset_login",
+        client_id: row.client_id,
+        ...(emailChanged ? { new_email: emailTrim } : {}),
+        ...(pwd ? { new_password: pwd } : {}),
+      },
+    });
+    setBusyId(null);
+    if (error || (res as any)?.error) {
+      toast.error((res as any)?.error || error?.message || "Erro ao redefinir login");
+      return;
+    }
+    toast.success("Login do cliente redefinido");
+    fetchAudit();
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
