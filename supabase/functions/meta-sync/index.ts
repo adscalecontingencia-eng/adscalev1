@@ -1,8 +1,16 @@
-// Meta Marketing API sync — pulls BMs, ad accounts and daily insights
+// Meta Marketing API sync — pulls BMs, ad accounts, pages and daily insights
+// Iterates over ALL active rows in meta_apps so that multiple Meta apps run
+// simultaneously. Each synced asset is tagged with `meta_app_id` so the UI can
+// trace it back to the originating app.
+//
 // Endpoints (POST):
-//   { action: "sync_bms" }                    -> sync all Business Managers
-//   { action: "sync_accounts", bm_id?: uuid } -> sync ad accounts for a BM (or all)
-//   { action: "sync_insights", date?: "YYYY-MM-DD" } -> sync daily insights for all accounts
+//   { action: "sync_bms" }                       -> sync BMs for every active app
+//   { action: "sync_accounts" }                  -> sync ad accounts for every active app
+//   { action: "sync_pages" }                     -> sync pages for every active app
+//   { action: "sync_insights", since?, until? }  -> sync daily insights for all accounts
+//   { action: "start_sync_accounts" }            -> background job (all apps)
+//
+// Optional: { app_ids: ["uuid", ...] } restricts the run to a subset of apps.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -38,7 +46,6 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Pr
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
       const subcode = data?.error?.error_subcode;
-      // Meta rate-limit codes: 4 (app rate), 17 (user rate), 32 (page rate), 613 (custom), 80004 (BM rate)
       const transient = data?.error?.is_transient
         || [4, 17, 32, 613].includes(code)
         || [2446079, 1487390, 1487742].includes(subcode);
@@ -60,7 +67,6 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Pr
   return fetch(url, init);
 }
 
-
 async function metaFetch(path: string, token: string, params: Record<string, string> = {}) {
   const url = new URL(`${META_API}${path}`);
   url.searchParams.set("access_token", token);
@@ -72,15 +78,6 @@ async function metaFetch(path: string, token: string, params: Record<string, str
   }
   return data;
 }
-
-const DISABLE_REASONS: Record<number, string> = {
-  0: "Nenhum", 1: "ADS_INTEGRITY_POLICY", 2: "ADS_IP_REVIEW", 3: "RISK_PAYMENT",
-  4: "GRAY_ACCOUNT_SHUT_DOWN", 5: "ADS_AFC_REVIEW", 6: "BUSINESS_INTEGRITY_RAR",
-  7: "PERMANENT_CLOSE", 8: "UNUSED_RESELLER_ACCOUNT", 9: "UNUSED_ACCOUNT",
-  10: "UMBRELLA_AD_ACCOUNT", 11: "BUSINESS_MANAGER_INTEGRITY_POLICY",
-  12: "MISREPRESENTED_AD_ACCOUNT", 13: "AOAB_DESHARE_LEGAL_ENTITY",
-  14: "CTX_THREAD_REVIEW", 15: "COMPROMISED_AD_ACCOUNT",
-};
 
 async function paginateMeta(firstUrl: string): Promise<any[]> {
   const out: any[] = [];
@@ -95,185 +92,390 @@ async function paginateMeta(firstUrl: string): Promise<any[]> {
   return out;
 }
 
-async function runAccountsSyncJob(supabase: any, token: string, jobId: string) {
+const DISABLE_REASONS: Record<number, string> = {
+  0: "Nenhum", 1: "ADS_INTEGRITY_POLICY", 2: "ADS_IP_REVIEW", 3: "RISK_PAYMENT",
+  4: "GRAY_ACCOUNT_SHUT_DOWN", 5: "ADS_AFC_REVIEW", 6: "BUSINESS_INTEGRITY_RAR",
+  7: "PERMANENT_CLOSE", 8: "UNUSED_RESELLER_ACCOUNT", 9: "UNUSED_ACCOUNT",
+  10: "UMBRELLA_AD_ACCOUNT", 11: "BUSINESS_MANAGER_INTEGRITY_POLICY",
+  12: "MISREPRESENTED_AD_ACCOUNT", 13: "AOAB_DESHARE_LEGAL_ENTITY",
+  14: "CTX_THREAD_REVIEW", 15: "COMPROMISED_AD_ACCOUNT",
+};
+
+const ACCOUNT_FIELDS = [
+  "id","account_id","name","account_status","currency","amount_spent","spend_cap",
+  "timezone_name","created_time","disable_reason","funding_source",
+  "funding_source_details","is_prepay_account",
+  "balance","business_country_code","age","business",
+].join(",");
+
+const maskFunding = (acc: any): string | null => {
+  const fsd = acc.funding_source_details;
+  if (!fsd) return acc.funding_source ? "Vinculado" : null;
+  const raw: string = fsd.display_string || "";
+  const digits = (raw.match(/\d/g) || []).join("");
+  const last4 = digits.slice(-4);
+  const type = fsd.type != null ? String(fsd.type) : "";
+  const brandMatch = raw.match(/^([A-Za-z]+)/);
+  const brand = brandMatch ? brandMatch[1].toUpperCase() : "";
+  if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
+  if (type) return type.replace(/_/g, " ");
+  return raw || "Vinculado";
+};
+
+type AppRow = {
+  id: string;
+  label: string;
+  app_id: string;
+  system_user_token: string | null;
+  user_access_token: string | null;
+};
+
+// Picks the best token for a given action. For pages we prefer the System User
+// token (broader scope); for everything else the User Access token wins.
+function pickToken(app: AppRow, action: string): string {
+  const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
+  const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
+  if (action === "sync_pages") return sys || usr;
+  return usr || sys;
+}
+
+// Loads every active app. If body.app_ids is provided, restrict to that subset.
+async function loadActiveApps(supabase: any, appIds?: string[]): Promise<AppRow[]> {
+  let q = supabase
+    .from("meta_apps")
+    .select("id, label, app_id, system_user_token, user_access_token, status")
+    .eq("status", "active");
+  if (appIds && appIds.length > 0) q = q.in("id", appIds);
+  const { data, error } = await q;
+  if (error) throw error;
+  const rows = (data || []) as (AppRow & { status: string })[];
+
+  // Back-compat: if there are no apps configured in DB, fall back to env vars
+  // so existing setups keep working.
+  if (rows.length === 0) {
+    const envUser = (Deno.env.get("META_USER_ACCESS_TOKEN") || "").replace(/\s+/g, "").trim();
+    const envSys = (Deno.env.get("META_SYSTEM_USER_TOKEN") || "").replace(/\s+/g, "").trim();
+    if (envUser || envSys) {
+      return [{
+        id: "00000000-0000-0000-0000-000000000000",
+        label: "ENV (legado)",
+        app_id: Deno.env.get("META_APP_ID") || "",
+        system_user_token: envSys || null,
+        user_access_token: envUser || null,
+      }];
+    }
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    label: r.label,
+    app_id: r.app_id,
+    system_user_token: r.system_user_token,
+    user_access_token: r.user_access_token,
+  }));
+}
+
+// ---- Per-app sync routines ----------------------------------------------------
+
+async function syncAccountsForApp(supabase: any, app: AppRow) {
+  const token = pickToken(app, "sync_accounts");
+  if (!token) return { app: app.label, erro: "Sem token configurado" };
+
+  const bms = await paginateMeta(
+    `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
+  );
+  if (bms.length === 0) return { app: app.label, bms: 0, accounts: 0 };
+
+  const bmRows = bms.map((bm: any) => ({
+    meta_bm_id: bm.id,
+    name: bm.name,
+    status: bm.verification_status || "active",
+    verification_status: bm.verification_status || null,
+    meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+    last_synced_at: new Date().toISOString(),
+  }));
+  await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+
+  const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
+  const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+
+  const allAccounts: any[] = [];
+  const errors: any[] = [];
+  const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
+
+  const tasks: { bmId: string; bmName: string; edge: string }[] = [];
+  for (const bm of bms) {
+    for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
+      tasks.push({ bmId: bm.id, bmName: bm.name, edge: e });
+    }
+  }
+
+  const CONCURRENCY = 4;
+  let cursor = 0;
+  const worker = async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= tasks.length) return;
+      const t = tasks[i];
+      const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
+      try {
+        const items = await paginateMeta(url);
+        for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
+      } catch (e) {
+        errors.push({ app: app.label, bm: t.bmName, edge: t.edge, erro: (e as Error).message });
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
+
+  const seen = new Set<string>();
+  const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
+
+  const computeScore = (acc: any) => {
+    let s = 100;
+    if (acc.account_status !== 1) s -= 60;
+    if (acc.disable_reason && acc.disable_reason !== 0) s -= 40;
+    if (!acc.funding_source) s -= 20;
+    const bmVer = bmStatusMap.get(acc._bm_meta_id);
+    if (bmVer && bmVer !== "verified") s -= 10;
+    if (!acc.amount_spent || Number(acc.amount_spent) === 0) s -= 5;
+    s = Math.max(0, Math.min(100, s));
+    return { score: s, label: s >= 80 ? "Excelente" : s >= 60 ? "Bom" : s >= 40 ? "Atenção" : "Crítico" };
+  };
+
+  const accRows = unique.map((acc: any) => {
+    const { score, label } = computeScore(acc);
+    return {
+      meta_account_id: acc.id,
+      bm_id: bmIdMap.get(acc._bm_meta_id) || null,
+      meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+      name: acc.name,
+      account_status: acc.account_status,
+      status: acc.account_status === 1 ? "active" : "blocked",
+      currency: acc.currency || "USD",
+      amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
+      spend_cap: acc.spend_cap ? Number(acc.spend_cap) / 100 : null,
+      timezone_name: acc.timezone_name || null,
+      account_created_time: acc.created_time || null,
+      disable_reason: acc.disable_reason ?? null,
+      disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
+      funding_source: maskFunding(acc),
+      billing_cycle: acc.is_prepay_account === true ? "Pré-paga" : acc.is_prepay_account === false ? "Pós-paga" : null,
+      balance: acc.balance ? Number(acc.balance) / 100 : 0,
+      business_country_code: acc.business_country_code || null,
+      age: acc.age ?? null,
+      owner_business_name: acc.business?.name || null,
+      score,
+      score_label: label,
+      last_synced_at: new Date().toISOString(),
+    };
+  });
+
+  const CHUNK = 200;
+  for (let i = 0; i < accRows.length; i += CHUNK) {
+    const { error } = await supabase.from("meta_ad_accounts")
+      .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+    if (error) throw error;
+  }
+
+  return { app: app.label, bms: bms.length, accounts: accRows.length, erros: errors };
+}
+
+async function syncPagesForApp(supabase: any, app: AppRow) {
+  const token = pickToken(app, "sync_pages");
+  if (!token) return { app: app.label, erro: "Sem token configurado" };
+
+  const { data: bmsDb } = await supabase
+    .from("meta_business_managers")
+    .select("id, meta_bm_id, name, meta_app_id");
+
+  const PAGE_FIELDS = "id,name,category,fan_count,followers_count,picture.type(large),is_published,verification_status";
+  const PAGE_FALLBACK_FIELDS = ["id,name,category,picture.type(large)", "id,name", "id"];
+  const errors: any[] = [];
+  const detailErrors: any[] = [];
+  const allPages: any[] = [];
+
+  const isMetaAccessBlocked = (message: string) =>
+    message.includes("API access blocked") ||
+    message.includes('"code":200') ||
+    message.includes("Permissions error") ||
+    message.includes("Unsupported get request");
+
+  const edgeUrl = (ownerId: string, edge: string, fields: string) => {
+    const url = new URL(`${META_API}/${ownerId}/${edge}`);
+    url.searchParams.set("access_token", token);
+    url.searchParams.set("fields", fields);
+    url.searchParams.set("limit", "200");
+    return url.toString();
+  };
+
+  const fetchPagesWithFallback = async (t: { ownerId: string; edge: string; label: string }) => {
+    let lastError = "";
+    for (const fields of PAGE_FALLBACK_FIELDS) {
+      try {
+        const items = await paginateMeta(edgeUrl(t.ownerId, t.edge, fields));
+        return items.map((item: any) => ({ ...item, _partial: true }));
+      } catch (e) {
+        lastError = (e as Error).message;
+        if (!isMetaAccessBlocked(lastError)) break;
+      }
+    }
+    throw new Error(lastError || "Falha ao ler páginas da BM");
+  };
+
+  // Only crawl BMs that belong to this app (or untagged ones for back-compat).
+  const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
+  const ownAppId = app.id.startsWith("00000000") ? null : app.id;
+  for (const bm of bmsDb || []) {
+    if (bm.meta_app_id && bm.meta_app_id !== ownAppId) continue;
+    for (const e of ["owned_pages", "client_pages"]) {
+      tasks.push({ bmDbId: bm.id, ownerId: bm.meta_bm_id, edge: e, label: `${app.label}:${bm.name}/${e}` });
+    }
+  }
+  tasks.push({ bmDbId: null, ownerId: "me", edge: "accounts", label: `${app.label}:me/accounts` });
+
+  const CONCURRENCY = 3;
+  let cursor = 0;
+  const worker = async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= tasks.length) return;
+      const t = tasks[i];
+      try {
+        const items = await fetchPagesWithFallback(t);
+        for (const p of items) allPages.push({ ...p, _bm_db_id: t.bmDbId });
+      } catch (e) {
+        errors.push({ source: t.label, erro: (e as Error).message });
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
+
+  const seen = new Set<string>();
+  const unique = allPages.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+
+  const needsDetails = unique.filter((p: any) => p._partial || p.followers_count == null || p.fan_count == null);
+  let detailCursor = 0;
+  const detailWorker = async () => {
+    while (true) {
+      const i = detailCursor++;
+      if (i >= needsDetails.length) return;
+      const p = needsDetails[i];
+      try {
+        const details = await metaFetch(`/${p.id}`, token, { fields: PAGE_FIELDS });
+        Object.assign(p, details, { _partial: false });
+      } catch (e) {
+        if (detailErrors.length < 8) detailErrors.push({ page_id: p.id, erro: (e as Error).message });
+      }
+    }
+  };
+  if (needsDetails.length > 0) {
+    await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
+  }
+
+  const rows = unique.map((p: any) => ({
+    meta_page_id: p.id,
+    bm_id: p._bm_db_id,
+    meta_app_id: ownAppId,
+    name: p.name || `Página ${p.id}`,
+    category: p.category || null,
+    fan_count: p.fan_count ?? null,
+    followers_count: p.followers_count ?? p.fan_count ?? null,
+    created_time: p.created_time || null,
+    picture_url: p.picture?.data?.url || null,
+    is_published: p.is_published ?? null,
+    is_restricted: false,
+    status: "active",
+    last_synced_at: new Date().toISOString(),
+  }));
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from("meta_pages").upsert(rows, { onConflict: "meta_page_id" });
+    if (error) throw error;
+  }
+
+  return { app: app.label, pages: rows.length, erros: errors, detalhes_bloqueados: detailErrors.length };
+}
+
+// ---- Background job (multi-app) ---------------------------------------------
+
+async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[]) {
   const update = (patch: Record<string, any>) =>
     supabase.from("meta_sync_jobs").update(patch).eq("id", jobId);
 
-  const errors: any[] = [];
   onBackoff = (info) => {
-    update({ message: `Retry ${info.attempt}/4 em ${Math.round(info.waitMs / 1000)}s — ${info.reason}` });
+    update({ message: `Retry ${info.attempt} em ${Math.round(info.waitMs / 1000)}s — ${info.reason}` });
   };
 
   try {
-    await update({ status: "running", started_at: new Date().toISOString(), message: "Listando Business Managers..." });
-
-    const bms = await paginateMeta(
-      `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
-    );
-
-    if (bms.length === 0) {
-      await update({ status: "completed", finished_at: new Date().toISOString(), message: "Nenhuma BM encontrada", progress_total: 0 });
+    const apps = await loadActiveApps(supabase, appIds);
+    if (apps.length === 0) {
+      await update({ status: "failed", finished_at: new Date().toISOString(), message: "Nenhum aplicativo Meta ativo." });
       return;
     }
 
-    // Upsert BMs first
-    const bmRows = bms.map((bm: any) => ({
-      meta_bm_id: bm.id,
-      name: bm.name,
-      status: bm.verification_status || "active",
-      verification_status: bm.verification_status || null,
-      last_synced_at: new Date().toISOString(),
-    }));
-    await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+    await update({
+      status: "running",
+      started_at: new Date().toISOString(),
+      progress_total: apps.length,
+      progress_current: 0,
+      message: `Sincronizando ${apps.length} aplicativo(s) em paralelo...`,
+    });
 
-    const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
-    const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
-
-    const ACCOUNT_FIELDS = [
-      "id","account_id","name","account_status","currency","amount_spent","spend_cap",
-      "timezone_name","created_time","disable_reason","funding_source",
-      "funding_source_details","is_prepay_account",
-      "balance","business_country_code","age","business",
-    ].join(",");
-
-    const tasks: { bmId: string; bmName: string; edge: string }[] = [];
-    for (const bm of bms) {
-      for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
-        tasks.push({ bmId: bm.id, bmName: bm.name, edge: e });
-      }
-    }
-
-    await update({ progress_total: tasks.length, progress_current: 0, message: `Buscando contas em ${bms.length} BMs...` });
-
-    const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
-    const allAccounts: any[] = [];
-    const CONCURRENCY = 2;
-    const PACING_MS = 300; // pequeno gap entre requisições para não estourar rate-limit
-    let cursor = 0;
     let done = 0;
+    let totalAccounts = 0;
+    const allErrors: any[] = [];
 
-    const worker = async () => {
-      while (true) {
-        const i = cursor++;
-        if (i >= tasks.length) return;
-        const t = tasks[i];
-        const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
-        try {
-          const items = await paginateMeta(url);
-          for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
-        } catch (e) {
-          errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
-        }
+    // Run apps in parallel — each one is rate-limited internally per token.
+    await Promise.all(apps.map(async (app) => {
+      try {
+        const r = await syncAccountsForApp(supabase, app);
+        totalAccounts += (r.accounts || 0);
+        if (r.erros && r.erros.length) allErrors.push(...r.erros);
+      } catch (e) {
+        allErrors.push({ app: app.label, fatal: (e as Error).message });
+      } finally {
         done++;
         await update({
           progress_current: done,
-          synced_count: allAccounts.length,
-          message: `${done}/${tasks.length} consultas concluídas · ${allAccounts.length} contas coletadas`,
-          errors,
+          synced_count: totalAccounts,
+          message: `${done}/${apps.length} app(s) concluído(s) · ${totalAccounts} contas`,
+          errors: allErrors,
         });
-        await new Promise((r) => setTimeout(r, PACING_MS));
       }
-    };
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
-
-    // Dedupe + map
-    const seen = new Set<string>();
-    const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
-
-    const computeScore = (acc: any) => {
-      let s = 100;
-      if (acc.account_status !== 1) s -= 60;
-      if (acc.disable_reason && acc.disable_reason !== 0) s -= 40;
-      if (!acc.funding_source) s -= 20;
-      const bmVer = bmStatusMap.get(acc._bm_meta_id);
-      if (bmVer && bmVer !== "verified") s -= 10;
-      if (!acc.amount_spent || Number(acc.amount_spent) === 0) s -= 5;
-      s = Math.max(0, Math.min(100, s));
-      return { score: s, label: s >= 80 ? "Excelente" : s >= 60 ? "Bom" : s >= 40 ? "Atenção" : "Crítico" };
-    };
-    const maskFunding = (acc: any) => {
-      const fsd = acc.funding_source_details;
-      if (!fsd) return acc.funding_source ? "Vinculado" : null;
-      const raw: string = fsd.display_string || "";
-      const digits = (raw.match(/\d/g) || []).join("");
-      const last4 = digits.slice(-4);
-      const brand = (raw.match(/^([A-Za-z]+)/)?.[1] || "").toUpperCase();
-      if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
-      return fsd.type ? String(fsd.type).replace(/_/g, " ") : raw || "Vinculado";
-    };
-
-    const accRows = unique.map((acc: any) => {
-      const { score, label } = computeScore(acc);
-      return {
-        meta_account_id: acc.id,
-        bm_id: bmIdMap.get(acc._bm_meta_id) || null,
-        name: acc.name,
-        account_status: acc.account_status,
-        status: acc.account_status === 1 ? "active" : "blocked",
-        currency: acc.currency || "USD",
-        amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
-        spend_cap: acc.spend_cap ? Number(acc.spend_cap) / 100 : null,
-        timezone_name: acc.timezone_name || null,
-        account_created_time: acc.created_time || null,
-        disable_reason: acc.disable_reason ?? null,
-        disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
-        funding_source: maskFunding(acc),
-        billing_cycle: acc.is_prepay_account === true ? "Pré-paga" : acc.is_prepay_account === false ? "Pós-paga" : null,
-        balance: acc.balance ? Number(acc.balance) / 100 : 0,
-        business_country_code: acc.business_country_code || null,
-        age: acc.age ?? null,
-        owner_business_name: acc.business?.name || null,
-        score,
-        score_label: label,
-        last_synced_at: new Date().toISOString(),
-      };
-    });
-
-    await update({ message: `Salvando ${accRows.length} contas no banco...` });
-
-    const CHUNK = 200;
-    let saved = 0;
-    for (let i = 0; i < accRows.length; i += CHUNK) {
-      const { error } = await supabase.from("meta_ad_accounts")
-        .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
-      if (error) throw error;
-      saved += Math.min(CHUNK, accRows.length - i);
-      await update({ synced_count: saved, message: `Salvas ${saved}/${accRows.length} contas...` });
-    }
+    }));
 
     await update({
       status: "completed",
       finished_at: new Date().toISOString(),
-      progress_current: tasks.length,
-      synced_count: accRows.length,
-      message: `Concluído: ${accRows.length} contas em ${bms.length} BMs${errors.length ? ` (${errors.length} erros)` : ""}`,
-      errors,
+      progress_current: apps.length,
+      synced_count: totalAccounts,
+      message: `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
+      errors: allErrors,
     });
   } catch (e) {
     await update({
       status: "failed",
       finished_at: new Date().toISOString(),
       message: `Falhou: ${(e as Error).message}`,
-      errors: [...errors, { fatal: (e as Error).message }],
     });
   } finally {
     onBackoff = null;
   }
 }
 
-
+// -----------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ erro: "Use POST" }, 405);
 
   try {
-    // ---- Auth: require admin/support JWT OR shared internal secret ----
-    const supabaseAuthClient = createClient(
+    const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ---- Auth: admin/support JWT OR shared internal secret -----------------
     const authHeader = req.headers.get("authorization") || "";
     const sharedSecret = Deno.env.get("N8N_SECRET_KEY") || "";
     const providedSecret = req.headers.get("x-internal-secret") || "";
@@ -283,9 +485,9 @@ Deno.serve(async (req) => {
       authorized = true;
     } else if (authHeader.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
-      const { data: { user } } = await supabaseAuthClient.auth.getUser(token);
+      const { data: { user } } = await supabase.auth.getUser(token);
       if (user) {
-        const { data: roleRow } = await supabaseAuthClient
+        const { data: roleRow } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
@@ -294,32 +496,13 @@ Deno.serve(async (req) => {
         if (roleRow) authorized = true;
       }
     }
-
-    if (!authorized) {
-      return json({ erro: "Unauthorized" }, 401);
-    }
-
-    const userTokenRaw = Deno.env.get("META_USER_ACCESS_TOKEN");
-    const sysTokenRaw = Deno.env.get("META_SYSTEM_USER_TOKEN");
-    const userToken = userTokenRaw?.replace(/\s+/g, "").trim() || "";
-    const sysToken = sysTokenRaw?.replace(/\s+/g, "").trim() || "";
-
-    const supabase = supabaseAuthClient;
+    if (!authorized) return json({ erro: "Unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const action = body.action;
+    const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
 
-    const token = action === "sync_pages"
-      ? (sysToken || userToken)
-      : (userToken || sysToken);
-
-    if (!token) {
-      return json({ erro: "Nenhum token Meta configurado (META_USER_ACCESS_TOKEN ou META_SYSTEM_USER_TOKEN)" }, 500);
-    }
-
-    // Diagnostic endpoint removed — previously leaked token prefix/suffix.
-
-    // ===== 0) BACKGROUND JOB: start async sync, return immediately =====
+    // ===== Background job =====
     if (action === "start_sync_accounts") {
       const { data: job, error: jobErr } = await supabase
         .from("meta_sync_jobs")
@@ -327,259 +510,70 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
       if (jobErr) throw jobErr;
-
-      // Run in background — does not block response, escapes wall-clock of this request
       // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJob(supabase, token, job.id));
+      EdgeRuntime.waitUntil(runAccountsSyncJob(supabase, job.id, appIds));
       return json({ sucesso: true, job_id: job.id });
     }
 
-
-    // ===== 1) SYNC BMs + ACCOUNTS (User Token: list BMs then accounts of each) =====
+    // ===== Multi-app sync of BMs + accounts =====
     if (action === "sync_bms" || action === "sync_accounts") {
-      // Helper: paginate any /edge URL
-      const paginate = async (firstUrl: string) => {
-        const out: any[] = [];
-        let url: string | null = firstUrl;
-        while (url) {
-          const r = await fetchWithRetry(url);
-          const d = await r.json();
-          if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
-          out.push(...(d.data || []));
-          url = d.paging?.next || null;
+      const apps = await loadActiveApps(supabase, appIds);
+      if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
+
+      const results = await Promise.all(apps.map(async (app) => {
+        try {
+          return await syncAccountsForApp(supabase, app);
+        } catch (e) {
+          return { app: app.label, erro: (e as Error).message };
         }
-        return out;
-      };
-
-      // 1a) List all BMs the user admins
-      const bms = await paginate(
-        `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
-      );
-
-      if (bms.length === 0) {
-        return json({
-          sucesso: true,
-          sincronizadas: 0,
-          hint: "Nenhuma Business Manager encontrada. Verifique se este token pertence ao usuário admin das BMs.",
-        });
-      }
-
-      // Quick mode: only sync BMs (skip accounts) — use sync_accounts to fetch accounts
-      if (action === "sync_bms") {
-        const bmRowsQuick = bms.map((bm: any) => ({
-          meta_bm_id: bm.id,
-          name: bm.name,
-          status: bm.verification_status || "active",
-          last_synced_at: new Date().toISOString(),
-        }));
-        await supabase.from("meta_business_managers")
-          .upsert(bmRowsQuick, { onConflict: "meta_bm_id" });
-        return json({
-          sucesso: true,
-          bms_sincronizadas: bmRowsQuick.length,
-          bms: bmRowsQuick.map((b) => b.name),
-          proximo_passo: "Rode action=sync_accounts para puxar as contas de anúncio.",
-        });
-      }
-
-      // Upsert BMs
-      const bmRows = bms.map((bm: any) => ({
-        meta_bm_id: bm.id,
-        name: bm.name,
-        status: bm.verification_status || "active",
-        last_synced_at: new Date().toISOString(),
       }));
-      const { error: bmErr } = await supabase.from("meta_business_managers")
-        .upsert(bmRows, { onConflict: "meta_bm_id" });
-      if (bmErr) throw bmErr;
 
-      const { data: bmsDb } = await supabase.from("meta_business_managers")
-        .select("id, meta_bm_id");
-      const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
-
-      // 1b) Para cada BM, lista contas + contagens — TUDO em paralelo (concorrência limitada)
-      const allAccounts: any[] = [];
-      const errors: any[] = [];
-      const bmCounts = new Map<string, { accounts: number; pixels: number; pages: number }>();
-
-      const ACCOUNT_FIELDS = [
-        "id","account_id","name","account_status","currency","amount_spent","spend_cap",
-        "timezone_name","created_time","disable_reason","funding_source",
-        "funding_source_details","is_prepay_account",
-        "balance","business_country_code","age","business",
-      ].join(",");
-
-      type Task = { kind: "accounts"; bmId: string; bmName: string; edge: string };
-      const tasks: Task[] = [];
-      for (const bm of bms) {
-        bmCounts.set(bm.id, { accounts: 0, pixels: 0, pages: 0 });
-        for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
-          tasks.push({ kind: "accounts", bmId: bm.id, bmName: bm.name, edge: e });
-        }
-        // Pixel/page counters são preenchidos por action=sync_pages — evita estourar o tempo.
-      }
-
-      const CONCURRENCY = 5;
-      let cursor = 0;
-      const worker = async () => {
-        while (true) {
-          const i = cursor++;
-          if (i >= tasks.length) return;
-          const t = tasks[i];
-          const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
-          try {
-            const items = await paginate(url);
-            const c = bmCounts.get(t.bmId)!;
-            for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
-            c.accounts += items.length;
-          } catch (e) {
-            errors.push({ bm: t.bmName, edge: t.edge, erro: (e as Error).message });
-          }
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
-
-      // Dedupe by meta_account_id
-      const seen = new Set<string>();
-      const unique = allAccounts.filter((a) => {
-        if (seen.has(a.id)) return false;
-        seen.add(a.id);
-        return true;
-      });
-
-      // Tabela oficial Meta de disable_reason
-      // https://developers.facebook.com/docs/marketing-api/reference/ad-account/
-      const DISABLE_REASONS: Record<number, string> = {
-        0: "Nenhum",
-        1: "ADS_INTEGRITY_POLICY",
-        2: "ADS_IP_REVIEW",
-        3: "RISK_PAYMENT",
-        4: "GRAY_ACCOUNT_SHUT_DOWN",
-        5: "ADS_AFC_REVIEW",
-        6: "BUSINESS_INTEGRITY_RAR",
-        7: "PERMANENT_CLOSE",
-        8: "UNUSED_RESELLER_ACCOUNT",
-        9: "UNUSED_ACCOUNT",
-        10: "UMBRELLA_AD_ACCOUNT",
-        11: "BUSINESS_MANAGER_INTEGRITY_POLICY",
-        12: "MISREPRESENTED_AD_ACCOUNT",
-        13: "AOAB_DESHARE_LEGAL_ENTITY",
-        14: "CTX_THREAD_REVIEW",
-        15: "COMPROMISED_AD_ACCOUNT",
-      };
-
-      const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
-
-      // Score (0-100) baseado em sinais oficiais do Meta
-      const computeScore = (acc: any) => {
-        let s = 100;
-        const reasons: string[] = [];
-        if (acc.account_status !== 1) { s -= 60; reasons.push("Conta não ativa"); }
-        if (acc.disable_reason && acc.disable_reason !== 0) { s -= 40; reasons.push("Bloqueio ativo"); }
-        if (!acc.funding_source) { s -= 20; reasons.push("Sem pagamento vinculado"); }
-        const bmVer = bmStatusMap.get(acc._bm_meta_id);
-        if (bmVer && bmVer !== "verified") { s -= 10; reasons.push("BM não verificada"); }
-        if (!acc.amount_spent || Number(acc.amount_spent) === 0) { s -= 5; reasons.push("Sem histórico de gasto"); }
-        s = Math.max(0, Math.min(100, s));
-        const label = s >= 80 ? "Excelente" : s >= 60 ? "Bom" : s >= 40 ? "Atenção" : "Crítico";
-        return { score: s, label, reasons };
-      };
-
-      // Mascara o cartão: extrai apenas os 4 últimos dígitos do display_string
-      const maskFunding = (acc: any): string | null => {
-        const fsd = acc.funding_source_details;
-        if (!fsd) return acc.funding_source ? "Vinculado" : null;
-        const raw: string = fsd.display_string || "";
-        const digits = (raw.match(/\d/g) || []).join("");
-        const last4 = digits.slice(-4);
-        const type = fsd.type != null ? String(fsd.type) : "";
-        const brandMatch = raw.match(/^([A-Za-z]+)/);
-        const brand = brandMatch ? brandMatch[1].toUpperCase() : "";
-        if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
-        if (type) return type.replace(/_/g, " ");
-        return raw || "Vinculado";
-      };
-
-      const accRows = unique.map((acc: any) => {
-        const { score, label } = computeScore(acc);
-        return {
-          meta_account_id: acc.id,
-          bm_id: bmIdMap.get(acc._bm_meta_id) || null,
-          name: acc.name,
-          account_status: acc.account_status,
-          status: acc.account_status === 1 ? "active" : "blocked",
-          currency: acc.currency || "USD",
-          amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
-          spend_cap: acc.spend_cap ? Number(acc.spend_cap) / 100 : null,
-          timezone_name: acc.timezone_name || null,
-          account_created_time: acc.created_time || null,
-          disable_reason: acc.disable_reason ?? null,
-          disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
-          funding_source: maskFunding(acc),
-          billing_cycle: acc.is_prepay_account === true ? "Pré-paga" : acc.is_prepay_account === false ? "Pós-paga" : null,
-          balance: acc.balance ? Number(acc.balance) / 100 : 0,
-          business_country_code: acc.business_country_code || null,
-          age: acc.age ?? null,
-          owner_business_name: acc.business?.name || null,
-          score,
-          score_label: label,
-          last_synced_at: new Date().toISOString(),
-        };
-      });
-
-      if (accRows.length > 0) {
-        const CHUNK = 200;
-        for (let i = 0; i < accRows.length; i += CHUNK) {
-          const { error: accErr } = await supabase.from("meta_ad_accounts")
-            .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
-          if (accErr) throw accErr;
-        }
-      }
-
-      // Atualiza contadores e verification_status nas BMs
-      const bmUpdates = bms.map((bm: any) => {
-        const c = bmCounts.get(bm.id) || { accounts: 0, pixels: 0, pages: 0 };
-        return {
-          meta_bm_id: bm.id,
-          name: bm.name,
-          status: bm.verification_status || "active",
-          verification_status: bm.verification_status || null,
-          account_count: c.accounts,
-          pixel_count: c.pixels,
-          page_count: c.pages,
-          last_synced_at: new Date().toISOString(),
-        };
-      });
-      if (bmUpdates.length > 0) {
-        await supabase.from("meta_business_managers")
-          .upsert(bmUpdates, { onConflict: "meta_bm_id" });
-      }
-
+      const totalBms = results.reduce((s, r: any) => s + (r.bms || 0), 0);
+      const totalAccounts = results.reduce((s, r: any) => s + (r.accounts || 0), 0);
       return json({
         sucesso: true,
-        bms_sincronizadas: bmRows.length,
-        contas_sincronizadas: accRows.length,
-        bms: bmRows.map((b) => b.name),
-        erros: errors,
+        aplicativos: apps.length,
+        bms_sincronizadas: totalBms,
+        contas_sincronizadas: totalAccounts,
+        por_aplicativo: results,
       });
     }
 
-    // ===== 3) SYNC DAILY INSIGHTS (range, paralelo) =====
+    // ===== Multi-app sync of pages =====
+    if (action === "sync_pages") {
+      const apps = await loadActiveApps(supabase, appIds);
+      if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
+
+      const results = await Promise.all(apps.map(async (app) => {
+        try {
+          return await syncPagesForApp(supabase, app);
+        } catch (e) {
+          return { app: app.label, erro: (e as Error).message };
+        }
+      }));
+      const totalPages = results.reduce((s, r: any) => s + (r.pages || 0), 0);
+      return json({
+        sucesso: true,
+        aplicativos: apps.length,
+        paginas_sincronizadas: totalPages,
+        por_aplicativo: results,
+      });
+    }
+
+    // ===== Insights (account-level, app-agnostic — uses whichever token works) =====
     if (action === "sync_insights") {
+      const apps = await loadActiveApps(supabase, appIds);
+      if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
+
       const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       const since: string = body.since || body.date || yday;
       const until: string = body.until || body.date || yday;
 
       const { data: accounts, error: accErr } = await supabase
         .from("meta_ad_accounts")
-        .select("id, meta_account_id, name");
+        .select("id, meta_account_id, name, meta_app_id");
       if (accErr) throw accErr;
 
-      // IMPORTANT: Meta reports the same purchase under multiple action_types
-      // (e.g. "purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase").
-      // Somar todos duplica/triplica o valor. Usamos UM tipo por linha, em ordem
-      // de prioridade: omni_purchase (já deduplicado web+app) > purchase >
-      // offsite_conversion.fb_pixel_purchase. Isso evita contagem duplicada.
       const purchasePriority = [
         "omni_purchase",
         "purchase",
@@ -594,22 +588,24 @@ Deno.serve(async (req) => {
         return 0;
       };
 
-      const errors: any[] = [];
-      let totalRows = 0;
+      // Group accounts by app so each request uses the correct token.
+      const appTokens = new Map(apps.map((a) => [a.id, pickToken(a, "sync_insights")]));
+      const fallbackToken = Array.from(appTokens.values()).find((t) => !!t) || "";
 
-      // Concurrency limiter
-      const CONCURRENCY = 3;
-      const list = accounts || [];
-      let idx = 0;
+      const errors: any[] = [];
       const allRows: any[] = [];
+      let idx = 0;
+      const list = accounts || [];
 
       const worker = async () => {
         while (true) {
           const i = idx++;
           if (i >= list.length) return;
-          const acc = list[i];
+          const acc: any = list[i];
+          const tok = (acc.meta_app_id && appTokens.get(acc.meta_app_id)) || fallbackToken;
+          if (!tok) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
           try {
-            const data = await metaFetch(`/${acc.meta_account_id}/insights`, token, {
+            const data = await metaFetch(`/${acc.meta_account_id}/insights`, tok, {
               fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
               time_range: JSON.stringify({ since, until }),
               level: "account",
@@ -637,10 +633,9 @@ Deno.serve(async (req) => {
           }
         }
       };
+      await Promise.all(Array.from({ length: Math.min(3, list.length) }, worker));
 
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, list.length) }, worker));
-
-      // Bulk upsert in chunks
+      let totalRows = 0;
       const CHUNK = 500;
       for (let i = 0; i < allRows.length; i += CHUNK) {
         const chunk = allRows.slice(i, i + CHUNK);
@@ -653,186 +648,15 @@ Deno.serve(async (req) => {
 
       return json({
         sucesso: true,
-        since,
-        until,
+        since, until,
+        aplicativos: apps.length,
         contas: list.length,
         linhas_upsertadas: totalRows,
         erros: errors,
       });
     }
 
-    // ===== 4) SYNC PAGES (BMs -> owned + client pages with details) =====
-    if (action === "sync_pages") {
-      const paginate = async (firstUrl: string) => {
-        const out: any[] = [];
-        let url: string | null = firstUrl;
-        while (url) {
-          const r = await fetchWithRetry(url);
-          const d = await r.json();
-          if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
-          out.push(...(d.data || []));
-          url = d.paging?.next || null;
-        }
-        return out;
-      };
-
-      const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name");
-
-      // created_time é restrito quando usado via System User token — removido pra evitar (#100)
-      const PAGE_FIELDS = "id,name,category,fan_count,followers_count,picture.type(large),is_published,verification_status";
-      const PAGE_FALLBACK_FIELDS = ["id,name,category,picture.type(large)", "id,name", "id"];
-      const errors: any[] = [];
-      const warnings: any[] = [];
-      const detailErrors: any[] = [];
-      const allPages: any[] = [];
-      const sourceCounts: Record<string, number> = {};
-      const sourceModes: Record<string, string> = {};
-
-      const isMetaAccessBlocked = (message: string) =>
-        message.includes("API access blocked") ||
-        message.includes('"code":200') ||
-        message.includes("Permissions error") ||
-        message.includes("Unsupported get request");
-
-      const edgeUrl = (ownerId: string, edge: string, fields: string) => {
-        const url = new URL(`${META_API}/${ownerId}/${edge}`);
-        url.searchParams.set("access_token", token);
-        url.searchParams.set("fields", fields);
-        url.searchParams.set("limit", "200");
-        return url.toString();
-      };
-
-      const fetchPagesWithFallback = async (t: { ownerId: string; edge: string; label: string }) => {
-        let lastError = "";
-        for (const fields of PAGE_FALLBACK_FIELDS) {
-          try {
-            const items = await paginate(edgeUrl(t.ownerId, t.edge, fields));
-            sourceCounts[t.label] = items.length;
-            sourceModes[t.label] = "basico";
-            return items.map((item: any) => ({ ...item, _partial: true }));
-          } catch (e) {
-            lastError = (e as Error).message;
-            if (!isMetaAccessBlocked(lastError)) break;
-          }
-        }
-        throw new Error(lastError || "Falha ao ler páginas da BM");
-      };
-
-      const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
-      for (const bm of bmsDb || []) {
-        for (const e of ["owned_pages", "client_pages"]) {
-          tasks.push({ bmDbId: bm.id, ownerId: bm.meta_bm_id, edge: e, label: `bm:${bm.name}/${e}` });
-        }
-      }
-      // Also pull pages from the System User's own profile (outside BMs)
-      tasks.push({ bmDbId: null, ownerId: "me", edge: "accounts", label: "me/accounts" });
-      // And businesses the user has access to (may catch BMs not yet synced)
-      try {
-        const myBms = await paginate(`${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name&limit=200`);
-        for (const b of myBms) {
-          if (!(bmsDb || []).some((x: any) => x.meta_bm_id === b.id)) {
-            tasks.push({ bmDbId: null, ownerId: b.id, edge: "owned_pages", label: `bm-extra:${b.name}/owned_pages` });
-            tasks.push({ bmDbId: null, ownerId: b.id, edge: "client_pages", label: `bm-extra:${b.name}/client_pages` });
-          }
-        }
-      } catch (e) {
-        errors.push({ source: "me/businesses", erro: (e as Error).message });
-      }
-
-      const CONCURRENCY = 3;
-      let cursor = 0;
-      const worker = async () => {
-        while (true) {
-          const i = cursor++;
-          if (i >= tasks.length) return;
-          const t = tasks[i];
-          try {
-            const items = await fetchPagesWithFallback(t);
-            for (const p of items) allPages.push({ ...p, _bm_db_id: t.bmDbId });
-          } catch (e) {
-            errors.push({ source: t.label, erro: (e as Error).message });
-          }
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
-
-      // Dedupe by page id
-      const seen = new Set<string>();
-      const unique = allPages.filter((p) => {
-        if (seen.has(p.id)) return false;
-        seen.add(p.id);
-        return true;
-      });
-
-      const needsDetails = unique.filter((p: any) => p._partial || p.followers_count == null || p.fan_count == null);
-      let detailCursor = 0;
-      const detailWorker = async () => {
-        while (true) {
-          const i = detailCursor++;
-          if (i >= needsDetails.length) return;
-          const p = needsDetails[i];
-          try {
-            const details = await metaFetch(`/${p.id}`, token, { fields: PAGE_FIELDS });
-            Object.assign(p, details, { _partial: false });
-          } catch (e) {
-            if (detailErrors.length < 8) detailErrors.push({ page_id: p.id, erro: (e as Error).message });
-          }
-        }
-      };
-      if (needsDetails.length > 0) {
-        await Promise.all(Array.from({ length: Math.min(5, needsDetails.length) }, detailWorker));
-      }
-
-      // NOTA: o campo `created_time` foi descontinuado pela Meta na Graph API para Pages.
-      // Mesmo com Page Access Token retorna (#100) nonexisting field. Não há workaround via API.
-      // Solução: campo pode ser preenchido manualmente no painel se necessário.
-
-      const rows = unique.map((p: any) => ({
-        meta_page_id: p.id,
-        bm_id: p._bm_db_id,
-        name: p.name || `Página ${p.id}`,
-        category: p.category || null,
-        fan_count: p.fan_count ?? null,
-        followers_count: p.followers_count ?? p.fan_count ?? null,
-        created_time: p.created_time || null,
-        picture_url: p.picture?.data?.url || null,
-        is_published: p.is_published ?? null,
-        is_restricted: false,
-        status: "active",
-        last_synced_at: new Date().toISOString(),
-      }));
-
-      if (rows.length > 0) {
-        const { error } = await supabase.from("meta_pages").upsert(rows, { onConflict: "meta_page_id" });
-        if (error) throw error;
-      }
-
-      const apiBlocked = [...errors, ...warnings, ...detailErrors].some((e) => isMetaAccessBlocked(String(e.erro || e.detalhe || "")));
-      if (rows.length === 0 && errors.length > 0) {
-        return json({
-          sucesso: false,
-          erro: apiBlocked
-            ? "A Meta bloqueou o acesso às páginas das BMs para este token/app. Verifique permissões business_management, pages_show_list e pages_read_engagement no app/token."
-            : "Não foi possível puxar páginas das BMs.",
-          fontes: sourceCounts,
-          modos: sourceModes,
-          erros: errors,
-        });
-      }
-
-      return json({
-        sucesso: true,
-        paginas_sincronizadas: rows.length,
-        fontes: sourceCounts,
-        modos: sourceModes,
-        avisos: warnings,
-        detalhes_bloqueados: detailErrors.length,
-        amostras_erros_detalhes: detailErrors,
-        erros: errors,
-      });
-    }
-
-    return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_insights | sync_pages" }, 400);
+    return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_pages | sync_insights | start_sync_accounts" }, 400);
   } catch (err) {
     return json({ erro: (err as Error).message }, 500);
   }
