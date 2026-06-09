@@ -120,6 +120,47 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "reset_password") {
+      const { client_id, user_id, new_password } = body;
+      if (!new_password || typeof new_password !== "string" || new_password.length < 6) {
+        return new Response(JSON.stringify({ error: "Senha deve ter ao menos 6 caracteres" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let targetUserId: string | null = user_id || null;
+      if (!targetUserId && client_id) {
+        const { data: cli } = await supabaseAdmin
+          .from("clients")
+          .select("auth_user_id")
+          .eq("id", client_id)
+          .maybeSingle();
+        targetUserId = cli?.auth_user_id || null;
+      }
+
+      if (!targetUserId) {
+        return new Response(JSON.stringify({ error: "Usuário de autenticação não encontrado para este cliente" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        password: new_password,
+      });
+      if (updErr) {
+        return new Response(JSON.stringify({ error: updErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "delete_user") {
       const { user_id } = body;
       if (!user_id) {
