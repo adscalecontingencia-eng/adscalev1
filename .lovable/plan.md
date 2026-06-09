@@ -1,81 +1,145 @@
+# Plano — Suporte robusto
 
-# Marketplace de Ativos — Plano
+## 1. Pendências da Agência (nova aba)
 
-## 1. Banco de dados (migration)
+Nova aba **"Agência"** em `Support.tsx`, ao lado das atuais.
 
-**`products`** (catálogo)
-- `id`, `name`, `slug`, `category` (BM Facebook, Perfil, BC TikTok, Google Ads, Proxy, etc.), `subcategory`, `country` (BR/US/...), `description`, `warranty_terms`, `tags[]`, `cost_price`, `sale_price`, `discount_price` (opcional), `is_featured`, `is_new`, `active`, `image_url`, `created_at`, `updated_at`.
+- Reaproveita `internal_tasks` adicionando coluna `scope` (`'cliente' | 'agencia'`, default `'cliente'`).
+- Aba Agência mostra somente `scope='agencia'` (sem `client_id`).
+- Categorias fixas no formulário (dropdown):
+  Financeiro · Infra/Proxy · Multilogin · Fornecedores · Jurídico · Marketing · Administrativo · Outros.
+- Campos: título, descrição, categoria, responsável (`support_users`), prioridade (baixa/média/alta/urgente — nova coluna `priority`), prazo (`due_date`), status (pendente/em_andamento/concluida/cancelada).
+- KPIs no topo: total abertas, urgentes, vencidas, concluídas no mês.
+- Filtros: categoria, responsável, prioridade, status.
 
-**`product_stock`** (unidades pré-cadastradas — entrega automática)
-- `id`, `product_id`, `payload` (jsonb com email/senha/cookies/token/observações — campos livres por categoria), `status` ('disponivel' | 'reservado' | 'entregue' | 'inativo'), `reserved_until`, `order_id`, `delivered_at`, `created_at`.
-- Função `reserve_stock(product_id, qty, order_id)` (SECURITY DEFINER) que faz `UPDATE ... WHERE status='disponivel' LIMIT qty` atomicamente.
+## 2. Painel Visual de BMs (nova aba)
 
-**`orders`**
-- `id`, `client_id`, `status` ('aguardando_pagamento' | 'pago' | 'entregue_auto' | 'pendente_suporte' | 'cancelado' | 'reembolsado'), `total`, `created_at`, `paid_at`, `delivered_at`, `delivery_mode` ('auto' | 'manual'), `notes`.
+Nova aba **"Painel BMs"** em `Support.tsx` (BMActivityTab continua intacta para histórico/logs diários).
 
-**`order_items`**
-- `id`, `order_id`, `product_id`, `quantity`, `unit_price`, `cost_snapshot`.
+Layout:
 
-**`order_deliveries`** (o que foi entregue ao cliente — copia de stock.payload)
-- `id`, `order_id`, `order_item_id`, `product_id`, `stock_id` (nullable se manual), `payload` (jsonb), `delivered_at`.
+```text
+┌─ KPIs ──────────────────────────────────────────┐
+│ Ativas · Bloqueadas · Sem cliente · Fora backup │
+│ Com terceiros · Saúde média                     │
+└─────────────────────────────────────────────────┘
+┌─ 3 colunas (kanban-like) ────────────────────────┐
+│ ATIVAS         │ BLOQUEADAS     │ SEM CLIENTE   │
+│ [card BM]      │ [card BM]      │ [card BM]     │
+│ [card BM]      │                │ [card BM]     │
+└──────────────────────────────────────────────────┘
+```
 
-**`payments`** (Woovi Pix)
-- `id`, `order_id`, `provider` ('woovi'), `charge_id`, `correlation_id`, `qr_code`, `br_code`, `amount`, `status` ('ativo' | 'pago' | 'expirado' | 'cancelado'), `paid_at`, `raw_webhook` jsonb, `created_at`.
+Cada **card de BM** mostra: nome, meta_bm_id, verification badge, contagem de contas (ativas/bloqueadas), badges de alerta (⚠️ fora de backup mínimo, ⚠️ terceiros detectados), e botão "Detalhes".
 
-**`clients`** — adicionar `phone` (obrigatório nos novos cadastros) se ainda não houver equivalente confiável; manter `whatsapp_phone` para compatibilidade.
+**Drawer de detalhes da BM**:
+- Aba *Usuários*: lista de `business_users + system_users` (via edge `meta-bm-users` já existente). Cada usuário marcado como ✅ Próprio (whitelist) ou 🚩 Terceiro. Botão "Adicionar à whitelist" e botão "Marcar para remoção" (cria task automática em Pendências Agência categoria Fornecedores).
+- Aba *Backups*: checkboxes dos backups globais cadastrados; alerta se abaixo do mínimo.
+- Aba *Contas*: link para as ad accounts da BM.
 
-RLS: produtos públicos para leitura (anon + authenticated); `product_stock`, `orders`, `order_items`, `order_deliveries`, `payments` apenas admin/support; cliente lê apenas suas próprias orders/deliveries.
+## 3. Backups manuais (lista global + regra mínima)
 
-## 2. Edge Functions
+Nova tabela `bm_backups` (catálogo) + `bm_backup_assignments` (qual BM está em qual backup) + configuração de regra mínima.
 
-- `woovi-create-charge` — cria pedido + cobrança Pix (chama API Woovi com `WOOVI_APP_ID`), devolve QR code/copia-cola.
-- `woovi-webhook` (verify_jwt=false, valida HMAC do header da Woovi) — ao receber `OPENPIX:CHARGE_COMPLETED`:
-  1. marca `payments.status='pago'`, `orders.status='pago'`;
-  2. tenta `reserve_stock` para cada item:
-     - todos atendidos → grava `order_deliveries`, marca stock 'entregue', `orders.status='entregue_auto'`;
-     - parcial ou zero → cria `internal_tasks` (categoria 'Entrega Marketplace') para o suporte e marca `orders.status='pendente_suporte'`.
-- `marketplace-checkout` — endpoint autenticado: valida itens/preços, cria order pendente, chama `woovi-create-charge`.
+UI de gestão dentro do Painel BMs → botão "Backups":
+- CRUD de backups (nome, descrição, tipo: HD/Drive/Cofre/Outro, última verificação).
+- Campo "Mínimo de backups por BM" (default 2).
+- Tabela cruzada BM × Backup com checkboxes.
+- Alerta global: lista de BMs com `count(backups) < minimo`.
 
-Secret necessário: `WOOVI_APP_ID` (será solicitado quando começarmos a implementar o pagamento).
+## 4. Whitelist de perfis próprios (detecção de terceiros)
 
-## 3. Frontend — Marketplace público (rotas Hash)
+Reutiliza `bm_profiles` (já tem perfis cadastrados manualmente). Adiciona coluna `meta_user_id` opcional para casar com o ID retornado pela Graph API.
 
-- `/#/marketplace` — Hero, busca, filtros (categoria, país, preço), grid de produtos em destaque + novidades (tabs como no print).
-- `/#/marketplace/categoria/:slug` — listagem por categoria.
-- Card de produto: tags, badges país/ilimitado, preço, desconto, estoque disponível, "Comprar", "ⓘ" detalhes.
-- Dialog detalhe (tabs Produto / Garantia) — exatamente como o concorrente.
-- `/#/checkout/:orderId` — exibe QR Code Pix + copia-cola, polling do status do pagamento, redireciona para `/#/meus-pedidos/:id` quando pago.
-- `/#/meus-pedidos` e `/#/meus-pedidos/:id` (logado) — lista de pedidos do cliente + payload entregue (ou aviso "Suporte processando").
-- Link no header público "Marketplace"; botão "Comprar" exige login (redireciona para `/#/login?next=/marketplace`).
+Lógica:
+- Ao abrir detalhes da BM, edge `meta-bm-users` retorna usuários.
+- Sistema compara com `bm_profiles` daquela BM (por `meta_user_id` ou `profile_name`/`email`).
+- Não-batidos → flag "Terceiro".
+- Botões: "Adicionar à whitelist" (insere em `bm_profiles` com o id Meta), "Criar pendência de remoção" (insere task em `internal_tasks` scope=agencia, categoria=Fornecedores, com referência à BM e usuário).
 
-## 4. Admin
+KPI no painel: nº de BMs com pelo menos 1 terceiro detectado.
 
-Nova página `/#/admin/marketplace` (admin only) com tabs:
-- **Produtos**: tabela CRUD (nome, categoria, país, custo, venda, desconto, destaque, ativo). Form completo com upload de imagem (Supabase Storage bucket `product-images`).
-- **Estoque**: por produto, lista de unidades (`product_stock`); adicionar uma a uma ou em lote (textarea com 1 linha = 1 unidade JSON/CSV). Mostra contagem disponível/reservada/entregue.
-- **Pedidos**: lista com filtros (status, cliente, data); detalhe mostra itens, pagamento, deliveries, botão "Entregar manualmente" (preenche payload e marca entregue) para pedidos `pendente_suporte`.
-- **Métricas**: receita marketplace, ticket médio, custo, margem por produto/categoria.
-
-## 5. Cadastro com Google + telefone obrigatório
-
-- Habilitar Google OAuth (Lovable Cloud managed) em `Signup.tsx` e `Login.tsx` via `lovable.auth.signInWithOAuth("google", { redirect_uri })`.
-- Fluxo pós-OAuth: se `clients.phone` estiver vazio para o `auth_user_id` recém-criado, redireciona para `/#/completar-cadastro` exigindo `phone` (com máscara/validação E.164) antes de liberar o app.
-- Cadastro por email/senha existente ganha campo "Telefone (WhatsApp)" obrigatório com Zod (mínimo 10 dígitos, regex BR + internacional).
-- Persistir em `clients.whatsapp_phone` (já existe) — sem verificação SMS. Se houver `whatsapp_group_link` configurado globalmente, mostrar botão "Entrar no grupo" no final do cadastro.
-
-## 6. Ordem de implementação
-
-1. Migration (tabelas + RLS + função `reserve_stock`).
-2. Admin CRUD produtos + estoque.
-3. Página pública do marketplace + detalhe.
-4. Google OAuth + telefone obrigatório no cadastro.
-5. Edge functions Woovi + página de checkout Pix + webhook.
-6. Página "Meus pedidos" + entrega manual no admin.
-7. QA fim-a-fim (criar produto → comprar → simular webhook → entrega automática e manual).
+---
 
 ## Detalhes técnicos
 
-- Pix Woovi: API `https://api.woovi.com/api/v1/charge` (POST com header `Authorization: <APP_ID>`), webhook validado por header `x-webhook-signature` (HMAC SHA256 do body com app id).
-- Storage: bucket público `product-images`.
-- Tipos TS regenerados após a migration antes de escrever telas que dependam das novas tabelas.
-- Manter dark + neon do design system; reaproveitar `Card`, `Badge`, `Dialog`, `Tabs` do shadcn.
+### Migração SQL
+```sql
+-- 1. Escopo + prioridade + prazo em internal_tasks
+ALTER TABLE public.internal_tasks
+  ADD COLUMN scope text NOT NULL DEFAULT 'cliente'
+    CHECK (scope IN ('cliente','agencia')),
+  ADD COLUMN priority text NOT NULL DEFAULT 'media'
+    CHECK (priority IN ('baixa','media','alta','urgente')),
+  ADD COLUMN due_date date;
+CREATE INDEX idx_internal_tasks_scope ON public.internal_tasks(scope);
+
+-- 2. Whitelist: id Meta nos perfis
+ALTER TABLE public.bm_profiles
+  ADD COLUMN meta_user_id text,
+  ADD COLUMN meta_user_kind text,  -- 'business' | 'system'
+  ADD COLUMN is_whitelisted boolean NOT NULL DEFAULT true;
+
+-- 3. Backups globais
+CREATE TABLE public.bm_backups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  kind text,  -- HD, Drive, Cofre, Outro
+  description text,
+  last_verified_at timestamptz,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.bm_backups TO authenticated;
+GRANT ALL ON public.bm_backups TO service_role;
+ALTER TABLE public.bm_backups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin/support full bm_backups" ON public.bm_backups
+  FOR ALL TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'support'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'support'));
+
+-- 4. Cruzamento BM × Backup
+CREATE TABLE public.bm_backup_assignments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  bm_id uuid NOT NULL REFERENCES public.meta_business_managers(id) ON DELETE CASCADE,
+  backup_id uuid NOT NULL REFERENCES public.bm_backups(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(bm_id, backup_id)
+);
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.bm_backup_assignments TO authenticated;
+GRANT ALL ON public.bm_backup_assignments TO service_role;
+ALTER TABLE public.bm_backup_assignments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin/support full bm_backup_assignments" ON public.bm_backup_assignments
+  FOR ALL TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'support'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'support'));
+
+-- 5. Config global (regra mínima)
+CREATE TABLE public.support_settings (
+  key text PRIMARY KEY,
+  value jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.support_settings TO authenticated;
+GRANT ALL ON public.support_settings TO service_role;
+ALTER TABLE public.support_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin/support settings" ON public.support_settings
+  FOR ALL TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'support'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'support'));
+INSERT INTO public.support_settings(key,value) VALUES ('min_backups_per_bm','2'::jsonb)
+  ON CONFLICT DO NOTHING;
+```
+
+### Arquivos novos
+- `src/components/support/AgencyTasksTab.tsx` — pendências da agência.
+- `src/components/support/BMPanelTab.tsx` — painel visual (3 colunas, KPIs, drawer).
+- `src/components/support/BMDetailDrawer.tsx` — usuários + backups + ações.
+- `src/components/support/BackupsManagerDialog.tsx` — CRUD de backups + matriz BM×Backup + regra mínima.
+
+### Arquivos editados
+- `src/pages/Support.tsx` — adiciona 2 novas TabsTrigger ("Agência", "Painel BMs").
+
+### Sem mudanças no backend
+A edge `meta-bm-users` já existe e é suficiente. Nenhuma nova edge function necessária.
