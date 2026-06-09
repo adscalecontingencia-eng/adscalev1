@@ -16,6 +16,7 @@ import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers'
 import { splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -424,6 +425,7 @@ const ClientDashboard: React.FC = () => {
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
+          <ThemeToggle />
           {!isAdminView && user?.id && (
             <ClientNotificationCenter
               clientId={client.id}

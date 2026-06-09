@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon, Shield, Handshake, ShoppingBag, AppWindow
 } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const adminLinks = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
@@ -106,6 +107,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
               Live
             </div>
+            <ThemeToggle />
             <NotificationCenter />
           </div>
         </header>
