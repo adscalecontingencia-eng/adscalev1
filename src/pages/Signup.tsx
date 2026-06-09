@@ -95,7 +95,7 @@ const Signup: React.FC = () => {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-2xl relative z-10">
         <div className="flex flex-col items-center mb-6 text-primary">
-          <AdScaleLogo size={48} />
+          <AdScaleLogo size={typeof window !== 'undefined' && window.innerWidth < 640 ? 32 : 48} />
           <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3">Cadastro do Cliente</p>
         </div>
 
