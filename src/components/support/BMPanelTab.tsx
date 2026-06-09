@@ -24,6 +24,7 @@ const BMPanelTab: React.FC = () => {
   const [minBackups, setMinBackups] = useState(2);
   const [search, setSearch] = useState('');
   const [showBackupsManager, setShowBackupsManager] = useState(false);
+  const [showDetected, setShowDetected] = useState(false);
   const [detail, setDetail] = useState<BM | null>(null);
 
   const load = async () => {
