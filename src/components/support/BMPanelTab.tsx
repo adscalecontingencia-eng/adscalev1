@@ -4,6 +4,8 @@ import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings
 import { cn } from '@/lib/utils';
 import BackupsManagerDialog from './BackupsManagerDialog';
 import BMDetailDrawer from './BMDetailDrawer';
+import DetectedProfilesDialog from './DetectedProfilesDialog';
+import { ScanLine } from 'lucide-react';
 
 interface BM { id: string; meta_bm_id: string; name: string; status: string | null; verification_status: string | null; account_count: number | null }
 interface Account { id: string; bm_id: string | null; status: string | null }
