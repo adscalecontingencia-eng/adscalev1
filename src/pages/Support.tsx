@@ -233,25 +233,37 @@ const Support: React.FC = () => {
                   ) : (
                     <div className="space-y-2">
                       {items.map((r: any) => {
+                        const ageMs = Date.now() - new Date(r.created_at).getTime();
+                        const overdue = col.key !== 'concluida' && ageMs > 24 * 60 * 60 * 1000;
+                        const hoursLate = Math.floor(ageMs / (60 * 60 * 1000));
+                        const overdueCard = overdue
+                          ? 'bg-red-500/10 border-red-500/60 ring-1 ring-red-500/40 shadow-[0_0_14px_-2px_rgba(239,68,68,0.45)]'
+                          : 'bg-secondary/40 border-border';
+                        const overdueBadge = overdue && (
+                          <span className="text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/50 px-1.5 py-0.5 rounded inline-flex items-center gap-1 animate-pulse">
+                            <AlertTriangle size={10} /> Atrasado {hoursLate}h
+                          </span>
+                        );
                         if (r._kind === 'task') {
                           const assignedName = supportUsers.find((u: any) => u.id === r.assigned_to)?.name;
                           const clientName = clients.find((c: any) => c.id === r.client_id)?.name;
                           return (
-                            <div key={`t-${r.id}`} className="bg-secondary/40 border border-border rounded-lg p-3 flex flex-col gap-2">
+                            <div key={`t-${r.id}`} className={cn("border rounded-lg p-3 flex flex-col gap-2", overdueCard)}>
                               <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", overdue ? "bg-red-500/20 text-red-300" : "bg-primary/10 text-primary")}>
                                   <LifeBuoy size={16} />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <p className="text-sm font-semibold">{r.title}</p>
+                                    {overdueBadge}
                                     <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{r.category === 'manutencao' ? 'Manutenção' : 'Atendimento'}</span>
                                     <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{r.structure_type}</span>
                                     {clientName && <span className="text-[11px] text-primary">{clientName}</span>}
                                   </div>
                                   {r.description && <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{r.description}</p>}
                                   {assignedName && <p className="text-[10px] text-primary mt-1">Atribuído: {assignedName}</p>}
-                                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                                  <p className={cn("text-[10px] mt-1", overdue ? "text-red-400/80 font-semibold" : "text-muted-foreground/70")}>
                                     {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                                   </p>
                                 </div>
@@ -274,14 +286,15 @@ const Support: React.FC = () => {
                         const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : LifeBuoy;
                         const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
                         return (
-                <div key={r.id} className="bg-secondary/40 border border-border rounded-lg p-3 flex flex-col gap-2">
+                <div key={r.id} className={cn("border rounded-lg p-3 flex flex-col gap-2", overdueCard)}>
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", overdue ? "bg-red-500/20 text-red-300" : "bg-primary/10 text-primary")}>
                       <TypeIcon size={16} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold">{typeLabel}</p>
+                        {overdueBadge}
                         {r.request_type !== 'other' && (
                           <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                         )}
@@ -302,7 +315,7 @@ const Support: React.FC = () => {
                           ))}
                         </div>
                       )}
-                      <p className="text-[10px] text-muted-foreground/70 mt-1">
+                      <p className={cn("text-[10px] mt-1", overdue ? "text-red-400/80 font-semibold" : "text-muted-foreground/70")}>
                         {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </p>
                     </div>
