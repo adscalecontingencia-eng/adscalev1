@@ -48,8 +48,10 @@ const ClientDashboard: React.FC = () => {
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
-  // Período individual por conta de anúncio (na aba Estrutura)
-  const [accountPeriods, setAccountPeriods] = useState<Record<string, 'today' | '7d' | '30d' | 'all'>>({});
+  // Período global da aba Estrutura (aplica-se a todas as contas)
+  const [estruturaPeriod, setEstruturaPeriod] = useState<'today' | '7d' | '30d' | 'all' | 'custom'>('7d');
+  const [estruturaCustomStart, setEstruturaCustomStart] = useState<Date>(new Date(Date.now() - 6 * 86400000));
+  const [estruturaCustomEnd, setEstruturaCustomEnd] = useState<Date>(new Date());
 
   const fetchAccounts = useCallback(async (clientId: string) => {
     const { data: assigns } = await supabase
@@ -255,8 +257,18 @@ const ClientDashboard: React.FC = () => {
     });
   }, [commissions, periodFilter, customStart, customEnd]);
 
-  // Tier logic — tiers come from DB (admin-configurable)
-  const { tiers: commissionTiers } = useCommissionTiers();
+  // Tier logic — tiers come from DB (admin-configurable globally).
+  // Se o cliente tiver `custom_tiers` definidos, esses sobrescrevem os globais.
+  const { tiers: globalCommissionTiers } = useCommissionTiers();
+  const commissionTiers = useMemo(() => {
+    const ct = (client as any)?.custom_tiers;
+    if (Array.isArray(ct) && ct.length > 0) {
+      return ct
+        .filter((t: any) => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
+        .map((t: any) => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }));
+    }
+    return globalCommissionTiers;
+  }, [client, globalCommissionTiers]);
   const getTierPct = (weekSpend: number, basePct: number) =>
     getTierPctFromTiers(weekSpend, basePct, commissionTiers);
 
@@ -922,7 +934,7 @@ const ClientDashboard: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 mb-5">
+                  <div className="grid grid-cols-2 gap-3 mb-5">
                     <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-center">
                       <ShieldCheck size={16} className="text-emerald-400 mx-auto mb-1" />
                       <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
@@ -933,10 +945,57 @@ const ClientDashboard: React.FC = () => {
                       <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Banidas</p>
                     </div>
-                    <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-center">
-                      <Sparkles size={16} className="text-primary mx-auto mb-1" />
-                      <p className="text-2xl font-bold text-primary">{available}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Disponíveis</p>
+                  </div>
+
+                  {/* Filtro global de período da aba Estrutura */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-4 border-b border-border/60">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Período das métricas</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {([
+                        { v: 'today', l: 'Hoje' },
+                        { v: '7d', l: '7 dias' },
+                        { v: '30d', l: '30 dias' },
+                        { v: 'all', l: 'Tudo' },
+                        { v: 'custom', l: 'Personalizado' },
+                      ] as const).map(o => (
+                        <button
+                          key={o.v}
+                          onClick={() => setEstruturaPeriod(o.v)}
+                          className={cn(
+                            "text-[10px] px-2.5 py-1 rounded-md border transition-colors",
+                            estruturaPeriod === o.v
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                          )}
+                        >
+                          {o.l}
+                        </button>
+                      ))}
+                      {estruturaPeriod === 'custom' && (
+                        <>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] bg-secondary border border-border hover:border-primary">
+                                <CalendarIcon size={10} /> {format(estruturaCustomStart, 'dd/MM/yyyy', { locale: ptBR })}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <Calendar mode="single" selected={estruturaCustomStart} onSelect={d => d && setEstruturaCustomStart(d)} className="p-3 pointer-events-auto" />
+                            </PopoverContent>
+                          </Popover>
+                          <span className="text-[10px] text-muted-foreground">até</span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] bg-secondary border border-border hover:border-primary">
+                                <CalendarIcon size={10} /> {format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: ptBR })}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <Calendar mode="single" selected={estruturaCustomEnd} onSelect={d => d && setEstruturaCustomEnd(d)} className="p-3 pointer-events-auto" />
+                            </PopoverContent>
+                          </Popover>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -951,16 +1010,19 @@ const ClientDashboard: React.FC = () => {
                         const acc = a.ad_account;
                         if (!acc) return null;
                         const isBlocked = acc.status === 'blocked' || (acc.disable_reason ?? 0) > 0;
-                        const period = accountPeriods[acc.id] || '7d';
                         const now = new Date();
                         const since =
-                          period === 'today' ? startOfDay(now) :
-                          period === '7d' ? startOfDay(new Date(now.getTime() - 6 * 86400000)) :
-                          period === '30d' ? startOfDay(new Date(now.getTime() - 29 * 86400000)) :
+                          estruturaPeriod === 'today' ? startOfDay(now) :
+                          estruturaPeriod === '7d' ? startOfDay(new Date(now.getTime() - 6 * 86400000)) :
+                          estruturaPeriod === '30d' ? startOfDay(new Date(now.getTime() - 29 * 86400000)) :
+                          estruturaPeriod === 'custom' ? startOfDay(estruturaCustomStart) :
                           new Date(0);
-                        const accInsights = insights.filter((i: any) =>
-                          i.ad_account_id === acc.id && parseDateLocal(i.date) >= since
-                        );
+                        const until = estruturaPeriod === 'custom' ? endOfDay(estruturaCustomEnd) : endOfDay(now);
+                        const accInsights = insights.filter((i: any) => {
+                          if (i.ad_account_id !== acc.id) return false;
+                          const d = parseDateLocal(i.date);
+                          return d >= since && d <= until;
+                        });
                         const m = accInsights.reduce((s: any, i: any) => ({
                           spend: s.spend + Number(i.spend || 0),
                           impressions: s.impressions + Number(i.impressions || 0),
@@ -972,8 +1034,6 @@ const ClientDashboard: React.FC = () => {
                         const cpc = m.clicks > 0 ? m.spend / m.clicks : 0;
                         const cpm = m.impressions > 0 ? (m.spend / m.impressions) * 1000 : 0;
                         const roas = m.spend > 0 ? m.revenue / m.spend : 0;
-                        const setPeriod = (p: 'today' | '7d' | '30d' | 'all') =>
-                          setAccountPeriods(prev => ({ ...prev, [acc.id]: p }));
                         return (
                           <div key={a.id} className="bg-secondary/40 border border-border rounded-lg p-3 space-y-3">
                             <div className="flex items-center justify-between gap-3 flex-wrap">
