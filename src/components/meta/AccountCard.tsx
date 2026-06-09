@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  CheckCircle2, AlertOctagon, Clock, Wallet, CreditCard, Globe, Eye, Building2, ExternalLink,
+  CheckCircle2, AlertOctagon, Clock, Wallet, CreditCard, Globe, Eye, Building2, ExternalLink, BadgeCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { scoreColor, scoreBadgeVariant } from "@/lib/meta-score";
