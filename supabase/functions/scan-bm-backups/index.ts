@@ -17,7 +17,44 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const GRAPH = "https://graph.facebook.com/v21.0";
-const CONCURRENCY = 6;
+const REQUEST_DELAY_MS = 900;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const cleanToken = (token?: string | null) => (token || "").replace(/\s+/g, "").trim();
+
+function isRateLimit(code?: number, msg = "") {
+  return [4, 17, 32, 613].includes(Number(code)) || /rate|limit|throttl|Application request limit/i.test(msg);
+}
+
+async function fetchJsonWithRetry(url: string, onBackoff: (msg: string) => Promise<void>, attempts = 5) {
+  let last: { error: string; code?: number; rateLimited?: boolean } | null = null;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const r = await fetch(url);
+      const j = await r.json().catch(() => ({}));
+      const err = j?.error;
+      const msg = err?.message || (!r.ok ? `HTTP ${r.status}` : "");
+      const code = err?.code;
+      const retry = r.status === 429 || r.status >= 500 || isRateLimit(code, msg) || err?.is_transient;
+      if ((!r.ok || err) && retry && i < attempts - 1) {
+        const wait = Math.min(90000, (isRateLimit(code, msg) ? 12000 : 2500) * Math.pow(2, i));
+        await onBackoff(`Meta em limite de requisições. Aguardando ${Math.round(wait / 1000)}s antes de continuar...`);
+        await sleep(wait);
+        continue;
+      }
+      if (!r.ok || err) return { data: null, error: msg || "Erro Meta", code, rateLimited: isRateLimit(code, msg) };
+      return { data: j, error: null, code: undefined, rateLimited: false };
+    } catch (e) {
+      last = { error: (e as Error).message };
+      if (i < attempts - 1) {
+        const wait = Math.min(30000, 1500 * Math.pow(2, i));
+        await onBackoff(`Falha temporária de rede. Nova tentativa em ${Math.round(wait / 1000)}s...`);
+        await sleep(wait);
+      }
+    }
+  }
+  return { data: null, error: last?.error || "Falha ao chamar Meta", code: last?.code, rateLimited: last?.rateLimited || false };
+}
 
 async function logAudit(admin: any, entry: {
   actor_id?: string | null; actor_email?: string | null;
