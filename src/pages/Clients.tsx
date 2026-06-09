@@ -1200,6 +1200,7 @@ const Clients: React.FC = () => {
               onView={() => navigate(`/client-view/${c.id}`)}
               onEdit={() => handleEdit(c)}
               onDelete={() => handleDelete(c.id)}
+              onResetPassword={() => handleResetPassword(c.id)}
               onTogglePayForm={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)}
               onSubmitPay={() => handleAddPaid(c.id)}
               onOpenHistory={() => setHistoryClientId(c.id)}
