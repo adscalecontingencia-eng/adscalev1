@@ -173,7 +173,7 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
         name: bm.name || `BM ${bm.id}`,
         status: bm.verification_status || "active",
         verification_status: bm.verification_status || null,
-        meta_app_id: source.id,
+        ...(source.id ? { meta_app_id: source.id } : {}),
         last_synced_at: new Date().toISOString(),
       }));
       if (bmRows.length) await admin.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
