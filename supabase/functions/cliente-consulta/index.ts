@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-n8n-key",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
@@ -20,15 +20,15 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const chave = url.searchParams.get("chave");
+    const chave = req.headers.get("x-n8n-key");
     const nome = url.searchParams.get("nome");
     const periodo = url.searchParams.get("periodo");
     const customStart = url.searchParams.get("start");
     const customEnd = url.searchParams.get("end");
 
     const secretKey = Deno.env.get("N8N_SECRET_KEY");
-    if (!chave || chave !== secretKey) {
-      return new Response(JSON.stringify({ erro: "Chave secreta inválida" }), {
+    if (!chave || !secretKey || chave !== secretKey) {
+      return new Response(JSON.stringify({ erro: "Chave secreta inválida. Envie via header 'x-n8n-key'." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
