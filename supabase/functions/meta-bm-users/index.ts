@@ -1,4 +1,4 @@
-// Lista usuários (business_users + system_users) vinculados a uma BM Meta
+// Lista usuários business_users vinculados a uma BM Meta usando o token do perfil.
 // POST { meta_bm_id: string }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     const bu = await fetchJson(url);
     if (bu.error) {
       await logAudit(supabase, { meta_bm_id, erro: bu.error, endpoint: `/${meta_bm_id}?fields=business_users` }, user.id, user.email ?? null);
-      return json({ sucesso: false, usuarios: [], erros: [bu.error] });
+      return json({ sucesso: false, erro: bu.error, usuarios: [], erros: [bu.error] }, 400);
     }
 
     const users = [
