@@ -29,6 +29,8 @@ const BMPanelTab: React.FC = () => {
   const [showBackupsManager, setShowBackupsManager] = useState(false);
   const [showDetected, setShowDetected] = useState(false);
   const [detail, setDetail] = useState<BM | null>(null);
+  const [tab, setTab] = useState<TabKey>('all');
+  const [syncing, setSyncing] = useState(false);
 
   const load = async () => {
     const [b, a, asn, bk, ba, p, s] = await Promise.all([
