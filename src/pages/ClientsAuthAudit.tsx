@@ -245,14 +245,24 @@ const ClientsAuthAudit: React.FC = () => {
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button
-                    disabled={!r.auth_user_id || busyId === r.client_id}
-                    onClick={() => handleReset(r)}
-                    title="Redefinir senha"
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs border border-border hover:border-primary hover:text-primary disabled:opacity-40"
-                  >
-                    <KeyRound size={12} /> Redefinir senha
-                  </button>
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      disabled={!r.auth_user_id || busyId === r.client_id}
+                      onClick={() => handleReset(r)}
+                      title="Redefinir somente a senha"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs border border-border hover:border-primary hover:text-primary disabled:opacity-40"
+                    >
+                      <KeyRound size={12} /> Senha
+                    </button>
+                    <button
+                      disabled={!r.auth_user_id || busyId === r.client_id}
+                      onClick={() => handleResetLogin(r)}
+                      title="Redefinir e-mail e/ou senha"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40"
+                    >
+                      <Mail size={12} /> Redefinir login
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
