@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -34,25 +35,35 @@ const ResetPassword: React.FC = () => {
     e.preventDefault();
     setError('');
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      const msg = 'A senha deve ter pelo menos 6 caracteres';
+      setError(msg);
+      toast.error(msg);
       return;
     }
     if (password !== confirm) {
-      setError('As senhas não coincidem');
+      const msg = 'As senhas não coincidem';
+      setError(msg);
+      toast.error(msg);
       return;
     }
     setSubmitting(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        setError(error.message || 'Erro ao atualizar senha');
+        const msg = error.message || 'Erro ao atualizar senha';
+        setError(msg);
+        toast.error('Não foi possível atualizar a senha', { description: msg });
       } else {
         setSuccess(true);
+        toast.success('Senha atualizada com sucesso!', {
+          description: 'Você será redirecionado para o login.',
+        });
         await supabase.auth.signOut();
         setTimeout(() => navigate('/login'), 2500);
       }
     } catch {
       setError('Erro ao atualizar senha');
+      toast.error('Erro ao atualizar senha');
     } finally {
       setSubmitting(false);
     }

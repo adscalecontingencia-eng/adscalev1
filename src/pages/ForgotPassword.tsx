@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -20,12 +21,18 @@ const ForgotPassword: React.FC = () => {
         redirectTo: `${window.location.origin}/#/reset-password`,
       });
       if (error) {
-        setError(error.message || 'Erro ao enviar e-mail');
+        const msg = error.message || 'Erro ao enviar e-mail';
+        setError(msg);
+        toast.error('Não foi possível enviar o e-mail', { description: msg });
       } else {
         setSent(true);
+        toast.success('E-mail enviado!', {
+          description: `Enviamos o link de recuperação para ${email}`,
+        });
       }
     } catch {
       setError('Erro ao enviar e-mail');
+      toast.error('Erro ao enviar e-mail');
     } finally {
       setSubmitting(false);
     }
