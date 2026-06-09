@@ -31,7 +31,7 @@ function diagnose(msg: string): string {
 async function record(action: string, entry: SystemErrorEntry) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('audit_log').insert({
+    await supabase.from('audit_log').insert([{
       actor_id: user?.id ?? null,
       actor_email: user?.email ?? null,
       action,
@@ -47,8 +47,8 @@ async function record(action: string, entry: SystemErrorEntry) {
         solucao_sugerida: diagnose(entry.message),
         user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
         timestamp: new Date().toISOString(),
-      },
-    });
+      } as any,
+    }] as any);
   } catch (e) {
     console.warn('[system-error-logger] failed', e);
   }
