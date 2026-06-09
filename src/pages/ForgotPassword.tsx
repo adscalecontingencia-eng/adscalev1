@@ -21,12 +21,18 @@ const ForgotPassword: React.FC = () => {
         redirectTo: `${window.location.origin}/#/reset-password`,
       });
       if (error) {
-        setError(error.message || 'Erro ao enviar e-mail');
+        const msg = error.message || 'Erro ao enviar e-mail';
+        setError(msg);
+        toast.error('Não foi possível enviar o e-mail', { description: msg });
       } else {
         setSent(true);
+        toast.success('E-mail enviado!', {
+          description: `Enviamos o link de recuperação para ${email}`,
+        });
       }
     } catch {
       setError('Erro ao enviar e-mail');
+      toast.error('Erro ao enviar e-mail');
     } finally {
       setSubmitting(false);
     }
