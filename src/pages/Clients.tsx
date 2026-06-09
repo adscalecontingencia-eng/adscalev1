@@ -40,6 +40,7 @@ interface Client {
   whatsappPhone?: string;
   whatsappGroupLink?: string;
   partnerId?: string | null;
+  customTiers?: CommissionTier[] | null;
 }
 
 // Metas semanais de desconto agora vêm da tabela `commission_tiers` (admin-editável).
