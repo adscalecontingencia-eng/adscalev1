@@ -112,8 +112,9 @@ const BMPanelTab: React.FC = () => {
         </button>
       </div>
 
-      {/* 3 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* 4 colunas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+        <Column title="Todas" subtitle="todas as BMs cadastradas" tone="neutral" bms={filtered} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
         <Column title="Ativas" subtitle="com cliente atribuído" tone="primary" bms={groups.active} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
         <Column title="Bloqueadas" subtitle="status ≠ ativa" tone="destructive" bms={groups.blocked} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
         <Column title="Sem cliente" subtitle="ativas, sem atribuição" tone="amber" bms={groups.unassigned} bmStats={bmStats} minBackups={minBackups} onOpen={setDetail} />
