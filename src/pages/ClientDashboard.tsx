@@ -419,11 +419,19 @@ const ClientDashboard: React.FC = () => {
           <AdScaleLogo size={28} />
           <p className="text-xs text-muted-foreground hidden sm:block border-l border-border pl-3">Painel do Cliente</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
+          {!isAdminView && user?.id && (
+            <ClientNotificationCenter
+              clientId={client.id}
+              authUserId={user.id}
+              ads={activeAccounts}
+              pages={pages}
+            />
+          )}
           {isAdminView ? (
             <button onClick={() => navigate('/clients')} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title="Voltar para Clientes">
               <X size={16} />
