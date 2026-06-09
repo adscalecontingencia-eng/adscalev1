@@ -408,6 +408,7 @@ export default function MetaConnections() {
                   key={a.id}
                   account={a}
                   bmName={bmName(a.bm_id)}
+                  bmVerified={a.bm_id ? bmVerifiedMap.get(a.bm_id) : false}
                   clients={clients}
                   currentClientId={currentClient(a.id)}
                   onAssign={(cid) => assign(a.id, cid)}
