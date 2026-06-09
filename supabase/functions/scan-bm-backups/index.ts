@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     const detectedRows: any[] = [];
     const report: any[] = [];
     for (const bm of bms) {
-      const token = (bm.meta_app_id && tokenByApp.get(bm.meta_app_id)) || fallbackToken!;
+      const token = fallbackToken || (bm.meta_app_id && tokenByApp.get(bm.meta_app_id))!;
       const [bu, su] = await Promise.all([
         fetchEdge(bm.meta_bm_id, "business_users", token),
         fetchEdge(bm.meta_bm_id, "system_users", token),
