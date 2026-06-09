@@ -70,6 +70,8 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/completar-cadastro" element={<CompleteSignup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/meus-pedidos" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
