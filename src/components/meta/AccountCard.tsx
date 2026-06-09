@@ -32,6 +32,7 @@ interface Client { id: string; name: string; email: string }
 interface Props {
   account: AccountCardData;
   bmName: string;
+  bmVerified?: boolean;
   clients: Client[];
   currentClientId: string | null;
   onAssign: (clientId: string | null) => Promise<void> | void;
