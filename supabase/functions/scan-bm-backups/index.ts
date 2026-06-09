@@ -97,7 +97,7 @@ async function runScanJob(admin: any, jobId: string, actorId: string | null, act
       .eq("status", "active")
       .order("created_at", { ascending: false });
     const seenTokens = new Set<string>();
-    const sources: any[] = [];
+    let sources: any[] = [];
     const addSource = (source: any) => {
       if (!source.token || seenTokens.has(source.token)) return;
       seenTokens.add(source.token);
