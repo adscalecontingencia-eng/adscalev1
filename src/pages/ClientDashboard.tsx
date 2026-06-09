@@ -16,6 +16,7 @@ import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers'
 import { splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
