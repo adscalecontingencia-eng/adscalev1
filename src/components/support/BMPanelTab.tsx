@@ -110,6 +110,9 @@ const BMPanelTab: React.FC = () => {
             className="w-full pl-9 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
+        <button onClick={() => setShowDetected(true)} className="bg-primary/15 border border-primary/40 text-primary rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:bg-primary/25">
+          <ScanLine size={12} /> Detectar perfis
+        </button>
         <button onClick={() => setShowBackupsManager(true)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:border-primary/50">
           <Settings size={12} /> Gerenciar backups
         </button>
