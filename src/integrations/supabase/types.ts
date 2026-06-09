@@ -142,12 +142,84 @@ export type Database = {
           },
         ]
       }
+      bm_backup_assignments: {
+        Row: {
+          backup_id: string
+          bm_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          backup_id: string
+          bm_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          backup_id?: string
+          bm_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_backup_assignments_backup_id_fkey"
+            columns: ["backup_id"]
+            isOneToOne: false
+            referencedRelation: "bm_backups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bm_backup_assignments_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bm_backups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          kind: string | null
+          last_verified_at: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string | null
+          last_verified_at?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string | null
+          last_verified_at?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bm_profiles: {
         Row: {
           bm_id: string
           created_at: string
           created_by: string | null
           id: string
+          is_whitelisted: boolean
+          meta_user_id: string | null
+          meta_user_kind: string | null
           notes: string | null
           profile_name: string
           profile_role: string | null
@@ -158,6 +230,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_whitelisted?: boolean
+          meta_user_id?: string | null
+          meta_user_kind?: string | null
           notes?: string | null
           profile_name: string
           profile_role?: string | null
@@ -168,6 +243,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_whitelisted?: boolean
+          meta_user_id?: string | null
+          meta_user_kind?: string | null
           notes?: string | null
           profile_name?: string
           profile_role?: string | null
@@ -564,7 +642,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          due_date: string | null
           id: string
+          priority: string
+          scope: string
           status: string
           structure_type: string
           title: string
@@ -577,7 +658,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          due_date?: string | null
           id?: string
+          priority?: string
+          scope?: string
           status?: string
           structure_type?: string
           title: string
@@ -590,7 +674,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          due_date?: string | null
           id?: string
+          priority?: string
+          scope?: string
           status?: string
           structure_type?: string
           title?: string
@@ -1762,6 +1849,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      support_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       support_users: {
         Row: {

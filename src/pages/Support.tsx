@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon, ListTodo, Building2 } from 'lucide-react';
+import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon, ListTodo, Building2, Briefcase, LayoutGrid } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,6 +10,8 @@ import { logAudit } from '@/lib/audit';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import BMActivityTab from '@/components/support/BMActivityTab';
+import AgencyTasksTab from '@/components/support/AgencyTasksTab';
+import BMPanelTab from '@/components/support/BMPanelTab';
 
 interface Task {
   id: string;
@@ -155,9 +157,15 @@ const Support: React.FC = () => {
       />
 
       <Tabs defaultValue="tarefas" className="space-y-5">
-        <TabsList className="grid grid-cols-2 w-full sm:w-auto sm:inline-grid h-auto p-1 bg-secondary/60 border border-border">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto sm:inline-grid h-auto p-1 bg-secondary/60 border border-border">
           <TabsTrigger value="tarefas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
             <ListTodo size={14} /> Tarefas & Solicitações
+          </TabsTrigger>
+          <TabsTrigger value="agencia" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
+            <Briefcase size={14} /> Agência
+          </TabsTrigger>
+          <TabsTrigger value="painel-bms" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
+            <LayoutGrid size={14} /> Painel BMs
           </TabsTrigger>
           <TabsTrigger value="bms" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
             <Building2 size={14} /> Atividades & BMs
@@ -432,6 +440,14 @@ const Support: React.FC = () => {
         ))}
         {tasks.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma tarefa registrada.</p>}
       </div>
+        </TabsContent>
+
+        <TabsContent value="agencia" className="mt-0">
+          <AgencyTasksTab />
+        </TabsContent>
+
+        <TabsContent value="painel-bms" className="mt-0">
+          <BMPanelTab />
         </TabsContent>
 
         <TabsContent value="bms" className="mt-0">
