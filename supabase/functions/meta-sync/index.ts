@@ -284,15 +284,12 @@ async function syncPagesForApp(supabase: any, app: AppRow) {
   const token = pickToken(app, "sync_pages");
   if (!token) return { app: app.label, erro: "Sem token configurado" };
 
-  const { data: bmsDb } = await supabase
-    .from("meta_business_managers")
-    .select("id, meta_bm_id, name, meta_app_id");
-
   const PAGE_FIELDS = "id,name,category,fan_count,followers_count,picture.type(large),is_published,verification_status";
   const PAGE_FALLBACK_FIELDS = ["id,name,category,picture.type(large)", "id,name", "id"];
   const errors: any[] = [];
   const detailErrors: any[] = [];
   const allPages: any[] = [];
+  const ownAppId = app.id.startsWith("00000000") ? null : app.id;
 
   const isMetaAccessBlocked = (message: string) =>
     message.includes("API access blocked") ||
@@ -322,13 +319,28 @@ async function syncPagesForApp(supabase: any, app: AppRow) {
     throw new Error(lastError || "Falha ao ler páginas da BM");
   };
 
-  // Only crawl BMs that belong to this app (or untagged ones for back-compat).
+  // Discover BMs directly via this app's token (each app = one Meta profile),
+  // so we pull every BM that profile administers — regardless of which other
+  // app may have synced the same BM earlier.
+  let profileBms: any[] = [];
+  try {
+    profileBms = await paginateMeta(
+      `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name&limit=200`
+    );
+  } catch (e) {
+    errors.push({ source: `${app.label}:me/businesses`, erro: (e as Error).message });
+  }
+
+  // Map meta_bm_id -> our internal id so pages can be linked to the BM row.
+  const { data: bmsDb } = await supabase
+    .from("meta_business_managers")
+    .select("id, meta_bm_id");
+  const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+
   const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
-  const ownAppId = app.id.startsWith("00000000") ? null : app.id;
-  for (const bm of bmsDb || []) {
-    if (bm.meta_app_id && bm.meta_app_id !== ownAppId) continue;
+  for (const bm of profileBms) {
     for (const e of ["owned_pages", "client_pages"]) {
-      tasks.push({ bmDbId: bm.id, ownerId: bm.meta_bm_id, edge: e, label: `${app.label}:${bm.name}/${e}` });
+      tasks.push({ bmDbId: bmIdMap.get(bm.id) || null, ownerId: bm.id, edge: e, label: `${app.label}:${bm.name}/${e}` });
     }
   }
   tasks.push({ bmDbId: null, ownerId: "me", edge: "accounts", label: `${app.label}:me/accounts` });
