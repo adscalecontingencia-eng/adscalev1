@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 type DateFilter = 'today' | '7days' | 'month' | 'custom' | 'range';
 type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
 type Currency = 'USD' | 'BRL';
-const CHART_COLORS = ['hsl(120,100%,50%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)', 'hsl(200,100%,55%)', 'hsl(280,80%,60%)'];
+const CHART_COLORS = ['hsl(212,100%,55%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)', 'hsl(200,100%,55%)', 'hsl(280,80%,60%)'];
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -237,7 +237,7 @@ const Dashboard: React.FC = () => {
 
   const tooltipStyle = {
     backgroundColor: 'hsl(0,0%,5% / 0.95)',
-    border: '1px solid hsl(120,100%,50% / 0.25)',
+    border: '1px solid hsl(212,100%,55% / 0.25)',
     borderRadius: '12px',
     color: 'hsl(0,0%,95%)',
     backdropFilter: 'blur(12px)',
@@ -523,8 +523,8 @@ const Dashboard: React.FC = () => {
       </div>
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(120,100%,50%)" />
-        <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(120,100%,50%)' : 'hsl(0,84%,60%)'} />
+        <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
+        <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
         <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
         <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta="—" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
         <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
@@ -539,8 +539,8 @@ const Dashboard: React.FC = () => {
               <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(120,100%,50%)" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="hsl(120,100%,50%)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="hsl(212,100%,55%)" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="hsl(212,100%,55%)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="hsl(0,84%,60%)" stopOpacity={0.35} />
@@ -551,7 +551,7 @@ const Dashboard: React.FC = () => {
                 <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} />
-                <Area type="monotone" dataKey="faturamento" stroke="hsl(120,100%,50%)" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="faturamento" stroke="hsl(212,100%,55%)" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
                 <Area type="monotone" dataKey="gastos" stroke="hsl(0,84%,60%)" strokeWidth={2} fill="url(#colorExpenses)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
@@ -598,7 +598,7 @@ const Dashboard: React.FC = () => {
               <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-              <Bar dataKey="receitas" name="Receitas" fill="hsl(120,100%,50%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="receitas" name="Receitas" fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
               <Bar dataKey="gastos" name="Gastos" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
@@ -609,7 +609,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         {[
           { label: 'Perfil', value: perfilNet, color: 'hsl(160,80%,45%)' },
-          { label: 'BM Comum', value: bmComumNet, color: 'hsl(120,100%,50%)' },
+          { label: 'BM Comum', value: bmComumNet, color: 'hsl(212,100%,55%)' },
           { label: 'BM Verificada', value: bmVerifNet, color: 'hsl(180,100%,50%)' },
           { label: 'BM API', value: bmApiNet, color: 'hsl(280,80%,60%)' },
           { label: 'BM Disparo', value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
@@ -669,7 +669,7 @@ const Dashboard: React.FC = () => {
                           <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                           <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-                          <Bar dataKey="revenue" name="Faturamento" fill="hsl(120,100%,50%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          <Bar dataKey="revenue" name="Faturamento" fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
                           <Bar dataKey="expenses" name="Custo" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
                         </BarChart>
                       </ResponsiveContainer>
