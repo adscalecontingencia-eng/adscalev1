@@ -98,6 +98,120 @@ export type Database = {
         }
         Relationships: []
       }
+      bm_activity_log: {
+        Row: {
+          accounts_available: number | null
+          activity_date: string
+          activity_notes: string
+          availability: string
+          bm_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          accounts_available?: number | null
+          activity_date?: string
+          activity_notes: string
+          availability?: string
+          bm_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          accounts_available?: number | null
+          activity_date?: string
+          activity_notes?: string
+          availability?: string
+          bm_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_activity_log_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bm_profiles: {
+        Row: {
+          bm_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          profile_name: string
+          profile_role: string | null
+          updated_at: string
+        }
+        Insert: {
+          bm_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          profile_name: string
+          profile_role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bm_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          profile_name?: string
+          profile_role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_profiles_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_notification_reads: {
+        Row: {
+          auth_user_id: string
+          event_id: string
+          id: string
+          read_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          event_id: string
+          id?: string
+          read_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          event_id?: string
+          id?: string
+          read_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notification_reads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "meta_critical_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_terms_acceptances: {
         Row: {
           accepted_at: string
