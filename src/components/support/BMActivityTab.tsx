@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
-import { Building2, Plus, Users, X, Save, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { Building2, Plus, Users, X, Save, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronRight, Sparkles, RefreshCw, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -36,6 +36,33 @@ const BMActivityTab: React.FC = () => {
   const [showProfileDialog, setShowProfileDialog] = useState<string | null>(null); // bm_id
   const [newProfileName, setNewProfileName] = useState('');
   const [logForm, setLogForm] = useState<Record<string, { availability: string; accounts: number; notes: string }>>({});
+  const [metaUsers, setMetaUsers] = useState<Record<string, { id: string; name: string; email?: string | null; role?: string | null; kind: string }[]>>({});
+  const [loadingMeta, setLoadingMeta] = useState<Record<string, boolean>>({});
+
+  const fetchMetaUsers = async (bm: BM) => {
+    setLoadingMeta(p => ({ ...p, [bm.id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-bm-users', { body: { meta_bm_id: bm.meta_bm_id } });
+      if (error || data?.erro) throw new Error(error?.message || data?.erro);
+      const users = (data?.usuarios || []) as any[];
+      setMetaUsers(p => ({ ...p, [bm.id]: users }));
+      if (users.length === 0) toast.info('Nenhum usuário retornado pela Meta para essa BM');
+      else toast.success(`${users.length} usuário(s) carregado(s) da Meta`);
+      if (data?.erros?.length) console.warn('Meta errors:', data.erros);
+    } catch (e: any) {
+      toast.error('Erro Meta: ' + e.message);
+    } finally {
+      setLoadingMeta(p => ({ ...p, [bm.id]: false }));
+    }
+  };
+
+  const addProfileFromMeta = async (bmId: string, name: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('bm_profiles').insert({ bm_id: bmId, profile_name: name, created_by: user?.id });
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success(`Perfil "${name}" vinculado`);
+    load();
+  };
 
   const load = async () => {
     const [bRes, pRes, aRes] = await Promise.all([
