@@ -1061,32 +1061,9 @@ const ClientDashboard: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* Period selector + real metrics from insights */}
+                            {/* Real metrics from insights (período controlado no topo da aba) */}
                             <div className="border-t border-border/60 pt-3 space-y-2">
-                              <div className="flex items-center justify-between gap-2 flex-wrap">
-                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Métricas reais</span>
-                                <div className="flex gap-1">
-                                  {([
-                                    { v: 'today', l: 'Hoje' },
-                                    { v: '7d', l: '7d' },
-                                    { v: '30d', l: '30d' },
-                                    { v: 'all', l: 'Tudo' },
-                                  ] as const).map(o => (
-                                    <button
-                                      key={o.v}
-                                      onClick={() => setPeriod(o.v)}
-                                      className={cn(
-                                        "text-[10px] px-2 py-0.5 rounded-md border transition-colors",
-                                        period === o.v
-                                          ? "bg-primary text-primary-foreground border-primary"
-                                          : "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                                      )}
-                                    >
-                                      {o.l}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Métricas reais</span>
                               {accInsights.length === 0 ? (
                                 <p className="text-[11px] text-muted-foreground italic">Sem dados de anúncios neste período.</p>
                               ) : (
