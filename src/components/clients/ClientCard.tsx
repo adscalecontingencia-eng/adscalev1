@@ -159,6 +159,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     onView,
     onEdit,
     onDelete,
+    onResetPassword,
     onTogglePayForm,
     onSubmitPay,
     onOpenHistory,
