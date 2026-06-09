@@ -292,7 +292,12 @@ const Clients: React.FC = () => {
       if (error) { toast.error('Erro ao cadastrar cliente: ' + error.message); setSaving(false); return; }
       toast.success('Cliente de venda cadastrado!');
     } else {
-      const password = form.password || '123456';
+      const password = (form.password || '').trim();
+      if (password.length < 8) {
+        toast.error('Defina uma senha com pelo menos 8 caracteres para o cliente.');
+        setSaving(false);
+        return;
+      }
       const res = await supabase.functions.invoke('manage-users', {
         body: {
           action: 'create_user', email: form.email, password, name: form.name, role: 'client',
