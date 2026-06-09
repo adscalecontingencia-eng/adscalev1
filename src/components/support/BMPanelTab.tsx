@@ -204,84 +204,48 @@ const KPI: React.FC<{ label: string; value: number; icon: any; cls: string }> = 
   </div>
 );
 
-const Column: React.FC<{
-  title: string;
-  subtitle: string;
-  tone: 'primary' | 'destructive' | 'amber' | 'neutral';
-  bms: BM[];
-  bmStats: (id: string) => any;
+const BMCard: React.FC<{
+  bm: BM;
+  stats: any;
   minBackups: number;
-  onOpen: (bm: BM) => void;
-}> = ({ title, subtitle, tone, bms, bmStats, minBackups, onOpen }) => {
-  const toneCls = {
-    primary: 'border-primary/40 bg-primary/5',
-    destructive: 'border-destructive/40 bg-destructive/5',
-    amber: 'border-amber-500/40 bg-amber-500/5',
-    neutral: 'border-border bg-secondary/20',
-  }[tone];
-  const badgeCls = {
-    primary: 'bg-primary/20 text-primary',
-    destructive: 'bg-destructive/20 text-destructive',
-    amber: 'bg-amber-500/20 text-amber-300',
-    neutral: 'bg-secondary text-foreground',
-  }[tone];
+  onOpen: () => void;
+}> = ({ bm, stats: st, minBackups, onOpen }) => {
+  const outOfBackup = st.backupCount < minBackups;
   return (
-    <div className={cn("rounded-xl border p-3 min-h-[200px]", toneCls)}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="text-[10px] text-muted-foreground">{subtitle}</div>
+    <button
+      onClick={onOpen}
+      className="w-full text-left bg-card hover:bg-secondary border border-border hover:border-primary/40 rounded-lg p-3 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold truncate">{bm.name}</div>
+          <div className="text-[10px] font-mono text-muted-foreground">{bm.meta_bm_id}</div>
         </div>
-        <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", badgeCls)}>{bms.length}</span>
+        {bm.verification_status?.toLowerCase().includes('verified') && (
+          <CheckCircle2 size={12} className="text-primary shrink-0" />
+        )}
       </div>
-      {bms.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground/60 text-center py-8">Nenhuma BM</p>
-      ) : (
-        <div className="space-y-2">
-          {bms.map(bm => {
-            const st = bmStats(bm.id);
-            const outOfBackup = st.backupCount < minBackups;
-            return (
-              <button
-                key={bm.id}
-                onClick={() => onOpen(bm)}
-                className="w-full text-left bg-secondary/60 hover:bg-secondary border border-border hover:border-primary/40 rounded-lg p-3 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold truncate">{bm.name}</div>
-                    <div className="text-[10px] font-mono text-muted-foreground">{bm.meta_bm_id}</div>
-                  </div>
-                  {bm.verification_status?.toLowerCase().includes('verified') && (
-                    <CheckCircle2 size={12} className="text-primary shrink-0" />
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  <span className="text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5">
-                    {st.active}/{st.total} contas ok
-                  </span>
-                  {st.blocked > 0 && (
-                    <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/30 rounded px-1.5 py-0.5">
-                      {st.blocked} bloq.
-                    </span>
-                  )}
-                  <span className={cn("text-[10px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1",
-                    outOfBackup ? "bg-red-500/10 text-red-300 border-red-500/40" : "bg-primary/10 text-primary border-primary/30"
-                  )}>
-                    <HardDrive size={9} /> {st.backupCount}/{minBackups}
-                  </span>
-                  {outOfBackup && (
-                    <span className="text-[10px] bg-red-500/15 text-red-300 border border-red-500/40 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
-                      <AlertTriangle size={9} /> Fora do backup
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      <div className="flex flex-wrap gap-1 mt-2">
+        <span className="text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5">
+          {st.active}/{st.total} contas ok
+        </span>
+        {st.blocked > 0 && (
+          <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/30 rounded px-1.5 py-0.5">
+            {st.blocked} bloq.
+          </span>
+        )}
+        <span className={cn("text-[10px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1",
+          outOfBackup ? "bg-red-500/10 text-red-300 border-red-500/40" : "bg-primary/10 text-primary border-primary/30"
+        )}>
+          <HardDrive size={9} /> {st.backupCount}/{minBackups}
+        </span>
+        {outOfBackup && (
+          <span className="text-[10px] bg-red-500/15 text-red-300 border border-red-500/40 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
+            <AlertTriangle size={9} /> Fora do backup
+          </span>
+        )}
+      </div>
+    </button>
   );
 };
 
