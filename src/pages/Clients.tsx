@@ -420,18 +420,59 @@ const Clients: React.FC = () => {
   const handleResetPassword = async (id: string) => {
     const c = clients.find(x => x.id === id);
     if (!c) return;
-    const newPwd = window.prompt(`Definir nova senha para "${c.name}" (${c.email}).\n\nMínimo 6 caracteres:`);
-    if (!newPwd) return;
-    if (newPwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); return; }
-    const res = await supabase.functions.invoke('manage-users', {
-      body: { action: 'reset_password', client_id: id, new_password: newPwd },
-    });
-    if (res.error || (res.data as any)?.error) {
-      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao redefinir senha');
+    const choice = window.confirm(
+      `Redefinir LOGIN COMPLETO de "${c.name}" (e-mail + senha)?\n\nOK = alterar e-mail e/ou senha\nCancelar = alterar somente a senha`
+    );
+
+    if (!choice) {
+      const newPwd = window.prompt(`Definir nova senha para "${c.name}" (${c.email}).\n\nMínimo 6 caracteres:`);
+      if (!newPwd) return;
+      if (newPwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); return; }
+      const res = await supabase.functions.invoke('manage-users', {
+        body: { action: 'reset_password', client_id: id, new_password: newPwd },
+      });
+      if (res.error || (res.data as any)?.error) {
+        toast.error((res.data as any)?.error || res.error?.message || 'Erro ao redefinir senha');
+        return;
+      }
+      toast.success(`Senha de ${c.name} redefinida com sucesso`);
+      logAudit({ action: 'client_password_reset', entity: 'client', entity_id: id });
       return;
     }
-    toast.success(`Senha de ${c.name} redefinida com sucesso`);
-    logAudit({ action: 'client_password_reset', entity: 'client', entity_id: id });
+
+    const newEmail = window.prompt(
+      `Novo e-mail de login para "${c.name}" (deixe igual para manter):`,
+      c.email || ''
+    );
+    if (newEmail === null) return;
+    const emailTrim = newEmail.trim();
+    if (!emailTrim || !emailTrim.includes('@')) { toast.error('E-mail inválido'); return; }
+
+    const newPwd = window.prompt(`Nova senha para "${c.name}".\n\nDeixe em branco para manter. Mínimo 6 caracteres:`);
+    if (newPwd === null) return;
+    const pwd = newPwd.trim();
+    if (pwd && pwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); return; }
+
+    const emailChanged = emailTrim.toLowerCase() !== (c.email || '').toLowerCase();
+    if (!emailChanged && !pwd) { toast.info?.('Nada para alterar'); return; }
+
+    const res = await supabase.functions.invoke('manage-users', {
+      body: {
+        action: 'reset_login',
+        client_id: id,
+        ...(emailChanged ? { new_email: emailTrim } : {}),
+        ...(pwd ? { new_password: pwd } : {}),
+      },
+    });
+    if (res.error || (res.data as any)?.error) {
+      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao redefinir login');
+      return;
+    }
+    toast.success(`Login de ${c.name} redefinido com sucesso`);
+    if (emailChanged) {
+      setClients(prev => prev.map(x => x.id === id ? { ...x, email: emailTrim } : x));
+    }
+    logAudit({ action: 'client_login_reset', entity: 'client', entity_id: id, after: { email_changed: emailChanged, password_changed: !!pwd } as any });
   };
 
 
