@@ -91,31 +91,44 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Aguarda o AuthContext resolver antes de tentar buscar
+      if (!isAdminView && !user?.email) {
+        // Se já sabemos que não há usuário logado, paramos o loading
+        if (user === null) setLoading(false);
+        return;
+      }
       setLoading(true);
-      let clientQuery = supabase.from('clients').select('*');
-      if (isAdminView) {
-        clientQuery = clientQuery.eq('id', viewAsClientId!);
-      } else {
-        if (!user?.email) return;
-        clientQuery = clientQuery.eq('email', user.email);
+      try {
+        let clientQuery = supabase.from('clients').select('*');
+        if (isAdminView) {
+          clientQuery = clientQuery.eq('id', viewAsClientId!);
+        } else {
+          clientQuery = clientQuery.eq('email', user!.email);
+        }
+        const { data: clientData, error: clientErr } = await clientQuery.maybeSingle();
+        if (clientErr) {
+          console.error('[ClientDashboard] erro ao buscar cliente:', clientErr);
+        }
+        if (clientData) {
+          setClient(clientData);
+          clientIdRef.current = clientData.id;
+          const [{ data: commData }, { data: blocked }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
+            supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
+            supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
+            supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
+            supabase.from('support_requests').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
+          ]);
+          await fetchAccounts(clientData.id);
+          setCommissions(commData || []);
+          setSavedAccounts(blocked || []);
+          setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
+          setSupportRequests(reqs || []);
+        }
+      } catch (e) {
+        console.error('[ClientDashboard] erro inesperado:', e);
+      } finally {
+        setLoading(false);
       }
-      const { data: clientData } = await clientQuery.maybeSingle();
-      if (clientData) {
-        setClient(clientData);
-        clientIdRef.current = clientData.id;
-        const [{ data: commData }, { data: blocked }, { data: pageAssigns }, { data: reqs }] = await Promise.all([
-          supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
-          supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
-          supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
-          supabase.from('support_requests').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
-        ]);
-        await fetchAccounts(clientData.id);
-        setCommissions(commData || []);
-        setSavedAccounts(blocked || []);
-        setPages((pageAssigns || []).map((a: any) => a.page).filter(Boolean));
-        setSupportRequests(reqs || []);
-      }
-      setLoading(false);
     };
     fetchData();
   }, [user, viewAsClientId, isAdminView, fetchAccounts]);
