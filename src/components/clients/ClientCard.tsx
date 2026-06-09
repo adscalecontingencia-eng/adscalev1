@@ -4,6 +4,7 @@ import {
   Eye,
   Edit2,
   Trash2,
+  KeyRound,
   CheckCircle,
   History,
   DollarSign,
@@ -54,6 +55,7 @@ interface Props {
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onResetPassword?: () => void;
   onTogglePayForm: () => void;
   onSubmitPay: () => void;
   onOpenHistory: () => void;
@@ -157,6 +159,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     onView,
     onEdit,
     onDelete,
+    onResetPassword,
     onTogglePayForm,
     onSubmitPay,
     onOpenHistory,
@@ -237,6 +240,15 @@ export const ClientCard: React.FC<Props> = (props) => {
             >
               <Edit2 size={14} />
             </button>
+            {onResetPassword && (
+              <button
+                onClick={onResetPassword}
+                title="Redefinir senha do cliente"
+                className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"
+              >
+                <KeyRound size={14} />
+              </button>
+            )}
             <button
               onClick={onDelete}
               title="Excluir"

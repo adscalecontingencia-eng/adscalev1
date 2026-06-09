@@ -417,6 +417,25 @@ const Clients: React.FC = () => {
     logAudit({ action: 'client_deleted', entity: 'client', entity_id: id, before: c as any });
   };
 
+  const handleResetPassword = async (id: string) => {
+    const c = clients.find(x => x.id === id);
+    if (!c) return;
+    const newPwd = window.prompt(`Definir nova senha para "${c.name}" (${c.email}).\n\nMínimo 6 caracteres:`);
+    if (!newPwd) return;
+    if (newPwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); return; }
+    const res = await supabase.functions.invoke('manage-users', {
+      body: { action: 'reset_password', client_id: id, new_password: newPwd },
+    });
+    if (res.error || (res.data as any)?.error) {
+      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao redefinir senha');
+      return;
+    }
+    toast.success(`Senha de ${c.name} redefinida com sucesso`);
+    logAudit({ action: 'client_password_reset', entity: 'client', entity_id: id });
+  };
+
+
+
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
   const handleAddAdSpend = async (clientId: string) => {
     const adSpend = parseFloat(adSpendAmount);
@@ -1181,6 +1200,7 @@ const Clients: React.FC = () => {
               onView={() => navigate(`/client-view/${c.id}`)}
               onEdit={() => handleEdit(c)}
               onDelete={() => handleDelete(c.id)}
+              onResetPassword={() => handleResetPassword(c.id)}
               onTogglePayForm={() => setShowPaidForm(showPaidForm === c.id ? null : c.id)}
               onSubmitPay={() => handleAddPaid(c.id)}
               onOpenHistory={() => setHistoryClientId(c.id)}
