@@ -6,6 +6,7 @@ import { parseDateLocal } from '@/lib/date-utils';
 import { Building2, Plus, Users, X, Save, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronRight, Sparkles, RefreshCw, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import BMNotesPanel from './BMNotesPanel';
 
 interface BM { id: string; meta_bm_id: string; name: string; status: string | null }
 interface Profile { id: string; bm_id: string; profile_name: string; profile_role?: string | null; notes?: string | null }
