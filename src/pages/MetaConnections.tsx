@@ -20,6 +20,7 @@ import BmSidebar from "@/components/meta/BmSidebar";
 import AccountCard, { type AccountCardData } from "@/components/meta/AccountCard";
 import AccountDetailSheet from "@/components/meta/AccountDetailSheet";
 import SystemUserHelp from "@/components/meta/SystemUserHelp";
+import AreaResponsibles from "@/components/support/AreaResponsibles";
 
 type BM = {
   id: string; meta_bm_id: string; name: string; status: string | null;
