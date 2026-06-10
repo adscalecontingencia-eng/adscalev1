@@ -799,6 +799,8 @@ export type Database = {
           ad_account_id: string
           assigned_at: string
           client_id: string
+          effective_from: string
+          effective_to: string | null
           id: string
         }
         Insert: {
@@ -806,6 +808,8 @@ export type Database = {
           ad_account_id: string
           assigned_at?: string
           client_id: string
+          effective_from?: string
+          effective_to?: string | null
           id?: string
         }
         Update: {
@@ -813,6 +817,8 @@ export type Database = {
           ad_account_id?: string
           assigned_at?: string
           client_id?: string
+          effective_from?: string
+          effective_to?: string | null
           id?: string
         }
         Relationships: [

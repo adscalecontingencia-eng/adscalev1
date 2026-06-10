@@ -184,18 +184,28 @@ const Clients: React.FC = () => {
   const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
   const fetchInsightsByClient = async () => {
     const [assignRes, insightsRes] = await Promise.all([
-      supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active').eq('active', true),
+      supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active, effective_from, effective_to').eq('active', true),
       // IMPORTANT: explicit .range bypasses Supabase's default 1000 rows cap.
       // Without this, totalAdSpend on the KPI bar was truncated.
       supabase.from('meta_ad_insights').select('ad_account_id, date, spend').order('date', { ascending: true }).range(0, 99999),
     ]);
     if (assignRes.error || insightsRes.error) return;
-    const accToClient = new Map<string, string>();
-    (assignRes.data || []).forEach((a: any) => accToClient.set(a.ad_account_id, a.client_id));
+    // CRÍTICO: respeitar vigência da atribuição. Gasto antes de effective_from
+    // (ou após effective_to) NÃO pertence ao cliente.
+    const accWindows = new Map<string, { client_id: string; from: string | null; to: string | null }>();
+    (assignRes.data || []).forEach((a: any) => accWindows.set(a.ad_account_id, {
+      client_id: a.client_id,
+      from: a.effective_from || null,
+      to: a.effective_to || null,
+    }));
     const byClient: Record<string, { date: string; spend: number }[]> = {};
     (insightsRes.data || []).forEach((i: any) => {
-      const cid = accToClient.get(i.ad_account_id);
-      if (!cid) return;
+      const win = accWindows.get(i.ad_account_id);
+      if (!win) return;
+      const d: string = typeof i.date === 'string' ? i.date.slice(0, 10) : '';
+      if (win.from && d < win.from) return;
+      if (win.to && d > win.to) return;
+      const cid = win.client_id;
       if (!byClient[cid]) byClient[cid] = [];
       byClient[cid].push({ date: i.date, spend: Number(i.spend || 0) });
     });
