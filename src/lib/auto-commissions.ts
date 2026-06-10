@@ -26,7 +26,7 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
 
   const [clientsRes, assignRes, insightsRes, existingRes] = await Promise.all([
     supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value'),
-    supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active').eq('active', true),
+    supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active, effective_from, effective_to').eq('active', true),
     supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
     supabase.from('commissions').select('id, client_id, billing_week_start').eq('type', 'daily').not('billing_week_start', 'is', null),
   ]);
@@ -38,9 +38,15 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
   const clients = (clientsRes.data || []).filter(c => c.client_type !== 'venda');
   const clientById = new Map(clients.map(c => [c.id, c]));
 
-  // ad_account_id -> client_id (active only)
-  const accToClient = new Map<string, string>();
-  (assignRes.data || []).forEach(a => accToClient.set(a.ad_account_id, a.client_id));
+  // ad_account_id -> { client_id, effective_from, effective_to }
+  // CRÍTICO: gasto antes de effective_from não pertence ao cliente.
+  type Window = { client_id: string; effective_from: string | null; effective_to: string | null };
+  const accWindows = new Map<string, Window>();
+  (assignRes.data || []).forEach((a: any) => accWindows.set(a.ad_account_id, {
+    client_id: a.client_id,
+    effective_from: a.effective_from || null,
+    effective_to: a.effective_to || null,
+  }));
 
   // existing weeks: set of `${client_id}|${billing_week_start}`
   const existing = new Set<string>();
@@ -53,8 +59,14 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
   const spendByClient = new Map<string, Map<WeekKey, number>>();
 
   (insightsRes.data || []).forEach((i: any) => {
-    const clientId = accToClient.get(i.ad_account_id);
-    if (!clientId || !clientById.has(clientId)) return;
+    const win = accWindows.get(i.ad_account_id);
+    if (!win) return;
+    const clientId = win.client_id;
+    if (!clientById.has(clientId)) return;
+    // Respeita vigência: ignora gasto anterior à atribuição (ou posterior ao fim)
+    const insightDate: string = typeof i.date === 'string' ? i.date.slice(0, 10) : '';
+    if (win.effective_from && insightDate < win.effective_from) return;
+    if (win.effective_to && insightDate > win.effective_to) return;
     const d = parseDateLocal(i.date);
     const ws = startOfWeek(d, { weekStartsOn: 4 });
     const key = format(ws, 'yyyy-MM-dd');

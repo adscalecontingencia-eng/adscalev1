@@ -18,7 +18,7 @@ type Account = {
   currency: string | null; status: string | null; last_synced_at: string | null;
 };
 type Client = { id: string; name: string };
-type Assignment = { ad_account_id: string; client_id: string; active: boolean };
+type Assignment = { ad_account_id: string; client_id: string; active: boolean; effective_from?: string | null; effective_to?: string | null };
 type Insight = {
   ad_account_id: string;
   date: string;
@@ -109,7 +109,7 @@ export default function AdsDashboard() {
       supabase.from("meta_business_managers").select("id, name").order("name"),
       supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at").order("name"),
       supabase.from("clients").select("id, name").order("name"),
-      supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true),
+      supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active, effective_from, effective_to").eq("active", true),
     ]);
     setBms((b.data as BM[]) || []);
     setAccounts((a.data as Account[]) || []);
