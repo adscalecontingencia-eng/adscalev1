@@ -258,6 +258,8 @@ export default function MetaConnections() {
         </Button>
       </div>
 
+      <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
+
       {/* Sync job progress */}
       {job && (
         <Card className="p-3 border-primary/40 bg-primary/5 space-y-2">
