@@ -43,17 +43,25 @@ Deno.serve(async (req) => {
     }
 
     if (action === "assign") {
-      // Deactivate any existing active assignment for this account (1 client at a time)
+      const today = new Date().toISOString().slice(0, 10);
+      // Encerra a vigência da atribuição anterior (sem perder histórico)
       await supabase
         .from("meta_ad_account_assignments")
-        .update({ active: false })
+        .update({ active: false, effective_to: today })
         .eq("ad_account_id", ad_account_id)
         .eq("active", true);
 
       const { data, error } = await supabase
         .from("meta_ad_account_assignments")
         .upsert(
-          { ad_account_id, client_id, active: true, assigned_at: new Date().toISOString() },
+          {
+            ad_account_id,
+            client_id,
+            active: true,
+            assigned_at: new Date().toISOString(),
+            effective_from: today,
+            effective_to: null,
+          },
           { onConflict: "ad_account_id,client_id" }
         )
         .select()
@@ -63,9 +71,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === "unassign") {
+      const today = new Date().toISOString().slice(0, 10);
       const q = supabase
         .from("meta_ad_account_assignments")
-        .update({ active: false })
+        .update({ active: false, effective_to: today })
         .eq("ad_account_id", ad_account_id);
       if (client_id) q.eq("client_id", client_id);
       const { error } = await q;

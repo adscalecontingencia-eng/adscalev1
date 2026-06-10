@@ -68,24 +68,27 @@ const ClientDashboard: React.FC = () => {
       .pop();
     if (latest) setLastAccountsSync(new Date(latest));
 
-    // Load insights for these ad accounts (last 12 months window is plenty).
-    // Fetch full metric set so we can show real per-account performance
-    // (impressões, cliques, CPM, CPC, CTR, compras, receita, ROAS).
-    // Use explicit .range() to bypass the default 1000 rows limit which was
-    // causing inconsistent totals.
-    const accountIds = list.map((a: any) => a.ad_account?.id).filter(Boolean);
-    if (accountIds.length > 0) {
-      const since = new Date();
-      since.setMonth(since.getMonth() - 12);
-      const sinceStr = since.toISOString().split('T')[0];
-      const { data: ins } = await supabase
-        .from('meta_ad_insights')
-        .select('ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue')
-        .in('ad_account_id', accountIds)
-        .gte('date', sinceStr)
-        .order('date', { ascending: true })
-        .range(0, 99999);
-      setInsights(ins || []);
+    // Load insights for these ad accounts.
+    // CRÍTICO: filtra por vigência (effective_from / effective_to) para nunca
+    // contar gasto anterior à atribuição da conta a este cliente.
+    if (list.length > 0) {
+      const fallback = new Date();
+      fallback.setMonth(fallback.getMonth() - 12);
+      const fallbackStr = fallback.toISOString().split('T')[0];
+      const results = await Promise.all(list.map(async (a: any) => {
+        const accId = a.ad_account?.id;
+        if (!accId) return [] as any[];
+        const since = a.effective_from || fallbackStr;
+        let q = supabase
+          .from('meta_ad_insights')
+          .select('ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue')
+          .eq('ad_account_id', accId)
+          .gte('date', since);
+        if (a.effective_to) q = q.lte('date', a.effective_to);
+        const { data } = await q.order('date', { ascending: true }).range(0, 99999);
+        return data || [];
+      }));
+      setInsights(results.flat());
     } else {
       setInsights([]);
     }
