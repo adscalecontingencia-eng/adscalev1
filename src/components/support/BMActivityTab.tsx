@@ -159,6 +159,9 @@ const BMActivityTab: React.FC = () => {
         <KPI icon={CalendarIcon} label="Registros hoje" value={todayCount} color="text-amber-400" />
       </div>
 
+      <BMNotesPanel />
+
+
       {/* Filtros */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
