@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import AreaResponsibles from '@/components/support/AreaResponsibles';
 
 interface PageRow {
   id: string;
@@ -162,6 +163,10 @@ const PagesAdmin: React.FC = () => {
           </button>
         }
       />
+
+      <AreaResponsibles area="pages" title="Responsáveis pelas páginas" />
+
+
 
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-foreground/90 flex gap-3">
         <Building2 size={18} className="text-primary shrink-0 mt-0.5" />

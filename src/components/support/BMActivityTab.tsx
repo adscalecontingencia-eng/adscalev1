@@ -6,6 +6,7 @@ import { parseDateLocal } from '@/lib/date-utils';
 import { Building2, Plus, Users, X, Save, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronRight, Sparkles, RefreshCw, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import BMNotesPanel from './BMNotesPanel';
 
 interface BM { id: string; meta_bm_id: string; name: string; status: string | null }
 interface Profile { id: string; bm_id: string; profile_name: string; profile_role?: string | null; notes?: string | null }
@@ -157,6 +158,9 @@ const BMActivityTab: React.FC = () => {
         } color="text-emerald-400" />
         <KPI icon={CalendarIcon} label="Registros hoje" value={todayCount} color="text-amber-400" />
       </div>
+
+      <BMNotesPanel />
+
 
       {/* Filtros */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
