@@ -56,6 +56,38 @@ export type Database = {
         }
         Relationships: []
       }
+      area_responsibles: {
+        Row: {
+          area: string
+          created_at: string
+          created_by: string | null
+          id: string
+          support_user_id: string
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          support_user_id: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          support_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_responsibles_support_user_id_fkey"
+            columns: ["support_user_id"]
+            isOneToOne: false
+            referencedRelation: "support_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -245,6 +277,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bm_detected_users_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bm_notes: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          bm_id: string | null
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          bm_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          bm_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_notes_bm_id_fkey"
             columns: ["bm_id"]
             isOneToOne: false
             referencedRelation: "meta_business_managers"
