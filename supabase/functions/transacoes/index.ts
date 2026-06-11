@@ -57,6 +57,25 @@ Deno.serve(async (req) => {
         });
       }
 
+      const { error: paidCommError } = await supabaseAdmin
+        .from("commissions")
+        .insert({
+          client_id,
+          date,
+          amount,
+          type: "paid",
+          note: description || "Pagamento de comissão",
+          valor_pago: amount,
+          valor_pendente: 0,
+          status: "pago",
+        });
+
+      if (paidCommError) {
+        return new Response(JSON.stringify({ erro: paidCommError.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Fetch pending commissions oldest first
       const { data: pendingComms, error: pcError } = await supabaseAdmin
         .from("commissions")
