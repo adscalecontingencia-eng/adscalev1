@@ -1329,6 +1329,19 @@ const ClientDashboard: React.FC = () => {
                 Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
               </p>
 
+              {!isAdminView && overdueTotal > 25 && (
+                <div className="mb-4 rounded-xl border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
+                  <AlertTriangle size={18} className="text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-destructive">Solicitações bloqueadas — pagamento pendente</p>
+                    <p className="text-xs text-foreground/80 mt-1">
+                      Você possui <strong>${overdueTotal.toFixed(2)}</strong> em saldo atrasado (acima do limite de $25). Para liberar novas solicitações de suporte, regularize o pagamento na aba <strong>Cobranças</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {([
