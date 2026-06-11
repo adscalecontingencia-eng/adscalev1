@@ -1,10 +1,41 @@
-import { addDays } from 'date-fns';
+import { addDays, format, startOfWeek } from 'date-fns';
 
 export interface WeeklyRow {
   weekStart: Date;
   spend: number;
   commission: number;
 }
+
+export interface PaymentRow {
+  date: string | Date;
+  amount: number;
+}
+
+const parsePaymentDate = (date: string | Date) => {
+  if (date instanceof Date) return date;
+  const isoDate = date.slice(0, 10);
+  const [y, m, d] = isoDate.split('-').map(Number);
+  if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) {
+    return new Date(y, (m || 1) - 1, d || 1);
+  }
+  return new Date(date);
+};
+
+const getPaidByTargetWeek = (payments: PaymentRow[]) => {
+  const paidByWeek = new Map<string, number>();
+  payments.forEach(payment => {
+    const amount = Math.max(0, Number(payment.amount || 0));
+    if (amount <= 0) return;
+    // Pagamento validado em uma data liquida a última semana fechada
+    // (sexta→quinta), não cria dívida nova nem é redistribuído para semanas futuras.
+    const paymentDate = parsePaymentDate(payment.date);
+    const currentWeekStart = startOfWeek(paymentDate, { weekStartsOn: 5 });
+    const targetWeekStart = addDays(currentWeekStart, -7);
+    const key = format(targetWeekStart, 'yyyy-MM-dd');
+    paidByWeek.set(key, (paidByWeek.get(key) || 0) + amount);
+  });
+  return paidByWeek;
+};
 
 /**
  * Divide o saldo não pago entre:
@@ -23,6 +54,7 @@ export function splitOverdueVsCurrent(
   totalPaid: number,
   now: Date = new Date(),
   planCreditStartDate?: string | null,
+  paidRows?: PaymentRow[],
 ): {
   overdue: number;
   currentPending: number;
@@ -32,6 +64,7 @@ export function splitOverdueVsCurrent(
   const sorted = [...weeks].sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   let credit = Math.max(0, planCredit);
   let paid = Math.max(0, totalPaid);
+  const paidByWeek = paidRows?.length ? getPaidByTargetWeek(paidRows) : null;
   let overdue = 0;
   let currentPending = 0;
   const weeksOverdue: WeeklyRow[] = [];
@@ -53,8 +86,10 @@ export function splitOverdueVsCurrent(
     const applyCredit = creditEligible ? Math.min(credit, owe) : 0;
     credit -= applyCredit;
     owe -= applyCredit;
-    const applyPaid = Math.min(paid, owe);
-    paid -= applyPaid;
+    const weekKey = format(w.weekStart, 'yyyy-MM-dd');
+    const weeklyPaid = paidByWeek?.get(weekKey) || 0;
+    const applyPaid = paidByWeek ? Math.min(weeklyPaid, owe) : Math.min(paid, owe);
+    if (!paidByWeek) paid -= applyPaid;
     owe -= applyPaid;
     if (owe <= 0.0001) continue;
 
