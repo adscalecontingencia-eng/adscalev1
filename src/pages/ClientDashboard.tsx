@@ -359,6 +359,13 @@ const ClientDashboard: React.FC = () => {
     };
   }, [commissions, insights, client, commissionTiers]);
 
+  const paidCommissionRows = useMemo(
+    () => commissions
+      .filter(c => c.type === 'paid')
+      .map(c => ({ date: c.date, amount: Number(c.amount || 0) })),
+    [commissions]
+  );
+
   const periodTotals = useMemo(() => {
     const range = getFilterRange();
     const insightsInRange = insights.filter(i => {
@@ -406,10 +413,14 @@ const ClientDashboard: React.FC = () => {
     const startTs = startDateStr ? parseDateLocal(startDateStr).getTime() : 0;
 
     let remaining = credit;
-    // Pagamentos já feitos pelo cliente — aplicados FIFO, mesma lógica de
-    // splitOverdueVsCurrent. Sem isso, o painel "Comissões Pendentes por Semana"
-    // mostrava o valor bruto da comissão e divergia do "Saldo Pendente".
-    let paidPool = Math.max(0, Number(allTimeTotals.paid || 0));
+    const paidByWeek = new Map<string, number>();
+    paidCommissionRows.forEach(p => {
+      const paidDate = parseDateLocal(String(p.date));
+      const targetWeek = startOfWeek(paidDate, { weekStartsOn: 5 });
+      targetWeek.setDate(targetWeek.getDate() - 7);
+      const key = format(targetWeek, 'yyyy-MM-dd');
+      paidByWeek.set(key, (paidByWeek.get(key) || 0) + Number(p.amount || 0));
+    });
 
     const rows = weeklyCommissionHistory.map(w => {
       const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
@@ -417,8 +428,8 @@ const ClientDashboard: React.FC = () => {
       const afterCredit = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
 
-      const paidApplied = Math.min(paidPool, afterCredit);
-      paidPool = Math.max(0, paidPool - paidApplied);
+      const weekKey = format(w.weekStart, 'yyyy-MM-dd');
+      const paidApplied = Math.min(paidByWeek.get(weekKey) || 0, afterCredit);
       const stillOwed = Math.max(0, afterCredit - paidApplied);
 
       return {
@@ -453,7 +464,7 @@ const ClientDashboard: React.FC = () => {
       startDate: startDateStr,
       rows,
     };
-  }, [client, weeklyCommissionHistory, allTimeTotals.paid]);
+  }, [client, weeklyCommissionHistory, paidCommissionRows]);
 
 
   const pendingBillings = useMemo(
@@ -469,8 +480,9 @@ const ClientDashboard: React.FC = () => {
       allTimeTotals.paid,
       new Date(),
       (client as any)?.plan_credit_start_date || null,
+      paidCommissionRows,
     ),
-    [weeklyCommissionHistory, client, allTimeTotals.paid]
+    [weeklyCommissionHistory, client, allTimeTotals.paid, paidCommissionRows]
   );
 
   // Pop-up automático quando há saldo atrasado (apenas 1x por sessão)
@@ -496,7 +508,7 @@ const ClientDashboard: React.FC = () => {
   const originalCredit = Number(client?.plan_credit || 0);
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
-  const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
+  const pendingTotal = creditPlan?.totalStillOwed ?? Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
   const overdueTotal = billingSplit.overdue;
   const currentPendingTotal = billingSplit.currentPending;
 
