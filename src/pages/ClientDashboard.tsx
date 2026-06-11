@@ -1543,16 +1543,32 @@ const ClientDashboard: React.FC = () => {
                     const weekEnd = new Date(r.weekStart);
                     weekEnd.setDate(weekEnd.getDate() + 6);
                     const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
+                    const dueDate = new Date(r.weekStart);
+                    dueDate.setDate(dueDate.getDate() + 7);
+                    const isOverdue = Date.now() > dueDate.getTime();
                     return (
-                      <div key={idx} className="bg-secondary/40 border border-border rounded-lg p-3">
+                      <div key={idx} className={cn(
+                        "border rounded-lg p-3",
+                        isOverdue ? "bg-destructive/10 border-destructive/40" : "bg-secondary/40 border-border"
+                      )}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <CalendarIcon size={12} className="text-primary" />
+                            <CalendarIcon size={12} className={isOverdue ? "text-destructive" : "text-primary"} />
                             <span className="text-xs font-semibold">
                               {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
                             </span>
+                            {isOverdue && (
+                              <span className="text-[9px] uppercase tracking-wider bg-destructive/20 text-destructive border border-destructive/40 px-1.5 py-0.5 rounded">
+                                Vencido
+                              </span>
+                            )}
                           </div>
-                          <span className="text-[10px] uppercase tracking-wider bg-warning/15 text-warning border border-warning/30 px-2 py-0.5 rounded">
+                          <span className={cn(
+                            "text-[10px] uppercase tracking-wider border px-2 py-0.5 rounded",
+                            isOverdue
+                              ? "bg-destructive/15 text-destructive border-destructive/40"
+                              : "bg-warning/15 text-warning border-warning/30"
+                          )}>
                             A pagar: {fmt(r.stillOwed)}
                           </span>
                         </div>
