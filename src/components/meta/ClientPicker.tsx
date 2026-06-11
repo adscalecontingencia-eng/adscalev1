@@ -64,9 +64,12 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
               <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
               <CommandGroup>
                 {clients.map((c) => (
-                  <CommandItem key={c.id} value={`${c.name} ${c.email}`} onSelect={() => handle(c.id)}>
+                  <CommandItem key={c.id} value={`${c.name} ${c.email} ${c.company_name || ''}`} onSelect={() => handle(c.id)}>
                     <Check className={cn("mr-2 h-3.5 w-3.5", currentClientId === c.id ? "opacity-100 text-primary" : "opacity-0")} />
                     <div className="min-w-0">
+                      {c.company_name && (
+                        <div className="text-[10px] uppercase tracking-wider text-primary/80 truncate">{c.company_name}</div>
+                      )}
                       <div className="text-sm truncate">{c.name}</div>
                       <div className="text-[10px] text-muted-foreground truncate">{c.email}</div>
                     </div>
