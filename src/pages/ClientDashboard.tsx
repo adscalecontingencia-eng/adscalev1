@@ -33,6 +33,9 @@ const ClientDashboard: React.FC = () => {
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
   const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte'>('resumo');
+  // Paginação do histórico semanal (Plano de Crédito). 8 semanas por página.
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
   const [pages, setPages] = useState<any[]>([]);
   const [supportRequests, setSupportRequests] = useState<any[]>([]);
   const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
