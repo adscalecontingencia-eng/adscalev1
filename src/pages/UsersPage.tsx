@@ -20,6 +20,8 @@ const PERMISSION_OPTIONS = [
   { key: 'support', label: 'Suporte' },
   { key: 'users', label: 'Usuários' },
   { key: 'meta', label: 'Meta Ads' },
+  { key: 'meta-connections', label: 'Conexões Meta' },
+  { key: 'pages', label: 'Páginas' },
   { key: 'marketplace', label: 'Marketplace' },
 ];
 

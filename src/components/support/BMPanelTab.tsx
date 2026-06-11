@@ -66,8 +66,12 @@ const BMPanelTab: React.FC = () => {
   };
 
   const classify = (bm: BM) => {
-    if (bm.status !== 'active') return 'blocked';
-    const { hasClient } = bmStats(bm.id);
+    // BM "status" no Meta vem como verification_status (verified, not_verified, pending_submission, rejected).
+    // Só considera bloqueada quando rejeitada OU quando todas as contas estão bloqueadas.
+    const { active, total, hasClient } = bmStats(bm.id);
+    const rejected = (bm.status || '').toLowerCase() === 'rejected';
+    const allBlocked = total > 0 && active === 0;
+    if (rejected || allBlocked) return 'blocked';
     return hasClient ? 'active' : 'unassigned';
   };
 

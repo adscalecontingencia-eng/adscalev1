@@ -37,7 +37,7 @@ type Account = AccountCardData & {
   account_status: number | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
-type Client = { id: string; name: string; email: string };
+type Client = { id: string; name: string; email: string; company_name?: string | null };
 
 export default function MetaConnections() {
   const [bms, setBms] = useState<BM[]>([]);
@@ -65,7 +65,7 @@ export default function MetaConnections() {
       supabase.from("meta_business_managers").select("*").order("name"),
       supabase.from("meta_ad_accounts").select("*").order("score", { ascending: true }),
       supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true),
-      supabase.from("clients").select("id, name, email").order("name"),
+      supabase.from("clients").select("id, name, email, company_name").order("name"),
     ]);
     setBms((b.data as BM[]) || []);
     setAccounts((a.data as Account[]) || []);

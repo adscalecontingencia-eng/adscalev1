@@ -7,7 +7,7 @@ import {
 import { Check, ChevronsUpDown, User, UserPlus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Client { id: string; name: string; email: string }
+interface Client { id: string; name: string; email: string; company_name?: string | null }
 
 interface Props {
   clients: Client[];
@@ -38,13 +38,15 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">
-          Cliente
+          {current?.company_name ? "Empresa · Cliente" : "Cliente"}
         </div>
         <div className={cn(
           "text-sm font-medium truncate leading-tight mt-0.5",
           current ? "text-foreground" : "text-yellow-400"
         )}>
-          {current ? current.name : "Não atribuída"}
+          {current
+            ? (current.company_name ? `${current.company_name} · ${current.name}` : current.name)
+            : "Não atribuída"}
         </div>
       </div>
 
@@ -62,9 +64,12 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
               <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
               <CommandGroup>
                 {clients.map((c) => (
-                  <CommandItem key={c.id} value={`${c.name} ${c.email}`} onSelect={() => handle(c.id)}>
+                  <CommandItem key={c.id} value={`${c.name} ${c.email} ${c.company_name || ''}`} onSelect={() => handle(c.id)}>
                     <Check className={cn("mr-2 h-3.5 w-3.5", currentClientId === c.id ? "opacity-100 text-primary" : "opacity-0")} />
                     <div className="min-w-0">
+                      {c.company_name && (
+                        <div className="text-[10px] uppercase tracking-wider text-primary/80 truncate">{c.company_name}</div>
+                      )}
                       <div className="text-sm truncate">{c.name}</div>
                       <div className="text-[10px] text-muted-foreground truncate">{c.email}</div>
                     </div>
