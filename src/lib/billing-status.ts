@@ -22,6 +22,7 @@ export function splitOverdueVsCurrent(
   planCredit: number,
   totalPaid: number,
   now: Date = new Date(),
+  planCreditStartDate?: string | null,
 ): {
   overdue: number;
   currentPending: number;
@@ -36,10 +37,20 @@ export function splitOverdueVsCurrent(
   const weeksOverdue: WeeklyRow[] = [];
   const weeksCurrent: WeeklyRow[] = [];
 
+  // Crédito só pode ser aplicado a partir da data definida manualmente
+  // (plan_credit_start_date). Sem isso, este split divergia do painel
+  // "Comissões Pendentes por Semana", que já respeita essa data.
+  let startTs = 0;
+  if (planCreditStartDate) {
+    const [y, m, d] = planCreditStartDate.split('-').map(Number);
+    startTs = new Date(y, (m || 1) - 1, d || 1).getTime();
+  }
+
   for (const w of sorted) {
     let owe = w.commission;
     if (owe <= 0) continue;
-    const applyCredit = Math.min(credit, owe);
+    const creditEligible = w.weekStart.getTime() >= startTs;
+    const applyCredit = creditEligible ? Math.min(credit, owe) : 0;
     credit -= applyCredit;
     owe -= applyCredit;
     const applyPaid = Math.min(paid, owe);
