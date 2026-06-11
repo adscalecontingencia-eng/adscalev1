@@ -231,9 +231,11 @@ const Clients: React.FC = () => {
   };
 
   // Soma de Ad Spend já lançado na semana corrente p/ um cliente (exclui weekly_billing)
+  // CRÍTICO: usa weekStartsOn=4 (quinta) — convenção do projeto. Mudar isso quebra
+  // o alinhamento com o Dashboard do Cliente e gera inconsistência de valores.
   const getWeeklyAccumSpend = (clientId: string, refDate: Date): number => {
-    const ws = startOfWeek(refDate, { weekStartsOn: 1 });
-    const we = endOfWeek(refDate, { weekStartsOn: 1 });
+    const ws = startOfWeek(refDate, { weekStartsOn: 4 });
+    const we = endOfWeek(refDate, { weekStartsOn: 4 });
     return commissions
       .filter(c => c.clientId === clientId && c.type === 'daily' &&
         isWithinInterval(parseDateLocal(c.date), { start: ws, end: we }))
