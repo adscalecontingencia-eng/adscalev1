@@ -1582,12 +1582,39 @@ const ClientDashboard: React.FC = () => {
                     );
                   })}
                 </div>
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Total a pagar (após crédito e pagamentos)</span>
-                  <span className="font-bold text-warning text-base">
-                    {fmt(creditPlan.totalStillOwed)}
-                  </span>
-                </div>
+                {(() => {
+                  // Mesma regra do card "Saldo Pendente / Atrasado": vencimento =
+                  // weekStart + 7 dias (sexta seguinte). Tudo que já passou é atrasado;
+                  // o que ainda não venceu é a semana corrente.
+                  const now = Date.now();
+                  let overdueSum = 0;
+                  let currentSum = 0;
+                  creditPlan.rows.forEach(r => {
+                    if (r.stillOwed <= 0) return;
+                    const due = new Date(r.weekStart);
+                    due.setDate(due.getDate() + 7);
+                    if (now > due.getTime()) overdueSum += r.stillOwed;
+                    else currentSum += r.stillOwed;
+                  });
+                  return (
+                    <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs">
+                      {overdueSum > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Atrasado (vencido)</span>
+                          <span className="font-bold text-destructive">{fmt(overdueSum)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Pendente (semana corrente)</span>
+                        <span className="font-bold text-warning">{fmt(currentSum)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                        <span className="text-muted-foreground">Total a pagar</span>
+                        <span className="font-bold text-warning text-base">{fmt(creditPlan.totalStillOwed)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
