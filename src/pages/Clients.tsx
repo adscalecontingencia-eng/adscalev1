@@ -506,8 +506,9 @@ const Clients: React.FC = () => {
       ? getTierPercentage(accumWeek + adSpend, client.percentageValue || 0)
       : 0;
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    // weekStartsOn=4 (quinta) — convenção do projeto: "fecha quinta, paga sexta"
+    const weekStart = startOfWeek(now, { weekStartsOn: 4 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 4 });
 
     const { error: commError } = await supabase.from('commissions').insert({
       client_id: clientId, 
