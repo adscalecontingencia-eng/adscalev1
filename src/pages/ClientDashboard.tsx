@@ -1543,16 +1543,32 @@ const ClientDashboard: React.FC = () => {
                     const weekEnd = new Date(r.weekStart);
                     weekEnd.setDate(weekEnd.getDate() + 6);
                     const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
+                    const dueDate = new Date(r.weekStart);
+                    dueDate.setDate(dueDate.getDate() + 7);
+                    const isOverdue = Date.now() > dueDate.getTime();
                     return (
-                      <div key={idx} className="bg-secondary/40 border border-border rounded-lg p-3">
+                      <div key={idx} className={cn(
+                        "border rounded-lg p-3",
+                        isOverdue ? "bg-destructive/10 border-destructive/40" : "bg-secondary/40 border-border"
+                      )}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <CalendarIcon size={12} className="text-primary" />
+                            <CalendarIcon size={12} className={isOverdue ? "text-destructive" : "text-primary"} />
                             <span className="text-xs font-semibold">
                               {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
                             </span>
+                            {isOverdue && (
+                              <span className="text-[9px] uppercase tracking-wider bg-destructive/20 text-destructive border border-destructive/40 px-1.5 py-0.5 rounded">
+                                Vencido
+                              </span>
+                            )}
                           </div>
-                          <span className="text-[10px] uppercase tracking-wider bg-warning/15 text-warning border border-warning/30 px-2 py-0.5 rounded">
+                          <span className={cn(
+                            "text-[10px] uppercase tracking-wider border px-2 py-0.5 rounded",
+                            isOverdue
+                              ? "bg-destructive/15 text-destructive border-destructive/40"
+                              : "bg-warning/15 text-warning border-warning/30"
+                          )}>
                             A pagar: {fmt(r.stillOwed)}
                           </span>
                         </div>
@@ -1582,12 +1598,39 @@ const ClientDashboard: React.FC = () => {
                     );
                   })}
                 </div>
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Total a pagar (após crédito e pagamentos)</span>
-                  <span className="font-bold text-warning text-base">
-                    {fmt(creditPlan.totalStillOwed)}
-                  </span>
-                </div>
+                {(() => {
+                  // Mesma regra do card "Saldo Pendente / Atrasado": vencimento =
+                  // weekStart + 7 dias (sexta seguinte). Tudo que já passou é atrasado;
+                  // o que ainda não venceu é a semana corrente.
+                  const now = Date.now();
+                  let overdueSum = 0;
+                  let currentSum = 0;
+                  creditPlan.rows.forEach(r => {
+                    if (r.stillOwed <= 0) return;
+                    const due = new Date(r.weekStart);
+                    due.setDate(due.getDate() + 7);
+                    if (now > due.getTime()) overdueSum += r.stillOwed;
+                    else currentSum += r.stillOwed;
+                  });
+                  return (
+                    <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs">
+                      {overdueSum > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Atrasado (vencido)</span>
+                          <span className="font-bold text-destructive">{fmt(overdueSum)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Pendente (semana corrente)</span>
+                        <span className="font-bold text-warning">{fmt(currentSum)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                        <span className="text-muted-foreground">Total a pagar</span>
+                        <span className="font-bold text-warning text-base">{fmt(creditPlan.totalStillOwed)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
