@@ -231,7 +231,7 @@ const Clients: React.FC = () => {
   };
 
   // Soma de Ad Spend já lançado na semana corrente p/ um cliente (exclui weekly_billing)
-  // CRÍTICO: usa weekStartsOn=4 (quinta) — convenção do projeto. Mudar isso quebra
+  // CRÍTICO: usa weekStartsOn=5 (sexta) — convenção do projeto. Mudar isso quebra
   // o alinhamento com o Dashboard do Cliente e gera inconsistência de valores.
   const getWeeklyAccumSpend = (clientId: string, refDate: Date): number => {
     const ws = startOfWeek(refDate, { weekStartsOn: 5 });
@@ -506,7 +506,7 @@ const Clients: React.FC = () => {
       ? getTierPercentage(accumWeek + adSpend, client.percentageValue || 0)
       : 0;
     const now = new Date();
-    // weekStartsOn=4 (quinta) — convenção do projeto: "fecha quinta, paga sexta"
+    // weekStartsOn=5 (sexta) — convenção do projeto: "sexta a quinta — fecha quinta, paga sexta seguinte"
     const weekStart = startOfWeek(now, { weekStartsOn: 5 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 5 });
 
@@ -621,7 +621,7 @@ const Clients: React.FC = () => {
     if (!client) return;
 
     const now = new Date();
-    // weekStartsOn=4 (quinta) — convenção do projeto
+    // weekStartsOn=5 (sexta) — convenção do projeto
     const weekStart = startOfWeek(now, { weekStartsOn: 5 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 5 });
 
