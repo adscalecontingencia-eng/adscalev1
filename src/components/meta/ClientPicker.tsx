@@ -38,13 +38,15 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">
-          Cliente
+          {current?.company_name ? "Empresa · Cliente" : "Cliente"}
         </div>
         <div className={cn(
           "text-sm font-medium truncate leading-tight mt-0.5",
           current ? "text-foreground" : "text-yellow-400"
         )}>
-          {current ? current.name : "Não atribuída"}
+          {current
+            ? (current.company_name ? `${current.company_name} · ${current.name}` : current.name)
+            : "Não atribuída"}
         </div>
       </div>
 
