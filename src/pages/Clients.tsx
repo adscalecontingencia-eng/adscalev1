@@ -761,7 +761,7 @@ const Clients: React.FC = () => {
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
       case 'yesterday': { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
-      case 'week': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'week': return { start: startOfWeek(now, { weekStartsOn: 4 }), end: endOfWeek(now, { weekStartsOn: 4 }) };
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return customStart && customEnd ? { start: startOfDay(customStart), end: endOfDay(customEnd) } : null;
     }
