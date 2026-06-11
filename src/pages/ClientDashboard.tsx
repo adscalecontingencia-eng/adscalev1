@@ -1530,16 +1530,16 @@ const ClientDashboard: React.FC = () => {
             </div>
 
             {/* Comissões pendentes por semana (preview antes da validação) */}
-            {creditPlan && creditPlan.rows.some(r => r.clientPays > 0) && (
+            {creditPlan && creditPlan.rows.some(r => r.stillOwed > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                   <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
                 </h3>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  Valores calculados a partir do gasto sincronizado da Meta. Prévia antes da validação do pagamento na sexta-feira.
+                  Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já realizados (FIFO). Prévia antes da validação da próxima sexta-feira.
                 </p>
                 <div className="space-y-2">
-                  {creditPlan.rows.filter(r => r.clientPays > 0).map((r, idx) => {
+                  {creditPlan.rows.filter(r => r.stillOwed > 0).map((r, idx) => {
                     const weekEnd = new Date(r.weekStart);
                     weekEnd.setDate(weekEnd.getDate() + 6);
                     const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
@@ -1553,10 +1553,10 @@ const ClientDashboard: React.FC = () => {
                             </span>
                           </div>
                           <span className="text-[10px] uppercase tracking-wider bg-warning/15 text-warning border border-warning/30 px-2 py-0.5 rounded">
-                            A pagar: {fmt(r.clientPays)}
+                            A pagar: {fmt(r.stillOwed)}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
                           <div className="bg-background/40 rounded p-2">
                             <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Gasto sincronizado</p>
                             <p className="font-bold text-foreground mt-0.5">{fmt(r.spend)}</p>
@@ -1573,15 +1573,19 @@ const ClientDashboard: React.FC = () => {
                             <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Crédito aplicado</p>
                             <p className="font-bold text-emerald-400 mt-0.5">−{fmt(r.creditApplied)}</p>
                           </div>
+                          <div className="bg-background/40 rounded p-2">
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Pago</p>
+                            <p className="font-bold text-success mt-0.5">−{fmt(r.paidApplied)}</p>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Total estimado a pagar</span>
+                  <span className="text-muted-foreground">Total a pagar (após crédito e pagamentos)</span>
                   <span className="font-bold text-warning text-base">
-                    {fmt(creditPlan.rows.reduce((s, r) => s + r.clientPays, 0))}
+                    {fmt(creditPlan.totalStillOwed)}
                   </span>
                 </div>
               </div>
