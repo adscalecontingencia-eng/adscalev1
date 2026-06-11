@@ -406,18 +406,32 @@ const ClientDashboard: React.FC = () => {
     const startTs = startDateStr ? parseDateLocal(startDateStr).getTime() : 0;
 
     let remaining = credit;
+    // Pagamentos já feitos pelo cliente — aplicados FIFO, mesma lógica de
+    // splitOverdueVsCurrent. Sem isso, o painel "Comissões Pendentes por Semana"
+    // mostrava o valor bruto da comissão e divergia do "Saldo Pendente".
+    let paidPool = Math.max(0, Number(allTimeTotals.paid || 0));
+
     const rows = weeklyCommissionHistory.map(w => {
-      // Só aplica crédito em semanas a partir da data em que o crédito entrou.
       const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
       const applied = eligible ? Math.min(remaining, w.commission) : 0;
-      const pays = Math.max(0, w.commission - applied);
+      const afterCredit = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
+
+      const paidApplied = Math.min(paidPool, afterCredit);
+      paidPool = Math.max(0, paidPool - paidApplied);
+      const stillOwed = Math.max(0, afterCredit - paidApplied);
+
       return {
         weekStart: w.weekStart,
         spend: w.spend,
         commission: w.commission,
         creditApplied: applied,
-        clientPays: pays,
+        // `clientPays` = bruto após crédito (antes de pagamentos). Mantido para
+        // compat de leitura/UX em "Plano de Crédito". Quem reflete o devido real
+        // é `stillOwed`.
+        clientPays: afterCredit,
+        paidApplied,
+        stillOwed,
         remainingAfter: remaining,
       };
     });
@@ -425,6 +439,8 @@ const ClientDashboard: React.FC = () => {
     const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
     const totalApplied = rows.reduce((s, r) => s + r.creditApplied, 0);
     const totalPaying = rows.reduce((s, r) => s + r.clientPays, 0);
+    const totalStillOwed = rows.reduce((s, r) => s + r.stillOwed, 0);
+    const totalPaidApplied = rows.reduce((s, r) => s + r.paidApplied, 0);
 
     return {
       totalCredit: credit,
@@ -432,10 +448,12 @@ const ClientDashboard: React.FC = () => {
       totalCommission,
       totalApplied,
       totalPaying,
+      totalStillOwed,
+      totalPaidApplied,
       startDate: startDateStr,
       rows,
     };
-  }, [client, weeklyCommissionHistory]);
+  }, [client, weeklyCommissionHistory, allTimeTotals.paid]);
 
 
   const pendingBillings = useMemo(
