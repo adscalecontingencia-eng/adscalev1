@@ -359,6 +359,13 @@ const ClientDashboard: React.FC = () => {
     };
   }, [commissions, insights, client, commissionTiers]);
 
+  const paidCommissionRows = useMemo(
+    () => commissions
+      .filter(c => c.type === 'paid')
+      .map(c => ({ date: c.date, amount: Number(c.amount || 0) })),
+    [commissions]
+  );
+
   const periodTotals = useMemo(() => {
     const range = getFilterRange();
     const insightsInRange = insights.filter(i => {
@@ -406,10 +413,14 @@ const ClientDashboard: React.FC = () => {
     const startTs = startDateStr ? parseDateLocal(startDateStr).getTime() : 0;
 
     let remaining = credit;
-    // Pagamentos já feitos pelo cliente — aplicados FIFO, mesma lógica de
-    // splitOverdueVsCurrent. Sem isso, o painel "Comissões Pendentes por Semana"
-    // mostrava o valor bruto da comissão e divergia do "Saldo Pendente".
-    let paidPool = Math.max(0, Number(allTimeTotals.paid || 0));
+    const paidByWeek = new Map<string, number>();
+    paidCommissionRows.forEach(p => {
+      const paidDate = parseDateLocal(String(p.date));
+      const targetWeek = startOfWeek(paidDate, { weekStartsOn: 5 });
+      targetWeek.setDate(targetWeek.getDate() - 7);
+      const key = format(targetWeek, 'yyyy-MM-dd');
+      paidByWeek.set(key, (paidByWeek.get(key) || 0) + Number(p.amount || 0));
+    });
 
     const rows = weeklyCommissionHistory.map(w => {
       const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
@@ -417,8 +428,8 @@ const ClientDashboard: React.FC = () => {
       const afterCredit = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
 
-      const paidApplied = Math.min(paidPool, afterCredit);
-      paidPool = Math.max(0, paidPool - paidApplied);
+      const weekKey = format(w.weekStart, 'yyyy-MM-dd');
+      const paidApplied = Math.min(paidByWeek.get(weekKey) || 0, afterCredit);
       const stillOwed = Math.max(0, afterCredit - paidApplied);
 
       return {
@@ -453,7 +464,7 @@ const ClientDashboard: React.FC = () => {
       startDate: startDateStr,
       rows,
     };
-  }, [client, weeklyCommissionHistory, allTimeTotals.paid]);
+  }, [client, weeklyCommissionHistory, paidCommissionRows]);
 
 
   const pendingBillings = useMemo(
@@ -469,8 +480,9 @@ const ClientDashboard: React.FC = () => {
       allTimeTotals.paid,
       new Date(),
       (client as any)?.plan_credit_start_date || null,
+      paidCommissionRows,
     ),
-    [weeklyCommissionHistory, client, allTimeTotals.paid]
+    [weeklyCommissionHistory, client, allTimeTotals.paid, paidCommissionRows]
   );
 
   // Pop-up automático quando há saldo atrasado (apenas 1x por sessão)
@@ -496,7 +508,7 @@ const ClientDashboard: React.FC = () => {
   const originalCredit = Number(client?.plan_credit || 0);
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
-  const pendingTotal = Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
+  const pendingTotal = creditPlan?.totalStillOwed ?? Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
   const overdueTotal = billingSplit.overdue;
   const currentPendingTotal = billingSplit.currentPending;
 
@@ -1532,34 +1544,39 @@ const ClientDashboard: React.FC = () => {
             </div>
 
             {/* Comissões pendentes por semana (preview antes da validação) */}
-            {creditPlan && creditPlan.rows.some(r => r.stillOwed > 0) && (
+            {creditPlan && creditPlan.rows.some(r => r.clientPays > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                   <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
                 </h3>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já realizados (FIFO). Prévia antes da validação da próxima sexta-feira.
+                  Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já validados na semana correspondente.
                 </p>
                 <div className="space-y-2">
-                  {creditPlan.rows.filter(r => r.stillOwed > 0).map((r, idx) => {
+                  {creditPlan.rows.filter(r => r.clientPays > 0).map((r, idx) => {
                     const weekEnd = new Date(r.weekStart);
                     weekEnd.setDate(weekEnd.getDate() + 6);
                     const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
                     const dueDate = new Date(r.weekStart);
                     dueDate.setDate(dueDate.getDate() + 7);
                     const isOverdue = Date.now() > dueDate.getTime();
+                    const isPaid = r.stillOwed <= 0;
                     return (
                       <div key={idx} className={cn(
                         "border rounded-lg p-3",
-                        isOverdue ? "bg-destructive/10 border-destructive/40" : "bg-secondary/40 border-border"
+                        isPaid ? "bg-success/10 border-success/40" : isOverdue ? "bg-destructive/10 border-destructive/40" : "bg-secondary/40 border-border"
                       )}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <CalendarIcon size={12} className={isOverdue ? "text-destructive" : "text-primary"} />
+                            <CalendarIcon size={12} className={isPaid ? "text-success" : isOverdue ? "text-destructive" : "text-primary"} />
                             <span className="text-xs font-semibold">
                               {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
                             </span>
-                            {isOverdue && (
+                            {isPaid ? (
+                              <span className="text-[9px] uppercase tracking-wider bg-success/20 text-success border border-success/40 px-1.5 py-0.5 rounded">
+                                Pago
+                              </span>
+                            ) : isOverdue && (
                               <span className="text-[9px] uppercase tracking-wider bg-destructive/20 text-destructive border border-destructive/40 px-1.5 py-0.5 rounded">
                                 Vencido
                               </span>
@@ -1567,11 +1584,13 @@ const ClientDashboard: React.FC = () => {
                           </div>
                           <span className={cn(
                             "text-[10px] uppercase tracking-wider border px-2 py-0.5 rounded",
-                            isOverdue
+                            isPaid
+                              ? "bg-success/15 text-success border-success/40"
+                              : isOverdue
                               ? "bg-destructive/15 text-destructive border-destructive/40"
                               : "bg-warning/15 text-warning border-warning/30"
                           )}>
-                            A pagar: {fmt(r.stillOwed)}
+                            {isPaid ? `Pago: ${fmt(r.paidApplied)}` : `A pagar: ${fmt(r.stillOwed)}`}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">

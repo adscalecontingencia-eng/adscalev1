@@ -34,6 +34,7 @@ interface Client {
   fixedValue?: number;
   percentageValue?: number;
   planCredit?: number;
+  planCreditStartDate?: string | null;
   adAccounts: number;
   usedAccounts: number;
   blockedAccounts: number;
@@ -155,6 +156,7 @@ const Clients: React.FC = () => {
       paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
       fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
       planCredit: Number((c as any).plan_credit) || 0,
+      planCreditStartDate: (c as any).plan_credit_start_date || null,
       adAccounts: c.ad_accounts || 0, usedAccounts: c.used_accounts || 0, blockedAccounts: c.blocked_accounts || 0,
       whatsappPhone: (c as any).whatsapp_phone || '', whatsappGroupLink: (c as any).whatsapp_group_link || '',
       partnerId: (c as any).partner_id || null,
@@ -571,7 +573,8 @@ const Clients: React.FC = () => {
 
     const { error } = await supabase.from('commissions').insert({
       client_id: clientId, date: dateISO, amount, type: 'paid',
-    });
+      valor_pago: amount, valor_pendente: 0, status: 'pago',
+    } as any);
     if (error) { toast.error('Erro ao registrar pagamento'); return; }
 
     // Lança também em transactions p/ aparecer no Faturamento
@@ -725,7 +728,10 @@ const Clients: React.FC = () => {
       amount: pendente,
       type: 'paid',
       note: `Pagamento da cobrança ${billing.note || `${billing.billingWeekStart}-${billing.billingWeekEnd}`}`,
-    });
+      valor_pago: pendente,
+      valor_pendente: 0,
+      status: 'pago',
+    } as any);
     if (error) { toast.error('Erro ao marcar como pago'); return; }
 
     // Lança também em transactions p/ aparecer no Faturamento
@@ -845,9 +851,10 @@ const Clients: React.FC = () => {
     // do que já passou da sexta de cobrança sem pagamento.
     const client = clients.find(c => c.id === clientId);
     const weeks = computeWeeklyForClient(clientId);
-    const totalPaidAllTime = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
+    const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
+    const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), (client as any)?.planCreditStartDate || (client as any)?.plan_credit_start_date || null);
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), client?.planCreditStartDate || null, paidRows);
     const saldoPendente = split.currentPending;
     const saldoAtrasado = split.overdue;
 

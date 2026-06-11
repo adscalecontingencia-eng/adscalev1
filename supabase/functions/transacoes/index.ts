@@ -44,15 +44,38 @@ Deno.serve(async (req) => {
 
     // === COMISSÃO PAGA: insert transaction + distribute payment across pending commissions ===
     if (comissao_paga && client_id) {
+      const paymentDescription = (description || "").startsWith("Pagamento")
+        ? description
+        : `Pagamento de comissão${description ? ` — ${description}` : ""}`;
+
       // Insert transaction
       const { data: txData, error: txError } = await supabaseAdmin
         .from("transactions")
-        .insert({ date, type: 'receita', category, client_id, amount, description: description || "" })
+        .insert({ date, type: 'receita', category, client_id, amount, description: paymentDescription })
         .select()
         .single();
 
       if (txError) {
         return new Response(JSON.stringify({ erro: txError.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: paidCommError } = await supabaseAdmin
+        .from("commissions")
+        .insert({
+          client_id,
+          date,
+          amount,
+          type: "paid",
+          note: paymentDescription,
+          valor_pago: amount,
+          valor_pendente: 0,
+          status: "pago",
+        });
+
+      if (paidCommError) {
+        return new Response(JSON.stringify({ erro: paidCommError.message }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
