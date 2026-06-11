@@ -13,9 +13,9 @@ export interface WeeklyRow {
  *
  * Aplica plan_credit e pagamentos no estilo FIFO, da semana mais antiga p/ a mais nova.
  *
- * Convenção de semana usada no projeto: week starts on Thursday (weekStartsOn: 4),
- * portanto weekStart é uma quinta-feira. Vencimento = sexta da semana seguinte
- * (= weekStart + 8 dias) — "fecha na quinta, paga na sexta".
+ * Convenção de semana usada no projeto: week starts on Friday (weekStartsOn: 5),
+ * portanto weekStart é uma sexta-feira. A semana vai de sexta a quinta (fecha quinta).
+ * Vencimento = sexta da semana seguinte (= weekStart + 7 dias) — "fecha na quinta, paga na sexta".
  */
 export function splitOverdueVsCurrent(
   weeks: WeeklyRow[],
@@ -47,7 +47,7 @@ export function splitOverdueVsCurrent(
     owe -= applyPaid;
     if (owe <= 0.0001) continue;
 
-    const dueDate = addDays(w.weekStart, 8); // sexta-feira após o fechamento
+    const dueDate = addDays(w.weekStart, 7); // sexta-feira seguinte (após o fechamento na quinta)
     if (now.getTime() > dueDate.getTime()) {
       overdue += owe;
       weeksOverdue.push({ ...w, commission: owe });
