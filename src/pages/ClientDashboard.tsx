@@ -467,6 +467,8 @@ const ClientDashboard: React.FC = () => {
       weeklyCommissionHistory,
       Number(client?.plan_credit || 0),
       allTimeTotals.paid,
+      new Date(),
+      (client as any)?.plan_credit_start_date || null,
     ),
     [weeklyCommissionHistory, client, allTimeTotals.paid]
   );

@@ -847,7 +847,7 @@ const Clients: React.FC = () => {
     const weeks = computeWeeklyForClient(clientId);
     const totalPaidAllTime = cc.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime);
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), (client as any)?.planCreditStartDate || (client as any)?.plan_credit_start_date || null);
     const saldoPendente = split.currentPending;
     const saldoAtrasado = split.overdue;
 
