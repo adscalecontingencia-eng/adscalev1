@@ -26,7 +26,7 @@ const fmtUSD = (v: number) =>
 function aggregateWeekly(daily: DailyRow[]): DailyRow[] {
   const map = new Map<string, { spend: number; revenue: number }>();
   daily.forEach((d) => {
-    const ws = startOfWeek(parseDateLocal(d.date), { weekStartsOn: 4 });
+    const ws = startOfWeek(parseDateLocal(d.date), { weekStartsOn: 5 });
     const key = format(ws, "yyyy-MM-dd");
     const cur = map.get(key) || { spend: 0, revenue: 0 };
     cur.spend += d.spend;
