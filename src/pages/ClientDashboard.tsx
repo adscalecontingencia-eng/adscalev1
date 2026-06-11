@@ -234,6 +234,10 @@ const ClientDashboard: React.FC = () => {
   }, [reqQty, reqType]);
 
   const submitRequest = async () => {
+    if (!isAdminView && overdueTotal > 25) {
+      toast.error(`Pagamento pendente: você possui $${overdueTotal.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
+      return;
+    }
     if (!client) return;
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
