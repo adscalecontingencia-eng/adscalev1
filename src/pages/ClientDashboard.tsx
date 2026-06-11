@@ -390,17 +390,23 @@ const ClientDashboard: React.FC = () => {
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }, [insights, client, commissionTiers]);
 
-  // Credit ledger: REAL week-by-week history. Applies plan_credit FIFO from the
-  // earliest week with spend, week by week, until credit is exhausted.
+  // Credit ledger: REAL week-by-week history. Aplica plan_credit FIFO a partir
+  // da semana em que o crédito foi adicionado (plan_credit_start_date) — NUNCA
+  // retroativo a semanas anteriores. O crédito é aplicado uma única vez e
+  // consumido conforme as semanas com gasto vão acontecendo.
   const creditPlan = useMemo(() => {
     const credit = Number(client?.plan_credit || 0);
     if (!client || client.client_type === 'venda') return null;
-    const weeks = weeklyCommissionHistory.filter(w => w.commission > 0);
-    if (weeks.length === 0) return null;
+    if (weeklyCommissionHistory.length === 0) return null;
+
+    const startDateStr: string | null = (client as any)?.plan_credit_start_date || null;
+    const startTs = startDateStr ? parseDateLocal(startDateStr).getTime() : 0;
 
     let remaining = credit;
-    const rows = weeks.map(w => {
-      const applied = Math.min(remaining, w.commission);
+    const rows = weeklyCommissionHistory.map(w => {
+      // Só aplica crédito em semanas a partir da data em que o crédito entrou.
+      const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
+      const applied = eligible ? Math.min(remaining, w.commission) : 0;
       const pays = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
       return {
@@ -423,6 +429,7 @@ const ClientDashboard: React.FC = () => {
       totalCommission,
       totalApplied,
       totalPaying,
+      startDate: startDateStr,
       rows,
     };
   }, [client, weeklyCommissionHistory]);
