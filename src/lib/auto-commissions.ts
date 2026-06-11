@@ -68,7 +68,7 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     if (win.effective_from && insightDate < win.effective_from) return;
     if (win.effective_to && insightDate > win.effective_to) return;
     const d = parseDateLocal(i.date);
-    const ws = startOfWeek(d, { weekStartsOn: 4 });
+    const ws = startOfWeek(d, { weekStartsOn: 5 });
     const key = format(ws, 'yyyy-MM-dd');
     if (!spendByClient.has(clientId)) spendByClient.set(clientId, new Map());
     const wmap = spendByClient.get(clientId)!;
@@ -76,7 +76,7 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
   });
 
   // Current week's start (Thu) — skip this incomplete week
-  const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 4 }), 'yyyy-MM-dd');
+  const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 5 }), 'yyyy-MM-dd');
 
   const inserts: any[] = [];
 
