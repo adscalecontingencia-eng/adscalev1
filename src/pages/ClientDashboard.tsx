@@ -697,7 +697,7 @@ const ClientDashboard: React.FC = () => {
             <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3">
               <Info size={16} className="text-amber-300 mt-0.5 shrink-0" />
               <div className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-amber-300">Ciclo de cobrança: quinta a quinta.</strong> A semana fecha na quinta-feira e o pagamento é gerado na sexta. Isso garante que todo o gasto do período já esteja consolidado nas contas de anúncio antes do faturamento — a sexta-feira ainda está em andamento e não é incluída na semana cobrada.
+                <strong className="text-amber-300">Ciclo de cobrança: sexta a quinta.</strong> A semana fecha na quinta-feira e o pagamento é gerado na sexta seguinte. Isso garante que todo o gasto do período já esteja consolidado nas contas de anúncio antes do faturamento.
               </div>
             </div>
 
