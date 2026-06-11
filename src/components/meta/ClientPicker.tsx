@@ -7,7 +7,7 @@ import {
 import { Check, ChevronsUpDown, User, UserPlus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Client { id: string; name: string; email: string }
+interface Client { id: string; name: string; email: string; company_name?: string | null }
 
 interface Props {
   clients: Client[];
