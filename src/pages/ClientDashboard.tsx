@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2 } from 'lucide-react';
+import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,6 +33,9 @@ const ClientDashboard: React.FC = () => {
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
   const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte'>('resumo');
+  // Paginação do histórico semanal (Plano de Crédito). 8 semanas por página.
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
   const [pages, setPages] = useState<any[]>([]);
   const [supportRequests, setSupportRequests] = useState<any[]>([]);
   const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
@@ -390,17 +393,23 @@ const ClientDashboard: React.FC = () => {
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }, [insights, client, commissionTiers]);
 
-  // Credit ledger: REAL week-by-week history. Applies plan_credit FIFO from the
-  // earliest week with spend, week by week, until credit is exhausted.
+  // Credit ledger: REAL week-by-week history. Aplica plan_credit FIFO a partir
+  // da semana em que o crédito foi adicionado (plan_credit_start_date) — NUNCA
+  // retroativo a semanas anteriores. O crédito é aplicado uma única vez e
+  // consumido conforme as semanas com gasto vão acontecendo.
   const creditPlan = useMemo(() => {
     const credit = Number(client?.plan_credit || 0);
     if (!client || client.client_type === 'venda') return null;
-    const weeks = weeklyCommissionHistory.filter(w => w.commission > 0);
-    if (weeks.length === 0) return null;
+    if (weeklyCommissionHistory.length === 0) return null;
+
+    const startDateStr: string | null = (client as any)?.plan_credit_start_date || null;
+    const startTs = startDateStr ? parseDateLocal(startDateStr).getTime() : 0;
 
     let remaining = credit;
-    const rows = weeks.map(w => {
-      const applied = Math.min(remaining, w.commission);
+    const rows = weeklyCommissionHistory.map(w => {
+      // Só aplica crédito em semanas a partir da data em que o crédito entrou.
+      const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
+      const applied = eligible ? Math.min(remaining, w.commission) : 0;
       const pays = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
       return {
@@ -423,6 +432,7 @@ const ClientDashboard: React.FC = () => {
       totalCommission,
       totalApplied,
       totalPaying,
+      startDate: startDateStr,
       rows,
     };
   }, [client, weeklyCommissionHistory]);
@@ -709,65 +719,139 @@ const ClientDashboard: React.FC = () => {
                     Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · valor a pagar acumulado <strong className="text-amber-300">{fmt(creditPlan.totalPaying)}</strong>.
                   </p>
 
-                  <div className="space-y-2.5">
-                    {creditPlan.rows.map((r, idx) => {
-                      const pct = Math.max(1, (r.creditApplied / r.commission) * 100);
-                      const isFirstPaying = r.creditApplied < r.commission && (idx === 0 || creditPlan.rows[idx - 1].clientPays === 0);
-                      return (
-                        <div key={idx} className={cn(
-                          "rounded-lg border p-3",
-                          isFirstPaying ? "border-amber-400/40 bg-amber-400/5" : "border-border bg-secondary/40"
-                        )}>
-                          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono text-muted-foreground">Semana {idx + 1}</span>
-                              <span className="text-xs font-medium text-foreground">
-                                {format(r.weekStart, "dd 'de' MMM yyyy", { locale: ptBR })}
-                              </span>
-                              {isFirstPaying && r.clientPays > 0 && (
-                                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
-                                  Início dos pagamentos
-                                </span>
+                  {(() => {
+                    const PAGE_SIZE = 8;
+                    // Filtro do histórico
+                    const filteredRows = creditPlan.rows.filter(r => {
+                      if (historyFilter === 'paying') return r.clientPays > 0;
+                      if (historyFilter === 'covered') return r.creditApplied >= r.commission && r.commission > 0;
+                      return true; // 'recent' | 'all'
+                    });
+                    // 'recent' mostra do mais novo p/ o mais antigo, paginado
+                    const ordered = historyFilter === 'all'
+                      ? filteredRows
+                      : [...filteredRows].reverse();
+                    const totalPages = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
+                    const pageIdx = Math.min(historyPage, totalPages - 1);
+                    const pageRows = historyFilter === 'all'
+                      ? ordered
+                      : ordered.slice(pageIdx * PAGE_SIZE, (pageIdx + 1) * PAGE_SIZE);
+
+                    return (
+                      <>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filtrar:</span>
+                          {([
+                            { k: 'recent', l: 'Mais recentes' },
+                            { k: 'paying', l: 'Com pagamento' },
+                            { k: 'covered', l: 'Cobertas pelo crédito' },
+                            { k: 'all', l: `Todas (${creditPlan.rows.length})` },
+                          ] as const).map(opt => (
+                            <button
+                              key={opt.k}
+                              onClick={() => { setHistoryFilter(opt.k); setHistoryPage(0); }}
+                              className={cn(
+                                "text-[10px] px-2.5 py-1 rounded-md border transition-colors",
+                                historyFilter === opt.k
+                                  ? "border-primary/50 bg-primary/10 text-primary"
+                                  : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
                               )}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              Saldo: <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
-                            </div>
-                          </div>
-                          <div className="relative h-6 rounded-md bg-background overflow-hidden border border-border">
-                            {r.creditApplied > 0 && (
-                              <div
-                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary/80 to-primary flex items-center px-2"
-                                style={{ width: `${pct}%` }}
-                              >
-                                <span className="text-[10px] font-bold text-primary-foreground whitespace-nowrap">
-                                  −{fmt(r.creditApplied)}
-                                </span>
-                              </div>
-                            )}
-                            {r.clientPays > 0 && (
-                              <div
-                                className="absolute inset-y-0 right-0 bg-amber-400/80 flex items-center justify-end px-2"
-                                style={{ width: `${100 - pct}%` }}
-                              >
-                                <span className="text-[10px] font-bold text-background whitespace-nowrap">
-                                  {fmt(r.clientPays)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                            <span>Gasto: <span className="text-foreground font-medium">{fmt(r.spend)}</span> · Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
-                            <span>
-                              {r.creditApplied >= r.commission && '100% coberto pelo crédito'}
-                              {r.creditApplied > 0 && r.creditApplied < r.commission && 'Crédito esgotado nesta semana'}
-                              {r.creditApplied === 0 && 'Pagamento integral via Pix/Cripto'}
-                            </span>
-                          </div>
+                            >
+                              {opt.l}
+                            </button>
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <div className="space-y-2.5">
+                          {pageRows.map((r, localIdx) => {
+                            const absoluteIdx = creditPlan.rows.indexOf(r);
+                            const pct = r.commission > 0 ? Math.max(1, (r.creditApplied / r.commission) * 100) : 0;
+                            const isFirstPaying = r.creditApplied < r.commission
+                              && r.clientPays > 0
+                              && (absoluteIdx === 0 || creditPlan.rows[absoluteIdx - 1].clientPays === 0);
+                            return (
+                              <div key={absoluteIdx} className={cn(
+                                "rounded-lg border p-3",
+                                isFirstPaying ? "border-amber-400/40 bg-amber-400/5" : "border-border bg-secondary/40"
+                              )}>
+                                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono text-muted-foreground">Semana {absoluteIdx + 1}</span>
+                                    <span className="text-xs font-medium text-foreground">
+                                      {format(r.weekStart, "dd 'de' MMM yyyy", { locale: ptBR })}
+                                    </span>
+                                    {isFirstPaying && (
+                                      <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
+                                        Início dos pagamentos
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    Saldo: <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
+                                  </div>
+                                </div>
+                                <div className="relative h-6 rounded-md bg-background overflow-hidden border border-border">
+                                  {r.creditApplied > 0 && (
+                                    <div
+                                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary/80 to-primary flex items-center px-2"
+                                      style={{ width: `${pct}%` }}
+                                    >
+                                      <span className="text-[10px] font-bold text-primary-foreground whitespace-nowrap">
+                                        −{fmt(r.creditApplied)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {r.clientPays > 0 && (
+                                    <div
+                                      className="absolute inset-y-0 right-0 bg-amber-400/80 flex items-center justify-end px-2"
+                                      style={{ width: `${100 - pct}%` }}
+                                    >
+                                      <span className="text-[10px] font-bold text-background whitespace-nowrap">
+                                        {fmt(r.clientPays)}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
+                                  <span>Gasto: <span className="text-foreground font-medium">{fmt(r.spend)}</span> · Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
+                                  <span>
+                                    {r.creditApplied >= r.commission && r.commission > 0 && '100% coberto pelo crédito'}
+                                    {r.creditApplied > 0 && r.creditApplied < r.commission && 'Crédito esgotado nesta semana'}
+                                    {r.creditApplied === 0 && r.commission > 0 && 'Pagamento integral via Pix/Cripto'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {pageRows.length === 0 && (
+                            <p className="text-xs text-muted-foreground/60 text-center py-6">Nenhuma semana neste filtro.</p>
+                          )}
+                        </div>
+
+                        {historyFilter !== 'all' && totalPages > 1 && (
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                            <button
+                              onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                              disabled={pageIdx === 0}
+                              className="text-[11px] inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border bg-secondary/40 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft size={12} /> Mais recentes
+                            </button>
+                            <span className="text-[10px] text-muted-foreground">
+                              Página {pageIdx + 1} de {totalPages} · {ordered.length} semanas
+                            </span>
+                            <button
+                              onClick={() => setHistoryPage(p => Math.min(totalPages - 1, p + 1))}
+                              disabled={pageIdx >= totalPages - 1}
+                              className="text-[11px] inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border bg-secondary/40 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              Mais antigas <ChevronRight size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}

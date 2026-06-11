@@ -377,10 +377,13 @@ const Clients: React.FC = () => {
       }
 
       // Ajusta plan_credit: subtrai a parte que foi usada para liquidar comissões.
-      if (liquidated > 0) {
-        const finalCredit = Math.max(0, planCredit - liquidated);
-        await supabase.from('clients').update({ plan_credit: finalCredit } as any).eq('id', savedClientId);
-      }
+      // Define plan_credit_start_date = HOJE (1ª vez) para que o crédito só seja
+      // aplicado a partir desta data — nunca retroativo a semanas já cobradas.
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const finalCredit = Math.max(0, planCredit - liquidated);
+      const update: any = { plan_credit: finalCredit };
+      if (previousCredit <= 0) update.plan_credit_start_date = today;
+      await supabase.from('clients').update(update).eq('id', savedClientId);
 
       // Lança como receita apenas a parte que sobrou como crédito real disponível.
       const receitaCredito = creditDelta - liquidated;

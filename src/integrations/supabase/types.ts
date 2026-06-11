@@ -454,6 +454,7 @@ export type Database = {
           percentage_value: number | null
           phone: string | null
           plan_credit: number
+          plan_credit_start_date: string | null
           updated_at: string
           used_accounts: number | null
           whatsapp_group_link: string | null
@@ -481,6 +482,7 @@ export type Database = {
           percentage_value?: number | null
           phone?: string | null
           plan_credit?: number
+          plan_credit_start_date?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -508,6 +510,7 @@ export type Database = {
           percentage_value?: number | null
           phone?: string | null
           plan_credit?: number
+          plan_credit_start_date?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
