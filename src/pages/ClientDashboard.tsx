@@ -234,6 +234,10 @@ const ClientDashboard: React.FC = () => {
   }, [reqQty, reqType]);
 
   const submitRequest = async () => {
+    if (!isAdminView && overdueTotal > 25) {
+      toast.error(`Pagamento pendente: você possui $${overdueTotal.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
+      return;
+    }
     if (!client) return;
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
@@ -1325,6 +1329,19 @@ const ClientDashboard: React.FC = () => {
                 Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
               </p>
 
+              {!isAdminView && overdueTotal > 25 && (
+                <div className="mb-4 rounded-xl border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
+                  <AlertTriangle size={18} className="text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-destructive">Solicitações bloqueadas — pagamento pendente</p>
+                    <p className="text-xs text-foreground/80 mt-1">
+                      Você possui <strong>${overdueTotal.toFixed(2)}</strong> em saldo atrasado (acima do limite de $25). Para liberar novas solicitações de suporte, regularize o pagamento na aba <strong>Cobranças</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {([
@@ -1416,7 +1433,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={submitRequest}
-                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim())}
+                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim()) || (!isAdminView && overdueTotal > 25)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   >
                     <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
