@@ -37,7 +37,7 @@ type Account = AccountCardData & {
   account_status: number | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
-type Client = { id: string; name: string; email: string };
+type Client = { id: string; name: string; email: string; company_name?: string | null };
 
 export default function MetaConnections() {
   const [bms, setBms] = useState<BM[]>([]);
