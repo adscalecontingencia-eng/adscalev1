@@ -621,8 +621,9 @@ const Clients: React.FC = () => {
     if (!client) return;
 
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    // weekStartsOn=4 (quinta) — convenção do projeto
+    const weekStart = startOfWeek(now, { weekStartsOn: 4 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 4 });
 
     const existing = commissions.find(c =>
       c.clientId === clientId && c.type === 'weekly_billing' &&
