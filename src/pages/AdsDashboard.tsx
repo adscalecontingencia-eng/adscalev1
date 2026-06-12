@@ -159,17 +159,22 @@ export default function AdsDashboard() {
 
   useEffect(() => { loadMeta(); }, []);
 
-  // Reload on period change. Auto-sync only on the very first mount to avoid
-  // races where a slow sync from a previous period overwrites fresh data.
+  // Reload on period change. Auto-sync runs on mount AND whenever today's data
+  // is missing (e.g. Meta API was unstable during the previous attempt and the
+  // silent sync swallowed the error, leaving spend showing 0 for today).
   const didAutoSync = useRef(false);
   useEffect(() => {
     (async () => {
       await loadInsights();
-      if (!didAutoSync.current) {
+      const today = fmtISO(new Date());
+      const hasToday = insights.some((i) => i.date === today);
+      const shouldAutoSync = !didAutoSync.current || !hasToday;
+      if (shouldAutoSync) {
         didAutoSync.current = true;
         const gen = loadGen.current;
-        sync({ silent: true }).then(() => {
-          // Only refresh if no newer load happened meanwhile
+        // Force the auto-sync to always cover today + last 2 days so we never
+        // skip a day after a Meta outage, regardless of the UI range.
+        sync({ silent: true, forceRecent: true }).then(() => {
           if (gen === loadGen.current) loadInsights({ background: true });
         });
       }
