@@ -95,6 +95,7 @@ export default function AdsDashboard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
+  const [autoSyncError, setAutoSyncError] = useState<string | null>(null);
 
   const [range, setRange] = useState<AdsRange>("7d");
   const [customStart, setCustomStart] = useState<Date | undefined>();
@@ -158,17 +159,22 @@ export default function AdsDashboard() {
 
   useEffect(() => { loadMeta(); }, []);
 
-  // Reload on period change. Auto-sync only on the very first mount to avoid
-  // races where a slow sync from a previous period overwrites fresh data.
+  // Reload on period change. Auto-sync runs on mount AND whenever today's data
+  // is missing (e.g. Meta API was unstable during the previous attempt and the
+  // silent sync swallowed the error, leaving spend showing 0 for today).
   const didAutoSync = useRef(false);
   useEffect(() => {
     (async () => {
       await loadInsights();
-      if (!didAutoSync.current) {
+      const today = fmtISO(new Date());
+      const hasToday = insights.some((i) => i.date === today);
+      const shouldAutoSync = !didAutoSync.current || !hasToday;
+      if (shouldAutoSync) {
         didAutoSync.current = true;
         const gen = loadGen.current;
-        sync({ silent: true }).then(() => {
-          // Only refresh if no newer load happened meanwhile
+        // Force the auto-sync to always cover today + last 2 days so we never
+        // skip a day after a Meta outage, regardless of the UI range.
+        sync({ silent: true, forceRecent: true }).then(() => {
           if (gen === loadGen.current) loadInsights({ background: true });
         });
       }
@@ -246,23 +252,43 @@ export default function AdsDashboard() {
       }));
   }, [filteredInsights]);
 
-  const sync = async (opts?: { silent?: boolean }) => {
+  const sync = async (opts?: { silent?: boolean; forceRecent?: boolean }) => {
     const silent = opts?.silent === true;
     setSyncing(true);
     try {
-      const { since, until } = rangeToDates(range, customStart, customEnd);
+      let since: string;
+      let until: string;
+      if (opts?.forceRecent) {
+        // Always ingest today + 2 previous days to recover gaps after Meta outages.
+        const today = new Date();
+        since = fmtISO(subDays(today, 2));
+        until = fmtISO(today);
+      } else {
+        ({ since, until } = rangeToDates(range, customStart, customEnd));
+      }
       const { data, error } = await supabase.functions.invoke("meta-sync", {
         body: { action: "sync_insights", since, until },
       });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
+      const errs = (data as any)?.erros || [];
       if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
       setLastSyncAt(new Date());
+      // Surface partial failures even on silent runs so the user sees that
+      // some accounts didn't return data (e.g. Meta API instability today).
+      if (errs.length > 0) {
+        setAutoSyncError(`Meta retornou erro em ${errs.length} conta(s). Clique em "Sincronizar" para tentar de novo.`);
+      } else {
+        setAutoSyncError(null);
+      }
       await loadInsights({ background: silent });
     } catch (e: any) {
       if (!silent) toast.error(`Falha: ${e.message}`);
-      else console.error("auto-sync falhou:", e.message);
+      else {
+        console.error("auto-sync falhou:", e.message);
+        setAutoSyncError(`Falha ao sincronizar com a Meta: ${e.message}`);
+      }
     } finally {
       setSyncing(false);
     }
@@ -298,6 +324,19 @@ export default function AdsDashboard() {
         onSync={() => sync()}
         activeAccountsCount={filteredAccountIds.size}
       />
+
+      {autoSyncError && (
+        <Card className="p-3 border-amber-500/40 bg-amber-500/10 flex items-center justify-between gap-3">
+          <p className="text-xs text-amber-200">{autoSyncError}</p>
+          <button
+            onClick={() => sync()}
+            disabled={syncing}
+            className="text-xs px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-100 hover:bg-amber-500/30 disabled:opacity-50"
+          >
+            {syncing ? "Sincronizando..." : "Tentar novamente"}
+          </button>
+        </Card>
+      )}
 
       {loading ? (
         <div className="space-y-3">
