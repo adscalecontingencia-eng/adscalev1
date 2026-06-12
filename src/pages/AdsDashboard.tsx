@@ -95,6 +95,7 @@ export default function AdsDashboard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
+  const [autoSyncError, setAutoSyncError] = useState<string | null>(null);
 
   const [range, setRange] = useState<AdsRange>("7d");
   const [customStart, setCustomStart] = useState<Date | undefined>();
