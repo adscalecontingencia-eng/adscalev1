@@ -252,23 +252,43 @@ export default function AdsDashboard() {
       }));
   }, [filteredInsights]);
 
-  const sync = async (opts?: { silent?: boolean }) => {
+  const sync = async (opts?: { silent?: boolean; forceRecent?: boolean }) => {
     const silent = opts?.silent === true;
     setSyncing(true);
     try {
-      const { since, until } = rangeToDates(range, customStart, customEnd);
+      let since: string;
+      let until: string;
+      if (opts?.forceRecent) {
+        // Always ingest today + 2 previous days to recover gaps after Meta outages.
+        const today = new Date();
+        since = fmtISO(subDays(today, 2));
+        until = fmtISO(today);
+      } else {
+        ({ since, until } = rangeToDates(range, customStart, customEnd));
+      }
       const { data, error } = await supabase.functions.invoke("meta-sync", {
         body: { action: "sync_insights", since, until },
       });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
+      const errs = (data as any)?.erros || [];
       if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
       setLastSyncAt(new Date());
+      // Surface partial failures even on silent runs so the user sees that
+      // some accounts didn't return data (e.g. Meta API instability today).
+      if (errs.length > 0) {
+        setAutoSyncError(`Meta retornou erro em ${errs.length} conta(s). Clique em "Sincronizar" para tentar de novo.`);
+      } else {
+        setAutoSyncError(null);
+      }
       await loadInsights({ background: silent });
     } catch (e: any) {
       if (!silent) toast.error(`Falha: ${e.message}`);
-      else console.error("auto-sync falhou:", e.message);
+      else {
+        console.error("auto-sync falhou:", e.message);
+        setAutoSyncError(`Falha ao sincronizar com a Meta: ${e.message}`);
+      }
     } finally {
       setSyncing(false);
     }
