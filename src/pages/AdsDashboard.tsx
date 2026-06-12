@@ -325,6 +325,19 @@ export default function AdsDashboard() {
         activeAccountsCount={filteredAccountIds.size}
       />
 
+      {autoSyncError && (
+        <Card className="p-3 border-amber-500/40 bg-amber-500/10 flex items-center justify-between gap-3">
+          <p className="text-xs text-amber-200">{autoSyncError}</p>
+          <button
+            onClick={() => sync()}
+            disabled={syncing}
+            className="text-xs px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-100 hover:bg-amber-500/30 disabled:opacity-50"
+          >
+            {syncing ? "Sincronizando..." : "Tentar novamente"}
+          </button>
+        </Card>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
