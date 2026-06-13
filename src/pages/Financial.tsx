@@ -513,6 +513,38 @@ const Financial: React.FC = () => {
         ))}
         {filteredTransactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma transação encontrada.</p>}
       </div>
+
+      {showSuppliersManager && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-sm font-semibold">Fornecedores cadastrados</h3>
+              <button onClick={() => { setShowSuppliersManager(false); setShowNewSupplier(false); setNewSupplierName(''); }} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input
+                value={newSupplierName}
+                onChange={e => setNewSupplierName(e.target.value)}
+                placeholder="Nome do novo fornecedor"
+                className={inputClass}
+              />
+              <button onClick={() => createSupplier()} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold whitespace-nowrap">
+                <Plus size={14} className="inline" /> Adicionar
+              </button>
+            </div>
+            <div className="space-y-1.5 max-h-80 overflow-y-auto">
+              {suppliers.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">Nenhum fornecedor cadastrado.</p>
+              ) : suppliers.map(s => (
+                <div key={s.id} className="flex items-center justify-between bg-secondary/40 border border-border rounded-lg px-3 py-2">
+                  <span className="text-sm">{s.name}</span>
+                  <button onClick={() => deleteSupplier(s.id)} className="text-muted-foreground hover:text-destructive"><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };
