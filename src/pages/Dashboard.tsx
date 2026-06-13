@@ -119,7 +119,11 @@ const Dashboard: React.FC = () => {
   }, [transactions, dateFilter, customDate, rangeFrom, rangeTo, clientTypeFilter, clientTypeMap]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  // "expenses" = Gastos Estrutura (exclui Fornecedores pois entram em Custo de Produtos).
+  // Marketing e Custo Operacional permanecem em Gastos Estrutura.
+  const expenses = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category !== 'Fornecedores')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
 
   // Gastos por categoria nova: Fornecedores, Marketing, Custo Operacional
   const fornecedorCosts = filteredTransactions
