@@ -335,13 +335,38 @@ const Financial: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Tipo</label>
-                <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as any }))} className={inputClass}>
+                <select
+                  value={form.type}
+                  onChange={e => {
+                    const v = e.target.value as any;
+                    setForm(p => {
+                      const next = { ...p, type: v };
+                      if (v === 'fornecedores') next.category = 'Fornecedores';
+                      else if (v === 'marketing') next.category = 'Marketing';
+                      else if (v === 'custo_op') next.category = 'Custo Operacional';
+                      else if (v === 'gasto') next.category = 'BM Comum';
+                      return next;
+                    });
+                  }}
+                  className={inputClass}
+                >
                   <option value="gasto">Gasto da Estrutura de aluguel</option>
                   <option value="receita">Venda</option>
+                  <option value="fornecedores">Fornecedores (Custo de Produto)</option>
+                  <option value="marketing">Marketing (Anúncios / Social)</option>
+                  <option value="custo_op">Custo Operacional (Ferramentas / Suporte)</option>
                   <option value="outros">Outros gastos</option>
                 </select>
               </div>
-              {form.type !== 'outros' && (
+              {form.type === 'gasto' && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
+                    {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+              {form.type === 'receita' && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
