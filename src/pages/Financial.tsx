@@ -153,6 +153,9 @@ const Financial: React.FC = () => {
     const isGasto = form.type === 'gasto';
     const isVenda = form.type === 'receita';
     const isOutros = form.type === 'outros';
+    const isFornecedores = form.type === 'fornecedores';
+    const isMarketing = form.type === 'marketing';
+    const isCustoOp = form.type === 'custo_op';
     // Se o usuário lançou em BRL, convertemos para USD (moeda base do sistema)
     const toUsd = (n: number) => inputCurrency === 'BRL' && usdToBrl > 0 ? n / usdToBrl : n;
     const custo = toUsd(parseFloat(form.custoProduto) || 0);
@@ -161,7 +164,12 @@ const Financial: React.FC = () => {
     const amount = isGasto ? custo : isVenda ? venda : outros;
     const dbType = isVenda ? 'receita' : 'gasto';
     const subcategory = isOutros ? 'outros_gastos' : (form.subcategory || null);
-    const dbCategory = isOutros ? 'Outros' : form.category;
+    const dbCategory = isOutros
+      ? 'Outros'
+      : isFornecedores ? 'Fornecedores'
+      : isMarketing ? 'Marketing'
+      : isCustoOp ? 'Custo Operacional'
+      : form.category;
     const { error } = await supabase.from('transactions').insert({
       date: form.date, type: dbType, category: dbCategory,
       subcategory, client_id: form.clientId || null,
