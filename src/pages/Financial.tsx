@@ -351,6 +351,49 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              {form.type === 'gasto' && form.category === 'Fornecedores' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-muted-foreground">Fornecedor</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewSupplier(s => !s)}
+                      className="text-[11px] text-primary hover:underline"
+                    >
+                      {showNewSupplier ? 'Cancelar' : '+ Cadastrar novo'}
+                    </button>
+                  </div>
+                  {!showNewSupplier ? (
+                    <select
+                      value={form.supplierId}
+                      onChange={e => setForm(p => ({ ...p, supplierId: e.target.value }))}
+                      className={inputClass}
+                    >
+                      <option value="">Selecione um fornecedor</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        value={newSupplierName}
+                        onChange={e => setNewSupplierName(e.target.value)}
+                        placeholder="Nome do fornecedor"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const id = await createSupplier();
+                          if (id) setForm(p => ({ ...p, supplierId: id }));
+                        }}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold whitespace-nowrap"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {(() => {
                 const symbol = inputCurrency === 'BRL' ? 'R$' : '$';
                 const previewUsd = (raw: string) => {
