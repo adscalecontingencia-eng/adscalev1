@@ -180,6 +180,9 @@ const Dashboard: React.FC = () => {
     { name: 'BM API', value: bmApiCosts },
     { name: 'BM Disparo', value: bmDisparoCosts },
     { name: 'Pagina', value: paginaCosts },
+    { name: 'Fornecedores', value: fornecedorCosts },
+    { name: 'Marketing', value: marketingCosts },
+    { name: 'Operacional', value: operacionalCosts },
   ].filter(d => d.value > 0);
 
   const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
