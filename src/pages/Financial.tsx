@@ -204,9 +204,14 @@ const Financial: React.FC = () => {
         title={<>Caixa & <span className="text-primary glow-text">transações</span></>}
         description="Receitas, gastos de estrutura e comissões em um só lugar — sempre em USD."
         actions={
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
-            <Plus size={16} /> Nova transação
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowSuppliersManager(true)} className="flex items-center gap-2 bg-secondary border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-primary/50">
+              Fornecedores
+            </button>
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
+              <Plus size={16} /> Nova transação
+            </button>
+          </div>
         }
       />
 
