@@ -165,6 +165,7 @@ const Financial: React.FC = () => {
     const { error } = await supabase.from('transactions').insert({
       date: form.date, type: dbType, category: dbCategory,
       subcategory, client_id: form.clientId || null,
+      supplier_id: dbCategory === 'Fornecedores' ? (form.supplierId || null) : null,
       amount, description: form.description,
       custo_produto: isGasto || isVenda ? custo : 0,
       valor_venda: isVenda ? venda : 0,
@@ -172,7 +173,7 @@ const Financial: React.FC = () => {
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success(inputCurrency === 'BRL' ? `Salva em USD (convertida de R$ @ ${usdToBrl.toFixed(2)})` : 'Transação salva!');
-    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', supplierId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
     setInputCurrency('USD');
     setShowForm(false);
     setErrors({});
