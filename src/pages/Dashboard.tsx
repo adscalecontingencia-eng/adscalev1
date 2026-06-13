@@ -540,11 +540,13 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
         <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
         <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta="—" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta={fornecedorCosts > 0 ? `inclui ${fmt(fornecedorCosts)} fornec.` : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Marketing" value={fmt(marketingCosts)} delta="anúncios + social" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
+        <KpiCard label="Custo Operacional" value={fmt(operacionalCosts)} delta="ferramentas + equipe" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
         <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
         <KpiCard label="Clientes Ativos" value={String(activeClients)} delta={`${clients.length} total`} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
       </div>
