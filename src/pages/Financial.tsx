@@ -389,7 +389,7 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              {form.type === 'gasto' && form.category === 'Fornecedores' && (
+              {form.type === 'fornecedores' && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs text-muted-foreground">Fornecedor</label>
