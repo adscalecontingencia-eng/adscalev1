@@ -39,9 +39,13 @@ const CATEGORIES = [...ASSET_CATEGORIES, ...EXPENSE_EXTRA, 'Comissão Fixa', 'Co
 const Financial: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [showSuppliersManager, setShowSuppliersManager] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', supplierId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
   const [inputCurrency, setInputCurrency] = useState<'USD' | 'BRL'>('USD');
   const [usdToBrl, setUsdToBrl] = useState<number>(5.0);
   const [loading, setLoading] = useState(true);
