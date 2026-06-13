@@ -624,7 +624,7 @@ const Dashboard: React.FC = () => {
       </PanelCard>
 
       {/* STRUCTURE BREAKDOWN MINI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {[
           { label: 'Perfil', value: perfilNet, color: 'hsl(160,80%,45%)' },
           { label: 'BM Comum', value: bmComumNet, color: 'hsl(212,100%,55%)' },
@@ -632,6 +632,9 @@ const Dashboard: React.FC = () => {
           { label: 'BM API', value: bmApiNet, color: 'hsl(280,80%,60%)' },
           { label: 'BM Disparo', value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
           { label: 'Pagina', value: paginaNet, color: 'hsl(200,100%,55%)' },
+          { label: 'Fornecedores', value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
+          { label: 'Marketing', value: -marketingCosts, color: 'hsl(330,80%,60%)' },
+          { label: 'Custo Operacional', value: -operacionalCosts, color: 'hsl(50,90%,55%)' },
         ].map(item => (
           <motion.div
             key={item.label}
