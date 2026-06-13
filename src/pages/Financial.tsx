@@ -471,7 +471,7 @@ const Financial: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    {form.type === 'outros' && (
+                    {(form.type === 'outros' || form.type === 'fornecedores' || form.type === 'marketing' || form.type === 'custo_op') && (
                       <div>
                         <label className="block text-xs text-muted-foreground mb-1">Valor ({symbol})</label>
                         <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
