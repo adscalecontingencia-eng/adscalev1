@@ -121,12 +121,23 @@ const Dashboard: React.FC = () => {
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-  // Custo de Produtos = custo_produto lançado nas VENDAS (receitas).
-  // Não somamos o custo dos gastos de estrutura aqui porque, nesses lançamentos,
+  // Gastos por categoria nova: Fornecedores, Marketing, Custo Operacional
+  const fornecedorCosts = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category === 'Fornecedores')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const marketingCosts = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category === 'Marketing')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const operacionalCosts = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category === 'Custo Operacional')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+  // Custo de Produtos = custo_produto lançado nas VENDAS (receitas) + tudo lançado como Fornecedores.
+  // Não somamos o custo dos demais gastos de estrutura aqui porque, nesses lançamentos,
   // amount === custo_produto (já está contabilizado em "expenses").
   const productCost = filteredTransactions
     .filter((t: any) => t.type === 'receita')
-    .reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+    .reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0) + fornecedorCosts;
 
   // Ticket Médio = faturamento médio por venda (transação tipo receita)
   const salesCount = filteredTransactions.filter((t: any) => t.type === 'receita').length;
