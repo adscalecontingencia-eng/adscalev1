@@ -71,9 +71,10 @@ const Financial: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const fetchData = async () => {
-    const [txRes, clientRes] = await Promise.all([
+    const [txRes, clientRes, supRes] = await Promise.all([
       supabase.from('transactions').select('*').order('created_at', { ascending: false }),
       supabase.from('clients').select('id, name'),
+      supabase.from('suppliers' as any).select('id, name').order('name'),
     ]);
     if (txRes.data) {
       setTransactions(txRes.data.map((t: any) => ({
@@ -83,7 +84,28 @@ const Financial: React.FC = () => {
       })));
     }
     if (clientRes.data) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
+    if (supRes.data) setSuppliers((supRes.data as any[]).map((s: any) => ({ id: s.id, name: s.name })));
     setLoading(false);
+  };
+
+  const createSupplier = async (): Promise<string | null> => {
+    const name = newSupplierName.trim();
+    if (!name) { toast.error('Informe o nome do fornecedor'); return null; }
+    const { data, error } = await supabase.from('suppliers' as any).insert({ name } as any).select('id, name').single();
+    if (error || !data) { toast.error('Erro ao criar fornecedor'); return null; }
+    const created = data as any;
+    setSuppliers(prev => [...prev, { id: created.id, name: created.name }].sort((a, b) => a.name.localeCompare(b.name)));
+    setNewSupplierName('');
+    setShowNewSupplier(false);
+    toast.success('Fornecedor cadastrado');
+    return created.id;
+  };
+
+  const deleteSupplier = async (id: string) => {
+    if (!confirm('Remover este fornecedor? Os lançamentos antigos continuarão, mas sem vínculo.')) return;
+    const { error } = await supabase.from('suppliers' as any).delete().eq('id', id);
+    if (error) { toast.error('Erro ao remover'); return; }
+    setSuppliers(prev => prev.filter(s => s.id !== id));
   };
 
   useEffect(() => { fetchData(); }, []);
