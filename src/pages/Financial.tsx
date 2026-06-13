@@ -33,14 +33,19 @@ interface ClientOption {
 type DateFilter = 'all' | 'today' | '7days' | 'month' | 'custom' | 'range';
 
 const ASSET_CATEGORIES = ['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina'];
-const CATEGORIES = [...ASSET_CATEGORIES, 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
+const EXPENSE_EXTRA = ['Fornecedores', 'Marketing', 'Custo Operacional'];
+const CATEGORIES = [...ASSET_CATEGORIES, ...EXPENSE_EXTRA, 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
 
 const Financial: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [showSuppliersManager, setShowSuppliersManager] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', supplierId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
   const [inputCurrency, setInputCurrency] = useState<'USD' | 'BRL'>('USD');
   const [usdToBrl, setUsdToBrl] = useState<number>(5.0);
   const [loading, setLoading] = useState(true);
@@ -66,9 +71,10 @@ const Financial: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const fetchData = async () => {
-    const [txRes, clientRes] = await Promise.all([
+    const [txRes, clientRes, supRes] = await Promise.all([
       supabase.from('transactions').select('*').order('created_at', { ascending: false }),
       supabase.from('clients').select('id, name'),
+      supabase.from('suppliers' as any).select('id, name').order('name'),
     ]);
     if (txRes.data) {
       setTransactions(txRes.data.map((t: any) => ({
@@ -78,7 +84,28 @@ const Financial: React.FC = () => {
       })));
     }
     if (clientRes.data) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
+    if (supRes.data) setSuppliers((supRes.data as any[]).map((s: any) => ({ id: s.id, name: s.name })));
     setLoading(false);
+  };
+
+  const createSupplier = async (): Promise<string | null> => {
+    const name = newSupplierName.trim();
+    if (!name) { toast.error('Informe o nome do fornecedor'); return null; }
+    const { data, error } = await supabase.from('suppliers' as any).insert({ name } as any).select('id, name').single();
+    if (error || !data) { toast.error('Erro ao criar fornecedor'); return null; }
+    const created = data as any;
+    setSuppliers(prev => [...prev, { id: created.id, name: created.name }].sort((a, b) => a.name.localeCompare(b.name)));
+    setNewSupplierName('');
+    setShowNewSupplier(false);
+    toast.success('Fornecedor cadastrado');
+    return created.id;
+  };
+
+  const deleteSupplier = async (id: string) => {
+    if (!confirm('Remover este fornecedor? Os lançamentos antigos continuarão, mas sem vínculo.')) return;
+    const { error } = await supabase.from('suppliers' as any).delete().eq('id', id);
+    if (error) { toast.error('Erro ao remover'); return; }
+    setSuppliers(prev => prev.filter(s => s.id !== id));
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -138,6 +165,7 @@ const Financial: React.FC = () => {
     const { error } = await supabase.from('transactions').insert({
       date: form.date, type: dbType, category: dbCategory,
       subcategory, client_id: form.clientId || null,
+      supplier_id: dbCategory === 'Fornecedores' ? (form.supplierId || null) : null,
       amount, description: form.description,
       custo_produto: isGasto || isVenda ? custo : 0,
       valor_venda: isVenda ? venda : 0,
@@ -145,7 +173,7 @@ const Financial: React.FC = () => {
     } as any);
     if (error) { toast.error('Erro ao salvar transação'); return; }
     toast.success(inputCurrency === 'BRL' ? `Salva em USD (convertida de R$ @ ${usdToBrl.toFixed(2)})` : 'Transação salva!');
-    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+    setForm({ date: new Date().toISOString().split('T')[0], type: 'gasto', category: 'BM Comum', subcategory: '', clientId: '', supplierId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
     setInputCurrency('USD');
     setShowForm(false);
     setErrors({});
@@ -176,9 +204,14 @@ const Financial: React.FC = () => {
         title={<>Caixa & <span className="text-primary glow-text">transações</span></>}
         description="Receitas, gastos de estrutura e comissões em um só lugar — sempre em USD."
         actions={
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
-            <Plus size={16} /> Nova transação
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowSuppliersManager(true)} className="flex items-center gap-2 bg-secondary border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-primary/50">
+              Fornecedores
+            </button>
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
+              <Plus size={16} /> Nova transação
+            </button>
+          </div>
         }
       />
 
@@ -323,6 +356,49 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              {form.type === 'gasto' && form.category === 'Fornecedores' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-muted-foreground">Fornecedor</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewSupplier(s => !s)}
+                      className="text-[11px] text-primary hover:underline"
+                    >
+                      {showNewSupplier ? 'Cancelar' : '+ Cadastrar novo'}
+                    </button>
+                  </div>
+                  {!showNewSupplier ? (
+                    <select
+                      value={form.supplierId}
+                      onChange={e => setForm(p => ({ ...p, supplierId: e.target.value }))}
+                      className={inputClass}
+                    >
+                      <option value="">Selecione um fornecedor</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        value={newSupplierName}
+                        onChange={e => setNewSupplierName(e.target.value)}
+                        placeholder="Nome do fornecedor"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const id = await createSupplier();
+                          if (id) setForm(p => ({ ...p, supplierId: id }));
+                        }}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold whitespace-nowrap"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {(() => {
                 const symbol = inputCurrency === 'BRL' ? 'R$' : '$';
                 const previewUsd = (raw: string) => {
@@ -437,6 +513,38 @@ const Financial: React.FC = () => {
         ))}
         {filteredTransactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma transação encontrada.</p>}
       </div>
+
+      {showSuppliersManager && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-sm font-semibold">Fornecedores cadastrados</h3>
+              <button onClick={() => { setShowSuppliersManager(false); setShowNewSupplier(false); setNewSupplierName(''); }} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input
+                value={newSupplierName}
+                onChange={e => setNewSupplierName(e.target.value)}
+                placeholder="Nome do novo fornecedor"
+                className={inputClass}
+              />
+              <button onClick={() => createSupplier()} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold whitespace-nowrap">
+                <Plus size={14} className="inline" /> Adicionar
+              </button>
+            </div>
+            <div className="space-y-1.5 max-h-80 overflow-y-auto">
+              {suppliers.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">Nenhum fornecedor cadastrado.</p>
+              ) : suppliers.map(s => (
+                <div key={s.id} className="flex items-center justify-between bg-secondary/40 border border-border rounded-lg px-3 py-2">
+                  <span className="text-sm">{s.name}</span>
+                  <button onClick={() => deleteSupplier(s.id)} className="text-muted-foreground hover:text-destructive"><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

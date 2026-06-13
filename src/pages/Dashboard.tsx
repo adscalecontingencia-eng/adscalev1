@@ -119,14 +119,29 @@ const Dashboard: React.FC = () => {
   }, [transactions, dateFilter, customDate, rangeFrom, rangeTo, clientTypeFilter, clientTypeMap]);
 
   const revenue = filteredTransactions.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const expenses = filteredTransactions.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  // "expenses" = Gastos Estrutura (exclui Fornecedores pois entram em Custo de Produtos).
+  // Marketing e Custo Operacional permanecem em Gastos Estrutura.
+  const expenses = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category !== 'Fornecedores')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-  // Custo de Produtos = custo_produto lançado nas VENDAS (receitas).
-  // Não somamos o custo dos gastos de estrutura aqui porque, nesses lançamentos,
+  // Gastos por categoria nova: Fornecedores, Marketing, Custo Operacional
+  const fornecedorCosts = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category === 'Fornecedores')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const marketingCosts = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category === 'Marketing')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const operacionalCosts = filteredTransactions
+    .filter((t: any) => t.type === 'gasto' && t.category === 'Custo Operacional')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+  // Custo de Produtos = custo_produto lançado nas VENDAS (receitas) + tudo lançado como Fornecedores.
+  // Não somamos o custo dos demais gastos de estrutura aqui porque, nesses lançamentos,
   // amount === custo_produto (já está contabilizado em "expenses").
   const productCost = filteredTransactions
     .filter((t: any) => t.type === 'receita')
-    .reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
+    .reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0) + fornecedorCosts;
 
   // Ticket Médio = faturamento médio por venda (transação tipo receita)
   const salesCount = filteredTransactions.filter((t: any) => t.type === 'receita').length;
@@ -165,6 +180,9 @@ const Dashboard: React.FC = () => {
     { name: 'BM API', value: bmApiCosts },
     { name: 'BM Disparo', value: bmDisparoCosts },
     { name: 'Pagina', value: paginaCosts },
+    { name: 'Fornecedores', value: fornecedorCosts },
+    { name: 'Marketing', value: marketingCosts },
+    { name: 'Operacional', value: operacionalCosts },
   ].filter(d => d.value > 0);
 
   const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
@@ -522,11 +540,13 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
         <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
         <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta="—" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta={fornecedorCosts > 0 ? `inclui ${fmt(fornecedorCosts)} fornec.` : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Marketing" value={fmt(marketingCosts)} delta="anúncios + social" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
+        <KpiCard label="Custo Operacional" value={fmt(operacionalCosts)} delta="ferramentas + equipe" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
         <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
         <KpiCard label="Clientes Ativos" value={String(activeClients)} delta={`${clients.length} total`} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
       </div>
@@ -606,7 +626,7 @@ const Dashboard: React.FC = () => {
       </PanelCard>
 
       {/* STRUCTURE BREAKDOWN MINI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {[
           { label: 'Perfil', value: perfilNet, color: 'hsl(160,80%,45%)' },
           { label: 'BM Comum', value: bmComumNet, color: 'hsl(212,100%,55%)' },
@@ -614,6 +634,9 @@ const Dashboard: React.FC = () => {
           { label: 'BM API', value: bmApiNet, color: 'hsl(280,80%,60%)' },
           { label: 'BM Disparo', value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
           { label: 'Pagina', value: paginaNet, color: 'hsl(200,100%,55%)' },
+          { label: 'Fornecedores', value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
+          { label: 'Marketing', value: -marketingCosts, color: 'hsl(330,80%,60%)' },
+          { label: 'Custo Operacional', value: -operacionalCosts, color: 'hsl(50,90%,55%)' },
         ].map(item => (
           <motion.div
             key={item.label}
