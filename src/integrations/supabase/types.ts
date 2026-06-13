@@ -1958,6 +1958,30 @@ export type Database = {
         }
         Relationships: []
       }
+      suppliers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_requests: {
         Row: {
           assigned_to: string | null
@@ -2098,6 +2122,7 @@ export type Database = {
           id: string
           quantidade: number
           subcategory: string | null
+          supplier_id: string | null
           type: string
           valor_venda: number | null
         }
@@ -2112,6 +2137,7 @@ export type Database = {
           id?: string
           quantidade?: number
           subcategory?: string | null
+          supplier_id?: string | null
           type?: string
           valor_venda?: number | null
         }
@@ -2126,6 +2152,7 @@ export type Database = {
           id?: string
           quantidade?: number
           subcategory?: string | null
+          supplier_id?: string | null
           type?: string
           valor_venda?: number | null
         }
@@ -2135,6 +2162,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
