@@ -45,7 +45,7 @@ const Financial: React.FC = () => {
   const [showSuppliersManager, setShowSuppliersManager] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros', category: 'BM Comum', subcategory: '', clientId: '', supplierId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
+  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'gasto' as 'receita' | 'gasto' | 'outros' | 'fornecedores' | 'marketing' | 'custo_op', category: 'BM Comum', subcategory: '', clientId: '', supplierId: '', amount: '', description: '', custoProduto: '', valorVenda: '', quantidade: '' });
   const [inputCurrency, setInputCurrency] = useState<'USD' | 'BRL'>('USD');
   const [usdToBrl, setUsdToBrl] = useState<number>(5.0);
   const [loading, setLoading] = useState(true);
@@ -153,6 +153,9 @@ const Financial: React.FC = () => {
     const isGasto = form.type === 'gasto';
     const isVenda = form.type === 'receita';
     const isOutros = form.type === 'outros';
+    const isFornecedores = form.type === 'fornecedores';
+    const isMarketing = form.type === 'marketing';
+    const isCustoOp = form.type === 'custo_op';
     // Se o usuário lançou em BRL, convertemos para USD (moeda base do sistema)
     const toUsd = (n: number) => inputCurrency === 'BRL' && usdToBrl > 0 ? n / usdToBrl : n;
     const custo = toUsd(parseFloat(form.custoProduto) || 0);
@@ -161,7 +164,12 @@ const Financial: React.FC = () => {
     const amount = isGasto ? custo : isVenda ? venda : outros;
     const dbType = isVenda ? 'receita' : 'gasto';
     const subcategory = isOutros ? 'outros_gastos' : (form.subcategory || null);
-    const dbCategory = isOutros ? 'Outros' : form.category;
+    const dbCategory = isOutros
+      ? 'Outros'
+      : isFornecedores ? 'Fornecedores'
+      : isMarketing ? 'Marketing'
+      : isCustoOp ? 'Custo Operacional'
+      : form.category;
     const { error } = await supabase.from('transactions').insert({
       date: form.date, type: dbType, category: dbCategory,
       subcategory, client_id: form.clientId || null,
@@ -335,13 +343,38 @@ const Financial: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Tipo</label>
-                <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as any }))} className={inputClass}>
+                <select
+                  value={form.type}
+                  onChange={e => {
+                    const v = e.target.value as any;
+                    setForm(p => {
+                      const next = { ...p, type: v };
+                      if (v === 'fornecedores') next.category = 'Fornecedores';
+                      else if (v === 'marketing') next.category = 'Marketing';
+                      else if (v === 'custo_op') next.category = 'Custo Operacional';
+                      else if (v === 'gasto') next.category = 'BM Comum';
+                      return next;
+                    });
+                  }}
+                  className={inputClass}
+                >
                   <option value="gasto">Gasto da Estrutura de aluguel</option>
                   <option value="receita">Venda</option>
+                  <option value="fornecedores">Fornecedores (Custo de Produto)</option>
+                  <option value="marketing">Marketing (Anúncios / Social)</option>
+                  <option value="custo_op">Custo Operacional (Ferramentas / Suporte)</option>
                   <option value="outros">Outros gastos</option>
                 </select>
               </div>
-              {form.type !== 'outros' && (
+              {form.type === 'gasto' && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
+                    {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+              {form.type === 'receita' && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
@@ -356,7 +389,7 @@ const Financial: React.FC = () => {
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              {form.type === 'gasto' && form.category === 'Fornecedores' && (
+              {form.type === 'fornecedores' && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs text-muted-foreground">Fornecedor</label>
@@ -438,7 +471,7 @@ const Financial: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    {form.type === 'outros' && (
+                    {(form.type === 'outros' || form.type === 'fornecedores' || form.type === 'marketing' || form.type === 'custo_op') && (
                       <div>
                         <label className="block text-xs text-muted-foreground mb-1">Valor ({symbol})</label>
                         <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
