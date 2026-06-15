@@ -70,14 +70,13 @@ export function splitOverdueVsCurrent(
   const weeksOverdue: WeeklyRow[] = [];
   const weeksCurrent: WeeklyRow[] = [];
 
-  // Crédito só pode ser aplicado a partir da data definida manualmente
-  // (plan_credit_start_date). Sem isso, este split divergia do painel
-  // "Comissões Pendentes por Semana", que já respeita essa data.
-  let startTs = 0;
-  if (planCreditStartDate) {
-    const [y, m, d] = planCreditStartDate.split('-').map(Number);
-    startTs = new Date(y, (m || 1) - 1, d || 1).getTime();
-  }
+  // Regra do produto: se o cliente possui crédito disponível, ele deve abater
+  // o saldo devido (inclusive semanas já vencidas) ANTES de marcar como
+  // atrasado. Aplicamos crédito FIFO em todas as semanas, ignorando a data
+  // de início do crédito — o objetivo é nunca exibir "atrasado" enquanto
+  // houver saldo de crédito que cubra a dívida.
+  const startTs = 0;
+  void planCreditStartDate;
 
   for (const w of sorted) {
     let owe = w.commission;

@@ -413,8 +413,11 @@ const ClientDashboard: React.FC = () => {
     if (!client || client.client_type === 'venda') return null;
     if (weeklyCommissionHistory.length === 0) return null;
 
+    // Crédito disponível abate qualquer semana com dívida (inclusive vencidas)
+    // antes de exibir como atrasado. Ignoramos plan_credit_start_date aqui
+    // para manter coerência com `splitOverdueVsCurrent`.
     const startDateStr: string | null = (client as any)?.plan_credit_start_date || null;
-    const startTs = startDateStr ? parseDateLocal(startDateStr).getTime() : 0;
+    const startTs = 0;
 
     let remaining = credit;
     const paidByWeek = new Map<string, number>();
