@@ -867,7 +867,10 @@ const Clients: React.FC = () => {
     const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
     const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), client?.planCreditStartDate || null, paidRows);
+    // Usamos FIFO simples (sem paidRows) — o que foi pago abate as semanas mais antigas
+    // primeiro, evitando que excedentes pagos numa semana sejam "perdidos" e que
+    // semanas antigas fiquem marcadas como atrasadas indevidamente.
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null);
     const saldoPendente = split.currentPending;
     const saldoAtrasado = split.overdue;
 
