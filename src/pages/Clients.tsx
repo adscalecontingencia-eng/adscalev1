@@ -885,7 +885,14 @@ const Clients: React.FC = () => {
     if (statusFilter !== 'all') arr = arr.filter(c => getClientStatus(c.id) === statusFilter);
 
     const withAcc = arr.map(c => ({ c, acc: getAccumulated(c.id) }));
-    if (sort === 'saldo_desc') withAcc.sort((a, b) => b.acc.saldoPendente - a.acc.saldoPendente);
+    if (sort === 'saldo_desc') withAcc.sort((a, b) => {
+      const sa = a.acc.saldoAtrasado + a.acc.saldoPendente;
+      const sb = b.acc.saldoAtrasado + b.acc.saldoPendente;
+      if (sb !== sa) return sb - sa;
+      // Desempate: quem gastou mais no período aparece primeiro,
+      // evitando que clientes zerados (crédito absorvido) escondam quem tem movimento.
+      return b.acc.totalAdSpend - a.acc.totalAdSpend;
+    });
     else if (sort === 'az') withAcc.sort((a, b) => a.c.name.localeCompare(b.c.name));
     // 'recent' mantém ordem do fetch (created_at desc) que é a ordem em `clients`
     return withAcc;
