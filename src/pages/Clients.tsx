@@ -871,7 +871,12 @@ const Clients: React.FC = () => {
     const saldoPendente = split.currentPending;
     const saldoAtrasado = split.overdue;
 
-    return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend };
+    // Crédito restante: planCredit menos a comissão total já gerada ao longo
+    // de toda a história (FIFO, mesma lógica do dashboard do cliente).
+    const allTimeCommission = computeAllTimeCommissionFromInsights(clientId);
+    const creditRemaining = Math.max(0, planCredit - allTimeCommission);
+
+    return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend, creditRemaining };
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
