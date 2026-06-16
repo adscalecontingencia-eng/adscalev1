@@ -1279,6 +1279,7 @@ const Clients: React.FC = () => {
               comissaoPaga={acc.comissaoPaga}
               saldoPendente={acc.saldoPendente}
               saldoAtrasado={acc.saldoAtrasado}
+              creditRemaining={acc.creditRemaining}
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
               isAdmin={isAdmin}
