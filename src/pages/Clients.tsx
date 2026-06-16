@@ -236,7 +236,7 @@ const Clients: React.FC = () => {
     }
     // Aluguel → percentual com tier de desconto baseado no gasto semanal acumulado
     const totalWeek = (weeklyAccumSpend ?? 0) + adSpend;
-    const rate = getTierPercentage(totalWeek, client.percentageValue || 0);
+    const rate = getClientTierPercentage(client, totalWeek);
     return adSpend * (rate / 100);
   };
 
@@ -513,7 +513,7 @@ const Clients: React.FC = () => {
     const accumWeek = getWeeklyAccumSpend(clientId, commissionDate);
     const commission = calculateCommission(client, adSpend, accumWeek);
     const percentApplied = client.clientType === 'aluguel'
-      ? getTierPercentage(accumWeek + adSpend, client.percentageValue || 0)
+      ? getClientTierPercentage(client, accumWeek + adSpend)
       : 0;
     const now = new Date();
     // weekStartsOn=5 (sexta) — convenção do projeto: "sexta a quinta — fecha quinta, paga sexta seguinte"
