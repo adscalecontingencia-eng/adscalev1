@@ -846,20 +846,8 @@ const Clients: React.FC = () => {
     // do cliente e evita divergência quando as linhas `commissions` do banco estão defasadas
     // em relação ao gasto sincronizado da Meta.
     const client = clients.find(c => c.id === clientId);
-    const basePct = client?.percentageValue || 0;
-    let expectedCommissionInRange = 0;
-    if (client && client.clientType !== 'venda' && insightsInRange.length > 0) {
-      const byWeek: Record<string, number> = {};
-      insightsInRange.forEach(r => {
-        const d = parseDateLocal(r.date);
-        const ws = startOfWeek(d, { weekStartsOn: 5 });
-        byWeek[format(ws, 'yyyy-MM-dd')] = (byWeek[format(ws, 'yyyy-MM-dd')] || 0) + (r.spend || 0);
-      });
-      Object.values(byWeek).forEach(weekTotal => {
-        const rate = getTierPercentage(weekTotal, basePct);
-        expectedCommissionInRange += weekTotal * (rate / 100);
-      });
-    } else if (client?.clientType === 'venda') {
+    let expectedCommissionInRange = computeCommissionFromInsights(clientId, insightsInRange);
+    if (client?.clientType === 'venda') {
       expectedCommissionInRange = (client.fixedValue || 0);
     }
     const comissaoPendente = Math.max(0, expectedCommissionInRange - comissaoPaga);
@@ -876,12 +864,14 @@ const Clients: React.FC = () => {
     // primeiro, evitando que excedentes pagos numa semana sejam "perdidos" e que
     // semanas antigas fiquem marcadas como atrasadas indevidamente.
     const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null);
-    const saldoPendente = split.currentPending;
+    // No dashboard admin exibimos o mesmo total devido usado como "saldo pendente"
+    // no portal do cliente: comissão real acumulada - crédito - pagamentos.
+    const saldoPendente = Math.max(0, computeCommissionFromInsights(clientId) - planCredit - totalPaidAllTime);
     const saldoAtrasado = split.overdue;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
     // de toda a história (FIFO, mesma lógica do dashboard do cliente).
-    const allTimeCommission = computeAllTimeCommissionFromInsights(clientId);
+    const allTimeCommission = computeCommissionFromInsights(clientId);
     const creditRemaining = Math.max(0, planCredit - allTimeCommission);
 
     return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend, creditRemaining };
