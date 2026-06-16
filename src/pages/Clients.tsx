@@ -858,13 +858,10 @@ const Clients: React.FC = () => {
     const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
     const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    // Usamos FIFO simples (sem paidRows) — o que foi pago abate as semanas mais antigas
-    // primeiro, evitando que excedentes pagos numa semana sejam "perdidos" e que
-    // semanas antigas fiquem marcadas como atrasadas indevidamente.
-    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null);
-    // No dashboard admin exibimos o mesmo total devido usado como "saldo pendente"
-    // no portal do cliente: comissão real acumulada - crédito - pagamentos.
-    const saldoPendente = Math.max(0, computeCommissionFromInsights(clientId) - planCredit - totalPaidAllTime);
+    // Mesmo cálculo do dashboard do cliente: crédito + pagamentos aplicados por semana,
+    // e no admin o valor aparece como Saldo Acumulado (total ainda em aberto).
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null, paidRows);
+    const saldoPendente = split.currentPending + split.overdue;
     const saldoAtrasado = split.overdue;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
