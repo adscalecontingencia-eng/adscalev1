@@ -862,7 +862,7 @@ const Clients: React.FC = () => {
 
     // Saldo Pendente vs Saldo Atrasado: separa semana corrente (ainda não venceu)
     // do que já passou da sexta de cobrança sem pagamento.
-    const client = clients.find(c => c.id === clientId);
+
     const weeks = computeWeeklyForClient(clientId);
     const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
     const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
