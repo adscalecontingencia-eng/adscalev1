@@ -827,29 +827,42 @@ const Clients: React.FC = () => {
       ? cc.filter(c => isWithinInterval(parseDateLocal(c.date), { start: range.start, end: range.end }))
       : cc;
 
-    const comissionTypes = filtered.filter(c => c.type === 'daily' || c.type === 'weekly_billing');
     // Ad Spend real vem dos insights da Meta (mesma fonte do dashboard do cliente),
     // não das comissões manuais. Filtra pelo período selecionado.
     const insightRows = insightsByClient[clientId] || [];
-    const totalAdSpend = insightRows
-      .filter(r => !range || isWithinInterval(parseDateLocal(r.date), { start: range.start, end: range.end }))
-      .reduce((s, r) => s + (r.spend || 0), 0);
+    const insightsInRange = insightRows.filter(r => !range || isWithinInterval(parseDateLocal(r.date), { start: range.start, end: range.end }));
+    const totalAdSpend = insightsInRange.reduce((s, r) => s + (r.spend || 0), 0);
 
-    // Comissão Pendente (no período): soma de valor_pendente
-    const comissaoPendente = comissionTypes
-      .filter(c => c.status === 'pendente' || c.status === 'parcial')
-      .reduce((s, c) => s + (c.valorPendente || 0), 0);
+    // Comissão Paga (no período): apenas pagamentos do tipo 'paid' (mesma fonte do ClientDashboard).
+    const comissaoPaga = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
 
-    // Comissão Paga (no período): pagamentos do tipo 'paid' + valor_pago dos daily/weekly
-    const paidRecords = filtered.filter(c => c.type === 'paid').reduce((s, c) => s + c.amount, 0);
-    const valorPagoFromDaily = comissionTypes
-      .filter(c => c.status === 'pago' || c.status === 'parcial')
-      .reduce((s, c) => s + (c.valorPago || 0), 0);
-    const comissaoPaga = paidRecords + valorPagoFromDaily;
+    // Comissão Pendente: calculada a partir do gasto REAL dos insights no período × tier %,
+    // descontando o que já foi pago no período. Isso mantém consistência com o dashboard
+    // do cliente e evita divergência quando as linhas `commissions` do banco estão defasadas
+    // em relação ao gasto sincronizado da Meta.
+    const client = clients.find(c => c.id === clientId);
+    const basePct = client?.percentageValue || 0;
+    let expectedCommissionInRange = 0;
+    if (client && client.clientType !== 'venda' && insightsInRange.length > 0) {
+      const byWeek: Record<string, number> = {};
+      insightsInRange.forEach(r => {
+        const d = parseDateLocal(r.date);
+        const ws = startOfWeek(d, { weekStartsOn: 5 });
+        byWeek[format(ws, 'yyyy-MM-dd')] = (byWeek[format(ws, 'yyyy-MM-dd')] || 0) + (r.spend || 0);
+      });
+      Object.values(byWeek).forEach(weekTotal => {
+        const rate = getTierPercentage(weekTotal, basePct);
+        expectedCommissionInRange += weekTotal * (rate / 100);
+      });
+    } else if (client?.clientType === 'venda') {
+      expectedCommissionInRange = (client.fixedValue || 0);
+    }
+    const comissaoPendente = Math.max(0, expectedCommissionInRange - comissaoPaga);
+
 
     // Saldo Pendente vs Saldo Atrasado: separa semana corrente (ainda não venceu)
     // do que já passou da sexta de cobrança sem pagamento.
-    const client = clients.find(c => c.id === clientId);
+
     const weeks = computeWeeklyForClient(clientId);
     const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
     const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
