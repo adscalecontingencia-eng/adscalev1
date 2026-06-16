@@ -222,7 +222,12 @@ export const ClientCard: React.FC<Props> = (props) => {
                 </span>
               )}
               {planCredit > 0 && (
-                <span className="text-success">Crédito {fmt(planCredit)}</span>
+                <span className="text-success">
+                  Crédito {fmt(planCredit)}
+                  {typeof creditRemaining === 'number' && (
+                    <span className="text-muted-foreground"> · restante <span className="text-success">{fmt(creditRemaining)}</span></span>
+                  )}
+                </span>
               )}
             </div>
           </div>
