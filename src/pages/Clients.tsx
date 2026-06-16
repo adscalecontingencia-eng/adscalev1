@@ -99,6 +99,14 @@ const Clients: React.FC = () => {
   const [savingTiers, setSavingTiers] = useState(false);
   const getTierPercentage = (weekSpend: number, basePct: number) =>
     getTierPctFromTiers(weekSpend, basePct, commissionTiers);
+  const getClientTierPercentage = (client: Client, weekSpend: number) => {
+    const customTiers = Array.isArray(client.customTiers) && client.customTiers.length > 0
+      ? client.customTiers
+          .filter(t => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
+          .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
+      : commissionTiers;
+    return getTierPctFromTiers(weekSpend, client.percentageValue || 0, customTiers);
+  };
 
   const tiersToShow = tierDraft ?? commissionTiers;
 
@@ -182,7 +190,7 @@ const Clients: React.FC = () => {
     })));
   };
 
-  // Insights + assignments (para calcular Saldo Pendente igual ao dashboard do cliente)
+  // Insights + assignments (para calcular Saldo Acumulado igual ao dashboard do cliente)
   const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
   const fetchInsightsByClient = async () => {
     const [assignRes, insightsRes] = await Promise.all([
