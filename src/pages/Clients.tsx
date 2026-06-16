@@ -97,8 +97,14 @@ const Clients: React.FC = () => {
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
   const [tierDraft, setTierDraft] = useState<CommissionTier[] | null>(null);
   const [savingTiers, setSavingTiers] = useState(false);
-  const getTierPercentage = (weekSpend: number, basePct: number) =>
-    getTierPctFromTiers(weekSpend, basePct, commissionTiers);
+  const getClientTierPercentage = (client: Client, weekSpend: number) => {
+    const customTiers = Array.isArray(client.customTiers) && client.customTiers.length > 0
+      ? client.customTiers
+          .filter(t => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
+          .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
+      : commissionTiers;
+    return getTierPctFromTiers(weekSpend, client.percentageValue || 0, customTiers);
+  };
 
   const tiersToShow = tierDraft ?? commissionTiers;
 
@@ -182,7 +188,7 @@ const Clients: React.FC = () => {
     })));
   };
 
-  // Insights + assignments (para calcular Saldo Pendente igual ao dashboard do cliente)
+  // Insights + assignments (para calcular Saldo Acumulado igual ao dashboard do cliente)
   const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
   const fetchInsightsByClient = async () => {
     const [assignRes, insightsRes] = await Promise.all([
@@ -228,7 +234,7 @@ const Clients: React.FC = () => {
     }
     // Aluguel → percentual com tier de desconto baseado no gasto semanal acumulado
     const totalWeek = (weeklyAccumSpend ?? 0) + adSpend;
-    const rate = getTierPercentage(totalWeek, client.percentageValue || 0);
+    const rate = getClientTierPercentage(client, totalWeek);
     return adSpend * (rate / 100);
   };
 
@@ -505,7 +511,7 @@ const Clients: React.FC = () => {
     const accumWeek = getWeeklyAccumSpend(clientId, commissionDate);
     const commission = calculateCommission(client, adSpend, accumWeek);
     const percentApplied = client.clientType === 'aluguel'
-      ? getTierPercentage(accumWeek + adSpend, client.percentageValue || 0)
+      ? getClientTierPercentage(client, accumWeek + adSpend)
       : 0;
     const now = new Date();
     // weekStartsOn=5 (sexta) — convenção do projeto: "sexta a quinta — fecha quinta, paga sexta seguinte"
@@ -778,11 +784,9 @@ const Clients: React.FC = () => {
   const getClientCommissions = (clientId: string) => commissions.filter(c => c.clientId === clientId);
   
   // All-time commission from REAL insights (matches ClientDashboard logic)
-  const computeAllTimeCommissionFromInsights = (clientId: string): number => {
+  const computeCommissionFromInsights = (clientId: string, rows: { date: string; spend: number }[] = insightsByClient[clientId] || []): number => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return 0;
-    const basePct = client.percentageValue || 0;
-    const rows = insightsByClient[clientId] || [];
     if (rows.length === 0) return 0;
     const byWeek: Record<string, number> = {};
     rows.forEach(r => {
@@ -793,7 +797,7 @@ const Clients: React.FC = () => {
     });
     let total = 0;
     Object.values(byWeek).forEach(weekTotal => {
-      const rate = getTierPercentage(weekTotal, basePct);
+      const rate = getClientTierPercentage(client, weekTotal);
       total += weekTotal * (rate / 100);
     });
     return total;
@@ -803,7 +807,6 @@ const Clients: React.FC = () => {
   const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
-    const basePct = client.percentageValue || 0;
     const rows = insightsByClient[clientId] || [];
     if (rows.length === 0) return [];
     const byWeek: Record<string, number> = {};
@@ -814,7 +817,7 @@ const Clients: React.FC = () => {
       byWeek[key] = (byWeek[key] || 0) + r.spend;
     });
     return Object.entries(byWeek).map(([k, spend]) => {
-      const rate = getTierPercentage(spend, basePct);
+      const rate = getClientTierPercentage(client, spend);
       return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
     });
   };
@@ -841,20 +844,8 @@ const Clients: React.FC = () => {
     // do cliente e evita divergência quando as linhas `commissions` do banco estão defasadas
     // em relação ao gasto sincronizado da Meta.
     const client = clients.find(c => c.id === clientId);
-    const basePct = client?.percentageValue || 0;
-    let expectedCommissionInRange = 0;
-    if (client && client.clientType !== 'venda' && insightsInRange.length > 0) {
-      const byWeek: Record<string, number> = {};
-      insightsInRange.forEach(r => {
-        const d = parseDateLocal(r.date);
-        const ws = startOfWeek(d, { weekStartsOn: 5 });
-        byWeek[format(ws, 'yyyy-MM-dd')] = (byWeek[format(ws, 'yyyy-MM-dd')] || 0) + (r.spend || 0);
-      });
-      Object.values(byWeek).forEach(weekTotal => {
-        const rate = getTierPercentage(weekTotal, basePct);
-        expectedCommissionInRange += weekTotal * (rate / 100);
-      });
-    } else if (client?.clientType === 'venda') {
+    let expectedCommissionInRange = computeCommissionFromInsights(clientId, insightsInRange);
+    if (client?.clientType === 'venda') {
       expectedCommissionInRange = (client.fixedValue || 0);
     }
     const comissaoPendente = Math.max(0, expectedCommissionInRange - comissaoPaga);
@@ -867,16 +858,15 @@ const Clients: React.FC = () => {
     const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
     const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
     const planCredit = Number(client?.planCredit || 0);
-    // Usamos FIFO simples (sem paidRows) — o que foi pago abate as semanas mais antigas
-    // primeiro, evitando que excedentes pagos numa semana sejam "perdidos" e que
-    // semanas antigas fiquem marcadas como atrasadas indevidamente.
-    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null);
-    const saldoPendente = split.currentPending;
+    // Mesmo cálculo do dashboard do cliente: crédito + pagamentos aplicados por semana,
+    // e no admin o valor aparece como Saldo Acumulado (total ainda em aberto).
+    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null, paidRows);
+    const saldoPendente = split.currentPending + split.overdue;
     const saldoAtrasado = split.overdue;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
     // de toda a história (FIFO, mesma lógica do dashboard do cliente).
-    const allTimeCommission = computeAllTimeCommissionFromInsights(clientId);
+    const allTimeCommission = computeCommissionFromInsights(clientId);
     const creditRemaining = Math.max(0, planCredit - allTimeCommission);
 
     return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend, creditRemaining };

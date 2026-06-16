@@ -278,7 +278,7 @@ export const ClientCard: React.FC<Props> = (props) => {
           <Stat icon={<CheckCircle size={11} />} label="Comissão Paga" value={fmt(comissaoPaga)} tone="success" />
           <Stat
             icon={saldoPendente > 0 ? <AlertTriangle size={11} /> : <CircleDot size={11} />}
-            label="Saldo Pendente"
+            label="Saldo Acumulado"
             value={fmt(saldoPendente)}
             tone={saldoPendente > 0 ? 'warning' : 'success'}
             highlight={saldoPendente > 0}

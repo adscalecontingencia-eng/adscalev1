@@ -58,9 +58,9 @@ export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
       />
       <Card
         icon={<AlertTriangle size={14} />}
-        label="Saldo Pendente"
+        label="Saldo Acumulado"
         value={fmt(kpi.totalPendente)}
-        hint="semana corrente"
+        hint="total em aberto"
         tone="warning"
       />
       <Card
