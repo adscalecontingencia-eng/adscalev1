@@ -786,11 +786,9 @@ const Clients: React.FC = () => {
   const getClientCommissions = (clientId: string) => commissions.filter(c => c.clientId === clientId);
   
   // All-time commission from REAL insights (matches ClientDashboard logic)
-  const computeAllTimeCommissionFromInsights = (clientId: string): number => {
+  const computeCommissionFromInsights = (clientId: string, rows: { date: string; spend: number }[] = insightsByClient[clientId] || []): number => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return 0;
-    const basePct = client.percentageValue || 0;
-    const rows = insightsByClient[clientId] || [];
     if (rows.length === 0) return 0;
     const byWeek: Record<string, number> = {};
     rows.forEach(r => {
@@ -801,7 +799,7 @@ const Clients: React.FC = () => {
     });
     let total = 0;
     Object.values(byWeek).forEach(weekTotal => {
-      const rate = getTierPercentage(weekTotal, basePct);
+      const rate = getClientTierPercentage(client, weekTotal);
       total += weekTotal * (rate / 100);
     });
     return total;
@@ -811,7 +809,6 @@ const Clients: React.FC = () => {
   const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
-    const basePct = client.percentageValue || 0;
     const rows = insightsByClient[clientId] || [];
     if (rows.length === 0) return [];
     const byWeek: Record<string, number> = {};
@@ -822,7 +819,7 @@ const Clients: React.FC = () => {
       byWeek[key] = (byWeek[key] || 0) + r.spend;
     });
     return Object.entries(byWeek).map(([k, spend]) => {
-      const rate = getTierPercentage(spend, basePct);
+      const rate = getClientTierPercentage(client, spend);
       return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
     });
   };
