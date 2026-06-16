@@ -44,6 +44,7 @@ interface Props {
   comissaoPaga: number;
   saldoPendente: number;
   saldoAtrasado: number;
+  creditRemaining?: number;
   status: ClientStatus;
   spendByDay: { date: string; spend: number }[];
   isAdmin: boolean;
@@ -148,6 +149,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     comissaoPaga,
     saldoPendente,
     saldoAtrasado,
+    creditRemaining,
     status,
     spendByDay,
     isAdmin,
@@ -220,7 +222,12 @@ export const ClientCard: React.FC<Props> = (props) => {
                 </span>
               )}
               {planCredit > 0 && (
-                <span className="text-success">Crédito {fmt(planCredit)}</span>
+                <span className="text-success">
+                  Crédito {fmt(planCredit)}
+                  {typeof creditRemaining === 'number' && (
+                    <span className="text-muted-foreground"> · restante <span className="text-success">{fmt(creditRemaining)}</span></span>
+                  )}
+                </span>
               )}
             </div>
           </div>
