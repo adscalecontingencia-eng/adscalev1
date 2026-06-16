@@ -97,8 +97,6 @@ const Clients: React.FC = () => {
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
   const [tierDraft, setTierDraft] = useState<CommissionTier[] | null>(null);
   const [savingTiers, setSavingTiers] = useState(false);
-  const getTierPercentage = (weekSpend: number, basePct: number) =>
-    getTierPctFromTiers(weekSpend, basePct, commissionTiers);
   const getClientTierPercentage = (client: Client, weekSpend: number) => {
     const customTiers = Array.isArray(client.customTiers) && client.customTiers.length > 0
       ? client.customTiers
