@@ -209,11 +209,16 @@ export default function MetaConnections() {
       if (search && !`${a.name} ${a.meta_account_id}`.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterOwnerBmId.trim()) {
         const q = filterOwnerBmId.trim().replace(/[^0-9]/g, "");
-        if (!q || !a.owner_business_id || !a.owner_business_id.includes(q)) return false;
+        if (!q) return false;
+        // Mostrar contas compartilhadas PARA a BM digitada:
+        // a conta está vinculada a essa BM (bm.meta_bm_id == q) e o owner é diferente (compartilhada de outra BM)
+        const accBm = bms.find((b) => b.id === a.bm_id);
+        if (!accBm || !accBm.meta_bm_id.includes(q)) return false;
+        if (!a.owner_business_id || a.owner_business_id === accBm.meta_bm_id) return false;
       }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
+  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId, bms]);
 
   const stats = useMemo(() => ({
     total: accounts.length,
@@ -370,7 +375,7 @@ export default function MetaConnections() {
               </Select>
               <Input
                 className="h-9 w-[220px] font-mono text-xs"
-                placeholder="BM compartilhada (ID)…"
+                placeholder="Compartilhadas PARA BM (ID)…"
                 value={filterOwnerBmId}
                 onChange={(e) => setFilterOwnerBmId(e.target.value)}
               />
@@ -404,7 +409,7 @@ export default function MetaConnections() {
                 )}
                 {filterOwnerBmId.trim() && (
                   <Badge variant="secondary" className="gap-1">
-                    BM dona: <span className="font-mono">{filterOwnerBmId.trim()}</span>
+                    Compartilhadas para BM: <span className="font-mono">{filterOwnerBmId.trim()}</span>
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterOwnerBmId("")} />
                   </Badge>
                 )}
