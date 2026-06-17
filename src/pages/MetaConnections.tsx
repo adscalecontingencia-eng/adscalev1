@@ -34,6 +34,7 @@ type Account = AccountCardData & {
   spend_cap: number | null;
   billing_cycle: string | null;
   owner_business_name: string | null;
+  owner_business_id: string | null;
   account_status: number | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
