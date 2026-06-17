@@ -218,7 +218,7 @@ export default function MetaConnections() {
       }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
+  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId, bms]);
 
   const stats = useMemo(() => ({
     total: accounts.length,
