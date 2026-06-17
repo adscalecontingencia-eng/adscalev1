@@ -402,6 +402,12 @@ export default function MetaConnections() {
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
                   </Badge>
                 )}
+                {filterOwnerBmId.trim() && (
+                  <Badge variant="secondary" className="gap-1">
+                    BM dona: <span className="font-mono">{filterOwnerBmId.trim()}</span>
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterOwnerBmId("")} />
+                  </Badge>
+                )}
                 <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground ml-1">
                   Limpar tudo
                 </button>
