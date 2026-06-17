@@ -264,6 +264,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       business_country_code: acc.business_country_code || null,
       age: acc.age ?? null,
       owner_business_name: acc.business?.name || null,
+      owner_business_id: acc.business?.id || null,
       score,
       score_label: label,
       last_synced_at: new Date().toISOString(),
