@@ -368,6 +368,12 @@ export default function MetaConnections() {
                   <SelectItem value="crit">Crítico</SelectItem>
                 </SelectContent>
               </Select>
+              <Input
+                className="h-9 w-[220px] font-mono text-xs"
+                placeholder="BM compartilhada (ID)…"
+                value={filterOwnerBmId}
+                onChange={(e) => setFilterOwnerBmId(e.target.value)}
+              />
             </div>
 
             {hasFilters && (
