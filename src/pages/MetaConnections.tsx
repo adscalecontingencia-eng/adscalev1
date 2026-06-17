@@ -211,15 +211,14 @@ export default function MetaConnections() {
       if (filterOwnerBmId.trim()) {
         const q = filterOwnerBmId.trim().replace(/[^0-9]/g, "");
         if (!q) return false;
-        // Mostrar contas compartilhadas PARA a BM digitada:
-        // a conta está vinculada a essa BM (bm.meta_bm_id == q) e o owner é diferente (compartilhada de outra BM)
-        const accBm = bms.find((b) => b.id === a.bm_id);
-        if (!accBm || !accBm.meta_bm_id.includes(q)) return false;
-        if (!a.owner_business_id || a.owner_business_id === accBm.meta_bm_id) return false;
+        // Mostrar contas compartilhadas COM a BM digitada (lista 'agencies' da conta).
+        const shared = Array.isArray(a.shared_with_businesses) ? a.shared_with_businesses : [];
+        const matchShared = shared.some((b: any) => String(b?.id || "").includes(q));
+        if (!matchShared) return false;
       }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId, bms]);
+  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
   const stats = useMemo(() => ({
     total: accounts.length,
