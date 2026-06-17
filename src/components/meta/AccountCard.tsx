@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  CheckCircle2, AlertOctagon, Clock, Wallet, CreditCard, Globe, Eye, Building2, ExternalLink, BadgeCheck,
+  CheckCircle2, AlertOctagon, Clock, Wallet, CreditCard, Globe, Eye, Building2, ExternalLink, BadgeCheck, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { scoreColor, scoreBadgeVariant } from "@/lib/meta-score";
@@ -25,6 +25,8 @@ export interface AccountCardData {
   age: number | null;
   funding_source: string | null;
   business_country_code: string | null;
+  owner_business_id?: string | null;
+  owner_business_name?: string | null;
 }
 
 interface Client { id: string; name: string; email: string }
@@ -79,6 +81,15 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
               </TooltipProvider>
             )}
           </div>
+          {account.owner_business_id && account.owner_business_name && account.owner_business_name !== bmName && (
+            <div className="mt-1.5">
+              <Badge variant="outline" className="gap-1 text-[10px] border-primary/40 text-primary bg-primary/5">
+                <Share2 className="h-3 w-3" />
+                Compartilhada por: {account.owner_business_name}
+                <span className="font-mono opacity-70">({account.owner_business_id})</span>
+              </Badge>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           {isActive ? (

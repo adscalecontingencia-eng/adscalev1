@@ -861,6 +861,7 @@ export type Database = {
           meta_account_id: string
           meta_app_id: string | null
           name: string
+          owner_business_id: string | null
           owner_business_name: string | null
           page_count: number | null
           pixel_count: number | null
@@ -890,6 +891,7 @@ export type Database = {
           meta_account_id: string
           meta_app_id?: string | null
           name: string
+          owner_business_id?: string | null
           owner_business_name?: string | null
           page_count?: number | null
           pixel_count?: number | null
@@ -919,6 +921,7 @@ export type Database = {
           meta_account_id?: string
           meta_app_id?: string | null
           name?: string
+          owner_business_id?: string | null
           owner_business_name?: string | null
           page_count?: number | null
           pixel_count?: number | null

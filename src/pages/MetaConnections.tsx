@@ -34,6 +34,7 @@ type Account = AccountCardData & {
   spend_cap: number | null;
   billing_cycle: string | null;
   owner_business_name: string | null;
+  owner_business_id: string | null;
   account_status: number | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
@@ -56,6 +57,7 @@ export default function MetaConnections() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterClient, setFilterClient] = useState<string>("all");
   const [filterScore, setFilterScore] = useState<string>("all");
+  const [filterOwnerBmId, setFilterOwnerBmId] = useState<string>("");
   const [detail, setDetail] = useState<Account | null>(null);
   const [mobileBmOpen, setMobileBmOpen] = useState(false);
 
@@ -205,9 +207,13 @@ export default function MetaConnections() {
         if (filterScore === "crit" && lbl !== "Crítico") return false;
       }
       if (search && !`${a.name} ${a.meta_account_id}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterOwnerBmId.trim()) {
+        const q = filterOwnerBmId.trim().replace(/[^0-9]/g, "");
+        if (!q || !a.owner_business_id || !a.owner_business_id.includes(q)) return false;
+      }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient]);
+  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
   const stats = useMemo(() => ({
     total: accounts.length,
@@ -223,8 +229,8 @@ export default function MetaConnections() {
     return new Date(Math.max(...dates.map((d) => new Date(d).getTime())));
   }, [bms]);
 
-  const hasFilters = filterStatus !== "all" || filterClient !== "all" || filterScore !== "all" || !!search;
-  const clearFilters = () => { setFilterStatus("all"); setFilterClient("all"); setFilterScore("all"); setSearch(""); };
+  const hasFilters = filterStatus !== "all" || filterClient !== "all" || filterScore !== "all" || !!search || !!filterOwnerBmId.trim();
+  const clearFilters = () => { setFilterStatus("all"); setFilterClient("all"); setFilterScore("all"); setSearch(""); setFilterOwnerBmId(""); };
 
   const sidebarNode = (
     <BmSidebar
@@ -362,6 +368,12 @@ export default function MetaConnections() {
                   <SelectItem value="crit">Crítico</SelectItem>
                 </SelectContent>
               </Select>
+              <Input
+                className="h-9 w-[220px] font-mono text-xs"
+                placeholder="BM compartilhada (ID)…"
+                value={filterOwnerBmId}
+                onChange={(e) => setFilterOwnerBmId(e.target.value)}
+              />
             </div>
 
             {hasFilters && (
@@ -388,6 +400,12 @@ export default function MetaConnections() {
                   <Badge variant="secondary" className="gap-1">
                     "{search}"
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
+                  </Badge>
+                )}
+                {filterOwnerBmId.trim() && (
+                  <Badge variant="secondary" className="gap-1">
+                    BM dona: <span className="font-mono">{filterOwnerBmId.trim()}</span>
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterOwnerBmId("")} />
                   </Badge>
                 )}
                 <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground ml-1">
