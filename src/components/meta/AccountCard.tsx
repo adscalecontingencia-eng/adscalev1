@@ -25,6 +25,8 @@ export interface AccountCardData {
   age: number | null;
   funding_source: string | null;
   business_country_code: string | null;
+  owner_business_id?: string | null;
+  owner_business_name?: string | null;
 }
 
 interface Client { id: string; name: string; email: string }
