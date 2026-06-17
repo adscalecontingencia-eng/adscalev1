@@ -266,6 +266,9 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       age: acc.age ?? null,
       owner_business_name: acc.business?.name || null,
       owner_business_id: acc.business?.id || null,
+      shared_with_businesses: Array.isArray(acc.agencies?.data)
+        ? acc.agencies.data.map((b: any) => ({ id: b.id, name: b.name, verification_status: b.verification_status || null }))
+        : [],
       score,
       score_label: label,
       last_synced_at: new Date().toISOString(),
