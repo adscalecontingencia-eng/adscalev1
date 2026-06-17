@@ -82,13 +82,15 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
               </TooltipProvider>
             )}
           </div>
-          {account.owner_business_id && account.owner_business_name && account.owner_business_name !== bmName && (
-            <div className="mt-1.5">
-              <Badge variant="outline" className="gap-1 text-[10px] border-primary/40 text-primary bg-primary/5">
-                <Share2 className="h-3 w-3" />
-                Compartilhada por: {account.owner_business_name}
-                <span className="font-mono opacity-70">({account.owner_business_id})</span>
-              </Badge>
+          {Array.isArray(account.shared_with_businesses) && account.shared_with_businesses.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {account.shared_with_businesses.map((b) => (
+                <Badge key={b.id} variant="outline" className="gap-1 text-[10px] border-primary/40 text-primary bg-primary/5">
+                  <Share2 className="h-3 w-3" />
+                  Compartilhada com: {b.name}
+                  <span className="font-mono opacity-70">({b.id})</span>
+                </Badge>
+              ))}
             </div>
           )}
         </div>
