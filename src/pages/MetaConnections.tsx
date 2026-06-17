@@ -409,7 +409,7 @@ export default function MetaConnections() {
                 )}
                 {filterOwnerBmId.trim() && (
                   <Badge variant="secondary" className="gap-1">
-                    Compartilhadas para BM: <span className="font-mono">{filterOwnerBmId.trim()}</span>
+                    Compartilhadas com BM: <span className="font-mono">{filterOwnerBmId.trim()}</span>
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterOwnerBmId("")} />
                   </Badge>
                 )}
