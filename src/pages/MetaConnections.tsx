@@ -36,6 +36,7 @@ type Account = AccountCardData & {
   owner_business_name: string | null;
   owner_business_id: string | null;
   account_status: number | null;
+  shared_with_businesses: { id: string; name: string; verification_status?: string | null }[] | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
 type Client = { id: string; name: string; email: string; company_name?: string | null };
