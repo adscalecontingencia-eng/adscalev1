@@ -71,7 +71,7 @@ export default function MetaConnections() {
       supabase.from("clients").select("id, name, email, company_name").order("name"),
     ]);
     setBms((b.data as BM[]) || []);
-    setAccounts((a.data as Account[]) || []);
+    setAccounts(((a.data as unknown) as Account[]) || []);
     setAssignments((asn.data as Assignment[]) || []);
     setClients((cl.data as Client[]) || []);
     setLoading(false);
