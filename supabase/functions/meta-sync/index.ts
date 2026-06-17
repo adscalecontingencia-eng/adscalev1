@@ -106,6 +106,7 @@ const ACCOUNT_FIELDS = [
   "timezone_name","created_time","disable_reason","funding_source",
   "funding_source_details","is_prepay_account",
   "balance","business_country_code","age","business",
+  "agencies{id,name,verification_status}",
 ].join(",");
 
 const maskFunding = (acc: any): string | null => {
