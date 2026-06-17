@@ -375,7 +375,7 @@ export default function MetaConnections() {
               </Select>
               <Input
                 className="h-9 w-[220px] font-mono text-xs"
-                placeholder="BM compartilhada (ID)…"
+                placeholder="Compartilhadas PARA BM (ID)…"
                 value={filterOwnerBmId}
                 onChange={(e) => setFilterOwnerBmId(e.target.value)}
               />
