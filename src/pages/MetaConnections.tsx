@@ -57,6 +57,7 @@ export default function MetaConnections() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterClient, setFilterClient] = useState<string>("all");
   const [filterScore, setFilterScore] = useState<string>("all");
+  const [filterOwnerBmId, setFilterOwnerBmId] = useState<string>("");
   const [detail, setDetail] = useState<Account | null>(null);
   const [mobileBmOpen, setMobileBmOpen] = useState(false);
 
