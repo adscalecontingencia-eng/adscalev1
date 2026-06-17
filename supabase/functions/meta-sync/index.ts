@@ -106,6 +106,7 @@ const ACCOUNT_FIELDS = [
   "timezone_name","created_time","disable_reason","funding_source",
   "funding_source_details","is_prepay_account",
   "balance","business_country_code","age","business",
+  "agencies{id,name,verification_status}",
 ].join(",");
 
 const maskFunding = (acc: any): string | null => {
@@ -265,6 +266,9 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       age: acc.age ?? null,
       owner_business_name: acc.business?.name || null,
       owner_business_id: acc.business?.id || null,
+      shared_with_businesses: Array.isArray(acc.agencies?.data)
+        ? acc.agencies.data.map((b: any) => ({ id: b.id, name: b.name, verification_status: b.verification_status || null }))
+        : [],
       score,
       score_label: label,
       last_synced_at: new Date().toISOString(),

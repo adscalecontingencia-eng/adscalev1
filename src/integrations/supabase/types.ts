@@ -867,6 +867,7 @@ export type Database = {
           pixel_count: number | null
           score: number | null
           score_label: string | null
+          shared_with_businesses: Json | null
           spend_cap: number | null
           status: string | null
           timezone_name: string | null
@@ -897,6 +898,7 @@ export type Database = {
           pixel_count?: number | null
           score?: number | null
           score_label?: string | null
+          shared_with_businesses?: Json | null
           spend_cap?: number | null
           status?: string | null
           timezone_name?: string | null
@@ -927,6 +929,7 @@ export type Database = {
           pixel_count?: number | null
           score?: number | null
           score_label?: string | null
+          shared_with_businesses?: Json | null
           spend_cap?: number | null
           status?: string | null
           timezone_name?: string | null

@@ -36,6 +36,7 @@ type Account = AccountCardData & {
   owner_business_name: string | null;
   owner_business_id: string | null;
   account_status: number | null;
+  shared_with_businesses: { id: string; name: string; verification_status?: string | null }[] | null;
 };
 type Assignment = { ad_account_id: string; client_id: string; active: boolean };
 type Client = { id: string; name: string; email: string; company_name?: string | null };
@@ -70,7 +71,7 @@ export default function MetaConnections() {
       supabase.from("clients").select("id, name, email, company_name").order("name"),
     ]);
     setBms((b.data as BM[]) || []);
-    setAccounts((a.data as Account[]) || []);
+    setAccounts(((a.data as unknown) as Account[]) || []);
     setAssignments((asn.data as Assignment[]) || []);
     setClients((cl.data as Client[]) || []);
     setLoading(false);
@@ -210,15 +211,14 @@ export default function MetaConnections() {
       if (filterOwnerBmId.trim()) {
         const q = filterOwnerBmId.trim().replace(/[^0-9]/g, "");
         if (!q) return false;
-        // Mostrar contas compartilhadas PARA a BM digitada:
-        // a conta está vinculada a essa BM (bm.meta_bm_id == q) e o owner é diferente (compartilhada de outra BM)
-        const accBm = bms.find((b) => b.id === a.bm_id);
-        if (!accBm || !accBm.meta_bm_id.includes(q)) return false;
-        if (!a.owner_business_id || a.owner_business_id === accBm.meta_bm_id) return false;
+        // Mostrar contas compartilhadas COM a BM digitada (lista 'agencies' da conta).
+        const shared = Array.isArray(a.shared_with_businesses) ? a.shared_with_businesses : [];
+        const matchShared = shared.some((b: any) => String(b?.id || "").includes(q));
+        if (!matchShared) return false;
       }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId, bms]);
+  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
   const stats = useMemo(() => ({
     total: accounts.length,
@@ -375,7 +375,7 @@ export default function MetaConnections() {
               </Select>
               <Input
                 className="h-9 w-[220px] font-mono text-xs"
-                placeholder="Compartilhadas PARA BM (ID)…"
+                placeholder="Compartilhadas COM BM (ID)…"
                 value={filterOwnerBmId}
                 onChange={(e) => setFilterOwnerBmId(e.target.value)}
               />
@@ -409,7 +409,7 @@ export default function MetaConnections() {
                 )}
                 {filterOwnerBmId.trim() && (
                   <Badge variant="secondary" className="gap-1">
-                    Compartilhadas para BM: <span className="font-mono">{filterOwnerBmId.trim()}</span>
+                    Compartilhadas com BM: <span className="font-mono">{filterOwnerBmId.trim()}</span>
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterOwnerBmId("")} />
                   </Badge>
                 )}

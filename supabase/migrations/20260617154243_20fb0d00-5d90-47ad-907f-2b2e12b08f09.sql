@@ -1,0 +1,1 @@
+ALTER TABLE public.meta_ad_accounts ADD COLUMN IF NOT EXISTS shared_with_businesses jsonb DEFAULT '[]'::jsonb;
