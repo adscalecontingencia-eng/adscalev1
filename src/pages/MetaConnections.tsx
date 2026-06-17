@@ -229,8 +229,8 @@ export default function MetaConnections() {
     return new Date(Math.max(...dates.map((d) => new Date(d).getTime())));
   }, [bms]);
 
-  const hasFilters = filterStatus !== "all" || filterClient !== "all" || filterScore !== "all" || !!search;
-  const clearFilters = () => { setFilterStatus("all"); setFilterClient("all"); setFilterScore("all"); setSearch(""); };
+  const hasFilters = filterStatus !== "all" || filterClient !== "all" || filterScore !== "all" || !!search || !!filterOwnerBmId.trim();
+  const clearFilters = () => { setFilterStatus("all"); setFilterClient("all"); setFilterScore("all"); setSearch(""); setFilterOwnerBmId(""); };
 
   const sidebarNode = (
     <BmSidebar
