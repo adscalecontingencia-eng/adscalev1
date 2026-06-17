@@ -27,6 +27,7 @@ export interface AccountCardData {
   business_country_code: string | null;
   owner_business_id?: string | null;
   owner_business_name?: string | null;
+  shared_with_businesses?: { id: string; name: string; verification_status?: string | null }[] | null;
 }
 
 interface Client { id: string; name: string; email: string }
