@@ -207,9 +207,13 @@ export default function MetaConnections() {
         if (filterScore === "crit" && lbl !== "Crítico") return false;
       }
       if (search && !`${a.name} ${a.meta_account_id}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterOwnerBmId.trim()) {
+        const q = filterOwnerBmId.trim().replace(/[^0-9]/g, "");
+        if (!q || !a.owner_business_id || !a.owner_business_id.includes(q)) return false;
+      }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient]);
+  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
   const stats = useMemo(() => ({
     total: accounts.length,
