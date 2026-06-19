@@ -516,7 +516,10 @@ const ClientDashboard: React.FC = () => {
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;
   const pendingTotal = creditPlan?.totalStillOwed ?? Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
-  const overdueTotal = billingSplit.overdue;
+  // Allowlist de clientes que podem abrir solicitações de suporte mesmo com saldo atrasado.
+  const supportOverdueBypass = /emerson/i.test(client?.name || '');
+  const overdueTotalRaw = billingSplit.overdue;
+  const overdueTotal = supportOverdueBypass ? 0 : overdueTotalRaw;
   const currentPendingTotal = billingSplit.currentPending;
 
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
