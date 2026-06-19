@@ -234,8 +234,8 @@ const ClientDashboard: React.FC = () => {
   }, [reqQty, reqType]);
 
   const submitRequest = async () => {
-    if (!isAdminView && overdueTotal > 25) {
-      toast.error(`Pagamento pendente: você possui $${overdueTotal.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
+    if (!isAdminView && !/emerson/i.test(client?.name || '') && billingSplit.overdue > 25) {
+      toast.error(`Pagamento pendente: você possui $${billingSplit.overdue.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
       return;
     }
     if (!client) return;
@@ -518,6 +518,9 @@ const ClientDashboard: React.FC = () => {
   const pendingTotal = creditPlan?.totalStillOwed ?? Math.max(0, allTimeTotals.commission - allTimeTotals.paid - creditUsed);
   const overdueTotal = billingSplit.overdue;
   const currentPendingTotal = billingSplit.currentPending;
+  // Allowlist de clientes liberados para abrir suporte mesmo com saldo atrasado.
+  const supportOverdueBypass = /emerson/i.test(client?.name || '');
+  const supportBlockedByOverdue = !supportOverdueBypass && overdueTotal > 25;
 
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
@@ -1332,7 +1335,7 @@ const ClientDashboard: React.FC = () => {
                 Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
               </p>
 
-              {!isAdminView && overdueTotal > 25 && (
+              {!isAdminView && supportBlockedByOverdue && (
                 <div className="mb-4 rounded-xl border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
                   <AlertTriangle size={18} className="text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1">
@@ -1436,7 +1439,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={submitRequest}
-                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim()) || (!isAdminView && overdueTotal > 25)}
+                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim()) || (!isAdminView && supportBlockedByOverdue)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   >
                     <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
