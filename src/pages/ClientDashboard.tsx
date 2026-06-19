@@ -1439,7 +1439,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={submitRequest}
-                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim()) || (!isAdminView && overdueTotal > 25)}
+                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim()) || (!isAdminView && supportBlockedByOverdue)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   >
                     <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
