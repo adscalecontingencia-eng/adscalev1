@@ -1335,7 +1335,7 @@ const ClientDashboard: React.FC = () => {
                 Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
               </p>
 
-              {!isAdminView && overdueTotal > 25 && (
+              {!isAdminView && supportBlockedByOverdue && (
                 <div className="mb-4 rounded-xl border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
                   <AlertTriangle size={18} className="text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1">
