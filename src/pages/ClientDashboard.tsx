@@ -234,8 +234,8 @@ const ClientDashboard: React.FC = () => {
   }, [reqQty, reqType]);
 
   const submitRequest = async () => {
-    if (!isAdminView && overdueTotal > 25) {
-      toast.error(`Pagamento pendente: você possui $${overdueTotal.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
+    if (!isAdminView && !/emerson/i.test(client?.name || '') && billingSplit.overdue > 25) {
+      toast.error(`Pagamento pendente: você possui $${billingSplit.overdue.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
       return;
     }
     if (!client) return;
