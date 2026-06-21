@@ -1301,6 +1301,7 @@ const Clients: React.FC = () => {
               spendByDay={spendByClient[c.id] || []}
               isAdmin={isAdmin}
               showPayForm={showPaidForm === c.id}
+              isSubmittingPayment={validatingPaymentClientId === c.id}
               paidAmount={paidAmount}
               setPaidAmount={setPaidAmount}
               paidDate={paidDate}
