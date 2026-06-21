@@ -796,6 +796,107 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_document: string | null
+          customer_email: string | null
+          customer_name: string | null
+          download_released: boolean
+          external_reference: string
+          id: string
+          mercado_pago_order_id: string | null
+          mercado_pago_payment_id: string | null
+          paid_at: string | null
+          product_id: string
+          raw_response: Json | null
+          status: string
+          status_detail: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          download_released?: boolean
+          external_reference: string
+          id?: string
+          mercado_pago_order_id?: string | null
+          mercado_pago_payment_id?: string | null
+          paid_at?: string | null
+          product_id: string
+          raw_response?: Json | null
+          status?: string
+          status_detail?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          download_released?: boolean
+          external_reference?: string
+          id?: string
+          mercado_pago_order_id?: string | null
+          mercado_pago_payment_id?: string | null
+          paid_at?: string | null
+          product_id?: string
+          raw_response?: Json | null
+          status?: string
+          status_detail?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_path: string
+          id: string
+          name: string
+          price: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_path: string
+          id?: string
+          name: string
+          price: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          id?: string
+          name?: string
+          price?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mercadopago_payments: {
         Row: {
           amount: number
