@@ -34,6 +34,7 @@ import CompleteSignup from "./pages/CompleteSignup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import CheckoutPixTest from "./pages/CheckoutPixTest";
+import MyPixOrders from "./pages/MyPixOrders";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
