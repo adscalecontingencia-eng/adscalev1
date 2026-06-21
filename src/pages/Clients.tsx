@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
 import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus } from 'lucide-react';
@@ -73,6 +73,8 @@ const Clients: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [showCommissionForm, setShowCommissionForm] = useState<string | null>(null);
   const [showPaidForm, setShowPaidForm] = useState<string | null>(null);
+  const paymentValidationInFlight = useRef(false);
+  const [validatingPaymentClientId, setValidatingPaymentClientId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Client | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
