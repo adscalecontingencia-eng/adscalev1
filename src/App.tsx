@@ -76,6 +76,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
+              <Route path="/minhas-compras-pix" element={<MyPixOrders />} />
               <Route path="/meus-pedidos" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
               <Route path="/partner-signup" element={<PartnerSignup />} />
