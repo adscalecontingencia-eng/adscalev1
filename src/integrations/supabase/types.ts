@@ -796,6 +796,75 @@ export type Database = {
         }
         Relationships: []
       }
+      mercadopago_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_document: string | null
+          customer_email: string | null
+          customer_name: string | null
+          external_reference: string
+          id: string
+          mercado_pago_order_id: string | null
+          mercado_pago_payment_id: string | null
+          paid_at: string | null
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
+          pix_ticket_url: string | null
+          plan_id: string | null
+          product_name: string | null
+          raw_response: Json | null
+          status: string | null
+          status_detail: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          external_reference: string
+          id?: string
+          mercado_pago_order_id?: string | null
+          mercado_pago_payment_id?: string | null
+          paid_at?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          pix_ticket_url?: string | null
+          plan_id?: string | null
+          product_name?: string | null
+          raw_response?: Json | null
+          status?: string | null
+          status_detail?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          external_reference?: string
+          id?: string
+          mercado_pago_order_id?: string | null
+          mercado_pago_payment_id?: string | null
+          paid_at?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          pix_ticket_url?: string | null
+          plan_id?: string | null
+          product_name?: string | null
+          raw_response?: Json | null
+          status?: string | null
+          status_detail?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       meta_ad_account_assignments: {
         Row: {
           active: boolean | null
