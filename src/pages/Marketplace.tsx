@@ -30,6 +30,7 @@ import {
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
+import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -791,6 +792,9 @@ const Marketplace: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* Digital products via Pix */}
+      <MarketplacePixSection />
 
       {/* Depoimentos */}
       <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
