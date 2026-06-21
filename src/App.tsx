@@ -33,6 +33,7 @@ import MyOrders from "./pages/MyOrders";
 import CompleteSignup from "./pages/CompleteSignup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import CheckoutPixTest from "./pages/CheckoutPixTest";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
