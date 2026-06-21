@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
 import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus } from 'lucide-react';
@@ -73,6 +73,8 @@ const Clients: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [showCommissionForm, setShowCommissionForm] = useState<string | null>(null);
   const [showPaidForm, setShowPaidForm] = useState<string | null>(null);
+  const paymentValidationInFlight = useRef(false);
+  const [validatingPaymentClientId, setValidatingPaymentClientId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Client | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
@@ -584,59 +586,67 @@ const Clients: React.FC = () => {
   // "Comissão Paga" — subtracts from pending commissions AND books revenue in Faturamento
   const handleAddPaid = async (clientId: string) => {
     if (!isAdmin) { toast.error('Apenas administradores podem validar pagamentos'); return; }
+    if (paymentValidationInFlight.current) return;
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
+    paymentValidationInFlight.current = true;
+    setValidatingPaymentClientId(clientId);
 
-    const client = clients.find(c => c.id === clientId);
-    const dateISO = paidDate.toISOString();
-    const dateOnly = format(paidDate, 'yyyy-MM-dd');
+    try {
+      const client = clients.find(c => c.id === clientId);
+      const dateISO = paidDate.toISOString();
+      const dateOnly = format(paidDate, 'yyyy-MM-dd');
 
-    const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: dateISO, amount, type: 'paid',
-      valor_pago: amount, valor_pendente: 0, status: 'pago',
-    } as any);
-    if (error) { toast.error('Erro ao registrar pagamento'); return; }
+      const { error } = await supabase.from('commissions').insert({
+        client_id: clientId, date: dateISO, amount, type: 'paid',
+        valor_pago: amount, valor_pendente: 0, status: 'pago',
+      } as any);
+      if (error) { toast.error('Erro ao registrar pagamento'); return; }
 
-    // Lança também em transactions p/ aparecer no Faturamento
-    const { error: txError } = await supabase.from('transactions').insert({
-      date: dateOnly,
-      type: 'receita',
-      category: 'Comissão Semanal',
-      client_id: clientId,
-      amount,
-      description: `Pagamento de comissão — ${client?.name || 'cliente'}`,
-    } as any);
-    if (txError) {
-      toast.error('Pagamento salvo, mas falhou ao lançar no Faturamento: ' + txError.message);
+      // Lança também em transactions p/ aparecer no Faturamento
+      const { error: txError } = await supabase.from('transactions').insert({
+        date: dateOnly,
+        type: 'receita',
+        category: 'Comissão Semanal',
+        client_id: clientId,
+        amount,
+        description: `Pagamento de comissão — ${client?.name || 'cliente'}`,
+      } as any);
+      if (txError) {
+        toast.error('Pagamento salvo, mas falhou ao lançar no Faturamento: ' + txError.message);
+      }
+
+      logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: dateISO } });
+
+      const clientDailyComms = commissions
+        .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
+        .sort((a, b) => parseDateLocal(a.date).getTime() - parseDateLocal(b.date).getTime());
+
+      let remaining = amount;
+      for (const comm of clientDailyComms) {
+        if (remaining <= 0) break;
+        const pendente = comm.valorPendente || (comm.amount - (comm.valorPago || 0));
+        const payThis = Math.min(remaining, pendente);
+        const newPago = (comm.valorPago || 0) + payThis;
+        const newPendente = comm.amount - newPago;
+        const newStatus = newPendente <= 0 ? 'pago' : newPago > 0 ? 'parcial' : 'pendente';
+
+        await supabase.from('commissions').update({
+          valor_pago: newPago,
+          valor_pendente: Math.max(0, newPendente),
+          status: newStatus,
+        } as any).eq('id', comm.id);
+
+        remaining -= payThis;
+      }
+
+      toast.success('Pagamento registrado e lançado no Faturamento!');
+      setPaidAmount(''); setPaidDate(new Date()); setShowPaidForm(null);
+      fetchCommissions();
+    } finally {
+      paymentValidationInFlight.current = false;
+      setValidatingPaymentClientId(null);
     }
-
-    logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: dateISO } });
-
-    const clientDailyComms = commissions
-      .filter(c => c.clientId === clientId && (c.type === 'daily' || c.type === 'weekly_billing') && (c.status === 'pendente' || c.status === 'parcial'))
-      .sort((a, b) => parseDateLocal(a.date).getTime() - parseDateLocal(b.date).getTime());
-
-    let remaining = amount;
-    for (const comm of clientDailyComms) {
-      if (remaining <= 0) break;
-      const pendente = comm.valorPendente || (comm.amount - (comm.valorPago || 0));
-      const payThis = Math.min(remaining, pendente);
-      const newPago = (comm.valorPago || 0) + payThis;
-      const newPendente = comm.amount - newPago;
-      const newStatus = newPendente <= 0 ? 'pago' : newPago > 0 ? 'parcial' : 'pendente';
-
-      await supabase.from('commissions').update({
-        valor_pago: newPago,
-        valor_pendente: Math.max(0, newPendente),
-        status: newStatus,
-      } as any).eq('id', comm.id);
-
-      remaining -= payThis;
-    }
-
-    toast.success('Pagamento registrado e lançado no Faturamento!');
-    setPaidAmount(''); setPaidDate(new Date()); setShowPaidForm(null);
-    fetchCommissions();
   };
 
   const handleGenerateWeeklyBilling = async (clientId: string) => {
@@ -1291,6 +1301,7 @@ const Clients: React.FC = () => {
               spendByDay={spendByClient[c.id] || []}
               isAdmin={isAdmin}
               showPayForm={showPaidForm === c.id}
+              isSubmittingPayment={validatingPaymentClientId === c.id}
               paidAmount={paidAmount}
               setPaidAmount={setPaidAmount}
               paidDate={paidDate}

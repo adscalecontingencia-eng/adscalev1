@@ -49,6 +49,7 @@ interface Props {
   spendByDay: { date: string; spend: number }[];
   isAdmin: boolean;
   showPayForm: boolean;
+  isSubmittingPayment?: boolean;
   paidAmount: string;
   setPaidAmount: (s: string) => void;
   paidDate: Date;
@@ -154,6 +155,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     spendByDay,
     isAdmin,
     showPayForm,
+    isSubmittingPayment = false,
     paidAmount,
     setPaidAmount,
     paidDate,
@@ -343,9 +345,10 @@ export const ClientCard: React.FC<Props> = (props) => {
             />
             <button
               onClick={onSubmitPay}
+              disabled={isSubmittingPayment}
               className="bg-success text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap"
             >
-              Registrar
+              {isSubmittingPayment ? 'Registrando...' : 'Registrar'}
             </button>
           </motion.div>
         )}
