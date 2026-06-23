@@ -658,6 +658,62 @@ export type Database = {
           },
         ]
       }
+      download_audit_log: {
+        Row: {
+          created_at: string
+          download_released: boolean
+          error_message: string | null
+          file_path: string | null
+          id: string
+          ip: string | null
+          marketplace_order_id: string | null
+          product_id: string | null
+          requested_by: string | null
+          signed_url_expires_at: string | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          download_released?: boolean
+          error_message?: string | null
+          file_path?: string | null
+          id?: string
+          ip?: string | null
+          marketplace_order_id?: string | null
+          product_id?: string | null
+          requested_by?: string | null
+          signed_url_expires_at?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          download_released?: boolean
+          error_message?: string | null
+          file_path?: string | null
+          id?: string
+          ip?: string | null
+          marketplace_order_id?: string | null
+          product_id?: string | null
+          requested_by?: string | null
+          signed_url_expires_at?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "download_audit_log_marketplace_order_id_fkey"
+            columns: ["marketplace_order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1959,6 +2015,48 @@ export type Database = {
           status?: string
           updated_at?: string
           whatsapp_phone?: string | null
+        }
+        Relationships: []
+      }
+      payment_admin_actions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          new_state: Json | null
+          performed_by: string | null
+          performed_by_email: string | null
+          previous_state: Json | null
+          reason: string | null
+          result: Json | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          new_state?: Json | null
+          performed_by?: string | null
+          performed_by_email?: string | null
+          previous_state?: Json | null
+          reason?: string | null
+          result?: Json | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          new_state?: Json | null
+          performed_by?: string | null
+          performed_by_email?: string | null
+          previous_state?: Json | null
+          reason?: string | null
+          result?: Json | null
+          target_id?: string
+          target_type?: string
         }
         Relationships: []
       }
