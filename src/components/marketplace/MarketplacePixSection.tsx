@@ -71,8 +71,9 @@ export default function MarketplacePixSection() {
             <span className="text-xs text-muted-foreground">Saldo:</span>
             <span className="text-sm font-bold text-foreground">{fmtBRL(balance)}</span>
             <Button size="sm" variant="outline" className="h-7 text-xs ml-2" onClick={() => setWalletOpen(true)}>
-              Carteira
+              Adicionar saldo
             </Button>
+            <a href="#/minha-carteira" className="text-xs text-primary hover:underline ml-1">Histórico</a>
           </div>
         )}
       </div>
