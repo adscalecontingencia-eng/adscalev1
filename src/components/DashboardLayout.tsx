@@ -16,6 +16,7 @@ const adminLinks = [
   { path: '/financial', label: 'Financeiro', icon: DollarSign, adminOnly: false },
   { path: '/admin-marketplace', label: 'Marketplace', icon: ShoppingBag, adminOnly: false },
   { path: '/admin-payments', label: 'Pagamentos', icon: Wallet, adminOnly: false },
+  { path: '/admin-audit', label: 'Auditoria Pagamentos', icon: Shield, adminOnly: true },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon, adminOnly: false },
   { path: '/meta-connections', label: 'Conexões Meta', icon: Plug, adminOnly: false },
   { path: '/meta-apps', label: 'Aplicativos Meta', icon: AppWindow, adminOnly: true },
