@@ -35,6 +35,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import CheckoutPixTest from "./pages/CheckoutPixTest";
 import MyPixOrders from "./pages/MyPixOrders";
+import MyWallet from "./pages/MyWallet";
+import AdminPayments from "./pages/AdminPayments";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
