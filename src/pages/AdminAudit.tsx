@@ -173,6 +173,7 @@ export default function AdminAudit() {
           <TabsTrigger value="downloads">Downloads ({filteredDownloads.length})</TabsTrigger>
           <TabsTrigger value="actions">Ações Admin ({filteredActions.length})</TabsTrigger>
           <TabsTrigger value="orders">Gerenciar Compras ({filteredOrders.length})</TabsTrigger>
+          <TabsTrigger value="deposits">Gerenciar Depósitos ({deposits.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="downloads">
