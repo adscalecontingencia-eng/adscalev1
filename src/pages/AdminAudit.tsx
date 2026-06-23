@@ -292,6 +292,44 @@ export default function AdminAudit() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="deposits">
+          <Card>
+            <CardHeader><CardTitle>Depósitos — ações administrativas</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-muted-foreground border-b">
+                  <tr>
+                    <th className="p-2">Quando</th>
+                    <th className="p-2">ID</th>
+                    <th className="p-2">User</th>
+                    <th className="p-2">Valor</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2">Creditado</th>
+                    <th className="p-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deposits.map((r) => (
+                    <tr key={r.id} className="border-b border-border/50">
+                      <td className="p-2 whitespace-nowrap">{fmtDate(r.created_at)}</td>
+                      <td className="p-2 font-mono text-xs">{r.id.slice(0, 8)}</td>
+                      <td className="p-2 font-mono text-xs">{r.user_id?.slice(0, 8) ?? "—"}</td>
+                      <td className="p-2">{fmtBRL(Number(r.amount))}</td>
+                      <td className="p-2"><Badge variant="outline">{r.status}</Badge></td>
+                      <td className="p-2 text-xs">{fmtDate(r.credited_at)}</td>
+                      <td className="p-2 flex flex-wrap gap-1">
+                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="reprocess" label="Reprocessar" onDone={load} />
+                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="mark_credited" label="Marcar Creditado" onDone={load} />
+                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="refund" label="Estornar" onDone={load} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
