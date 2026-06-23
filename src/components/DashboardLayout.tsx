@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import {
-  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon, Shield, Handshake, ShoppingBag, AppWindow
+  LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, Plug, BarChart3, Network, Ban, Activity, ImageIcon, Shield, Handshake, ShoppingBag, AppWindow, Wallet
 } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -15,6 +15,7 @@ const adminLinks = [
   { path: '/partners', label: 'Parceiros', icon: Handshake, adminOnly: false },
   { path: '/financial', label: 'Financeiro', icon: DollarSign, adminOnly: false },
   { path: '/admin-marketplace', label: 'Marketplace', icon: ShoppingBag, adminOnly: false },
+  { path: '/admin-payments', label: 'Pagamentos', icon: Wallet, adminOnly: false },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon, adminOnly: false },
   { path: '/meta-connections', label: 'Conexões Meta', icon: Plug, adminOnly: false },
   { path: '/meta-apps', label: 'Aplicativos Meta', icon: AppWindow, adminOnly: true },

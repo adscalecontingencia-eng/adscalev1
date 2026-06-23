@@ -2487,6 +2487,57 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          created_at: string
+          data_id: string | null
+          event_key: string
+          external_reference: string | null
+          headers: Json | null
+          http_status: number | null
+          id: string
+          payload: Json | null
+          provider: string
+          request_id: string | null
+          response: Json | null
+          signature_valid: boolean | null
+          status: string | null
+          topic: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_id?: string | null
+          event_key: string
+          external_reference?: string | null
+          headers?: Json | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          provider?: string
+          request_id?: string | null
+          response?: Json | null
+          signature_valid?: boolean | null
+          status?: string | null
+          topic?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_id?: string | null
+          event_key?: string
+          external_reference?: string | null
+          headers?: Json | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          provider?: string
+          request_id?: string | null
+          response?: Json | null
+          signature_valid?: boolean | null
+          status?: string | null
+          topic?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_dispatch_log: {
         Row: {
           billing_id: string | null
