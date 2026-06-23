@@ -94,6 +94,7 @@ export default function AdminAudit() {
   const [downloads, setDownloads] = useState<any[]>([]);
   const [actions, setActions] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
@@ -105,12 +106,14 @@ export default function AdminAudit() {
       let dq = supabase.from("download_audit_log").select("*").order("created_at", { ascending: false }).limit(500);
       let aq = supabase.from("payment_admin_actions").select("*").order("created_at", { ascending: false }).limit(500);
       let oq = supabase.from("marketplace_orders").select("id, user_id, customer_email, amount, status, download_released, created_at, product_id, external_reference").order("created_at", { ascending: false }).limit(300);
-      if (from) { dq = dq.gte("created_at", from); aq = aq.gte("created_at", from); oq = oq.gte("created_at", from); }
-      if (to) { const end = `${to}T23:59:59`; dq = dq.lte("created_at", end); aq = aq.lte("created_at", end); oq = oq.lte("created_at", end); }
-      const [d, a, o] = await Promise.all([dq, aq, oq]);
+      let depQ = supabase.from("wallet_deposits").select("id, user_id, amount, status, credited_at, external_reference, mercado_pago_payment_id, created_at").order("created_at", { ascending: false }).limit(300);
+      if (from) { dq = dq.gte("created_at", from); aq = aq.gte("created_at", from); oq = oq.gte("created_at", from); depQ = depQ.gte("created_at", from); }
+      if (to) { const end = `${to}T23:59:59`; dq = dq.lte("created_at", end); aq = aq.lte("created_at", end); oq = oq.lte("created_at", end); depQ = depQ.lte("created_at", end); }
+      const [d, a, o, dep] = await Promise.all([dq, aq, oq, depQ]);
       setDownloads(d.data ?? []);
       setActions(a.data ?? []);
       setOrders(o.data ?? []);
+      setDeposits(dep.data ?? []);
     } finally {
       setLoading(false);
     }
