@@ -85,6 +85,23 @@ Deno.serve(async (req) => {
 
     if (!externalReference && !mpOrderId) return json({ ok: true, ignored: true });
 
+    // Wallet deposits use prefix "dep-"
+    if (externalReference?.startsWith("dep-")) {
+      const tx2 = mpOrder?.transactions?.payments?.[0] ?? {};
+      const status2 = mpPayment?.status ?? mpOrder?.status ?? tx2?.status;
+      if (status2 === "approved") {
+        const mpPaymentId = mpPayment?.id?.toString() ?? tx2?.id?.toString() ?? null;
+        const { data: res } = await supabase.rpc("credit_wallet_from_deposit", {
+          _external_reference: externalReference,
+          _mp_payment_id: mpPaymentId,
+          _raw: mpOrder ?? mpPayment,
+        });
+        return json({ ok: true, deposit: res });
+      }
+      await supabase.from("wallet_deposits").update({ status: status2, raw_response: mpOrder ?? mpPayment }).eq("external_reference", externalReference);
+      return json({ ok: true, deposit_pending: true });
+    }
+
     const query = supabase.from("marketplace_orders").select("*");
     const { data: order } = externalReference
       ? await query.eq("external_reference", externalReference).maybeSingle()
