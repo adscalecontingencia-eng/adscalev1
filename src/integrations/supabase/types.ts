@@ -2367,6 +2367,126 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_deposits: {
+        Row: {
+          amount: number
+          created_at: string
+          credited_at: string | null
+          external_reference: string
+          id: string
+          mercado_pago_order_id: string | null
+          mercado_pago_payment_id: string | null
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
+          pix_ticket_url: string | null
+          raw_response: Json | null
+          status: string
+          status_detail: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credited_at?: string | null
+          external_reference: string
+          id?: string
+          mercado_pago_order_id?: string | null
+          mercado_pago_payment_id?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          pix_ticket_url?: string | null
+          raw_response?: Json | null
+          status?: string
+          status_detail?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credited_at?: string | null
+          external_reference?: string
+          id?: string
+          mercado_pago_order_id?: string | null
+          mercado_pago_payment_id?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          pix_ticket_url?: string | null
+          raw_response?: Json | null
+          status?: string
+          status_detail?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_dispatch_log: {
         Row: {
           billing_id: string | null
@@ -2411,6 +2531,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_wallet_from_deposit: {
+        Args: {
+          _external_reference: string
+          _mp_payment_id: string
+          _raw: Json
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -2434,6 +2562,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      purchase_with_wallet: {
+        Args: { _product_id: string; _quantity?: number }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
