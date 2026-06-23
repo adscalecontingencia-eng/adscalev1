@@ -15,6 +15,7 @@ const adminLinks = [
   { path: '/partners', label: 'Parceiros', icon: Handshake, adminOnly: false },
   { path: '/financial', label: 'Financeiro', icon: DollarSign, adminOnly: false },
   { path: '/admin-marketplace', label: 'Marketplace', icon: ShoppingBag, adminOnly: false },
+  { path: '/admin-payments', label: 'Pagamentos', icon: Wallet, adminOnly: false },
   { path: '/support', label: 'Suporte', icon: HeadphonesIcon, adminOnly: false },
   { path: '/meta-connections', label: 'Conexões Meta', icon: Plug, adminOnly: false },
   { path: '/meta-apps', label: 'Aplicativos Meta', icon: AppWindow, adminOnly: true },
