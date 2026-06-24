@@ -38,7 +38,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
 import { useWallet } from "@/hooks/useWallet";
-import adLogoAsset from "@/assets/ad-logo.png.asset.json";
+import adLogoUrl from "@/assets/ad-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -308,7 +308,7 @@ const Marketplace: React.FC = () => {
             aria-label="AD SCALE"
           >
             <img
-              src={adLogoAsset.url}
+              src={adLogoUrl}
               alt=""
               aria-hidden="true"
               className="h-7 sm:h-9 md:h-10 w-auto object-contain select-none"

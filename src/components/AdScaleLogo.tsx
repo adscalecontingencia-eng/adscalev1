@@ -1,5 +1,5 @@
 import React from "react";
-import adLogoAsset from "@/assets/ad-logo.png.asset.json";
+import adLogoUrl from "@/assets/ad-logo.png";
 
 type Props = {
   /** Height in px. Width auto-scales. */
@@ -27,7 +27,7 @@ const AdScaleLogo: React.FC<Props> = ({
   if (variant === "mark") {
     return (
       <img
-        src={adLogoAsset.url}
+        src={adLogoUrl}
         alt="AD SCALE"
         height={size}
         style={{ height: size, width: "auto", ...glowStyle }}
@@ -49,7 +49,7 @@ const AdScaleLogo: React.FC<Props> = ({
       aria-label="AD SCALE"
     >
       <img
-        src={adLogoAsset.url}
+        src={adLogoUrl}
         alt=""
         aria-hidden="true"
         loading="eager"
