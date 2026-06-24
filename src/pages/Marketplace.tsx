@@ -38,7 +38,6 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
 import { useWallet } from "@/hooks/useWallet";
-import adLogoAsset from "@/assets/ad-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -303,20 +302,11 @@ const Marketplace: React.FC = () => {
           {/* Logo: AD symbol + SCALE wordmark, fully transparent */}
           <Link
             to="/marketplace"
-            className="flex items-center gap-1 sm:gap-1.5 notranslate shrink-0 leading-none"
+            className="notranslate shrink-0 leading-none"
             translate="no"
             aria-label="AD SCALE"
           >
-            <img
-              src={adLogoAsset.url}
-              alt=""
-              aria-hidden="true"
-              className="h-7 sm:h-9 md:h-10 w-auto object-contain select-none"
-              draggable={false}
-            />
-            <span className="font-display font-black tracking-tight text-foreground text-xl sm:text-2xl md:text-3xl leading-none translate-y-[6px] sm:translate-y-[8px]">
-              SCALE
-            </span>
+            <AdScaleLogo size={typeof window !== "undefined" && window.innerWidth < 640 ? 28 : window.innerWidth < 768 ? 36 : 40} />
           </Link>
 
 
