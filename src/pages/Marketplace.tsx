@@ -300,18 +300,25 @@ const Marketplace: React.FC = () => {
       {/* Header público */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-20 flex items-center gap-3 sm:gap-6">
-          {/* Logo: AD symbol + SCALE wordmark (transparent, unified) */}
-          <Link to="/marketplace" className="flex items-center gap-1 notranslate shrink-0" translate="no">
+          {/* Logo: AD symbol + SCALE wordmark, fully transparent */}
+          <Link
+            to="/marketplace"
+            className="flex items-center gap-1 sm:gap-1.5 notranslate shrink-0 leading-none"
+            translate="no"
+            aria-label="AD SCALE"
+          >
             <img
               src={adLogoAsset.url}
-              alt="AD"
-              className="h-10 sm:h-12 w-auto object-contain -my-1"
+              alt=""
+              aria-hidden="true"
+              className="h-7 sm:h-9 md:h-10 w-auto object-contain select-none"
               draggable={false}
             />
-            <span className="font-display font-black tracking-tight text-foreground text-2xl sm:text-3xl leading-none">
+            <span className="font-display font-black tracking-tight text-foreground text-xl sm:text-2xl md:text-3xl leading-none">
               SCALE
             </span>
           </Link>
+
 
 
 
