@@ -1,5 +1,5 @@
 import React from "react";
-import adLogoAsset from "@/assets/ad-logo.png.asset.json";
+import adLogoUrl from "@/assets/ad-logo.png";
 
 type Props = {
   /** Height in px. Width auto-scales. */
