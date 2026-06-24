@@ -24,7 +24,8 @@ const Login: React.FC = () => {
   React.useEffect(() => {
     if (!loading && isAuthenticated && user) {
       if (next === 'marketplace') return navigate('/marketplace');
-      const dest = user.role === 'client' ? '/client-dashboard'
+      const dest = user.role === 'marketplace_client' ? '/marketplace'
+        : user.role === 'client' ? '/client-dashboard'
         : user.role === 'partner' ? '/partner-dashboard'
         : '/dashboard';
       navigate(dest);

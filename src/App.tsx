@@ -21,6 +21,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import NotificationSettings from "./pages/NotificationSettings";
 import Signup from "./pages/Signup";
+import MarketplaceSignup from "./pages/MarketplaceSignup";
 import AccessLogs from "./pages/AccessLogs";
 import AuditLog from "./pages/AuditLog";
 import ClientsAuthAudit from "./pages/ClientsAuthAudit";
@@ -76,12 +77,14 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/completar-cadastro" element={<CompleteSignup />} />
+              <Route path="/marketplace-signup" element={<MarketplaceSignup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
-              <Route path="/minhas-compras-pix" element={<MyPixOrders />} />
+              <Route path="/minhas-compras-pix" element={<ProtectedRoute><MyPixOrders /></ProtectedRoute>} />
               <Route path="/minha-carteira" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
+              <Route path="/meus-pedidos-marketplace" element={<ProtectedRoute><MyPixOrders /></ProtectedRoute>} />
               <Route path="/admin-payments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminPayments /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AdminAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/meus-pedidos" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />

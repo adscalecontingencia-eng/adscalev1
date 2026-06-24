@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'admin' | 'support' | 'client' | 'partner';
+export type UserRole = 'admin' | 'support' | 'client' | 'partner' | 'marketplace_client';
 
 export interface User {
   id: string;
@@ -79,6 +79,17 @@ async function fetchUserProfile(authUserId: string, email: string): Promise<User
     if (partnerUser) {
       return { id: partnerUser.id, email: partnerUser.email, name: partnerUser.name, role: 'partner' };
     }
+  }
+
+  if (role === 'marketplace_client') {
+    const { data: authData } = await supabase.auth.getUser();
+    const meta = (authData?.user?.user_metadata || {}) as any;
+    return {
+      id: authUserId,
+      email,
+      name: meta.name || email.split('@')[0],
+      role: 'marketplace_client',
+    };
   }
 
   return null;
