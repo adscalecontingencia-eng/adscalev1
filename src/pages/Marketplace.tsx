@@ -157,6 +157,8 @@ const Marketplace: React.FC = () => {
   const [navOpen, setNavOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [priceMax, setPriceMax] = useState<number>(0);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const { balance } = useWallet();
 
 
 
