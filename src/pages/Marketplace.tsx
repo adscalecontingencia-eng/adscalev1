@@ -25,12 +25,20 @@ import {
   Menu,
   X,
   SlidersHorizontal,
+  Plus,
+  Home,
+  Wifi,
+  TrendingUp as TrendingUpIcon,
+  ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
 import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
+import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
+import { useWallet } from "@/hooks/useWallet";
+import adLogoAsset from "@/assets/ad-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -38,6 +46,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 interface Product {
