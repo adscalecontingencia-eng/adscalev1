@@ -50,8 +50,10 @@ const AdScaleLogo: React.FC<Props> = ({
         src={adLogoAsset.url}
         alt=""
         aria-hidden="true"
-        style={{ height: size, width: "auto" }}
-        className="object-contain select-none"
+        loading="eager"
+        decoding="sync"
+        style={{ height: size, width: size * 1.4, minWidth: size * 1.2 }}
+        className="object-contain shrink-0 select-none"
         draggable={false}
       />
       <span
