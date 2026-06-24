@@ -314,7 +314,7 @@ const Marketplace: React.FC = () => {
               className="h-7 sm:h-9 md:h-10 w-auto object-contain select-none"
               draggable={false}
             />
-            <span className="font-display font-black tracking-tight text-foreground text-xl sm:text-2xl md:text-3xl leading-none">
+            <span className="font-display font-black tracking-tight text-foreground text-xl sm:text-2xl md:text-3xl leading-none translate-y-[6px] sm:translate-y-[8px]">
               SCALE
             </span>
           </Link>
