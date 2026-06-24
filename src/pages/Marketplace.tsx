@@ -298,28 +298,98 @@ const Marketplace: React.FC = () => {
 
 
       {/* Header público */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 ">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center gap-3 sm:gap-6">
-          <Link to="/" className="text-primary flex items-center gap-2 notranslate shrink-0" translate="no">
-            <AdScaleLogo size={22} />
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-20 flex items-center gap-3 sm:gap-6">
+          {/* Logo: AD image + SCALE text */}
+          <Link to="/marketplace" className="flex items-center gap-2 notranslate shrink-0" translate="no">
+            <img
+              src={adLogoAsset.url}
+              alt="AD"
+              className="h-9 sm:h-11 w-auto object-contain"
+              draggable={false}
+            />
+            <span className="font-display font-black tracking-tight text-foreground text-xl sm:text-2xl leading-none">
+              SCALE
+            </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
-            <Link to="/marketplace" className="px-3 py-1.5 rounded-md text-foreground bg-primary/10">
-              <ShoppingCart size={14} className="inline mr-1" /> Marketplace
-            </Link>
-            <button type="button" onClick={() => scrollToId("catalogo")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Catálogo</button>
-            <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Benefícios</button>
-            <button type="button" onClick={() => scrollToId("depoimentos")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">Depoimentos</button>
-            <button type="button" onClick={() => scrollToId("faq")} className="px-3 py-1.5 rounded-md hover:text-foreground transition-colors">FAQ</button>
+
+          {/* Nav */}
+          <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground mx-auto">
+            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
+              <Home size={15} /> Início
+            </button>
+            <button type="button" onClick={() => scrollToId("catalogo")} className="px-3 py-2 rounded-lg text-foreground bg-primary/10 border border-primary/20 transition-colors inline-flex items-center gap-1.5">
+              <ShoppingCart size={15} /> Produtos
+            </button>
+            <button type="button" onClick={() => { setActiveSource("all"); setSearch("proxy"); scrollToId("catalogo"); }} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
+              <Wifi size={15} /> Proxies
+            </button>
+            <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
+              <TrendingUpIcon size={15} /> Ativos c/ Gastos
+            </button>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
+              <MessageCircle size={15} /> Contato
+            </a>
           </nav>
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+
+          {/* Right cluster: balance + add deposit + profile */}
+          <div className="ml-auto md:ml-0 flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pedidos")} className="px-2 sm:px-3">
-                  <Package size={14} className="sm:mr-1" />
-                  <span className="hidden sm:inline">Meus pedidos</span>
-                </Button>
-                <Button size="sm" onClick={goPainel}>Painel</Button>
+                {/* Wallet balance pill with deposit button */}
+                <button
+                  type="button"
+                  onClick={() => setWalletOpen(true)}
+                  className="group flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors pl-1 pr-3 sm:pr-4 py-1"
+                  aria-label="Adicionar saldo"
+                >
+                  <span className="grid place-items-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground shadow-md shadow-primary/30 group-hover:scale-105 transition-transform">
+                    <Plus size={16} strokeWidth={3} />
+                  </span>
+                  <span className="font-semibold text-foreground text-xs sm:text-sm tabular-nums">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(balance || 0)}
+                  </span>
+                </button>
+
+                {/* Profile pill */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="hidden sm:flex items-center gap-2 rounded-full border border-border/70 bg-secondary/40 hover:bg-secondary/70 transition-colors pl-1 pr-3 py-1"
+                    >
+                      <span className="grid place-items-center h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-bold uppercase">
+                        {(user?.name || "U")
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")}
+                      </span>
+                      <span className="flex flex-col items-start leading-tight">
+                        <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                          {user?.name || "Usuário"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Meu perfil</span>
+                      </span>
+                      <ChevronDownIcon size={14} className="text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="text-xs">{user?.email}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setWalletOpen(true)}>
+                      <Plus size={14} className="mr-2" /> Adicionar saldo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/minha-carteira")}>
+                      <Package size={14} className="mr-2" /> Minha carteira
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>
+                      <Package size={14} className="mr-2" /> Meus pedidos
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={goPainel}>Ir para o painel</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
@@ -327,7 +397,7 @@ const Marketplace: React.FC = () => {
                   <LogIn size={14} className="sm:mr-1" />
                   <span className="hidden sm:inline">Entrar</span>
                 </Button>
-                <Button size="sm" onClick={() => navigate("/signup")} className="px-2.5 sm:px-3">
+                <Button size="sm" onClick={() => navigate("/marketplace-signup")} className="px-2.5 sm:px-3">
                   <UserPlus size={14} className="sm:mr-1" />
                   <span>Cadastrar</span>
                 </Button>
@@ -346,6 +416,10 @@ const Marketplace: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Wallet deposit modal */}
+      <WalletDepositModal open={walletOpen} onOpenChange={setWalletOpen} />
+
 
       {/* Mobile nav drawer */}
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
