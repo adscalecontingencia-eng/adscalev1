@@ -300,18 +300,23 @@ const Marketplace: React.FC = () => {
       {/* Header público */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-20 flex items-center gap-3 sm:gap-6">
-          {/* Logo: AD image + SCALE text */}
-          <Link to="/marketplace" className="flex items-center gap-2 notranslate shrink-0" translate="no">
-            <img
-              src={adLogoAsset.url}
-              alt="AD"
-              className="h-9 sm:h-11 w-auto object-contain"
-              draggable={false}
-            />
-            <span className="font-display font-black tracking-tight text-foreground text-xl sm:text-2xl leading-none">
-              SCALE
+          {/* Logo: AD symbol tile + SCALE wordmark */}
+          <Link to="/marketplace" className="flex items-center notranslate shrink-0 group" translate="no">
+            <span className="flex items-center bg-black rounded-l-lg overflow-hidden h-10 sm:h-12 pl-2 pr-1.5 border border-white/10 border-r-0">
+              <img
+                src={adLogoAsset.url}
+                alt="AD"
+                className="h-8 sm:h-10 w-auto object-contain"
+                draggable={false}
+              />
+            </span>
+            <span className="flex items-center bg-black rounded-r-lg h-10 sm:h-12 pr-3 pl-1 border border-white/10 border-l-0">
+              <span className="font-display font-black tracking-tight text-white text-lg sm:text-2xl leading-none">
+                SCALE
+              </span>
             </span>
           </Link>
+
 
           {/* Nav */}
           <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground mx-auto">
