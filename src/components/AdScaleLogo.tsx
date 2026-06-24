@@ -38,11 +38,13 @@ const AdScaleLogo: React.FC<Props> = ({
     );
   }
 
-  // Full wordmark: AD symbol + SCALE text, scaled together off `size` (height).
+  // Full wordmark: large AD symbol with SCALE baseline-aligned to its bottom.
+  const symbolHeight = size;
+  const symbolWidth = size * 1.4;
   return (
     <span
-      className={`inline-flex items-center notranslate leading-none ${className}`}
-      style={{ height: size, gap: Math.max(2, size * 0.05), ...glowStyle }}
+      className={`inline-flex items-end notranslate leading-none ${className}`}
+      style={{ height: size, gap: Math.max(4, size * 0.12), ...glowStyle }}
       translate="no"
       aria-label="AD SCALE"
     >
@@ -52,21 +54,26 @@ const AdScaleLogo: React.FC<Props> = ({
         aria-hidden="true"
         loading="eager"
         decoding="sync"
-        style={{ height: size, width: size * 1.4, minWidth: size * 1.2 }}
-        className="object-contain shrink-0 select-none"
+        style={{
+          height: symbolHeight,
+          width: symbolWidth,
+          minWidth: symbolWidth,
+        }}
+        className="object-contain shrink-0 select-none block"
         draggable={false}
       />
       <span
         className="font-display font-black tracking-tight text-foreground leading-none"
         style={{
-          fontSize: size * 0.78,
-          transform: `translateY(${size * 0.18}px)`,
+          fontSize: size * 0.55,
+          paddingBottom: size * 0.08,
         }}
       >
         SCALE
       </span>
     </span>
   );
+
 };
 
 export default AdScaleLogo;
