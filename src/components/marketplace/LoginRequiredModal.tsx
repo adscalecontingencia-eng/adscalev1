@@ -28,11 +28,11 @@ export default function LoginRequiredModal({ open, onOpenChange, redirectTo }: P
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 mt-2">
-          <Button onClick={() => go("/login")} className="w-full justify-center">
+          <Button onClick={() => go("/login?next=marketplace")} className="w-full justify-center">
             <LogIn className="w-4 h-4 mr-2" /> Fazer Login
           </Button>
-          <Button variant="outline" onClick={() => go("/signup")} className="w-full justify-center">
-            <UserPlus className="w-4 h-4 mr-2" /> Criar Conta
+          <Button variant="outline" onClick={() => go("/marketplace-signup")} className="w-full justify-center">
+            <UserPlus className="w-4 h-4 mr-2" /> Criar Conta Marketplace
           </Button>
         </div>
       </DialogContent>
