@@ -38,12 +38,22 @@ Deno.serve(async (req) => {
 
     // Resolve user email/name
     const { data: userInfo } = await admin.auth.admin.getUserById(userId);
-    const email = body?.customer_email || userInfo?.user?.email || "user@example.com";
+    const rawEmail = body?.customer_email || userInfo?.user?.email || "user@example.com";
     const name =
       body?.customer_name ||
       (userInfo?.user?.user_metadata as any)?.name ||
       (userInfo?.user?.user_metadata as any)?.full_name ||
-      email.split("@")[0];
+      rawEmail.split("@")[0];
+
+    // Sandbox do Mercado Pago exige email terminando em @testuser.com.
+    // Detectamos pelo prefixo do access token (TEST-...) e remapeamos o domínio,
+    // mantendo o local-part para rastreabilidade.
+    const isSandbox = (accessToken || "").startsWith("TEST-");
+    const localPart = (rawEmail.split("@")[0] || "user")
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, "");
+    const email = isSandbox ? `${localPart || "user"}@testuser.com` : rawEmail;
+
 
     const externalReference = `dep-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();
