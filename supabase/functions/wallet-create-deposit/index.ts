@@ -60,10 +60,22 @@ function normalizeLivePayerEmail(email: string) {
   return clean;
 }
 
+function maskToken(t?: string | null) {
+  if (!t) return "(missing)";
+  return `${t.slice(0, 8)}…${t.slice(-4)} (len=${t.length})`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const reqId = crypto.randomUUID().slice(0, 8);
+  const log = (...args: unknown[]) => console.log(`[wallet-deposit ${reqId}]`, ...args);
   try {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
+    log("start", {
+      mp_env: Deno.env.get("MERCADO_PAGO_ENV") || "(unset)",
+      token: maskToken(accessToken),
+      token_prefix: accessToken ? accessToken.split("-")[0] : null,
+    });
     if (!accessToken) return json({ error: "MP token missing" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -73,15 +85,16 @@ Deno.serve(async (req) => {
     const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: claims } = await anon.auth.getClaims(token);
     const userId = claims?.claims?.sub;
+    log("auth", { userId });
     if (!userId) return json({ error: "Unauthenticated" }, 401);
 
     const body = (await req.json()) as { amount?: number; customer_name?: string; customer_email?: string };
     const amount = Number(body?.amount ?? 0);
+    log("input", { amount, has_email: !!body?.customer_email, has_name: !!body?.customer_name });
     if (!(amount > 0) || amount < 1 || amount > 100000) return json({ error: "Valor inválido" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Resolve user email/name
     const { data: userInfo } = await admin.auth.admin.getUserById(userId);
     const rawEmail = body?.customer_email || userInfo?.user?.email || "user@example.com";
     const name =
@@ -91,12 +104,10 @@ Deno.serve(async (req) => {
       rawEmail.split("@")[0];
 
     const isSandbox = isMercadoPagoTestMode();
-
-    // Em sandbox usamos email fixo @testuser.com (MP aceita qualquer test buyer);
-    // criar test_user via /users/test exige caller produtivo e falha com credenciais de teste.
     const payerEmail = isSandbox
       ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
       : normalizeLivePayerEmail(rawEmail);
+    log("payer", { isSandbox, payerEmail, name });
 
     const externalReference = `dep-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();
@@ -111,6 +122,7 @@ Deno.serve(async (req) => {
       payer: { email: payerEmail, first_name: isSandbox ? "APRO" : name },
       transactions: { payments: [{ amount: amountStr, payment_method: { id: "pix", type: "bank_transfer" } }] },
     };
+    log("MP request →", { url: "https://api.mercadopago.com/v1/orders", idempotencyKey, payload: mpPayload });
 
     const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
@@ -121,7 +133,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify(mpPayload),
     });
-    const mpData = await mpRes.json();
+    const mpData = await mpRes.json().catch(() => ({}));
+    log("MP response ←", { status: mpRes.status, ok: mpRes.ok, body: mpData });
+
     if (!mpRes.ok) {
       console.error("MP error", mpRes.status, mpData);
       return json({ error: mercadoPagoErrorMessage(mpData), details: mpData }, 502);
