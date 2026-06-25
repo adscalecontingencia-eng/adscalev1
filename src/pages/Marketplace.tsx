@@ -186,8 +186,31 @@ const Marketplace: React.FC = () => {
       });
 
       setProducts(
-        ((prods as any[]) || []).map((p) => ({ ...p, stock_available: stockMap[p.id] ?? 0 } as Product)),
+        ((prods as any[]) || [])
+          .filter((p) => !/proxy/i.test(`${p.category} ${p.subcategory ?? ""} ${p.name}`))
+          .map((p) => ({ ...p, stock_available: stockMap[p.id] ?? 0 } as Product)),
       );
+
+      // Load marketplace assets (BMs com gastos)
+      const { data: aRows } = await supabase
+        .from("marketplace_assets")
+        .select("*")
+        .eq("status", "active")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (aRows && aRows.length > 0) {
+        const ids = aRows.map((a: any) => a.id);
+        const { data: accRows } = await supabase
+          .from("marketplace_asset_accounts")
+          .select("*")
+          .in("asset_id", ids)
+          .order("account_number", { ascending: true });
+        const accByAsset: Record<string, any[]> = {};
+        (accRows ?? []).forEach((r: any) => {
+          (accByAsset[r.asset_id] ||= []).push(r);
+        });
+        setAssets(aRows.map((a: any) => ({ ...a, accounts: accByAsset[a.id] ?? [] })) as MarketplaceAsset[]);
+      }
       setLoading(false);
     })();
   }, []);
