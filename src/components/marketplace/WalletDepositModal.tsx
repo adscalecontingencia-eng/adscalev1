@@ -23,7 +23,8 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
   const { balance, refresh } = useWallet();
   const [amount, setAmount] = useState<string>(initialAmount ? String(initialAmount) : "200");
   const [creating, setCreating] = useState(false);
-  const [pix, setPix] = useState<{ deposit_id: string; pix_qr_code: string | null; pix_qr_code_base64: string | null; pix_ticket_url: string | null; amount: number } | null>(null);
+  const [pix, setPix] = useState<{ deposit_id: string; pix_qr_code: string | null; pix_qr_code_base64: string | null; pix_ticket_url: string | null; amount: number; test_mode?: boolean } | null>(null);
+  const [simulating, setSimulating] = useState(false);
   const [status, setStatus] = useState<string>("pending");
   const [history, setHistory] = useState<Array<{ id: string; type: string; amount: number; description: string | null; created_at: string }>>([]);
   const [tab, setTab] = useState<"deposit" | "history">("deposit");
