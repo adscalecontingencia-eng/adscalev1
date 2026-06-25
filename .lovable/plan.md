@@ -1,26 +1,115 @@
-## Causa raiz
+## Visão geral
+Reorganizar a navegação do admin em dois grandes grupos (Aluguel × Venda), criar páginas novas no admin (Clientes do Marketplace, Cadastro de Ativos com Gastos), substituir "Minha Carteira" por "Meu Perfil" no marketplace com um painel completo, aprimorar os cards do marketplace e remover Proxies da listagem pública.
 
-Investiguei e isolei o problema. O símbolo AD não aparece porque a tag `<img>` está com `naturalWidth = 0` — ou seja, o arquivo da logo **não está sendo decodificado como imagem** no preview, apenas o texto "SCALE" renderiza.
+---
 
-Detalhes técnicos:
-- O componente referencia a logo via `adLogoAsset.url` = `/__l5e/assets-v1/<id>/ad-logo.png` (Lovable Assets / CDN).
-- Em produção (`adscalev1.lovable.app`) essa rota responde corretamente com `Content-Type: image/png` (754 KB).
-- No dev server / preview do sandbox a mesma rota é interceptada pelo SPA fallback do Vite e retorna `Content-Type: text/html` (o `index.html`). O browser tenta decodificar HTML como imagem, falha silenciosamente e exibe largura 0 — exatamente o que o print mostra.
-- Resultado: a logo "some" no preview que você está vendo, mesmo o asset existindo.
+## 1. Sidebar admin com grupos colapsáveis (`src/components/DashboardLayout.tsx`)
 
-## Correção
+Reestruturar `adminLinks` em 3 grupos:
 
-Trocar o asset CDN por um arquivo importado diretamente (rota servida pelo Vite, não depende do `/__l5e/`):
+- **Geral** (sempre aberto, sem header): Dashboard
+- **Aluguel** (colapsável, aberto por padrão): Clientes, Parceiros, Financeiro, Pagamentos, Auditoria Pagamentos, Suporte, Conexões Meta, Aplicativos Meta, Páginas, Mapa de Ativos, Ads, Log de Bloqueios
+- **Venda** (colapsável, aberto por padrão): Marketplace (admin), **Clientes Marketplace** (novo), **Ativos c/ Gastos** (novo), Pedidos PIX (admin)
+- **Sistema** (colapsável, fechado por padrão): Acessos, Auditoria, Usuários
 
-1. **Salvar o PNG do símbolo AD em `src/assets/ad-logo.png`** como arquivo binário comum (não como `.asset.json`). Reutilizar a mesma arte azul atual baixando-a da CDN de produção que já funciona.
-2. **Atualizar `src/components/AdScaleLogo.tsx`**:
-   - Trocar `import adLogoAsset from "@/assets/ad-logo.png.asset.json"` por `import adLogoUrl from "@/assets/ad-logo.png"`.
-   - Usar `src={adLogoUrl}` em vez de `adLogoAsset.url`.
-3. **Atualizar `src/pages/Marketplace.tsx`** (linhas 41 e 311) para usar o mesmo import direto.
-4. **Remover o pointer `src/assets/ad-logo.png.asset.json`** para evitar confusão futura.
+Cada grupo terá header clicável (chevron) com estado em `useState`. Item ativo expande seu grupo automaticamente. Visual mantém o tema dark + neon green atual.
 
-Sem mudanças no layout/proporções definidas no último passo — apenas troca da origem do arquivo. Como passa a ser um import normal do Vite, funciona tanto no preview do sandbox quanto em produção, e o cache fica versionado pelo hash do build.
+## 2. Dashboard principal com métricas das duas modalidades (`src/pages/Dashboard.tsx`)
 
-## Validação
+Adicionar no topo do Dashboard 3 abas: **Visão Geral · Aluguel · Venda**.
+- **Visão Geral** (default): KPIs combinados — receita total (aluguel + marketplace), nº de clientes ativos (aluguel) + cadastros marketplace, gastos totais.
+- **Aluguel**: KPIs e gráficos atuais (mantém o que existe hoje).
+- **Venda**: GMV marketplace (`marketplace_orders.amount` aprovados), nº pedidos, ticket médio, top produtos, depósitos da carteira (`wallet_deposits`).
 
-Após a alteração, rodar Playwright em `http://localhost:8080/#/marketplace` e checar `header img → naturalWidth > 0` e capturar screenshot do header confirmando "AD + SCALE" visíveis lado a lado.
+## 3. Nova página: Clientes do Marketplace (`src/pages/MarketplaceClients.tsx`)
+
+Rota: `/marketplace-clients` (admin/support).
+
+- Lista usuários que se cadastraram via marketplace (auth.users via edge function `manage-users` filtrando por metadata ou origem `marketplace`).
+- Colunas: Nome, Email, Cadastro (data), Total Depositado (`wallet_deposits` aprovados), Total Gasto (`wallet_transactions` type=purchase), Saldo atual (`wallets`), Nível, Status.
+- Filtros: busca por nome/email, filtro por nível, intervalo de cadastro.
+- Ações admin (dropdown por linha): Ver perfil completo (drawer), Ajustar saldo (modal — credita/debita via nova edge function `admin-wallet-adjust`), Bloquear/Desbloquear (atualiza `auth.users.banned_until` via `manage-users`).
+
+Edge function nova: `admin-wallet-adjust` (cria `wallet_transactions` tipo `adjustment` e atualiza `wallets.balance`, gravando autor em `metadata.admin_id`).
+
+## 4. Aprimorar cards do marketplace (print 3) (`src/components/marketplace/ProductCard.tsx` + `src/pages/Marketplace.tsx`)
+
+Reformular o card para refletir o layout dos prints:
+- Header: nome (ex. "BM MaxScale MS360"), badges (Moeda BRL/USD, Verificada, Ano de Criação).
+- Bloco de preço grande + botão "Comprar via chat" (WhatsApp) cheio.
+- Grid 2×2 de KPIs do BM: **Gastos Totais**, **Maior Limite**, **Ciclo Total**, **Dívida Total** (ou **Saldo Total** quando aplicável — verde para saldo, vermelho para dívida).
+- Lista expansível "N CONTAS DE ANÚNCIO" com cada conta: número, status (Ativa/Pré-Paga), Gastos / Limite Meta / Ciclo / Saldo ou Dívida.
+- Seção "OBSERVAÇÕES" no rodapé.
+
+Os dados virão dos novos campos cadastrados no admin (item 5). Cards de produtos antigos sem esses dados caem para o layout simples atual (fallback).
+
+## 5. Painel admin de Ativos c/ Gastos (`src/pages/AdminMarketplaceAssets.tsx`)
+
+Rota: `/admin/marketplace-assets` (admin/support). Form completo:
+
+- **BM**: nome, plataforma (Facebook/Google/TikTok), moeda (BRL/USD/EUR), ano de criação, preço, verificada (switch), observações (textarea).
+- **Contas de anúncio** (lista dinâmica, add/remove): número da conta, status (Ativa/Pré-Paga/Inativa), gastos, limite meta, ciclo, dívida, saldo, extensão limite (opcional).
+- KPIs (Gastos Totais, Maior Limite, Ciclo Total, Dívida Total) calculados automaticamente a partir das contas.
+- Lista paginada de ativos cadastrados com editar/excluir/duplicar/ativar-desativar.
+
+Schema novo (migration):
+- `marketplace_assets`: name, platform, currency, year, price, verified, notes, status (active/sold/hidden).
+- `marketplace_asset_accounts`: asset_id (FK), account_number, status, gastos, limite_meta, ciclo, divida, saldo, extensao_limite.
+
+Ambas com RLS + GRANT (admins/support gerenciam; anon faz SELECT em `active`).
+
+## 6. Substituir "Minha Carteira" por "Meu Perfil" (prints 3 e 4)
+
+### Dropdown do header do marketplace (`src/pages/Marketplace.tsx`)
+- Remover item "Minha carteira" e botão "Adicionar saldo" do header.
+- Novo dropdown ao clicar no avatar (estilo print 3): Avatar+nome+email, **Perfil**, **Meus Pedidos**, **Programa de Afiliados**, separador, **Sair** (vermelho).
+- (Sem "Minhas Proxies" — coerente com remoção de proxies.)
+
+### Nova página `src/pages/MarketplaceProfile.tsx` (rota `/perfil`)
+Layout idêntico ao print 4:
+- Header card: avatar circular, nome, badge "Nível N", email, ID do usuário, "Membro desde", botões **Editar Perfil** e **Alterar Senha**.
+- 4 KPIs: Total Gasto, Saldo Atual, Total Depositado, Nível Atual (com barra de progresso para o próximo nível).
+- Card **Histórico de Depósitos** (lista `wallet_deposits` do usuário; empty state como no print).
+- Botão flutuante para abrir o `WalletDepositModal` existente (mantém a função de depositar, agora dentro do perfil).
+
+`/minha-carteira` continua existindo mas redireciona para `/perfil`.
+
+## 7. Remover categoria Proxies do marketplace (`src/pages/Marketplace.tsx`)
+
+- Remover "Proxies" das categorias/abas do marketplace público (print 8).
+- Filtrar produtos cuja `category` seja Proxy do grid e dos filtros.
+- Não excluir produtos do banco (admin continua vendo).
+
+---
+
+## Detalhes técnicos
+
+**Rotas novas em `src/App.tsx`:**
+- `/marketplace-clients` → MarketplaceClients (admin/support, dentro de DashboardLayout)
+- `/admin/marketplace-assets` → AdminMarketplaceAssets (idem)
+- `/perfil` → MarketplaceProfile (ProtectedRoute, sem DashboardLayout)
+- `/minha-carteira` → `<Navigate to="/perfil" replace />`
+
+**Migrations (1 migration):**
+1. `CREATE TABLE public.marketplace_assets (...)` + GRANT + RLS + policies (admin/support full, anon SELECT WHERE status='active').
+2. `CREATE TABLE public.marketplace_asset_accounts (...)` + GRANT + RLS + policies (mesmas regras, herdam do asset).
+3. Trigger `update_updated_at_column` em ambas.
+
+**Edge function nova:** `supabase/functions/admin-wallet-adjust/index.ts` — valida role admin, ajusta saldo, registra `wallet_transactions`.
+
+**Arquivos a criar:**
+- `src/pages/MarketplaceClients.tsx`
+- `src/pages/MarketplaceProfile.tsx`
+- `src/pages/AdminMarketplaceAssets.tsx`
+- `src/components/marketplace/AssetCard.tsx` (novo card rico)
+- `supabase/functions/admin-wallet-adjust/index.ts`
+
+**Arquivos a alterar:**
+- `src/components/DashboardLayout.tsx` (sidebar agrupada)
+- `src/pages/Dashboard.tsx` (abas Aluguel/Venda)
+- `src/pages/Marketplace.tsx` (dropdown perfil, remover proxies, usar AssetCard)
+- `src/App.tsx` (rotas novas)
+
+## Fora de escopo (não vou tocar agora)
+- Sistema de programa de afiliados em si (só adiciono o link no menu apontando para `#` placeholder até confirmação).
+- Editor de perfil avançado (foto upload) — botão "Editar Perfil" abre modal simples com nome e email.
