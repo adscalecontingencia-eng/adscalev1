@@ -12,8 +12,12 @@ const json = (d: unknown, s = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
-    if (!accessToken) return json({ error: "MP token missing" }, 500);
+    const env = (Deno.env.get("MERCADO_PAGO_ENV") || "test").trim().toLowerCase();
+    const isLive = ["live", "production", "prod"].includes(env);
+    const accessToken = isLive
+      ? Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_LIVE")
+      : Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
+    if (!accessToken) return json({ error: `MP token missing (${isLive ? "LIVE" : "TEST"})` }, 500);
 
     const { deposit_id } = (await req.json()) as { deposit_id: string };
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
