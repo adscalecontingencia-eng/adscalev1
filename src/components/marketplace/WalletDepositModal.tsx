@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Copy, Wallet as WalletIcon, Plus, History, CheckCircle2, Info } from "lucide-react";
+import { Loader2, Copy, Wallet as WalletIcon, Plus, History, CheckCircle2, Info, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/hooks/useWallet";
 
