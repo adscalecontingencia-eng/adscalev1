@@ -64,6 +64,13 @@ Deno.serve(async (req) => {
 
     const persistedStatus = paymentStatus ?? orderStatus ?? dep.status;
     await admin.from("wallet_deposits").update({ status: persistedStatus, status_detail: statusDetail, raw_response: mpData }).eq("id", dep.id);
+
+    // Estados intermediários (pending/in_process/authorized) → registra lançamento pendente
+    const intermediate = ["pending", "in_process", "authorized", "action_required"];
+    if (intermediate.includes(String(persistedStatus))) {
+      await admin.rpc("upsert_deposit_finance", { _deposit_id: dep.id, _status: "pendente" });
+    }
+
     return json({ status: persistedStatus, order_status: orderStatus, payment_status: paymentStatus });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);

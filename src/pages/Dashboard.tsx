@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       const [txRes, clientRes, accRes] = await Promise.all([
-        supabase.from('transactions').select('*'),
+        supabase.from('transactions').select('*').eq('status', 'confirmado'),
         supabase.from('clients').select('*'),
         supabase.from('meta_ad_accounts').select('id,status,account_status'),
       ]);

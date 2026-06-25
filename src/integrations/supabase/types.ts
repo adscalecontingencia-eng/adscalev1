@@ -2499,6 +2499,9 @@ export type Database = {
           description: string
           id: string
           quantidade: number
+          source_id: string | null
+          source_type: string | null
+          status: string
           subcategory: string | null
           supplier_id: string | null
           type: string
@@ -2514,6 +2517,9 @@ export type Database = {
           description: string
           id?: string
           quantidade?: number
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
           subcategory?: string | null
           supplier_id?: string | null
           type?: string
@@ -2529,6 +2535,9 @@ export type Database = {
           description?: string
           id?: string
           quantidade?: number
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
           subcategory?: string | null
           supplier_id?: string | null
           type?: string
@@ -2848,6 +2857,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      upsert_deposit_finance: {
+        Args: { _deposit_id: string; _status: string }
+        Returns: undefined
       }
     }
     Enums: {

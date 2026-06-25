@@ -94,7 +94,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
 
   async function generatePix() {
     const value = parseAmount(amount);
-    if (!(value > 0)) { toast({ title: "Valor inválido", variant: "destructive" }); return; }
+    if (!(value >= 20)) { toast({ title: "Depósito mínimo R$ 20,00", variant: "destructive" }); return; }
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("wallet-create-deposit", { body: { amount: value } });
@@ -185,6 +185,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                 <Input id="wd-amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-9" inputMode="decimal" />
               </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Depósito mínimo R$ 20,00</p>
             </div>
             <div className="text-xs text-muted-foreground flex items-start gap-2 rounded-lg border border-border p-3">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
@@ -192,7 +193,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button className="flex-1" onClick={generatePix} disabled={creating}>
+              <Button className="flex-1" onClick={generatePix} disabled={creating || parseAmount(amount) < 20}>
                 {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 Depositar {fmt(parseAmount(amount))}
               </Button>
