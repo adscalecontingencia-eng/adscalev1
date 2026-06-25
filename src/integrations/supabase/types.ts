@@ -1023,6 +1023,7 @@ export type Database = {
       }
       marketplace_products: {
         Row: {
+          category: string
           created_at: string
           description: string | null
           file_path: string
@@ -1033,6 +1034,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string
           created_at?: string
           description?: string | null
           file_path: string
@@ -1043,6 +1045,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string
           created_at?: string
           description?: string | null
           file_path?: string
