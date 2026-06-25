@@ -134,9 +134,9 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
       toast({ title: "Erro ao simular", description: e?.message ?? String(e), variant: "destructive" });
     } finally { setSimulating(false); }
   }
-
-
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><WalletIcon className="w-5 h-5 text-primary" /> Carteira</DialogTitle>
