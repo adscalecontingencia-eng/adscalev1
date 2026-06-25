@@ -1,37 +1,58 @@
-## Problema
+## Diagnóstico
 
-Hoje a rota raiz (`/`) redireciona todo mundo para `/marketplace`, e `/marketplace` é pública. Assim, um cliente de aluguel (role `client`) que faz login cai no painel de compras em vez do dashboard de aluguel dele.
+O erro vindo dos logs é claro:
 
-## Objetivo
+```
+MP error 402 invalid_users_involved
+```
 
-Cada role deve aterrissar e ficar restrito ao seu próprio painel:
+Isso **não** é o nome do pagador nem o email `@testuser.com` que resolvem. No sandbox do Mercado Pago, o pagador precisa ser um **Test User** real, criado via API `POST /users/test_user` usando o access token TEST. Qualquer outro email (mesmo `teste@testuser.com`) é rejeitado como "usuário inválido", porque o MP exige que o `payer.email` corresponda a um test user gerado na mesma conta vendedora.
 
-| Role | Destino padrão | Pode acessar marketplace? |
-|---|---|---|
-| `client` (aluguel) | `/client-dashboard` | ❌ não |
-| `partner` | `/partner-dashboard` | ❌ não |
-| `admin` / `support` | `/dashboard` | ✅ (admin) |
-| `marketplace_client` | `/marketplace` | ✅ |
-| anônimo | `/marketplace` (atual) | ✅ |
+A função `wallet-create-deposit` hoje só reescreve o domínio para `@testuser.com` — o que não basta.
 
-## Mudanças (somente `src/App.tsx`)
+## Plano
 
-1. **Novo componente `RoleRedirect`** — usa `useAuth()` e devolve um `<Navigate>` para o destino padrão da role logada. Usado em `/` e como guarda em `/marketplace`.
+Editar **apenas** `supabase/functions/wallet-create-deposit/index.ts` para, quando o token for sandbox (`TEST-...`):
 
-2. **Rota `/`** — passa a usar `RoleRedirect`:
-   - sem login → `/marketplace`
-   - `client` → `/client-dashboard`
-   - `partner` → `/partner-dashboard`
-   - `admin`/`support` → `/dashboard`
-   - `marketplace_client` → `/marketplace`
+1. Buscar/criar um **test buyer** persistente:
+   - Tentar ler de uma secret/env `MP_TEST_BUYER_EMAIL` (cache simples). Se existir, usá-la diretamente como `payer.email`.
+   - Se não existir, chamar `POST https://api.mercadopago.com/users/test_user` com `{ site_id: "MLB", description: "AD SCALE buyer" }` usando o access token TEST.
+   - Usar o `email` retornado pela API como `payer.email` desta chamada.
+   - Logar o email + senha do test user retornado (apenas em sandbox) para o usuário poder reaproveitar.
+2. Em produção (token sem prefixo `TEST-`), manter o fluxo atual usando o email real do usuário autenticado.
+3. Manter o nome `customer_name` informado pelo cliente como `payer.first_name` (com fallback `APRO` em sandbox, para forçar aprovação automática quando aplicável).
+4. Tratar falha da criação do test user retornando 502 com mensagem clara ("Não foi possível criar usuário de teste do Mercado Pago"), em vez do erro genérico atual.
 
-3. **Rota `/marketplace`** — envolver num wrapper que, se o usuário logado for `client` ou `partner`, redireciona para o dashboard correto (via `RoleRedirect`). Visitantes não logados e `marketplace_client`/admin continuam vendo normal.
+Sem mudanças em UI, banco, RLS, ou em outras edge functions. Sem novas secrets obrigatórias (a `MP_TEST_BUYER_EMAIL` é opcional — se ausente, criamos sob demanda a cada chamada; opcionalmente, recomendarei depois salvar como secret para reuso).
 
-4. **Rotas de marketplace logado** (`/perfil`, `/meus-pedidos`, `/meus-pedidos-marketplace`, `/minhas-compras-pix`) — adicionar `roles={['marketplace_client','admin','support']}` no `ProtectedRoute` para impedir que um `client` de aluguel acesse o painel de compras por URL direta.
+## Detalhes técnicos
 
-5. **Login (`Login.tsx`)** — verificar se já há um redirect pós-login por role; se não tiver, encaminhar para o destino padrão acima. (Edit pequeno só se necessário; sem alterar lógica de auth.)
+Trecho a inserir antes de montar `mpPayload`, em sandbox:
 
-## Fora de escopo
+```ts
+let payerEmail = email;
+if (isSandbox) {
+  const cached = Deno.env.get("MP_TEST_BUYER_EMAIL");
+  if (cached) {
+    payerEmail = cached;
+  } else {
+    const tuRes = await fetch("https://api.mercadopago.com/users/test_user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ site_id: "MLB", description: "AD SCALE buyer" }),
+    });
+    const tuData = await tuRes.json();
+    if (!tuRes.ok || !tuData?.email) {
+      console.error("MP test_user error", tuRes.status, tuData);
+      return json({ error: "Falha ao criar usuário de teste MP", details: tuData }, 502);
+    }
+    payerEmail = tuData.email;
+    console.log("MP test buyer created", { email: tuData.email, password: tuData.password });
+  }
+}
+```
 
-- Nenhuma alteração no `AuthContext`, banco, RLS ou edge functions.
-- Sem mudanças visuais nos dashboards.
+E usar `payer: { email: payerEmail, first_name: isSandbox ? "APRO" : name }` no payload.
