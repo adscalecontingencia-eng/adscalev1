@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       (userInfo?.user?.user_metadata as any)?.full_name ||
       rawEmail.split("@")[0];
 
-    const isSandbox = isMercadoPagoTestMode();
+    const isSandbox = isSandboxEnv;
     const payerEmail = isSandbox
       ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
       : normalizeLivePayerEmail(rawEmail);
