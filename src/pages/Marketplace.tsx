@@ -35,6 +35,7 @@ import {
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
+import AssetCard, { MarketplaceAsset } from "@/components/marketplace/AssetCard";
 import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
 import { useWallet } from "@/hooks/useWallet";
@@ -159,6 +160,7 @@ const Marketplace: React.FC = () => {
   const [priceMax, setPriceMax] = useState<number>(0);
   const [walletOpen, setWalletOpen] = useState(false);
   const { balance } = useWallet();
+  const [assets, setAssets] = useState<MarketplaceAsset[]>([]);
 
 
 
@@ -184,8 +186,31 @@ const Marketplace: React.FC = () => {
       });
 
       setProducts(
-        ((prods as any[]) || []).map((p) => ({ ...p, stock_available: stockMap[p.id] ?? 0 } as Product)),
+        ((prods as any[]) || [])
+          .filter((p) => !/proxy/i.test(`${p.category} ${p.subcategory ?? ""} ${p.name}`))
+          .map((p) => ({ ...p, stock_available: stockMap[p.id] ?? 0 } as Product)),
       );
+
+      // Load marketplace assets (BMs com gastos)
+      const { data: aRows } = await supabase
+        .from("marketplace_assets")
+        .select("*")
+        .eq("status", "active")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (aRows && aRows.length > 0) {
+        const ids = aRows.map((a: any) => a.id);
+        const { data: accRows } = await supabase
+          .from("marketplace_asset_accounts")
+          .select("*")
+          .in("asset_id", ids)
+          .order("account_number", { ascending: true });
+        const accByAsset: Record<string, any[]> = {};
+        (accRows ?? []).forEach((r: any) => {
+          (accByAsset[r.asset_id] ||= []).push(r);
+        });
+        setAssets(aRows.map((a: any) => ({ ...a, accounts: accByAsset[a.id] ?? [] })) as MarketplaceAsset[]);
+      }
       setLoading(false);
     })();
   }, []);
@@ -330,11 +355,11 @@ const Marketplace: React.FC = () => {
             <button type="button" onClick={() => scrollToId("catalogo")} className="px-3 py-2 rounded-lg text-foreground bg-primary/10 border border-primary/20 transition-colors inline-flex items-center gap-1.5">
               <ShoppingCart size={15} /> Produtos
             </button>
-            <button type="button" onClick={() => { setActiveSource("all"); setSearch("proxy"); scrollToId("catalogo"); }} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <Wifi size={15} /> Proxies
+            <button type="button" onClick={() => scrollToId("ativos-gastos")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
+              <TrendingUpIcon size={15} /> Ativos c/ Gastos
             </button>
             <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <TrendingUpIcon size={15} /> Ativos c/ Gastos
+              <Sparkles size={15} /> Benefícios
             </button>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
               <MessageCircle size={15} /> Contato
@@ -383,20 +408,34 @@ const Marketplace: React.FC = () => {
                       <ChevronDownIcon size={14} className="text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel className="text-xs">{user?.email}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setWalletOpen(true)}>
-                      <Plus size={14} className="mr-2" /> Adicionar saldo
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/minha-carteira")}>
-                      <Package size={14} className="mr-2" /> Minha carteira
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>
-                      <Package size={14} className="mr-2" /> Meus pedidos
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={goPainel}>Ir para o painel</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-64 p-0">
+                    <div className="p-3 flex items-center gap-3 border-b border-border/60">
+                      <span className="grid place-items-center h-10 w-10 rounded-full bg-primary/15 text-primary text-sm font-bold uppercase">
+                        {(user?.name || "U").split(" ").map(w => w[0]).slice(0, 2).join("")}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{user?.name || "Usuário"}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                      </div>
+                    </div>
+                    <div className="p-1">
+                      <DropdownMenuItem onClick={() => navigate("/perfil")}>
+                        <UserPlus size={14} className="mr-2" /> Perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>
+                        <Package size={14} className="mr-2" /> Meus Pedidos
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/partner-signup")}>
+                        <HeartHandshake size={14} className="mr-2" /> Programa de Afiliados
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={async () => { await supabase.auth.signOut(); navigate("/marketplace"); }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <X size={14} className="mr-2" /> Sair
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -893,6 +932,22 @@ const Marketplace: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* Ativos c/ Gastos */}
+      {assets.length > 0 && (
+        <section id="ativos-gastos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+          <div className="text-center mb-6 sm:mb-8">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Premium</p>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Ativos com Gastos</h2>
+            <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto px-2">
+              BMs com histórico de gastos, limites elevados e contas prontas para escalar.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {assets.map((a) => <AssetCard key={a.id} asset={a} />)}
+          </div>
+        </section>
+      )}
 
       {/* Digital products via Pix */}
       <MarketplacePixSection />

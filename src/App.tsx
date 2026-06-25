@@ -39,6 +39,9 @@ import MyPixOrders from "./pages/MyPixOrders";
 import MyWallet from "./pages/MyWallet";
 import AdminPayments from "./pages/AdminPayments";
 import AdminAudit from "./pages/AdminAudit";
+import MarketplaceProfile from "./pages/MarketplaceProfile";
+import MarketplaceClients from "./pages/MarketplaceClients";
+import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -83,12 +86,15 @@ const App = () => (
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
               <Route path="/minhas-compras-pix" element={<ProtectedRoute><MyPixOrders /></ProtectedRoute>} />
-              <Route path="/minha-carteira" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
+              <Route path="/minha-carteira" element={<Navigate to="/perfil" replace />} />
+              <Route path="/perfil" element={<ProtectedRoute><MarketplaceProfile /></ProtectedRoute>} />
               <Route path="/meus-pedidos-marketplace" element={<ProtectedRoute><MyPixOrders /></ProtectedRoute>} />
               <Route path="/admin-payments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminPayments /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AdminAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/meus-pedidos" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/admin/marketplace-assets" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplaceAssets /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/marketplace-clients" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><MarketplaceClients /></DashboardLayout></ProtectedRoute>} />
               <Route path="/partner-signup" element={<PartnerSignup />} />
               <Route path="/partner-dashboard" element={<ProtectedRoute roles={['partner']}><PartnerDashboard /></ProtectedRoute>} />
               <Route path="/partners" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Partners /></DashboardLayout></ProtectedRoute>} />
