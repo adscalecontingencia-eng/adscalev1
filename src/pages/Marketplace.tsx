@@ -933,6 +933,22 @@ const Marketplace: React.FC = () => {
         )}
       </section>
 
+      {/* Ativos c/ Gastos */}
+      {assets.length > 0 && (
+        <section id="ativos-gastos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+          <div className="text-center mb-6 sm:mb-8">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Premium</p>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Ativos com Gastos</h2>
+            <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto px-2">
+              BMs com histórico de gastos, limites elevados e contas prontas para escalar.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {assets.map((a) => <AssetCard key={a.id} asset={a} />)}
+          </div>
+        </section>
+      )}
+
       {/* Digital products via Pix */}
       <MarketplacePixSection />
 
