@@ -35,6 +35,7 @@ import {
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
+import AssetCard, { MarketplaceAsset } from "@/components/marketplace/AssetCard";
 import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
 import { useWallet } from "@/hooks/useWallet";
