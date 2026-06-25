@@ -109,22 +109,22 @@ const App = () => (
               <Route path="/marketplace-signup" element={<MarketplaceSignup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
-              <Route path="/minhas-compras-pix" element={<ProtectedRoute><MyPixOrders /></ProtectedRoute>} />
+              <Route path="/minhas-compras-pix" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyPixOrders /></ProtectedRoute>} />
               <Route path="/minha-carteira" element={<Navigate to="/perfil" replace />} />
-              <Route path="/perfil" element={<ProtectedRoute><MarketplaceProfile /></ProtectedRoute>} />
-              <Route path="/meus-pedidos-marketplace" element={<ProtectedRoute><MyPixOrders /></ProtectedRoute>} />
+              <Route path="/perfil" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MarketplaceProfile /></ProtectedRoute>} />
+              <Route path="/meus-pedidos-marketplace" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyPixOrders /></ProtectedRoute>} />
               <Route path="/admin-payments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminPayments /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AdminAudit /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/meus-pedidos" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+              <Route path="/meus-pedidos" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin/marketplace-assets" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplaceAssets /></DashboardLayout></ProtectedRoute>} />
               <Route path="/marketplace-clients" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><MarketplaceClients /></DashboardLayout></ProtectedRoute>} />
               <Route path="/partner-signup" element={<PartnerSignup />} />
               <Route path="/partner-dashboard" element={<ProtectedRoute roles={['partner']}><PartnerDashboard /></ProtectedRoute>} />
               <Route path="/partners" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Partners /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/" element={<Navigate to="/marketplace" />} />
+              <Route path="/" element={<RoleHome />} />
               <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
               <Route path="/clients-auth-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><ClientsAuthAudit /></DashboardLayout></ProtectedRoute>} />
