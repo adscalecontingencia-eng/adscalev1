@@ -9,6 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/hooks/useWallet";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+const parseAmount = (s: string) => {
+  const n = Number(String(s ?? "").replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+};
 
 interface Props {
   open: boolean;
@@ -89,7 +93,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
   }
 
   async function generatePix() {
-    const value = Number(String(amount).replace(",", "."));
+    const value = parseAmount(amount);
     if (!(value > 0)) { toast({ title: "Valor inválido", variant: "destructive" }); return; }
     setCreating(true);
     try {
@@ -168,7 +172,8 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Valor rápido</Label>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {QUICK.map((v) => (
-                  <Button key={v} variant={Number(amount) === v ? "default" : "outline"} size="sm" onClick={() => setAmount(String(v))}>
+                  <Button key={v} variant={parseAmount(amount) === v ? "default" : "outline"} size="sm" onClick={() => setAmount(String(v))}>
+
                     R$ {v}
                   </Button>
                 ))}
@@ -189,7 +194,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
               <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button className="flex-1" onClick={generatePix} disabled={creating}>
                 {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Depositar {fmt(Number(amount) || 0)}
+                Depositar {fmt(parseAmount(amount))}
               </Button>
             </div>
           </div>
