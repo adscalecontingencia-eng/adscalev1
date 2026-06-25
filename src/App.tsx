@@ -39,6 +39,7 @@ import MyPixOrders from "./pages/MyPixOrders";
 import MyWallet from "./pages/MyWallet";
 import AdminPayments from "./pages/AdminPayments";
 import AdminAudit from "./pages/AdminAudit";
+import AdminWebhookLogs from "./pages/AdminWebhookLogs";
 import MarketplaceProfile from "./pages/MarketplaceProfile";
 import MarketplaceClients from "./pages/MarketplaceClients";
 import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
