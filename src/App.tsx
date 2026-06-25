@@ -54,6 +54,32 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
   return <>{children}</>;
 };
 
+const defaultRouteForRole = (role?: string) => {
+  switch (role) {
+    case 'client': return '/client-dashboard';
+    case 'partner': return '/partner-dashboard';
+    case 'admin':
+    case 'support': return '/dashboard';
+    case 'marketplace_client': return '/marketplace';
+    default: return '/marketplace';
+  }
+};
+
+const RoleHome: React.FC = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  return <Navigate to={defaultRouteForRole(user?.role)} replace />;
+};
+
+const MarketplaceGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  if (user && (user.role === 'client' || user.role === 'partner')) {
+    return <Navigate to={defaultRouteForRole(user.role)} replace />;
+  }
+  return <>{children}</>;
+};
+
 const AdminRoutes = () => (
   <ProtectedRoute roles={['admin', 'support']}>
     <DashboardLayout>
