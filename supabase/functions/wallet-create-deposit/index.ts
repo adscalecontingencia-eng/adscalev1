@@ -148,6 +148,7 @@ Deno.serve(async (req) => {
     const pixQrBase64 = pm?.qr_code_base64 ?? txData?.qr_code_base64 ?? null;
     const pixTicketUrl = pm?.ticket_url ?? txData?.ticket_url ?? null;
     const status = mpData?.status ?? tx?.status ?? "pending";
+    log("parsed", { status, has_qr: !!pixQr, mp_order_id: mpData?.id, mp_payment_id: tx?.id });
 
     const { data: dep, error: insErr } = await admin
       .from("wallet_deposits")
@@ -167,9 +168,10 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (insErr) {
-      console.error("DB insert error", insErr);
-      return json({ error: "Erro ao registrar depósito" }, 500);
+      console.error(`[wallet-deposit ${reqId}] DB insert error`, insErr);
+      return json({ error: "Erro ao registrar depósito", details: insErr.message }, 500);
     }
+    log("done", { deposit_id: dep.id });
 
     return json({
       deposit_id: dep.id,
