@@ -9,6 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/hooks/useWallet";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+const parseAmount = (s: string) => {
+  const n = Number(String(s ?? "").replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+};
 
 interface Props {
   open: boolean;
