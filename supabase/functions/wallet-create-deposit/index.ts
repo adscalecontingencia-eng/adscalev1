@@ -182,6 +182,7 @@ Deno.serve(async (req) => {
       pix_ticket_url: pixTicketUrl,
       status,
       amount,
+      test_mode: isSandbox,
     });
   } catch (err) {
     console.error("wallet-create-deposit error", err);
