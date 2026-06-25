@@ -164,7 +164,10 @@ Deno.serve(async (req) => {
     if (externalReference?.startsWith("dep-")) {
       const tx2 = mpOrder?.transactions?.payments?.[0] ?? {};
       const status2 = mpPayment?.status ?? mpOrder?.status ?? tx2?.status;
-      if (status2 === "approved") {
+      const isPaid2 = ["approved", "processed"].includes(String(mpPayment?.status))
+        || ["approved", "processed"].includes(String(mpOrder?.status))
+        || ["approved", "processed"].includes(String(tx2?.status));
+      if (isPaid2) {
         const mpPaymentId = mpPayment?.id?.toString() ?? tx2?.id?.toString() ?? null;
         const { data: res } = await supabase.rpc("credit_wallet_from_deposit", {
           _external_reference: externalReference,
