@@ -160,6 +160,7 @@ const Marketplace: React.FC = () => {
   const [priceMax, setPriceMax] = useState<number>(0);
   const [walletOpen, setWalletOpen] = useState(false);
   const { balance } = useWallet();
+  const [assets, setAssets] = useState<MarketplaceAsset[]>([]);
 
 
 
