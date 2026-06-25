@@ -408,20 +408,34 @@ const Marketplace: React.FC = () => {
                       <ChevronDownIcon size={14} className="text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel className="text-xs">{user?.email}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setWalletOpen(true)}>
-                      <Plus size={14} className="mr-2" /> Adicionar saldo
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/minha-carteira")}>
-                      <Package size={14} className="mr-2" /> Minha carteira
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>
-                      <Package size={14} className="mr-2" /> Meus pedidos
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={goPainel}>Ir para o painel</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-64 p-0">
+                    <div className="p-3 flex items-center gap-3 border-b border-border/60">
+                      <span className="grid place-items-center h-10 w-10 rounded-full bg-primary/15 text-primary text-sm font-bold uppercase">
+                        {(user?.name || "U").split(" ").map(w => w[0]).slice(0, 2).join("")}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{user?.name || "Usuário"}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                      </div>
+                    </div>
+                    <div className="p-1">
+                      <DropdownMenuItem onClick={() => navigate("/perfil")}>
+                        <UserPlus size={14} className="mr-2" /> Perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>
+                        <Package size={14} className="mr-2" /> Meus Pedidos
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/partner-signup")}>
+                        <HeartHandshake size={14} className="mr-2" /> Programa de Afiliados
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={async () => { await supabase.auth.signOut(); navigate("/marketplace"); }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <X size={14} className="mr-2" /> Sair
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
