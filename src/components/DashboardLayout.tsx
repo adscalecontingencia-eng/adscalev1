@@ -40,6 +40,7 @@ const groups: Group[] = [
       { path: '/marketplace-clients', label: 'Clientes Marketplace', icon: UsersRound },
       { path: '/admin-payments', label: 'Pagamentos', icon: Wallet },
       { path: '/admin-audit', label: 'Auditoria Pagamentos', icon: Shield, adminOnly: true },
+      { path: '/admin-webhook-logs', label: 'Logs Mercado Pago', icon: Activity, adminOnly: true },
     ]
   },
   {

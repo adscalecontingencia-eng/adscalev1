@@ -39,6 +39,7 @@ import MyPixOrders from "./pages/MyPixOrders";
 import MyWallet from "./pages/MyWallet";
 import AdminPayments from "./pages/AdminPayments";
 import AdminAudit from "./pages/AdminAudit";
+import AdminWebhookLogs from "./pages/AdminWebhookLogs";
 import MarketplaceProfile from "./pages/MarketplaceProfile";
 import MarketplaceClients from "./pages/MarketplaceClients";
 import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
@@ -116,6 +117,7 @@ const App = () => (
               <Route path="/perfil" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MarketplaceProfile /></ProtectedRoute>} />
               <Route path="/meus-pedidos-marketplace" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyPixOrders /></ProtectedRoute>} />
               <Route path="/admin-payments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminPayments /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/admin-webhook-logs" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminWebhookLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AdminAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/meus-pedidos" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
