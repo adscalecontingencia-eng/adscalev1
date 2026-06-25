@@ -37,6 +37,11 @@ async function resolveSandboxPayerEmail(accessToken: string) {
   return tuData.email as string;
 }
 
+function isMercadoPagoTestMode() {
+  const env = (Deno.env.get("MERCADO_PAGO_ENV") || "test").trim().toLowerCase();
+  return !["live", "production", "prod"].includes(env);
+}
+
 function mercadoPagoErrorMessage(data: any) {
   const message = data?.message || data?.error || data?.cause?.[0]?.description;
   const detail = data?.errors?.[0]?.details?.[0] || data?.errors?.[0]?.message;
@@ -85,7 +90,7 @@ Deno.serve(async (req) => {
       (userInfo?.user?.user_metadata as any)?.full_name ||
       rawEmail.split("@")[0];
 
-    const isSandbox = (accessToken || "").startsWith("TEST-");
+    const isSandbox = isMercadoPagoTestMode();
 
     // TEST- usa Test User; APP_USR- usa email real. Misturar @testuser.com com APP_USR- gera erro no MP.
     const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : normalizeLivePayerEmail(rawEmail);
@@ -94,22 +99,17 @@ Deno.serve(async (req) => {
     const idempotencyKey = crypto.randomUUID();
     const amountStr = amount.toFixed(2);
 
-    const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercado-pago-webhook`;
     const mpPayload = {
-      transaction_amount: Number(amountStr),
+      type: "online",
+      processing_mode: "automatic",
       external_reference: externalReference,
+      total_amount: amountStr,
       description: `Depósito carteira AD•SCALE`,
-      payment_method_id: "pix",
-      notification_url: notificationUrl,
-      payer: {
-        email: payerEmail,
-        first_name: isSandbox ? "APRO" : name,
-        last_name: "Cliente",
-        identification: { type: "CPF", number: "19119119100" },
-      },
+      payer: { email: payerEmail, first_name: isSandbox ? "APRO" : name },
+      transactions: { payments: [{ amount: amountStr, payment_method: { id: "pix", type: "bank_transfer" } }] },
     };
 
-    const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
+    const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -124,11 +124,13 @@ Deno.serve(async (req) => {
       return json({ error: mercadoPagoErrorMessage(mpData), details: mpData }, 502);
     }
 
-    const txData = mpData?.point_of_interaction?.transaction_data ?? {};
-    const pixQr = txData?.qr_code ?? null;
-    const pixQrBase64 = txData?.qr_code_base64 ?? null;
-    const pixTicketUrl = txData?.ticket_url ?? null;
-    const status = mpData?.status ?? "pending";
+    const tx = mpData?.transactions?.payments?.[0] ?? {};
+    const pm = tx?.payment_method ?? {};
+    const txData = tx?.point_of_interaction?.transaction_data ?? {};
+    const pixQr = pm?.qr_code ?? txData?.qr_code ?? null;
+    const pixQrBase64 = pm?.qr_code_base64 ?? txData?.qr_code_base64 ?? null;
+    const pixTicketUrl = pm?.ticket_url ?? txData?.ticket_url ?? null;
+    const status = mpData?.status ?? tx?.status ?? "pending";
 
     const { data: dep, error: insErr } = await admin
       .from("wallet_deposits")
@@ -136,10 +138,10 @@ Deno.serve(async (req) => {
         user_id: userId,
         amount,
         status,
-        status_detail: mpData?.status_detail ?? null,
+        status_detail: mpData?.status_detail ?? tx?.status_detail ?? null,
         external_reference: externalReference,
-        mercado_pago_order_id: mpData?.order?.id?.toString() ?? null,
-        mercado_pago_payment_id: mpData?.id?.toString() ?? null,
+        mercado_pago_order_id: mpData?.id?.toString() ?? null,
+        mercado_pago_payment_id: tx?.id?.toString() ?? null,
         pix_qr_code: pixQr,
         pix_qr_code_base64: pixQrBase64,
         pix_ticket_url: pixTicketUrl,
@@ -155,7 +157,7 @@ Deno.serve(async (req) => {
     return json({
       deposit_id: dep.id,
       external_reference: externalReference,
-      mercado_pago_payment_id: mpData?.id?.toString() ?? null,
+      mercado_pago_payment_id: tx?.id?.toString() ?? null,
       pix_qr_code: pixQr,
       pix_qr_code_base64: pixQrBase64,
       pix_ticket_url: pixTicketUrl,
