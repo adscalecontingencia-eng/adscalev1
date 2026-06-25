@@ -359,7 +359,7 @@ const Marketplace: React.FC = () => {
               <TrendingUpIcon size={15} /> Ativos c/ Gastos
             </button>
             <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <TrendingUpIcon size={15} /> Ativos c/ Gastos
+              <Sparkles size={15} /> Benefícios
             </button>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
               <MessageCircle size={15} /> Contato
