@@ -94,7 +94,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
 
   async function generatePix() {
     const value = parseAmount(amount);
-    if (!(value > 0)) { toast({ title: "Valor inválido", variant: "destructive" }); return; }
+    if (!(value >= 20)) { toast({ title: "Depósito mínimo R$ 20,00", variant: "destructive" }); return; }
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("wallet-create-deposit", { body: { amount: value } });
