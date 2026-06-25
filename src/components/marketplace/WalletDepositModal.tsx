@@ -185,6 +185,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                 <Input id="wd-amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-9" inputMode="decimal" />
               </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Depósito mínimo R$ 20,00</p>
             </div>
             <div className="text-xs text-muted-foreground flex items-start gap-2 rounded-lg border border-border p-3">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
