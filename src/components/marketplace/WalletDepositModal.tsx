@@ -212,6 +212,20 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
             <p className="text-xs text-muted-foreground text-center">
               Aguardando pagamento de <strong>{fmt(pix.amount)}</strong>… atualiza automaticamente.
             </p>
+            {pix.test_mode && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-500">
+                  <FlaskConical className="w-4 h-4" /> Modo sandbox
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Contas teste do Mercado Pago não pagam Pix copia-e-cola. Clique abaixo para simular a aprovação.
+                </p>
+                <Button size="sm" variant="outline" className="w-full border-amber-500/40 text-amber-500 hover:bg-amber-500/10" onClick={simulatePayment} disabled={simulating}>
+                  {simulating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FlaskConical className="w-4 h-4 mr-2" />}
+                  Simular pagamento (sandbox)
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
