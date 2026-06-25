@@ -114,10 +114,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
+    const env = (Deno.env.get("MERCADO_PAGO_ENV") || "test").trim().toLowerCase();
+    const isLive = ["live", "production", "prod"].includes(env);
+    const accessToken = isLive
+      ? Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_LIVE")
+      : Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
     if (!accessToken) {
       await logEvent({ http_status: 500, status: "token_missing" });
-      return json({ error: "token missing" }, 500);
+      return json({ error: `token missing (${isLive ? "LIVE" : "TEST"})` }, 500);
     }
 
     if (!dataId) {
