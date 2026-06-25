@@ -51,6 +51,27 @@ export default function AdminPayments() {
   const [orders, setOrders] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [validating, setValidating] = useState(false);
+  const [validation, setValidation] = useState<any>(null);
+
+  async function runValidation(createPix: boolean) {
+    setValidating(true);
+    setValidation(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("mercado-pago-validate", {
+        body: { create_pix: createPix, amount: 1 },
+      });
+      if (error) throw error;
+      setValidation(data);
+      if (data?.ok) toast.success("Integração Mercado Pago OK");
+      else toast.error("Integração com falha — veja detalhes");
+    } catch (e: any) {
+      setValidation({ ok: false, error: e?.message || "Erro ao validar" });
+      toast.error(e?.message || "Erro ao validar");
+    } finally {
+      setValidating(false);
+    }
+  }
 
   async function load() {
     setLoading(true);
