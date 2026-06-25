@@ -92,8 +92,11 @@ Deno.serve(async (req) => {
 
     const isSandbox = isMercadoPagoTestMode();
 
-    // TEST- usa Test User; APP_USR- usa email real. Misturar @testuser.com com APP_USR- gera erro no MP.
-    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : normalizeLivePayerEmail(rawEmail);
+    // Em sandbox usamos email fixo @testuser.com (MP aceita qualquer test buyer);
+    // criar test_user via /users/test exige caller produtivo e falha com credenciais de teste.
+    const payerEmail = isSandbox
+      ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
+      : normalizeLivePayerEmail(rawEmail);
 
     const externalReference = `dep-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();
