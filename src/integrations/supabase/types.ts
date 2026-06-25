@@ -852,6 +852,107 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_asset_accounts: {
+        Row: {
+          account_number: number
+          asset_id: string
+          ciclo: number
+          created_at: string
+          divida: number
+          extensao_limite: number | null
+          gastos: number
+          id: string
+          is_prepaid: boolean
+          limite_meta: number
+          saldo: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: number
+          asset_id: string
+          ciclo?: number
+          created_at?: string
+          divida?: number
+          extensao_limite?: number | null
+          gastos?: number
+          id?: string
+          is_prepaid?: boolean
+          limite_meta?: number
+          saldo?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: number
+          asset_id?: string
+          ciclo?: number
+          created_at?: string
+          divida?: number
+          extensao_limite?: number | null
+          gastos?: number
+          id?: string
+          is_prepaid?: boolean
+          limite_meta?: number
+          saldo?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_asset_accounts_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_assets: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          name: string
+          notes: string | null
+          platform: string
+          price: number
+          sort_order: number
+          status: string
+          updated_at: string
+          verified: boolean
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          name: string
+          notes?: string | null
+          platform?: string
+          price?: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          verified?: boolean
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          platform?: string
+          price?: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          verified?: boolean
+          year?: number | null
+        }
+        Relationships: []
+      }
       marketplace_orders: {
         Row: {
           amount: number
