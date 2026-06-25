@@ -21,16 +21,22 @@ Deno.serve(async (req) => {
     if (!dep) return json({ error: "not_found" }, 404);
     if (dep.credited_at) return json({ status: "approved", credited: true });
 
-    const mpId = dep.mercado_pago_order_id;
-    if (!mpId) return json({ status: dep.status });
-    const r = await fetch(`https://api.mercadopago.com/v1/orders/${mpId}`, {
+    const paymentId = dep.mercado_pago_payment_id;
+    const orderId = dep.mercado_pago_order_id;
+    if (!paymentId && !orderId) return json({ status: dep.status });
+
+    const url = paymentId
+      ? `https://api.mercadopago.com/v1/payments/${paymentId}`
+      : `https://api.mercadopago.com/v1/orders/${orderId}`;
+    const r = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!r.ok) return json({ status: dep.status });
     const mpData = await r.json();
     const tx = mpData?.transactions?.payments?.[0] ?? {};
     const status = mpData?.status ?? tx?.status ?? dep.status;
-    const mpPaymentId = tx?.id?.toString() ?? null;
+    const statusDetail = mpData?.status_detail ?? tx?.status_detail ?? null;
+    const mpPaymentId = paymentId ?? mpData?.id?.toString() ?? tx?.id?.toString() ?? null;
 
     if (status === "approved") {
       const { data: res } = await admin.rpc("credit_wallet_from_deposit", {
@@ -41,7 +47,7 @@ Deno.serve(async (req) => {
       return json({ status: "approved", credited: true, result: res });
     }
 
-    await admin.from("wallet_deposits").update({ status, raw_response: mpData }).eq("id", dep.id);
+    await admin.from("wallet_deposits").update({ status, status_detail: statusDetail, raw_response: mpData }).eq("id", dep.id);
     return json({ status });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);

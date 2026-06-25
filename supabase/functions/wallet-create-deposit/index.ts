@@ -15,6 +15,28 @@ function json(data: unknown, status = 200) {
   });
 }
 
+async function resolveSandboxPayerEmail(accessToken: string) {
+  const cached = Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim();
+  if (cached) return cached;
+
+  const tuRes = await fetch("https://api.mercadopago.com/users/test_user", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ site_id: "MLB", description: `AD SCALE buyer ${crypto.randomUUID().slice(0, 8)}` }),
+  });
+  const tuData = await tuRes.json().catch(() => ({}));
+  if (!tuRes.ok || !tuData?.email) {
+    console.error("MP test_user error", tuRes.status, tuData);
+    throw new Error("Falha ao criar usuário de teste do Mercado Pago");
+  }
+
+  console.log("MP test buyer created", { email: tuData.email, id: tuData.id });
+  return tuData.email as string;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -47,53 +69,29 @@ Deno.serve(async (req) => {
 
     const isSandbox = (accessToken || "").startsWith("TEST-");
 
-    // No sandbox do Mercado Pago, o payer.email DEVE ser de um Test User
-    // criado via API /users/test_user na MESMA conta vendedora.
-    // Qualquer outro email retorna "invalid_users_involved".
-    let payerEmail = rawEmail;
-    if (isSandbox) {
-      const cached = Deno.env.get("MP_TEST_BUYER_EMAIL");
-      if (cached) {
-        payerEmail = cached;
-      } else {
-        const tuRes = await fetch("https://api.mercadopago.com/users/test_user", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ site_id: "MLB", description: "AD SCALE buyer" }),
-        });
-        const tuData = await tuRes.json();
-        if (!tuRes.ok || !tuData?.email) {
-          console.error("MP test_user error", tuRes.status, tuData);
-          return json({ error: "Falha ao criar usuário de teste do Mercado Pago", details: tuData }, 502);
-        }
-        payerEmail = tuData.email;
-        console.log("MP test buyer created (salve como MP_TEST_BUYER_EMAIL p/ reuso):", {
-          email: tuData.email,
-          password: tuData.password,
-          id: tuData.id,
-        });
-      }
-    }
+    // No sandbox do Mercado Pago, o payer.email precisa ser um Test User real.
+    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : rawEmail;
 
     const externalReference = `dep-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();
     const amountStr = amount.toFixed(2);
 
+    const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercado-pago-webhook`;
     const mpPayload = {
-      type: "online",
-      processing_mode: "automatic",
+      transaction_amount: Number(amountStr),
       external_reference: externalReference,
-      total_amount: amountStr,
       description: `Depósito carteira AD•SCALE`,
-      payer: { email: payerEmail, first_name: isSandbox ? "APRO" : name },
-      transactions: { payments: [{ amount: amountStr, payment_method: { id: "pix", type: "bank_transfer" } }] },
+      payment_method_id: "pix",
+      notification_url: notificationUrl,
+      payer: {
+        email: payerEmail,
+        first_name: isSandbox ? "APRO" : name,
+        last_name: "Cliente",
+        identification: { type: "CPF", number: "19119119100" },
+      },
     };
 
-
-    const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
+    const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -108,12 +106,11 @@ Deno.serve(async (req) => {
       return json({ error: "Erro ao gerar Pix", details: mpData }, 502);
     }
 
-    const tx = mpData?.transactions?.payments?.[0] ?? {};
-    const pm = tx?.payment_method ?? {};
-    const pixQr = pm?.qr_code ?? tx?.point_of_interaction?.transaction_data?.qr_code ?? null;
-    const pixQrBase64 = pm?.qr_code_base64 ?? tx?.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
-    const pixTicketUrl = pm?.ticket_url ?? tx?.point_of_interaction?.transaction_data?.ticket_url ?? null;
-    const status = mpData?.status ?? tx?.status ?? "pending";
+    const txData = mpData?.point_of_interaction?.transaction_data ?? {};
+    const pixQr = txData?.qr_code ?? null;
+    const pixQrBase64 = txData?.qr_code_base64 ?? null;
+    const pixTicketUrl = txData?.ticket_url ?? null;
+    const status = mpData?.status ?? "pending";
 
     const { data: dep, error: insErr } = await admin
       .from("wallet_deposits")
@@ -121,10 +118,10 @@ Deno.serve(async (req) => {
         user_id: userId,
         amount,
         status,
-        status_detail: mpData?.status_detail ?? tx?.status_detail ?? null,
+        status_detail: mpData?.status_detail ?? null,
         external_reference: externalReference,
-        mercado_pago_order_id: mpData?.id?.toString() ?? null,
-        mercado_pago_payment_id: tx?.id?.toString() ?? null,
+        mercado_pago_order_id: mpData?.order?.id?.toString() ?? null,
+        mercado_pago_payment_id: mpData?.id?.toString() ?? null,
         pix_qr_code: pixQr,
         pix_qr_code_base64: pixQrBase64,
         pix_ticket_url: pixTicketUrl,
@@ -140,6 +137,7 @@ Deno.serve(async (req) => {
     return json({
       deposit_id: dep.id,
       external_reference: externalReference,
+      mercado_pago_payment_id: mpData?.id?.toString() ?? null,
       pix_qr_code: pixQr,
       pix_qr_code_base64: pixQrBase64,
       pix_ticket_url: pixTicketUrl,

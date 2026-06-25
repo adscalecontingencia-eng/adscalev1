@@ -93,7 +93,17 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("wallet-create-deposit", { body: { amount: value } });
-      if (error) throw error;
+      if (error) {
+        let details = "";
+        const context = (error as any)?.context;
+        if (context?.json) {
+          try {
+            const body = await context.json();
+            details = body?.error || body?.message || "";
+          } catch { /* ignore */ }
+        }
+        throw new Error(details || error.message);
+      }
       const r = data as any;
       if (r?.error) throw new Error(r.error);
       setPix(r);
