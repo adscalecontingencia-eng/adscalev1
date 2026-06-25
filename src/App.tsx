@@ -117,6 +117,7 @@ const App = () => (
               <Route path="/perfil" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MarketplaceProfile /></ProtectedRoute>} />
               <Route path="/meus-pedidos-marketplace" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyPixOrders /></ProtectedRoute>} />
               <Route path="/admin-payments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminPayments /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/admin-webhook-logs" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminWebhookLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AdminAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/meus-pedidos" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
