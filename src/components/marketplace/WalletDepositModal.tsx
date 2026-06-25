@@ -93,7 +93,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
   }
 
   async function generatePix() {
-    const value = Number(String(amount).replace(",", "."));
+    const value = parseAmount(amount);
     if (!(value > 0)) { toast({ title: "Valor inválido", variant: "destructive" }); return; }
     setCreating(true);
     try {
