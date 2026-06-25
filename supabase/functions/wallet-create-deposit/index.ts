@@ -70,13 +70,17 @@ Deno.serve(async (req) => {
   const reqId = crypto.randomUUID().slice(0, 8);
   const log = (...args: unknown[]) => console.log(`[wallet-deposit ${reqId}]`, ...args);
   try {
-    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
+    const isSandboxEnv = isMercadoPagoTestMode();
+    const accessToken = isSandboxEnv
+      ? Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST")
+      : Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_LIVE");
     log("start", {
       mp_env: Deno.env.get("MERCADO_PAGO_ENV") || "(unset)",
+      token_source: isSandboxEnv ? "MERCADO_PAGO_ACCESS_TOKEN_TEST" : "MERCADO_PAGO_ACCESS_TOKEN_LIVE",
       token: maskToken(accessToken),
       token_prefix: accessToken ? accessToken.split("-")[0] : null,
     });
-    if (!accessToken) return json({ error: "MP token missing" }, 500);
+    if (!accessToken) return json({ error: `MP token missing (${isSandboxEnv ? "TEST" : "LIVE"})` }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "Unauthenticated" }, 401);
@@ -103,7 +107,7 @@ Deno.serve(async (req) => {
       (userInfo?.user?.user_metadata as any)?.full_name ||
       rawEmail.split("@")[0];
 
-    const isSandbox = isMercadoPagoTestMode();
+    const isSandbox = isSandboxEnv;
     const payerEmail = isSandbox
       ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
       : normalizeLivePayerEmail(rawEmail);
