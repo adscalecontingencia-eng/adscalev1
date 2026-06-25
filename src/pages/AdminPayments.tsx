@@ -199,6 +199,7 @@ export default function AdminPayments() {
         </CardContent>
       </Card>
 
+      <Card>
         <CardHeader className="pb-3"><CardTitle className="text-sm">Filtros</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="md:col-span-2">
