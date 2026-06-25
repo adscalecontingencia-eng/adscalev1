@@ -19,7 +19,7 @@ async function resolveSandboxPayerEmail(accessToken: string) {
   const cached = Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim();
   if (cached) return cached;
 
-  const tuRes = await fetch("https://api.mercadopago.com/users/test_user", {
+  const tuRes = await fetch("https://api.mercadopago.com/users/test", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -37,12 +37,33 @@ async function resolveSandboxPayerEmail(accessToken: string) {
   return tuData.email as string;
 }
 
+function mercadoPagoErrorMessage(data: any) {
+  const message = data?.message || data?.error || data?.cause?.[0]?.description;
+  const detail = data?.errors?.[0]?.details?.[0] || data?.errors?.[0]?.message;
+  if (`${message} ${detail}`.toLowerCase().includes("unauthorized use of live credentials")) {
+    return "Credencial Mercado Pago incorreta: use um Access Token de TESTE que comece com TEST- no segredo MERCADO_PAGO_ACCESS_TOKEN_TEST.";
+  }
+  if (`${message} ${detail}`.toLowerCase().includes("invalid_users_involved")) {
+    return "Mercado Pago recusou o pagador de teste. Atualize o segredo MERCADO_PAGO_ACCESS_TOKEN_TEST com o token TEST- da mesma aplicação.";
+  }
+  return message || detail || "Erro ao gerar Pix";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
     if (!accessToken) return json({ error: "MERCADO_PAGO_ACCESS_TOKEN_TEST not configured" }, 500);
+    if (!accessToken.startsWith("TEST-")) {
+      console.error("MP credential mismatch", {
+        tokenPrefix: accessToken.slice(0, 8),
+        tokenLength: accessToken.length,
+      });
+      return json({
+        error: "Credencial Mercado Pago incorreta: o segredo MERCADO_PAGO_ACCESS_TOKEN_TEST precisa ser um Access Token de teste iniciado por TEST-.",
+      }, 500);
+    }
 
     const body = (await req.json()) as Body;
     if (!body?.product_id || !body?.customer_name || !body?.customer_email) {
@@ -113,7 +134,7 @@ Deno.serve(async (req) => {
     const mpData = await mpRes.json();
     if (!mpRes.ok) {
       console.error("MP error", mpRes.status, mpData);
-      return json({ error: "Erro ao gerar Pix", details: mpData }, 502);
+      return json({ error: mercadoPagoErrorMessage(mpData), details: mpData }, 502);
     }
 
     const txData = mpData?.point_of_interaction?.transaction_data ?? {};
