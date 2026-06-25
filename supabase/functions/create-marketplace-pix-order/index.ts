@@ -37,6 +37,11 @@ async function resolveSandboxPayerEmail(accessToken: string) {
   return tuData.email as string;
 }
 
+function isMercadoPagoTestMode() {
+  const env = (Deno.env.get("MERCADO_PAGO_ENV") || "test").trim().toLowerCase();
+  return !["live", "production", "prod"].includes(env);
+}
+
 function mercadoPagoErrorMessage(data: any) {
   const message = data?.message || data?.error || data?.cause?.[0]?.description;
   const detail = data?.errors?.[0]?.details?.[0] || data?.errors?.[0]?.message;
@@ -98,28 +103,20 @@ Deno.serve(async (req) => {
     const externalReference = `mkt-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();
     const amountStr = amount.toFixed(2);
-    const isSandbox = accessToken.startsWith("TEST-");
+    const isSandbox = isMercadoPagoTestMode();
     const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : normalizeLivePayerEmail(body.customer_email);
-    const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercado-pago-webhook`;
 
     const mpPayload = {
-      transaction_amount: Number(amountStr),
+      type: "online",
+      processing_mode: "automatic",
       external_reference: externalReference,
+      total_amount: amountStr,
       description: product.name,
-      payment_method_id: "pix",
-      notification_url: notificationUrl,
-      payer: {
-        email: payerEmail,
-        first_name: isSandbox ? "APRO" : body.customer_name,
-        last_name: "Cliente",
-        identification: {
-          type: "CPF",
-          number: (body.customer_document ?? "19119119100").replace(/\D/g, "") || "19119119100",
-        },
-      },
+      payer: { email: payerEmail, first_name: isSandbox ? "APRO" : body.customer_name },
+      transactions: { payments: [{ amount: amountStr, payment_method: { id: "pix", type: "bank_transfer" } }] },
     };
 
-    const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
+    const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -134,11 +131,13 @@ Deno.serve(async (req) => {
       return json({ error: mercadoPagoErrorMessage(mpData), details: mpData }, 502);
     }
 
-    const txData = mpData?.point_of_interaction?.transaction_data ?? {};
-    const pixQr = txData?.qr_code ?? null;
-    const pixQrBase64 = txData?.qr_code_base64 ?? null;
-    const pixTicketUrl = txData?.ticket_url ?? null;
-    const status = mpData?.status ?? "pending";
+    const tx = mpData?.transactions?.payments?.[0] ?? {};
+    const pmData = tx?.payment_method ?? {};
+    const txData = tx?.point_of_interaction?.transaction_data ?? {};
+    const pixQr = pmData?.qr_code ?? txData?.qr_code ?? null;
+    const pixQrBase64 = pmData?.qr_code_base64 ?? txData?.qr_code_base64 ?? null;
+    const pixTicketUrl = pmData?.ticket_url ?? txData?.ticket_url ?? null;
+    const status = mpData?.status ?? tx?.status ?? "pending";
 
     const { data: order, error: insertErr } = await supabase
       .from("marketplace_orders")
@@ -146,11 +145,11 @@ Deno.serve(async (req) => {
         user_id: userId,
         product_id: product.id,
         external_reference: externalReference,
-        mercado_pago_order_id: mpData?.order?.id?.toString() ?? null,
-        mercado_pago_payment_id: mpData?.id?.toString() ?? null,
+        mercado_pago_order_id: mpData?.id?.toString() ?? null,
+        mercado_pago_payment_id: tx?.id?.toString() ?? null,
         amount,
         status,
-        status_detail: mpData?.status_detail ?? null,
+        status_detail: mpData?.status_detail ?? tx?.status_detail ?? null,
         customer_name: body.customer_name,
         customer_email: body.customer_email,
         customer_document: body.customer_document ?? null,
@@ -167,8 +166,8 @@ Deno.serve(async (req) => {
     return json({
       order_id: order.id,
       external_reference: externalReference,
-      mercado_pago_order_id: mpData?.order?.id?.toString() ?? null,
-      mercado_pago_payment_id: mpData?.id?.toString() ?? null,
+      mercado_pago_order_id: mpData?.id?.toString() ?? null,
+      mercado_pago_payment_id: tx?.id?.toString() ?? null,
       pix_qr_code: pixQr,
       pix_qr_code_base64: pixQrBase64,
       pix_ticket_url: pixTicketUrl,
