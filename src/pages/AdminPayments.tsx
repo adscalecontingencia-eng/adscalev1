@@ -110,6 +110,95 @@ export default function AdminPayments() {
       </div>
 
       <Card>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            Validação Mercado Pago
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => runValidation(false)} disabled={validating}>
+              {validating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Validar token
+            </Button>
+            <Button size="sm" onClick={() => runValidation(true)} disabled={validating}>
+              {validating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Validar + criar Pix R$1
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!validation && !validating && (
+            <p className="text-xs text-muted-foreground">
+              Clique para verificar o token ativo (TEST ou LIVE conforme <code>MERCADO_PAGO_ENV</code>) chamando <code>/users/me</code> e, opcionalmente, criando uma cobrança Pix real de R$ 1,00 para confirmar a integração ponta-a-ponta.
+            </p>
+          )}
+          {validation && (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                {validation.ok ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <XCircle className="h-5 w-5 text-red-400" />}
+                <span className="font-semibold">
+                  {validation.ok ? "Integração OK" : "Falha na validação"}
+                </span>
+                {validation.mode && (
+                  <Badge variant="outline" className={validation.mode === "production" ? "border-emerald-500/40 text-emerald-300" : "border-amber-500/40 text-amber-300"}>
+                    {validation.mode}
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <div className="bg-muted/40 rounded p-2">
+                  <div className="text-muted-foreground">Env</div>
+                  <div className="font-mono">{validation.env ?? "—"}</div>
+                </div>
+                <div className="bg-muted/40 rounded p-2">
+                  <div className="text-muted-foreground">Token ({validation.token_source})</div>
+                  <div className="font-mono">{validation.token_masked ?? "—"} — prefix <b>{validation.token_prefix ?? "—"}</b></div>
+                </div>
+                {validation.checks?.users_me && (
+                  <div className="bg-muted/40 rounded p-2 md:col-span-2">
+                    <div className="text-muted-foreground flex items-center gap-2">
+                      {validation.checks.users_me.ok ? <CheckCircle2 className="h-3 w-3 text-emerald-400" /> : <XCircle className="h-3 w-3 text-red-400" />}
+                      /users/me (HTTP {validation.checks.users_me.http_status})
+                    </div>
+                    {validation.checks.users_me.ok ? (
+                      <div className="font-mono">
+                        ID {validation.checks.users_me.user_id} — {validation.checks.users_me.nickname} ({validation.checks.users_me.email}) — site {validation.checks.users_me.site_id}
+                      </div>
+                    ) : (
+                      <div className="text-red-400">{validation.checks.users_me.error}</div>
+                    )}
+                  </div>
+                )}
+                {validation.checks?.prefix && !validation.checks.prefix.ok && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded p-2 md:col-span-2 text-red-300">
+                    {validation.checks.prefix.error}
+                  </div>
+                )}
+                {validation.checks?.pix_create && (
+                  <div className="bg-muted/40 rounded p-2 md:col-span-2">
+                    <div className="text-muted-foreground flex items-center gap-2">
+                      {validation.checks.pix_create.ok ? <CheckCircle2 className="h-3 w-3 text-emerald-400" /> : <XCircle className="h-3 w-3 text-red-400" />}
+                      Criação de Pix R$ 1,00 (HTTP {validation.checks.pix_create.http_status})
+                    </div>
+                    {validation.checks.pix_create.ok ? (
+                      <div className="font-mono">
+                        Order {validation.checks.pix_create.mp_order_id} — Payment {validation.checks.pix_create.mp_payment_id} — status {validation.checks.pix_create.status} — QR {validation.checks.pix_create.has_qr ? "✓" : "—"}
+                      </div>
+                    ) : (
+                      <div className="text-red-400 whitespace-pre-wrap break-all">{validation.checks.pix_create.error}</div>
+                    )}
+                  </div>
+                )}
+                {validation.error && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded p-2 md:col-span-2 text-red-300">{validation.error}</div>
+                )}
+              </div>
+              <RawDialog raw={validation} title="Resultado completo da validação" />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
         <CardHeader className="pb-3"><CardTitle className="text-sm">Filtros</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="md:col-span-2">
