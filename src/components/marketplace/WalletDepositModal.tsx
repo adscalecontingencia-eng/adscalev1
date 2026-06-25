@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Copy, Wallet as WalletIcon, Plus, History, CheckCircle2, Info } from "lucide-react";
+import { Loader2, Copy, Wallet as WalletIcon, Plus, History, CheckCircle2, Info, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/hooks/useWallet";
 
@@ -23,7 +23,8 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
   const { balance, refresh } = useWallet();
   const [amount, setAmount] = useState<string>(initialAmount ? String(initialAmount) : "200");
   const [creating, setCreating] = useState(false);
-  const [pix, setPix] = useState<{ deposit_id: string; pix_qr_code: string | null; pix_qr_code_base64: string | null; pix_ticket_url: string | null; amount: number } | null>(null);
+  const [pix, setPix] = useState<{ deposit_id: string; pix_qr_code: string | null; pix_qr_code_base64: string | null; pix_ticket_url: string | null; amount: number; test_mode?: boolean } | null>(null);
+  const [simulating, setSimulating] = useState(false);
   const [status, setStatus] = useState<string>("pending");
   const [history, setHistory] = useState<Array<{ id: string; type: string; amount: number; description: string | null; created_at: string }>>([]);
   const [tab, setTab] = useState<"deposit" | "history">("deposit");
@@ -120,8 +121,22 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
     toast({ title: "Código Pix copiado" });
   }
 
+  async function simulatePayment() {
+    if (!pix?.deposit_id) return;
+    setSimulating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("wallet-simulate-payment", { body: { deposit_id: pix.deposit_id } });
+      if (error) throw error;
+      const r = data as any;
+      if (r?.error) throw new Error(r.error);
+      handleApproved();
+    } catch (e: any) {
+      toast({ title: "Erro ao simular", description: e?.message ?? String(e), variant: "destructive" });
+    } finally { setSimulating(false); }
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><WalletIcon className="w-5 h-5 text-primary" /> Carteira</DialogTitle>
@@ -197,6 +212,20 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
             <p className="text-xs text-muted-foreground text-center">
               Aguardando pagamento de <strong>{fmt(pix.amount)}</strong>… atualiza automaticamente.
             </p>
+            {pix.test_mode && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-500">
+                  <FlaskConical className="w-4 h-4" /> Modo sandbox
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Contas teste do Mercado Pago não pagam Pix copia-e-cola. Clique abaixo para simular a aprovação.
+                </p>
+                <Button size="sm" variant="outline" className="w-full border-amber-500/40 text-amber-500 hover:bg-amber-500/10" onClick={simulatePayment} disabled={simulating}>
+                  {simulating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FlaskConical className="w-4 h-4 mr-2" />}
+                  Simular pagamento (sandbox)
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
