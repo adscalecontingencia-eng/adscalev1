@@ -49,20 +49,17 @@ function mercadoPagoErrorMessage(data: any) {
   return message || detail || "Erro ao gerar Pix";
 }
 
+function normalizeLivePayerEmail(email: string) {
+  const clean = email.trim().toLowerCase();
+  if (!clean || clean.endsWith("@testuser.com")) return "pagamentos@adscale.app";
+  return clean;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
     if (!accessToken) return json({ error: "MP token missing" }, 500);
-    if (!accessToken.startsWith("TEST-")) {
-      console.error("MP credential mismatch", {
-        tokenPrefix: accessToken.slice(0, 8),
-        tokenLength: accessToken.length,
-      });
-      return json({
-        error: "Credencial Mercado Pago incorreta: o segredo MERCADO_PAGO_ACCESS_TOKEN_TEST precisa ser um Access Token de teste iniciado por TEST-.",
-      }, 500);
-    }
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "Unauthenticated" }, 401);
@@ -90,8 +87,8 @@ Deno.serve(async (req) => {
 
     const isSandbox = (accessToken || "").startsWith("TEST-");
 
-    // No sandbox do Mercado Pago, o payer.email precisa ser um Test User real.
-    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : rawEmail;
+    // TEST- usa Test User; APP_USR- usa email real. Misturar @testuser.com com APP_USR- gera erro no MP.
+    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : normalizeLivePayerEmail(rawEmail);
 
     const externalReference = `dep-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();

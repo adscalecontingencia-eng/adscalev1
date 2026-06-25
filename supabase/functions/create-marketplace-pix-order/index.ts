@@ -49,21 +49,18 @@ function mercadoPagoErrorMessage(data: any) {
   return message || detail || "Erro ao gerar Pix";
 }
 
+function normalizeLivePayerEmail(email: string) {
+  const clean = email.trim().toLowerCase();
+  if (!clean || clean.endsWith("@testuser.com")) return "pagamentos@adscale.app";
+  return clean;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
     if (!accessToken) return json({ error: "MERCADO_PAGO_ACCESS_TOKEN_TEST not configured" }, 500);
-    if (!accessToken.startsWith("TEST-")) {
-      console.error("MP credential mismatch", {
-        tokenPrefix: accessToken.slice(0, 8),
-        tokenLength: accessToken.length,
-      });
-      return json({
-        error: "Credencial Mercado Pago incorreta: o segredo MERCADO_PAGO_ACCESS_TOKEN_TEST precisa ser um Access Token de teste iniciado por TEST-.",
-      }, 500);
-    }
 
     const body = (await req.json()) as Body;
     if (!body?.product_id || !body?.customer_name || !body?.customer_email) {
@@ -102,7 +99,7 @@ Deno.serve(async (req) => {
     const idempotencyKey = crypto.randomUUID();
     const amountStr = amount.toFixed(2);
     const isSandbox = accessToken.startsWith("TEST-");
-    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : body.customer_email;
+    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : normalizeLivePayerEmail(body.customer_email);
     const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercado-pago-webhook`;
 
     const mpPayload = {
