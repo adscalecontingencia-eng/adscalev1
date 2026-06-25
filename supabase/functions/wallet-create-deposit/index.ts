@@ -45,15 +45,38 @@ Deno.serve(async (req) => {
       (userInfo?.user?.user_metadata as any)?.full_name ||
       rawEmail.split("@")[0];
 
-    // Sandbox do Mercado Pago exige email terminando em @testuser.com.
-    // Detectamos pelo prefixo do access token (TEST-...) e remapeamos o domínio,
-    // mantendo o local-part para rastreabilidade.
     const isSandbox = (accessToken || "").startsWith("TEST-");
-    const localPart = (rawEmail.split("@")[0] || "user")
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]/g, "");
-    const email = isSandbox ? `${localPart || "user"}@testuser.com` : rawEmail;
 
+    // No sandbox do Mercado Pago, o payer.email DEVE ser de um Test User
+    // criado via API /users/test_user na MESMA conta vendedora.
+    // Qualquer outro email retorna "invalid_users_involved".
+    let payerEmail = rawEmail;
+    if (isSandbox) {
+      const cached = Deno.env.get("MP_TEST_BUYER_EMAIL");
+      if (cached) {
+        payerEmail = cached;
+      } else {
+        const tuRes = await fetch("https://api.mercadopago.com/users/test_user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ site_id: "MLB", description: "AD SCALE buyer" }),
+        });
+        const tuData = await tuRes.json();
+        if (!tuRes.ok || !tuData?.email) {
+          console.error("MP test_user error", tuRes.status, tuData);
+          return json({ error: "Falha ao criar usuário de teste do Mercado Pago", details: tuData }, 502);
+        }
+        payerEmail = tuData.email;
+        console.log("MP test buyer created (salve como MP_TEST_BUYER_EMAIL p/ reuso):", {
+          email: tuData.email,
+          password: tuData.password,
+          id: tuData.id,
+        });
+      }
+    }
 
     const externalReference = `dep-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const idempotencyKey = crypto.randomUUID();
@@ -65,9 +88,10 @@ Deno.serve(async (req) => {
       external_reference: externalReference,
       total_amount: amountStr,
       description: `Depósito carteira AD•SCALE`,
-      payer: { email, first_name: name },
+      payer: { email: payerEmail, first_name: isSandbox ? "APRO" : name },
       transactions: { payments: [{ amount: amountStr, payment_method: { id: "pix", type: "bank_transfer" } }] },
     };
+
 
     const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
