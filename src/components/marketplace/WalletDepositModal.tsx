@@ -121,7 +121,21 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
     toast({ title: "Código Pix copiado" });
   }
 
-  return (
+  async function simulatePayment() {
+    if (!pix?.deposit_id) return;
+    setSimulating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("wallet-simulate-payment", { body: { deposit_id: pix.deposit_id } });
+      if (error) throw error;
+      const r = data as any;
+      if (r?.error) throw new Error(r.error);
+      handleApproved();
+    } catch (e: any) {
+      toast({ title: "Erro ao simular", description: e?.message ?? String(e), variant: "destructive" });
+    } finally { setSimulating(false); }
+  }
+
+
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
