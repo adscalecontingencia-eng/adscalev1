@@ -183,10 +183,19 @@ Deno.serve(async (req) => {
         });
         return json({ ok: true, deposit: res });
       }
-      await supabase
+      const { data: depRow } = await supabase
         .from("wallet_deposits")
         .update({ status: status2, raw_response: mpOrder ?? mpPayment })
-        .eq("external_reference", externalReference);
+        .eq("external_reference", externalReference)
+        .select("id")
+        .maybeSingle();
+
+      // Estado intermediário → cria/atualiza lançamento financeiro como pendente
+      const intermediate = ["pending", "in_process", "authorized", "action_required"];
+      if (depRow?.id && intermediate.includes(String(status2))) {
+        await supabase.rpc("upsert_deposit_finance", { _deposit_id: depRow.id, _status: "pendente" });
+      }
+
       await logEvent({
         http_status: 200,
         status: `deposit_${status2 ?? "pending"}`,
