@@ -172,7 +172,8 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Valor rápido</Label>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {QUICK.map((v) => (
-                  <Button key={v} variant={Number(amount) === v ? "default" : "outline"} size="sm" onClick={() => setAmount(String(v))}>
+                  <Button key={v} variant={parseAmount(amount) === v ? "default" : "outline"} size="sm" onClick={() => setAmount(String(v))}>
+
                     R$ {v}
                   </Button>
                 ))}
