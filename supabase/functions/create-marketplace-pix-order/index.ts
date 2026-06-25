@@ -104,7 +104,9 @@ Deno.serve(async (req) => {
     const idempotencyKey = crypto.randomUUID();
     const amountStr = amount.toFixed(2);
     const isSandbox = isMercadoPagoTestMode();
-    const payerEmail = isSandbox ? await resolveSandboxPayerEmail(accessToken) : normalizeLivePayerEmail(body.customer_email);
+    const payerEmail = isSandbox
+      ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
+      : normalizeLivePayerEmail(body.customer_email);
 
     const mpPayload = {
       type: "online",
