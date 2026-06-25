@@ -60,14 +60,27 @@ function normalizeLivePayerEmail(email: string) {
   return clean;
 }
 
+function maskToken(t?: string | null) {
+  if (!t) return "(missing)";
+  return `${t.slice(0, 8)}…${t.slice(-4)} (len=${t.length})`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const reqId = crypto.randomUUID().slice(0, 8);
+  const log = (...args: unknown[]) => console.log(`[mkt-pix ${reqId}]`, ...args);
 
   try {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
+    log("start", {
+      mp_env: Deno.env.get("MERCADO_PAGO_ENV") || "(unset)",
+      token: maskToken(accessToken),
+      token_prefix: accessToken ? accessToken.split("-")[0] : null,
+    });
     if (!accessToken) return json({ error: "MERCADO_PAGO_ACCESS_TOKEN_TEST not configured" }, 500);
 
     const body = (await req.json()) as Body;
+    log("input", { product_id: body?.product_id, has_email: !!body?.customer_email, has_name: !!body?.customer_name });
     if (!body?.product_id || !body?.customer_name || !body?.customer_email) {
       return json({ error: "Campos obrigatórios: product_id, customer_name, customer_email" }, 400);
     }
@@ -77,7 +90,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Identify user if logged in (optional)
     let userId: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
@@ -86,15 +98,18 @@ Deno.serve(async (req) => {
       const { data } = await anon.auth.getClaims(token);
       userId = data?.claims?.sub ?? null;
     }
+    log("auth", { userId });
 
-    // Fetch product from DB - price comes from DB only
     const { data: product, error: prodErr } = await supabase
       .from("marketplace_products")
       .select("id, name, price, status")
       .eq("id", body.product_id)
       .maybeSingle();
 
-    if (prodErr || !product) return json({ error: "Produto indisponível" }, 404);
+    if (prodErr || !product) {
+      log("product error", { prodErr, product });
+      return json({ error: "Produto indisponível" }, 404);
+    }
     if (product.status !== "active") return json({ error: "Produto indisponível" }, 400);
 
     const amount = Number(product.price);
@@ -107,6 +122,7 @@ Deno.serve(async (req) => {
     const payerEmail = isSandbox
       ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
       : normalizeLivePayerEmail(body.customer_email);
+    log("payer", { isSandbox, payerEmail });
 
     const mpPayload = {
       type: "online",
@@ -117,6 +133,7 @@ Deno.serve(async (req) => {
       payer: { email: payerEmail, first_name: isSandbox ? "APRO" : body.customer_name },
       transactions: { payments: [{ amount: amountStr, payment_method: { id: "pix", type: "bank_transfer" } }] },
     };
+    log("MP request →", { url: "https://api.mercadopago.com/v1/orders", idempotencyKey, payload: mpPayload });
 
     const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
@@ -127,9 +144,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify(mpPayload),
     });
-    const mpData = await mpRes.json();
+    const mpData = await mpRes.json().catch(() => ({}));
+    log("MP response ←", { status: mpRes.status, ok: mpRes.ok, body: mpData });
     if (!mpRes.ok) {
-      console.error("MP error", mpRes.status, mpData);
       return json({ error: mercadoPagoErrorMessage(mpData), details: mpData }, 502);
     }
 
@@ -140,6 +157,7 @@ Deno.serve(async (req) => {
     const pixQrBase64 = pmData?.qr_code_base64 ?? txData?.qr_code_base64 ?? null;
     const pixTicketUrl = pmData?.ticket_url ?? txData?.ticket_url ?? null;
     const status = mpData?.status ?? tx?.status ?? "pending";
+    log("parsed", { status, has_qr: !!pixQr, mp_order_id: mpData?.id, mp_payment_id: tx?.id });
 
     const { data: order, error: insertErr } = await supabase
       .from("marketplace_orders")
@@ -161,9 +179,10 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertErr) {
-      console.error("DB insert error", insertErr);
-      return json({ error: "Erro ao registrar compra" }, 500);
+      console.error(`[mkt-pix ${reqId}] DB insert error`, insertErr);
+      return json({ error: "Erro ao registrar compra", details: insertErr.message }, 500);
     }
+    log("done", { order_id: order.id });
 
     return json({
       order_id: order.id,
