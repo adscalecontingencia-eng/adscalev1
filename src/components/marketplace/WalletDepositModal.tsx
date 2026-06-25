@@ -192,7 +192,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button className="flex-1" onClick={generatePix} disabled={creating}>
+              <Button className="flex-1" onClick={generatePix} disabled={creating || parseAmount(amount) < 20}>
                 {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 Depositar {fmt(parseAmount(amount))}
               </Button>
