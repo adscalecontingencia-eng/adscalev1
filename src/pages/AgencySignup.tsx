@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { TERMS_OF_USE_TEXT, TERMS_VERSION } from "@/lib/terms";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -64,7 +66,13 @@ const AgencySignup: React.FC = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
       setDone(true);
-      setTimeout(() => navigate("/login"), 2500);
+      // Auto-login e redireciona direto para o painel da agência
+      try {
+        const ok = await login(email, password);
+        setTimeout(() => navigate(ok ? "/client-dashboard" : "/login"), 1200);
+      } catch {
+        setTimeout(() => navigate("/login"), 1500);
+      }
     } catch (e: any) {
       setError(e.message || "Erro no cadastro");
     } finally {
@@ -81,7 +89,7 @@ const AgencySignup: React.FC = () => {
           </div>
           <h2 className="font-display text-xl font-bold text-foreground mb-2">Cadastro concluído</h2>
           <p className="text-sm text-muted-foreground">
-            Em breve nosso time de suporte entrará em contato. Redirecionando para o login…
+            Entrando no seu painel da agência…
           </p>
         </motion.div>
       </div>
