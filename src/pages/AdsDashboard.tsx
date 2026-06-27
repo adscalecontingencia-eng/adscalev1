@@ -293,8 +293,8 @@ export default function AdsDashboard() {
       const errs = (data as any)?.erros || [];
       if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
       setLastSyncAt(new Date());
-      // Surface partial failures even on silent runs so the user sees that
-      // some accounts didn't return data (e.g. Meta API instability today).
+      // Surface partial failures even on the first silent run so the admin
+      // sees why some accounts are missing (e.g. Meta API instability).
       if (errs.length > 0) {
         setAutoSyncError(`Meta retornou erro em ${errs.length} conta(s). Clique em "Sincronizar" para tentar de novo.`);
       } else {
