@@ -1,58 +1,51 @@
 ## Diagnóstico
 
-O erro vindo dos logs é claro:
+Verifiquei o banco e a sincronização está funcionando:
 
 ```
-MP error 402 invalid_users_involved
+ date       | linhas | spend
+ 2026-06-27 |   64   |  8567.51   ← Hoje
+ 2026-06-26 |   73   | 15125.03   ← Ontem
+ 2026-06-25 |   76   |  9560.90
 ```
 
-Isso **não** é o nome do pagador nem o email `@testuser.com` que resolvem. No sandbox do Mercado Pago, o pagador precisa ser um **Test User** real, criado via API `POST /users/test_user` usando o access token TEST. Qualquer outro email (mesmo `teste@testuser.com`) é rejeitado como "usuário inválido", porque o MP exige que o `payer.email` corresponda a um test user gerado na mesma conta vendedora.
+Ou seja, os dados existem em `meta_ad_insights`, o `meta-sync` está populando corretamente, e os GRANTs/RLS permitem o admin/support enxergar tudo. O problema não é o sync — é o front-end (`src/pages/AdsDashboard.tsx`) que está renderizando "Nenhum insight encontrado" mesmo com dados disponíveis nas janelas curtas (Hoje/Ontem).
 
-A função `wallet-create-deposit` hoje só reescreve o domínio para `@testuser.com` — o que não basta.
+## Causas-raiz no `AdsDashboard.tsx`
 
-## Plano
+1. **Stale closure no auto-sync**
+   ```ts
+   await loadInsights();
+   const hasToday = insights.some(i => i.date === today); // 'insights' é do render anterior
+   ```
+   `insights` lido logo após `await loadInsights()` ainda é o valor antigo do render, então `hasToday` é sempre `false` na primeira execução, disparando `sync({forceRecent:true})` sempre — e o `loadInsights({background:true})` disparado depois pode sobrescrever o estado durante uma corrida.
 
-Editar **apenas** `supabase/functions/wallet-create-deposit/index.ts` para, quando o token for sandbox (`TEST-...`):
+2. **Race do generation guard (`loadGen`) deixando `insights = []`**
+   `loadInsights` faz `++loadGen.current` no início e, se outro `loadInsights` (do sync, do useEffect, do StrictMode) bumpa a geração antes do primeiro responder, o primeiro faz `return` sem chamar `setInsights` **nem** `setLoading(false)`. Em janelas curtas (Hoje/Ontem = poucas linhas, resposta rápida) a corrida fica visível e o estado final pode ficar com `insights = []` (estado inicial), enquanto `loading` já foi resetado por outra chamada — exatamente a tela do print: 443 contas, sem skeleton, sem linhas.
 
-1. Buscar/criar um **test buyer** persistente:
-   - Tentar ler de uma secret/env `MP_TEST_BUYER_EMAIL` (cache simples). Se existir, usá-la diretamente como `payer.email`.
-   - Se não existir, chamar `POST https://api.mercadopago.com/users/test_user` com `{ site_id: "MLB", description: "AD SCALE buyer" }` usando o access token TEST.
-   - Usar o `email` retornado pela API como `payer.email` desta chamada.
-   - Logar o email + senha do test user retornado (apenas em sandbox) para o usuário poder reaproveitar.
-2. Em produção (token sem prefixo `TEST-`), manter o fluxo atual usando o email real do usuário autenticado.
-3. Manter o nome `customer_name` informado pelo cliente como `payer.first_name` (com fallback `APRO` em sandbox, para forçar aprovação automática quando aplicável).
-4. Tratar falha da criação do test user retornando 502 com mensagem clara ("Não foi possível criar usuário de teste do Mercado Pago"), em vez do erro genérico atual.
+3. **Auto-sync silencioso esconde falha real**
+   Quando o `sync({silent:true, forceRecent:true})` falha (Meta instável, erros parciais em 100+ contas), o front-end limpa o `autoSyncError` no fluxo de sucesso seguinte e o usuário não tem nenhuma pista do motivo da tela vazia.
 
-Sem mudanças em UI, banco, RLS, ou em outras edge functions. Sem novas secrets obrigatórias (a `MP_TEST_BUYER_EMAIL` é opcional — se ausente, criamos sob demanda a cada chamada; opcionalmente, recomendarei depois salvar como secret para reuso).
+## Correções
 
-## Detalhes técnicos
+### `src/pages/AdsDashboard.tsx`
 
-Trecho a inserir antes de montar `mpPayload`, em sandbox:
+1. Fazer `loadInsights` **retornar** as linhas carregadas e usar esse retorno no auto-sync, em vez de ler o state `insights` (que é stale):
+   ```ts
+   const rows = await loadInsights();
+   const hasToday = rows.some(i => i.date === today);
+   ```
+2. No `loadInsights`, garantir sempre `setLoading(false)` no `finally`, inclusive quando o generation guard descarta o resultado, para nunca deixar o componente travado num estado inconsistente.
+3. Tornar o auto-sync seguro contra corridas: cancelar/ignorar o `loadInsights({background:true})` final do `sync` se o `range` já mudou (já há `loadGen`, basta capturar `gen` antes do sync e abortar caso difira no fim).
+4. Para `range === "today" | "yesterday"`, se a query inicial vier vazia **e** existirem contas, mostrar skeleton + disparar um `sync({forceRecent:true})` foreground e recarregar — em vez de cair direto no empty-state.
+5. Mostrar o erro do auto-sync no banner amarelo também quando vier `data.erros.length > 0` na primeira execução (hoje só aparece em re-execuções), para o admin enxergar quando a Meta devolveu falha parcial.
 
-```ts
-let payerEmail = email;
-if (isSandbox) {
-  const cached = Deno.env.get("MP_TEST_BUYER_EMAIL");
-  if (cached) {
-    payerEmail = cached;
-  } else {
-    const tuRes = await fetch("https://api.mercadopago.com/users/test_user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ site_id: "MLB", description: "AD SCALE buyer" }),
-    });
-    const tuData = await tuRes.json();
-    if (!tuRes.ok || !tuData?.email) {
-      console.error("MP test_user error", tuRes.status, tuData);
-      return json({ error: "Falha ao criar usuário de teste MP", details: tuData }, 502);
-    }
-    payerEmail = tuData.email;
-    console.log("MP test buyer created", { email: tuData.email, password: tuData.password });
-  }
-}
-```
+### Sem alterações em backend/sync
 
-E usar `payer: { email: payerEmail, first_name: isSandbox ? "APRO" : name }` no payload.
+`supabase/functions/meta-sync/index.ts` está correto (usa `time_range: {since, until}` com datas locais vindas do front, faz upsert em `(ad_account_id, date)`), e o DB tem os dados. Nenhuma migração nem mudança de RLS é necessária.
+
+## Validação
+
+- Abrir `/ads`, alternar entre Hoje / Ontem / 7d várias vezes seguidas — não pode mais ficar em "Nenhum insight" quando o DB tem linhas (confirmar contra a query SQL acima).
+- Forçar uma falha do `meta-sync` (token inválido temporário) e confirmar que o banner amarelo aparece com a mensagem real.
+- Verificar no console que `loadInsights` não fica preso em `loading=true` após disparos rápidos consecutivos.
