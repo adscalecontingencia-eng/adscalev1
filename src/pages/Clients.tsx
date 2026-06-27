@@ -192,6 +192,12 @@ const Clients: React.FC = () => {
 
   // Insights + assignments (para calcular Saldo Acumulado igual ao dashboard do cliente)
   const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
+  const fmtISO = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   const fetchInsightsByClient = async () => {
     const assignRes = await supabase
       .from('meta_ad_account_assignments')
@@ -234,6 +240,34 @@ const Clients: React.FC = () => {
       byClient[cid].push({ date: i.date, spend: Number(i.spend || 0) });
     });
     setInsightsByClient(byClient);
+    return allInsights;
+  };
+
+  // Garante que Hoje/Ontem dos clientes refletem o último sync da Meta:
+  // se as últimas 2 datas vierem sem nada, dispara meta-sync e recarrega.
+  // Evita que o gasto por cliente fique zerado quando o admin abre a tela
+  // antes do auto-sync de /ads ter rodado.
+  const didInsightsAutoSync = useRef(false);
+  const ensureRecentInsights = async () => {
+    if (didInsightsAutoSync.current) return;
+    didInsightsAutoSync.current = true;
+    const today = fmtISO(new Date());
+    const yday = fmtISO(subDays(new Date(), 1));
+    const { data } = await supabase
+      .from('meta_ad_insights')
+      .select('date')
+      .gte('date', yday)
+      .lte('date', today)
+      .limit(1);
+    if ((data || []).length > 0) return;
+    try {
+      await supabase.functions.invoke('meta-sync', {
+        body: { action: 'sync_insights', since: yday, until: today },
+      });
+      await fetchInsightsByClient();
+    } catch (e) {
+      console.warn('[Clients] auto-sync de insights falhou:', e);
+    }
   };
 
   const fetchPartners = async () => {
@@ -241,7 +275,16 @@ const Clients: React.FC = () => {
     setPartners((data as any) || []);
   };
 
-  useEffect(() => { fetchClients(); fetchCommissions(); fetchInsightsByClient(); fetchPartners(); }, []);
+  useEffect(() => {
+    fetchClients();
+    fetchCommissions();
+    fetchPartners();
+    (async () => {
+      await fetchInsightsByClient();
+      await ensureRecentInsights();
+    })();
+  }, []);
+
 
   const calculateCommission = (client: Client, adSpend: number, weeklyAccumSpend?: number): number => {
     // Venda → valor fixo
