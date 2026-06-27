@@ -66,7 +66,13 @@ const AgencySignup: React.FC = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
       setDone(true);
-      setTimeout(() => navigate("/login"), 2500);
+      // Auto-login e redireciona direto para o painel da agência
+      try {
+        const ok = await login(email, password);
+        setTimeout(() => navigate(ok ? "/client-dashboard" : "/login"), 1200);
+      } catch {
+        setTimeout(() => navigate("/login"), 1500);
+      }
     } catch (e: any) {
       setError(e.message || "Erro no cadastro");
     } finally {
