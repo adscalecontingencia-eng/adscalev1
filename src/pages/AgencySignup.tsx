@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
