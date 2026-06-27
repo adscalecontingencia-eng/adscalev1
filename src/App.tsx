@@ -21,6 +21,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import NotificationSettings from "./pages/NotificationSettings";
 import Signup from "./pages/Signup";
+import AgencySignup from "./pages/AgencySignup";
 import MarketplaceSignup from "./pages/MarketplaceSignup";
 import AccessLogs from "./pages/AccessLogs";
 import AuditLog from "./pages/AuditLog";
@@ -106,6 +107,8 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/cadastro-agencia" element={<AgencySignup />} />
+              <Route path="/agency-signup" element={<AgencySignup />} />
               <Route path="/completar-cadastro" element={<CompleteSignup />} />
               <Route path="/marketplace-signup" element={<MarketplaceSignup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
