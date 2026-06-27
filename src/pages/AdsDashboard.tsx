@@ -126,55 +126,73 @@ export default function AdsDashboard() {
   // Generation guard: drop responses from a previous range/sync race
   const loadGen = useRef(0);
 
-  const loadInsights = async (opts?: { background?: boolean }) => {
+  const loadInsights = async (opts?: { background?: boolean }): Promise<Insight[]> => {
     const myGen = ++loadGen.current;
     if (!opts?.background) setLoading(true);
-    const { since, until } = rangeToDates(range, customStart, customEnd);
-    const prev = previousRange(since, until);
+    try {
+      const { since, until } = rangeToDates(range, customStart, customEnd);
+      const prev = previousRange(since, until);
 
-    // IMPORTANT: explicit range to bypass Supabase's default 1000 rows limit.
-    // Without this, long periods or many accounts return truncated data and
-    // metrics become inconsistent.
-    const [curRes, prevRes] = await Promise.all([
-      supabase
-        .from("meta_ad_insights")
-        .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
-        .gte("date", since).lte("date", until)
-        .order("date", { ascending: true })
-        .range(0, 99999),
-      supabase
-        .from("meta_ad_insights")
-        .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
-        .gte("date", prev.since).lte("date", prev.until)
-        .order("date", { ascending: true })
-        .range(0, 99999),
-    ]);
-    // Ignore stale results if a newer load started or filters changed
-    if (myGen !== loadGen.current) return;
-    if (curRes.error && !opts?.background) toast.error(curRes.error.message);
-    setInsights((curRes.data as Insight[]) || []);
-    setPrevInsights((prevRes.data as Insight[]) || []);
-    if (!opts?.background) setLoading(false);
+      // IMPORTANT: explicit range to bypass Supabase's default 1000 rows limit.
+      const [curRes, prevRes] = await Promise.all([
+        supabase
+          .from("meta_ad_insights")
+          .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
+          .gte("date", since).lte("date", until)
+          .order("date", { ascending: true })
+          .range(0, 99999),
+        supabase
+          .from("meta_ad_insights")
+          .select("ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue")
+          .gte("date", prev.since).lte("date", prev.until)
+          .order("date", { ascending: true })
+          .range(0, 99999),
+      ]);
+      // Drop stale results from a previous range/sync race, but still release
+      // loading in finally so the UI never gets stuck between skeleton and data.
+      if (myGen !== loadGen.current) return [];
+      if (curRes.error && !opts?.background) toast.error(curRes.error.message);
+      const rows = (curRes.data as Insight[]) || [];
+      setInsights(rows);
+      setPrevInsights((prevRes.data as Insight[]) || []);
+      return rows;
+    } finally {
+      if (!opts?.background) setLoading(false);
+    }
   };
 
   useEffect(() => { loadMeta(); }, []);
 
-  // Reload on period change. Auto-sync runs on mount AND whenever today's data
-  // is missing (e.g. Meta API was unstable during the previous attempt and the
-  // silent sync swallowed the error, leaving spend showing 0 for today).
+  // Reload on period change. Decide auto-sync based on the rows we just
+  // loaded (NOT the `insights` state, which is stale in this closure).
   const didAutoSync = useRef(false);
   useEffect(() => {
     (async () => {
-      await loadInsights();
+      const rows = await loadInsights();
       const today = fmtISO(new Date());
-      const hasToday = insights.some((i) => i.date === today);
+      const hasToday = rows.some((i) => i.date === today);
+      const isShortRange = range === "today" || range === "yesterday";
+
+      // If the user is on Hoje/Ontem and DB has no rows for this window,
+      // run a FOREGROUND sync (keeps the skeleton up) and reload — avoids
+      // flashing the empty state while the Meta call is in flight.
+      if (isShortRange && rows.length === 0) {
+        didAutoSync.current = true;
+        setLoading(true);
+        try {
+          await sync({ silent: false, forceRecent: true });
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       const shouldAutoSync = !didAutoSync.current || !hasToday;
       if (shouldAutoSync) {
         didAutoSync.current = true;
         const gen = loadGen.current;
-        // Force the auto-sync to always cover today + last 2 days so we never
-        // skip a day after a Meta outage, regardless of the UI range.
         sync({ silent: true, forceRecent: true }).then(() => {
+          // Abort the follow-up reload if range changed mid-sync.
           if (gen === loadGen.current) loadInsights({ background: true });
         });
       }
