@@ -89,7 +89,7 @@ const AgencySignup: React.FC = () => {
           </div>
           <h2 className="font-display text-xl font-bold text-foreground mb-2">Cadastro concluído</h2>
           <p className="text-sm text-muted-foreground">
-            Em breve nosso time de suporte entrará em contato. Redirecionando para o login…
+            Entrando no seu painel da agência…
           </p>
         </motion.div>
       </div>
