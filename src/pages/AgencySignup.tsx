@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { TERMS_OF_USE_TEXT, TERMS_VERSION } from "@/lib/terms";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
