@@ -4,8 +4,7 @@ import {
   Home, ShoppingCart, Wifi, TrendingUp, Wrench, MessageCircle, Plus,
   ChevronDown, LogIn, UserPlus, ArrowRight, Search,
 } from "lucide-react";
-import { FaTiktok, FaFacebook, FaWhatsapp } from "react-icons/fa";
-import { SiMeta } from "react-icons/si";
+import { Music2, Facebook, MessageSquare, Hexagon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/hooks/useWallet";
