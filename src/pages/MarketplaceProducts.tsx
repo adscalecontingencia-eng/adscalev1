@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Home, ShoppingCart, Wifi, TrendingUp, Wrench, MessageCircle, Plus,
+  Home, ShoppingCart, TrendingUp, MessageCircle, Plus,
   ChevronDown, LogIn, UserPlus, ArrowRight, Search,
 } from "lucide-react";
 import { Music2, Facebook, MessageSquare, Hexagon } from "lucide-react";
@@ -151,9 +151,7 @@ const MarketplaceProducts: React.FC = () => {
           <nav className="hidden md:flex items-center gap-1 mx-auto">
             <button onClick={() => navigate("/marketplace")} className={navBtn(false)}><Home size={15} /> Início</button>
             <button className={navBtn(true)}><ShoppingCart size={15} /> Produtos</button>
-            <button onClick={() => navigate("/marketplace")} className={navBtn(false)}><Wifi size={15} /> Proxies</button>
             <button onClick={() => navigate("/marketplace/ativos")} className={navBtn(false)}><TrendingUp size={15} /> Ativos c/ Gastos</button>
-            <button onClick={() => navigate("/marketplace")} className={navBtn(false)}><Wrench size={15} /> Ferramentas</button>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={navBtn(false)}><MessageCircle size={15} /> Contato</a>
           </nav>
 
