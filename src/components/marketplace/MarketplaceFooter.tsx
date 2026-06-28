@@ -10,19 +10,16 @@ const INSTAGRAM_URL = "https://instagram.com/adscale";
 const MarketplaceFooter: React.FC = () => {
   return (
     <footer className="relative border-t border-border/60 mt-10">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Logo centered */}
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center mb-8 sm:mb-10">
           <Link
             to="/marketplace"
-            className="inline-flex items-center gap-1.5 notranslate text-primary"
+            className="inline-flex items-center notranslate"
             translate="no"
             aria-label="AD SCALE"
           >
             <AdScaleLogo size={32} />
-            <span className="font-display font-black tracking-tight text-foreground text-2xl leading-none translate-y-[6px]">
-              SCALE
-            </span>
           </Link>
         </div>
 
