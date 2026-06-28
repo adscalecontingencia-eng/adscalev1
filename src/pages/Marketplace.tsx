@@ -669,7 +669,8 @@ const Marketplace: React.FC = () => {
 
 
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
-            <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
+            <Button size="lg" onClick={() => navigate("/marketplace/produtos")}>
+
               <ShoppingCart size={16} className="mr-2" /> Conferir produtos <ArrowRight size={16} className="ml-1" />
             </Button>
             <Button
@@ -781,157 +782,43 @@ const Marketplace: React.FC = () => {
         </div>
       </section>
 
-      {/* Catálogo */}
-      <section id="catalogo" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
-        <div className="text-center mb-6 sm:mb-8">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Catálogo</p>
-          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Produtos em Destaque</h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto px-2">
-            Os ativos mais vendidos e com melhores avaliações dos nossos clientes.
+      {/* Categorias */}
+      <section id="categorias" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+        <div className="text-center mb-8 sm:mb-10">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Categorias</p>
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+            Explore nossas categorias
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-xl mx-auto px-2">
+            Encontre o ativo certo para escalar sua operação.
           </p>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="hidden sm:flex justify-center mb-6">
-          <TabsList>
-            <TabsTrigger value="destaque">Em Destaque</TabsTrigger>
-            <TabsTrigger value="novidades">Novidades</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Mobile compact filter bar */}
-        <div className="sm:hidden mb-4 flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar..."
-              className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary"
-            />
-          </div>
-          <button
-            onClick={() => setFiltersOpen(true)}
-            className="relative shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider"
-          >
-            <SlidersHorizontal size={14} />
-            Filtros
-            {activeFiltersCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Desktop search */}
-        <div className="hidden sm:block max-w-xl mx-auto mb-5">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produto..."
-              className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
-            />
-          </div>
-        </div>
-
-        {/* Source categories — desktop */}
-        <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 mb-3">
-          {SOURCES.map((s) => {
-            const active = activeSource === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => {
-                  setActiveSource(s.id as typeof activeSource);
-                  if (s.id !== "meta") setActiveMetaSub("all");
-                }}
-                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all ${
-                  active
-                    ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
-                    : "bg-card/40 border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40"
-                }`}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Meta subcategories — desktop */}
-        {activeSource === "meta" && (
-          <div className="hidden sm:flex flex-wrap items-center justify-center gap-1.5 mb-6">
-            {META_SUBS.map((s) => {
-              const active = activeMetaSub === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setActiveMetaSub(s.id as typeof activeMetaSub)}
-                  className={`px-3 py-1 rounded-md text-[11px] font-medium border transition-all ${
-                    active
-                      ? "bg-primary/15 border-primary/40 text-primary"
-                      : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Active filters chips — mobile */}
-        {activeFiltersCount > 0 && (
-          <div className="sm:hidden flex flex-wrap gap-1.5 mb-4">
-            {activeSource !== "all" && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
-                {SOURCES.find((s) => s.id === activeSource)?.label}
-                <button onClick={() => { setActiveSource("all"); setActiveMetaSub("all"); }}><X size={10} /></button>
-              </span>
-            )}
-            {activeSource === "meta" && activeMetaSub !== "all" && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
-                {META_SUBS.find((s) => s.id === activeMetaSub)?.label}
-                <button onClick={() => setActiveMetaSub("all")}><X size={10} /></button>
-              </span>
-            )}
-            {tab !== "destaque" && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
-                Novidades
-                <button onClick={() => setTab("destaque")}><X size={10} /></button>
-              </span>
-            )}
-            {priceMax > 0 && priceMax < priceBounds.max && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider">
-                Até {fmtBRL(priceMax)}
-                <button onClick={() => setPriceMax(priceBounds.max)}><X size={10} /></button>
-              </span>
-            )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { label: "TikTok Ads", desc: "BC Verificadados · Restabelecidos · Resistentes", icon: <Music2 className="w-7 h-7 text-foreground" /> },
+            { label: "BMs de Disparos", desc: "Verificadas · Waba aprovado · Com e sem template", icon: <MessageSquare className="w-7 h-7 text-emerald-400" /> },
+            { label: "Perfis Facebook", desc: "Perfis antigos · Com cookies · Com 2FA · Brasileiros", icon: <Facebook className="w-7 h-7 text-[#0866FF]" /> },
+            { label: "BMs Facebook", desc: "BMs antigas · Limites altos · Sem gastos", icon: <Hexagon className="w-7 h-7 text-[#0866FF]" /> },
+          ].map((c) => (
             <button
-              onClick={clearFilters}
-              className="px-2 py-1 rounded-md border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-wider hover:text-foreground"
+              key={c.label}
+              onClick={() => navigate("/marketplace/produtos")}
+              className="group rounded-2xl border border-border/60 bg-card/60 hover:bg-card/80 hover:border-primary/40 transition-all p-5 flex items-center gap-4 text-left"
             >
-              Limpar
+              <div className="w-14 h-14 rounded-xl bg-background/60 border border-border/40 flex items-center justify-center shrink-0">
+                {c.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-bold text-foreground text-lg">{c.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.desc}</p>
+              </div>
+              <ArrowRight size={18} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
             </button>
-          </div>
-        )}
-
-
-        {loading ? (
-          <p className="text-center text-muted-foreground text-sm py-12">Carregando produtos…</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-12">
-            Nenhum produto encontrado nesta categoria.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {filtered.map((p) => (
-              <ProductCard key={p.id} product={p} onBuy={handleBuy} onDetails={(prod) => setSelected(prod)} />
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
       </section>
+
 
       {/* Ativos c/ Gastos */}
       {assets.length > 0 && (
@@ -952,45 +839,6 @@ const Marketplace: React.FC = () => {
       {/* Digital products via Pix */}
       <MarketplacePixSection />
 
-      {/* Depoimentos */}
-      <section id="depoimentos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
-        <div className="text-center mb-8 sm:mb-10">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Provas sociais</p>
-          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Quem escala com a <span className="text-primary notranslate" translate="no">AD SCALE</span> não volta atrás
-          </h2>
-          <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={16} className="fill-primary text-primary" />
-              ))}
-            </div>
-            <span>4,9/5 — avaliação média dos clientes</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {TESTIMONIALS.map((t) => (
-            <motion.div
-              key={t.name}
-              whileHover={{ y: -3 }}
-              className="relative rounded-2xl border border-border/60 bg-card/60  p-6 flex flex-col gap-4"
-            >
-              <Quote size={28} className="text-primary/60" />
-              <p className="text-sm text-foreground leading-relaxed">"{t.text}"</p>
-              <div className="flex">
-                {[...Array(t.rating)].map((_, i) => (
-                  <Star key={i} size={13} className="fill-primary text-primary" />
-                ))}
-              </div>
-              <div className="mt-auto pt-3 border-t border-border/60">
-                <p className="font-display font-semibold text-foreground text-sm">{t.name}</p>
-                <p className="text-[11px] text-muted-foreground">{t.role}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
 
       {/* FAQ */}
       <section id="faq" className="relative max-w-3xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
