@@ -31,6 +31,7 @@ import {
   TrendingUp as TrendingUpIcon,
   ChevronDown as ChevronDownIcon,
 } from "lucide-react";
+import { Music2, MessageSquare, Facebook, Hexagon } from "lucide-react";
 
 import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
