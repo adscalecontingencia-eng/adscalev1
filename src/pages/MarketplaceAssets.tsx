@@ -12,6 +12,7 @@ import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import AssetCard, { MarketplaceAsset } from "@/components/marketplace/AssetCard";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
+import MarketplaceFooter from "@/components/marketplace/MarketplaceFooter";
 import adLogoUrl from "@/assets/ad-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
