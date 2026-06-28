@@ -12,6 +12,7 @@ import AdScaleLogo from "@/components/AdScaleLogo";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
+import MarketplaceFooter from "@/components/marketplace/MarketplaceFooter";
 import adLogoUrl from "@/assets/ad-logo.png";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -300,17 +301,7 @@ const MarketplaceProducts: React.FC = () => {
         )}
       </section>
 
-      {/* Footer */}
-      <footer className="relative border-t border-border/60 mt-6">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-primary notranslate" translate="no">
-            <AdScaleLogo size={22} />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            © {new Date().getFullYear()} <span className="notranslate" translate="no">AD SCALE</span> — Marketplace de ativos para tráfego pago.
-          </p>
-        </div>
-      </footer>
+      <MarketplaceFooter />
 
       {/* Modal detalhes simples */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
