@@ -331,7 +331,7 @@ const MarketplaceAssets: React.FC = () => {
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
                   <Search size={13} /> Buscar por Nome
                 </label>
-                <Input placeholder="Ex: BM MaxScale" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input placeholder="Ex: BM AdScale" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
 
