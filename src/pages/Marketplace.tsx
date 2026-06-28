@@ -652,7 +652,7 @@ const Marketplace: React.FC = () => {
             <span className="notranslate" translate="no">AD SCALE</span> Marketplace
           </div>
 
-          <h1 className="font-display text-[2rem] leading-[1.05] sm:text-5xl md:text-7xl font-bold tracking-tight">
+          <h1 className="font-display text-[1.6rem] xs:text-[1.85rem] leading-[1.1] sm:text-5xl md:text-7xl font-bold tracking-tight">
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
               Escale suas campanhas
             </span>
