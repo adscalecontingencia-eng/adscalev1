@@ -30,6 +30,7 @@ import Partners from "./pages/Partners";
 import PartnerSignup from "./pages/PartnerSignup";
 import PartnerDashboard from "./pages/PartnerDashboard";
 import Marketplace from "./pages/Marketplace";
+import MarketplaceAssets from "./pages/MarketplaceAssets";
 import AdminMarketplace from "./pages/AdminMarketplace";
 import MyOrders from "./pages/MyOrders";
 import CompleteSignup from "./pages/CompleteSignup";
@@ -114,6 +115,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
+              <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
               <Route path="/minhas-compras-pix" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyPixOrders /></ProtectedRoute>} />
               <Route path="/minha-carteira" element={<Navigate to="/perfil" replace />} />
