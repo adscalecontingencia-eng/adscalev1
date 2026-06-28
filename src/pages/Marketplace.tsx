@@ -352,7 +352,7 @@ const Marketplace: React.FC = () => {
             <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
               <Home size={15} /> Início
             </button>
-            <button type="button" onClick={() => scrollToId("catalogo")} className="px-3 py-2 rounded-lg text-foreground bg-primary/10 border border-primary/20 transition-colors inline-flex items-center gap-1.5">
+            <button type="button" onClick={() => navigate("/marketplace/produtos")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
               <ShoppingCart size={15} /> Produtos
             </button>
             <button type="button" onClick={() => navigate("/marketplace/ativos")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
