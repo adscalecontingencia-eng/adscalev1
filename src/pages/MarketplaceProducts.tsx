@@ -129,10 +129,10 @@ const MarketplaceProducts: React.FC = () => {
 
   const CategoryIcon: React.FC<{ name: string }> = ({ name }) => {
     const cls = "w-7 h-7";
-    if (name === "tiktok") return <FaTiktok className={cls + " text-foreground"} />;
-    if (name === "meta") return <SiMeta className={cls + " text-[#0866FF]"} />;
-    if (name === "fb") return <FaFacebook className={cls + " text-[#0866FF]"} />;
-    if (name === "whats") return <FaWhatsapp className={cls + " text-emerald-400"} />;
+    if (name === "tiktok") return <Music2 className={cls + " text-foreground"} />;
+    if (name === "meta") return <Hexagon className={cls + " text-[#0866FF]"} />;
+    if (name === "fb") return <Facebook className={cls + " text-[#0866FF]"} />;
+    if (name === "whats") return <MessageSquare className={cls + " text-emerald-400"} />;
     return <span className="text-xl">📦</span>;
   };
 
