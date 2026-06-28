@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Home, ShoppingCart, Wifi, TrendingUp, Wrench, MessageCircle, Plus,
+  Home, ShoppingCart, TrendingUp, MessageCircle, Plus,
   Filter, Globe, DollarSign, Wallet, Search, Headphones, Users,
   ChevronDown, LogIn, UserPlus,
 } from "lucide-react";
@@ -137,14 +137,8 @@ const MarketplaceAssets: React.FC = () => {
             <button onClick={() => navigate("/marketplace")} className={navBtn(false)}>
               <ShoppingCart size={15} /> Produtos
             </button>
-            <button onClick={() => navigate("/marketplace")} className={navBtn(false)}>
-              <Wifi size={15} /> Proxies
-            </button>
             <button className={navBtn(true)}>
               <TrendingUp size={15} /> Ativos c/ Gastos
-            </button>
-            <button onClick={() => navigate("/marketplace")} className={navBtn(false)}>
-              <Wrench size={15} /> Ferramentas
             </button>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={navBtn(false)}>
               <MessageCircle size={15} /> Contato
