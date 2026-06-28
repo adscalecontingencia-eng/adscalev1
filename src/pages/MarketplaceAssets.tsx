@@ -213,6 +213,65 @@ const MarketplaceAssets: React.FC = () => {
         </div>
       </section>
 
+      {/* Como comprar + Suporte e Comunidade */}
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Como comprar */}
+          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8">
+            <div className="text-center mb-6">
+              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Como comprar?</h3>
+              <p className="text-sm text-muted-foreground mt-2">Adquira seu ativo em apenas 3 etapas simples</p>
+            </div>
+            <div className="space-y-3">
+              <Step n={1} title="Encontre o que te interessa" text="Curtiu algum ativo? Salve o nome ou tire um print para não perder!" />
+              <Step n={2} title="Fale com a gente pelo chat" text="Clique no botão ao lado do ativo que se interessou e fale com a gente pelo chat." />
+              <Step n={3} title="Conclua a compra na hora" text="Se estiver disponível, você recebe a chave PIX imediatamente e finaliza sua compra com agilidade e segurança." />
+            </div>
+          </div>
+
+          {/* Suporte */}
+          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8">
+            <div className="text-center mb-6">
+              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Suporte e Comunidade</h3>
+              <p className="text-sm text-muted-foreground mt-2">Estamos aqui para te ajudar</p>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border/40 bg-background/40 p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                    <Headphones size={18} />
+                  </div>
+                  <div>
+                    <p className="font-display font-bold text-foreground">Suporte</p>
+                    <p className="text-xs text-muted-foreground">Precisa de ajuda? Nossa equipe está pronta para te atender!</p>
+                  </div>
+                </div>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm transition-colors">
+                  <MessageCircle size={14} /> Falar com Suporte
+                </a>
+              </div>
+
+              <div className="rounded-xl border border-border/40 bg-background/40 p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
+                    <Users size={18} />
+                  </div>
+                  <div>
+                    <p className="font-display font-bold text-foreground">Comunidade</p>
+                    <p className="text-xs text-muted-foreground">Seja avisado de promoções e participe de sorteios exclusivos!</p>
+                  </div>
+                </div>
+                <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-colors">
+                  <Users size={14} /> Entrar na Comunidade
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Filtros */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-4">
         <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-4 sm:p-6">
@@ -304,64 +363,6 @@ const MarketplaceAssets: React.FC = () => {
         )}
       </section>
 
-      {/* Como comprar + Suporte e Comunidade */}
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Como comprar */}
-          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8">
-            <div className="text-center mb-6">
-              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Como comprar?</h3>
-              <p className="text-sm text-muted-foreground mt-2">Adquira seu ativo em apenas 3 etapas simples</p>
-            </div>
-            <div className="space-y-3">
-              <Step n={1} title="Encontre o que te interessa" text="Curtiu algum ativo? Salve o nome ou tire um print para não perder!" />
-              <Step n={2} title="Fale com a gente pelo chat" text="Clique no botão ao lado do ativo que se interessou e fale com a gente pelo chat." />
-              <Step n={3} title="Conclua a compra na hora" text="Se estiver disponível, você recebe a chave PIX imediatamente e finaliza sua compra com agilidade e segurança." />
-            </div>
-          </div>
-
-          {/* Suporte */}
-          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8">
-            <div className="text-center mb-6">
-              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Suporte e Comunidade</h3>
-              <p className="text-sm text-muted-foreground mt-2">Estamos aqui para te ajudar</p>
-            </div>
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border/40 bg-background/40 p-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                    <Headphones size={18} />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-foreground">Suporte</p>
-                    <p className="text-xs text-muted-foreground">Precisa de ajuda? Nossa equipe está pronta para te atender!</p>
-                  </div>
-                </div>
-                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
-                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm transition-colors">
-                  <MessageCircle size={14} /> Falar com Suporte
-                </a>
-              </div>
-
-              <div className="rounded-xl border border-border/40 bg-background/40 p-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
-                    <Users size={18} />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-foreground">Comunidade</p>
-                    <p className="text-xs text-muted-foreground">Seja avisado de promoções e participe de sorteios exclusivos!</p>
-                  </div>
-                </div>
-                <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer"
-                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-colors">
-                  <Users size={14} /> Entrar na Comunidade
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="relative border-t border-border/60 mt-6">
