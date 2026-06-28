@@ -24,13 +24,13 @@ const MarketplaceFooter: React.FC = () => {
         </div>
 
         {/* Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center md:text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 text-center sm:text-left">
           {/* Políticas */}
           <div>
-            <h4 className="font-display font-bold text-foreground text-base mb-4">
+            <h4 className="font-display font-bold text-foreground text-sm sm:text-base mb-3 sm:mb-4">
               Políticas
             </h4>
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
                 <Link to="/politica-privacidade" className="hover:text-foreground transition-colors">
                   Política de Privacidade
@@ -46,16 +46,16 @@ const MarketplaceFooter: React.FC = () => {
 
           {/* Suporte */}
           <div>
-            <h4 className="font-display font-bold text-foreground text-base mb-4">
+            <h4 className="font-display font-bold text-foreground text-sm sm:text-base mb-3 sm:mb-4">
               Suporte
             </h4>
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
                 <a
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                  className="inline-flex items-center justify-center sm:justify-start gap-1.5 hover:text-foreground transition-colors"
                 >
                   <MessageCircle size={14} /> Atendimento via WhatsApp
                 </a>
@@ -66,11 +66,11 @@ const MarketplaceFooter: React.FC = () => {
           </div>
 
           {/* Links Rápidos */}
-          <div>
-            <h4 className="font-display font-bold text-foreground text-base mb-4">
+          <div className="sm:col-span-2 md:col-span-1">
+            <h4 className="font-display font-bold text-foreground text-sm sm:text-base mb-3 sm:mb-4">
               Links Rápidos
             </h4>
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
                 <Link to="/marketplace/produtos" className="hover:text-foreground transition-colors">
                   Produtos
@@ -96,7 +96,7 @@ const MarketplaceFooter: React.FC = () => {
         </div>
 
         {/* Divider */}
-        <div className="my-10 border-t border-border/60" />
+        <div className="my-8 sm:my-10 border-t border-border/60" />
 
         {/* Instagram */}
         <div className="flex justify-center mb-8">
