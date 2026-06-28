@@ -358,17 +358,7 @@ const MarketplaceAssets: React.FC = () => {
       </section>
 
 
-      {/* Footer */}
-      <footer className="relative border-t border-border/60 mt-6">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-primary notranslate" translate="no">
-            <AdScaleLogo size={22} />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            © {new Date().getFullYear()} <span className="notranslate" translate="no">AD SCALE</span> — Ativos premium para tráfego pago.
-          </p>
-        </div>
-      </footer>
+      <MarketplaceFooter />
     </div>
   );
 };

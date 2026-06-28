@@ -38,6 +38,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
 import AssetCard, { MarketplaceAsset } from "@/components/marketplace/AssetCard";
 import MarketplacePixSection from "@/components/marketplace/MarketplacePixSection";
+import MarketplaceFooter from "@/components/marketplace/MarketplaceFooter";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
 import { useWallet } from "@/hooks/useWallet";
 import adLogoUrl from "@/assets/ad-logo.png";
