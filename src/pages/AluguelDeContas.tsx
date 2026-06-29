@@ -12,7 +12,7 @@ import dashCredito from "@/assets/landing/dash-credito.png";
 import dashContrato from "@/assets/landing/dash-contrato.png";
 import dashCobrancas from "@/assets/landing/dash-cobrancas.png";
 
-const CTA = "/cadastro-agencia";
+const CTA = "#";
 
 const fadeUp = {
   initial: { opacity: 0, y: 18 },
