@@ -120,6 +120,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
               <Route path="/aluguel-de-contas" element={<AluguelDeContas />} />
+              <Route path="/obrigado" element={<Obrigado />} />
               <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
               <Route path="/marketplace/produtos" element={<MarketplaceGate><MarketplaceProducts /></MarketplaceGate>} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
