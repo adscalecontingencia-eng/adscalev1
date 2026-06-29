@@ -1,78 +1,57 @@
-## 1. Páginas legais (HTML estático em `/public`)
+## Nova landing page de aluguel
 
-- **`public/terms.html`** — reescrever transferindo TODA responsabilidade ao CLIENTE:
-  - Item 3 deixa explícito: a AGÊNCIA não tem qualquer responsabilidade sobre o uso da conta, conteúdo veiculado, produtos anunciados, bloqueios da Meta, prejuízos, fraudes ou crimes — responsabilidade exclusiva e integral do CLIENTE.
-  - CLIENTE indeniza e isenta a AGÊNCIA em qualquer hipótese.
-  - Manter cláusulas LGPD, pagamento, foro.
-- **`public/advertising-policy.html`** (novo) — Política de Publicidade:
-  - Conteúdo permitido / proibido (réplicas, infoprodutos enganosos, conteúdo adulto, jogos de azar não regulados, etc.).
-  - Conformidade com políticas da Meta/Google.
-  - Direito da AGÊNCIA suspender campanhas que violem políticas.
-  - Responsabilidade integral do CLIENTE pelo conteúdo do anúncio.
-- Atualizar `MarketplaceFooter.tsx` (coluna "Políticas"): links para `/terms.html` e `/advertising-policy.html`.
+**Rota:** `/aluguel-de-contas` (registrada em `src/App.tsx`, sem auth, sem `MarketplaceGate`).
 
-## 2. Aceite de termos no cadastro do marketplace
+**Arquivos:**
+- Novo: `src/pages/AluguelDeContas.tsx`
+- Editado: `src/App.tsx` (rota pública)
+- Novos assets em `src/assets/landing/`: 4 screenshots reais do `/client-dashboard` capturados via Playwright (login com cliente de teste, viewport 1440×900, full-element screenshots de seções específicas: KPIs no topo, gráfico de spend, lista de contas/BMs, painel financeiro/comissões).
 
-- **`src/pages/MarketplaceSignup.tsx`**: adicionar checkbox obrigatório "Li e aceito os Termos de Uso e a Política de Publicidade" com links que abrem em nova aba. Bloquear submit se não marcado.
-- **Edge function `marketplace-signup`**: receber `terms_accepted: true` e registrar em `client_terms_acceptances` (tabela já existe) com `version = TERMS_VERSION`, `ip_address`, `user_agent`, `auth_user_id`.
+### Captura dos prints (Playwright)
+1. Login com credenciais de cliente de teste salvas em memory `mem://reference/credentials`.
+2. Navegar para `/client-dashboard`.
+3. Capturar 4 screenshots de seções (não full-page) usando `get_by_role` / seletores estáveis.
+4. Salvar em `src/assets/landing/dash-*.png` e importar como ES6 imports.
 
-## 3. Fix: clientes do marketplace não aparecem no admin
+Se o login com cliente de teste não funcionar, fallback: gerar 4 mockups com `imagegen` em estilo dark/neon-green coerente com a marca.
 
-- Investigar `src/pages/MarketplaceClients.tsx` — provavelmente filtra por `role = 'marketplace_client'` em `user_roles` mas a edge function `marketplace-signup` insere com sucesso. Verificar:
-  - Se a query realmente faz JOIN com `auth.users` (admin precisa de service role ou view).
-  - Se há RLS impedindo admin de ler `user_roles`.
-- Corrigir criando/ajustando uma edge function `list-marketplace-clients` (service role) que retorna lista paginada com email, nome, telefone, criado em, total depositado, total gasto — chamada pela página admin.
+### Estrutura da landing (one-page, dark + neon green, glassmorphism, mesma identidade do marketplace)
 
-## 4. Sistema de Tracking (Meta Pixel + Google)
+1. **Nav fina** — logo AD SCALE + CTA "Começar agora" → `/cadastro-agencia`.
+2. **Hero**
+   - H1: "Escale sua operação com estrutura própria de mídia paga"
+   - Sub: aluguel de BMs, contas e perfis para gestores de tráfego e agências.
+   - Badge destaque: **"Comece com US$ 240 em créditos de mídia"**.
+   - 2 CTAs: primário "Criar conta" → `/cadastro-agencia`; secundário "Como funciona" (anchor).
+   - Mini-trust: "Cobrança semanal · PIX, Cripto e Payoneer · Suporte humano".
+3. **Como funciona o crédito de US$ 240** (seção central)
+   - Card 1: Você paga US$ 240 no início.
+   - Card 2: Vira **crédito de mídia** (1:1), usado conforme você anuncia.
+   - Card 3: Acabou o crédito? Cobramos **5% do spend** semanal.
+   - Card 4: Bate metas semanais → **comissão pode cair até 1%**.
+4. **Print do Dashboard #1 (KPIs/Hero)** — texto: "Acompanhe spend, contas ativas e comissões em tempo real".
+5. **O que está incluso** (grid 6 cards)
+   - BMs verificadas, contas de anúncio, perfis, páginas, troca rápida em caso de bloqueio, suporte dedicado.
+6. **Print do Dashboard #2 (gráfico de spend ao longo do tempo)** — texto: "Visualize a evolução do investimento por conta, BM e período".
+7. **Modelo de cobrança** (tabela limpa)
+   - Setup inicial: **US$ 240 (vira crédito)**
+   - Após créditos: **5% sobre Ad Spend semanal**
+   - Performance: até **1%** com metas batidas
+   - Ciclo: **semanal, toda sexta-feira**
+   - Moeda: USD
+8. **Print do Dashboard #3 (lista de contas/BMs)** — texto: "Tenha todo o seu mapa de ativos sob controle".
+9. **Formas de pagamento** (3 cards com ícones)
+   - PIX (BRL convertido)
+   - Cripto (USDT)
+   - Transferência internacional (Payoneer)
+10. **Print do Dashboard #4 (financeiro/comissões)** — texto: "Histórico completo de cobranças e fechamento semanal transparente".
+11. **FAQ** (5–6 perguntas: o que acontece se bloquearem minha conta, posso trocar de BM, como funciona a meta semanal, etc.).
+12. **CTA final** — bloco grande "Pronto para escalar?" → `/cadastro-agencia`.
+13. **Footer simples** com links para `/terms.html` e `/advertising-policy.html`.
 
-### Banco
-Nova tabela `tracking_pixels`:
-- `id`, `provider` (`meta` | `google_ads` | `google_analytics`), `pixel_id` (text), `extra` (jsonb — ex: `conversion_label` para Google Ads), `enabled` (bool), `created_at`, `updated_at`.
-- RLS: leitura pública (anon + authenticated) — pixels precisam carregar no marketplace para visitantes. Escrita só admin/support via `has_role`.
-- GRANTs apropriados.
-
-### Painel admin
-- Nova página `src/pages/AdminTracking.tsx` (rota `/admin-tracking`, protegida admin/support, dentro de `DashboardLayout`):
-  - Lista pixels cadastrados.
-  - Form para adicionar/editar: select provider, pixel_id, label de conversão (Google Ads), enabled.
-  - Link no menu lateral do `DashboardLayout`.
-
-### Loader de tracking no marketplace
-- Novo `src/components/marketplace/TrackingLoader.tsx`:
-  - Lê `tracking_pixels` (enabled).
-  - Injeta Meta Pixel base code (`fbq('init', pixel_id); fbq('track', 'PageView')`).
-  - Injeta Google Ads `gtag.js` + `gtag('config', 'AW-xxx')`.
-  - Injeta GA4 `gtag('config', 'G-xxx')`.
-  - Expõe helper global `window.__trackConversion({ value, currency, orderId })` que dispara:
-    - Meta: `fbq('track', 'Purchase', { value, currency: 'BRL' })`.
-    - Google Ads: `gtag('event', 'conversion', { send_to: 'AW-xxx/label', value, currency: 'BRL', transaction_id })`.
-    - GA4: `gtag('event', 'purchase', { value, currency: 'BRL', transaction_id })`.
-- Montar `<TrackingLoader />` nas 3 páginas marketplace (`Marketplace`, `MarketplaceAssets`, `MarketplaceProducts`).
-
-### Conversão por depósito (quando PIX confirma)
-- No fluxo que faz polling do status do depósito (provavelmente `WalletDepositModal.tsx` / `useWallet.ts` / `check-marketplace-order-status`):
-  - Quando status muda para `approved`/`confirmado`, chamar `window.__trackConversion({ value: amount_brl, orderId: deposit_id })`.
-  - Marcar localmente (localStorage `tracked_deposit_<id>`) para não duplicar evento em re-renders/polling.
-
-## Arquivos afetados (resumo)
-
-**Novos:**
-- `public/advertising-policy.html`
-- `src/pages/AdminTracking.tsx`
-- `src/components/marketplace/TrackingLoader.tsx`
-- `supabase/functions/list-marketplace-clients/index.ts` (se necessário após investigar)
-
-**Editados:**
-- `public/terms.html` (reescrita responsabilidades)
-- `src/lib/terms.ts` (atualizar texto + bump `TERMS_VERSION`)
-- `src/components/marketplace/MarketplaceFooter.tsx` (links)
-- `src/pages/MarketplaceSignup.tsx` (checkbox)
-- `supabase/functions/marketplace-signup/index.ts` (registrar aceite)
-- `src/App.tsx` (rota `/admin-tracking`)
-- `src/components/DashboardLayout.tsx` (item de menu)
-- `src/pages/Marketplace.tsx`, `MarketplaceAssets.tsx`, `MarketplaceProducts.tsx` (montar TrackingLoader)
-- `src/pages/MarketplaceClients.tsx` (ajuste de query/fonte de dados)
-- `src/components/marketplace/WalletDepositModal.tsx` (dispatch de conversão)
-
-**Migration:**
-- Cria `tracking_pixels` com RLS + GRANTs.
+### Detalhes técnicos
+- Componente único, Tailwind, mesmas tokens (`bg-background`, `text-primary`, `border-border/60`, `bg-card/60 backdrop-blur-xl`).
+- Animações leves com `framer-motion` (fade-in on scroll nas seções).
+- Responsivo: hero 1 coluna no mobile, grids 1→2→3 colunas conforme breakpoint.
+- SEO: `<title>`, meta description e H1 únicos via `document.title` no `useEffect`.
+- Sem dependências novas.
