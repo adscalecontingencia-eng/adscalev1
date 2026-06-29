@@ -48,6 +48,7 @@ import MarketplaceClients from "./pages/MarketplaceClients";
 import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
 import AdminTracking from "./pages/AdminTracking";
 import AluguelDeContas from "./pages/AluguelDeContas";
+import EscolhaSeuModelo from "./pages/EscolhaSeuModelo";
 import Obrigado from "./pages/Obrigado";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -120,6 +121,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
               <Route path="/aluguel-de-contas" element={<AluguelDeContas />} />
+              <Route path="/escolha-seu-modelo" element={<EscolhaSeuModelo />} />
               <Route path="/obrigado" element={<Obrigado />} />
               <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
               <Route path="/marketplace/produtos" element={<MarketplaceGate><MarketplaceProducts /></MarketplaceGate>} />

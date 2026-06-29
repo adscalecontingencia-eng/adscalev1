@@ -1,57 +1,67 @@
-## Nova landing page de aluguel
+# Página de escolha para leads do Instagram
 
-**Rota:** `/aluguel-de-contas` (registrada em `src/App.tsx`, sem auth, sem `MarketplaceGate`).
+Hub enxuto em `/escolha-seu-modelo` que explica os dois modelos de negócio (Marketplace e Aluguel de Contas) e direciona o lead para o caminho certo.
 
-**Arquivos:**
-- Novo: `src/pages/AluguelDeContas.tsx`
-- Editado: `src/App.tsx` (rota pública)
-- Novos assets em `src/assets/landing/`: 4 screenshots reais do `/client-dashboard` capturados via Playwright (login com cliente de teste, viewport 1440×900, full-element screenshots de seções específicas: KPIs no topo, gráfico de spend, lista de contas/BMs, painel financeiro/comissões).
+## Objetivo
 
-### Captura dos prints (Playwright)
-1. Login com credenciais de cliente de teste salvas em memory `mem://reference/credentials`.
-2. Navegar para `/client-dashboard`.
-3. Capturar 4 screenshots de seções (não full-page) usando `get_by_role` / seletores estáveis.
-4. Salvar em `src/assets/landing/dash-*.png` e importar como ES6 imports.
+Quando alguém clicar no link do Instagram, cair numa página única que:
+1. Apresenta a AD SCALE em uma frase.
+2. Mostra lado a lado os dois modelos com diferenças claras.
+3. Deixa o lead escolher com um clique para onde quer ir.
 
-Se o login com cliente de teste não funcionar, fallback: gerar 4 mockups com `imagegen` em estilo dark/neon-green coerente com a marca.
+## Estrutura da página
 
-### Estrutura da landing (one-page, dark + neon green, glassmorphism, mesma identidade do marketplace)
+**Hero curto**
+- Eyebrow: "Bem-vindo · AD SCALE"
+- Título: "Escolha o modelo ideal para a sua operação"
+- Subtítulo de 1 linha: explica que existem dois caminhos — comprar ativos avulsos no Marketplace ou alugar estrutura completa.
+- Sem CTA aqui (a escolha está logo abaixo).
 
-1. **Nav fina** — logo AD SCALE + CTA "Começar agora" → `/cadastro-agencia`.
-2. **Hero**
-   - H1: "Escale sua operação com estrutura própria de mídia paga"
-   - Sub: aluguel de BMs, contas e perfis para gestores de tráfego e agências.
-   - Badge destaque: **"Comece com US$ 240 em créditos de mídia"**.
-   - 2 CTAs: primário "Criar conta" → `/cadastro-agencia`; secundário "Como funciona" (anchor).
-   - Mini-trust: "Cobrança semanal · PIX, Cripto e Payoneer · Suporte humano".
-3. **Como funciona o crédito de US$ 240** (seção central)
-   - Card 1: Você paga US$ 240 no início.
-   - Card 2: Vira **crédito de mídia** (1:1), usado conforme você anuncia.
-   - Card 3: Acabou o crédito? Cobramos **5% do spend** semanal.
-   - Card 4: Bate metas semanais → **comissão pode cair até 1%**.
-4. **Print do Dashboard #1 (KPIs/Hero)** — texto: "Acompanhe spend, contas ativas e comissões em tempo real".
-5. **O que está incluso** (grid 6 cards)
-   - BMs verificadas, contas de anúncio, perfis, páginas, troca rápida em caso de bloqueio, suporte dedicado.
-6. **Print do Dashboard #2 (gráfico de spend ao longo do tempo)** — texto: "Visualize a evolução do investimento por conta, BM e período".
-7. **Modelo de cobrança** (tabela limpa)
-   - Setup inicial: **US$ 240 (vira crédito)**
-   - Após créditos: **5% sobre Ad Spend semanal**
-   - Performance: até **1%** com metas batidas
-   - Ciclo: **semanal, toda sexta-feira**
-   - Moeda: USD
-8. **Print do Dashboard #3 (lista de contas/BMs)** — texto: "Tenha todo o seu mapa de ativos sob controle".
-9. **Formas de pagamento** (3 cards com ícones)
-   - PIX (BRL convertido)
-   - Cripto (USDT)
-   - Transferência internacional (Payoneer)
-10. **Print do Dashboard #4 (financeiro/comissões)** — texto: "Histórico completo de cobranças e fechamento semanal transparente".
-11. **FAQ** (5–6 perguntas: o que acontece se bloquearem minha conta, posso trocar de BM, como funciona a meta semanal, etc.).
-12. **CTA final** — bloco grande "Pronto para escalar?" → `/cadastro-agencia`.
-13. **Footer simples** com links para `/terms.html` e `/advertising-policy.html`.
+**Dois cards comparativos (lado a lado, empilham no mobile)**
 
-### Detalhes técnicos
-- Componente único, Tailwind, mesmas tokens (`bg-background`, `text-primary`, `border-border/60`, `bg-card/60 backdrop-blur-xl`).
-- Animações leves com `framer-motion` (fade-in on scroll nas seções).
-- Responsivo: hero 1 coluna no mobile, grids 1→2→3 colunas conforme breakpoint.
-- SEO: `<title>`, meta description e H1 únicos via `document.title` no `useEffect`.
-- Sem dependências novas.
+Card 1 — Marketplace
+- Ícone: ShoppingBag
+- Título: "Marketplace"
+- Subtítulo: "Compre ativos avulsos quando precisar"
+- Bullets:
+  - Compra única, sem comissão recorrente
+  - BMs, contas, perfis e páginas vendidas individualmente
+  - Pagamento via PIX, entrega imediata
+  - Ideal para quem já tem operação e quer repor ativos
+- Indicador "Para quem é": gestor que precisa de reposição pontual
+- Botão: "Ver Marketplace" → `/marketplace`
+
+Card 2 — Aluguel de Contas (com destaque visual sutil)
+- Ícone: Infinity
+- Título: "Aluguel de Contas"
+- Subtítulo: "Estrutura completa com créditos de US$ 240"
+- Bullets:
+  - US$ 240 viram crédito para pagar a AD SCALE
+  - Reposição automática quando a Meta bloquear
+  - Comissão semanal de 5% (pode cair até 1%)
+  - Painel ao vivo, suporte humano dedicado
+- Indicador "Para quem é": operação em escala que quer terceirizar a estrutura
+- Botão: "Conhecer o Aluguel" → `/aluguel-de-contas`
+
+**FAQ curto (3–4 perguntas)**
+- Qual modelo é melhor para mim?
+- Posso usar os dois ao mesmo tempo?
+- Como funciona o pagamento?
+- Tem fidelidade?
+
+**Footer mínimo** (logo + links de termos/privacidade já existentes).
+
+## Detalhes técnicos
+
+- Novo arquivo: `src/pages/EscolhaSeuModelo.tsx`.
+- Nova rota em `src/App.tsx`: `/escolha-seu-modelo` (pública, fora do `DashboardLayout`).
+- Reaproveita o visual da `AluguelDeContas`: dark theme, glows ambientes em `bg-primary`, glassmorphism (`bg-card/60 backdrop-blur-xl`), `framer-motion` para fade-up, `lucide-react` para ícones, `AdScaleLogo` no header e no footer.
+- SEO: `document.title` + `meta description` no `useEffect`, H1 único, alts nos ícones decorativos via `aria-hidden`.
+- Sem mudanças no backend, sem formulário (o lead capture acontece dentro de `/aluguel-de-contas`).
+- Garantir que a rota funcione com o fix de SPA já feito em `src/main.tsx` (já cobre paths arbitrários).
+
+## Fora de escopo
+
+- Não criar nova captura de lead nessa página.
+- Não alterar `/marketplace` nem `/aluguel-de-contas`.
+- Não mudar tema, fontes ou design tokens existentes.
