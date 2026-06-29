@@ -48,6 +48,7 @@ import MarketplaceClients from "./pages/MarketplaceClients";
 import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
 import AdminTracking from "./pages/AdminTracking";
 import AluguelDeContas from "./pages/AluguelDeContas";
+import EscolhaSeuModelo from "./pages/EscolhaSeuModelo";
 import Obrigado from "./pages/Obrigado";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
