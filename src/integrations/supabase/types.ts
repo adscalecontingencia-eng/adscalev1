@@ -959,9 +959,13 @@ export type Database = {
           email: string
           id: string
           name: string
+          niche: string | null
+          notes: string | null
           referrer: string | null
+          scheduled_call_at: string | null
           source: string
           user_agent: string | null
+          weekly_investment_usd: number | null
           whatsapp: string
         }
         Insert: {
@@ -969,9 +973,13 @@ export type Database = {
           email: string
           id?: string
           name: string
+          niche?: string | null
+          notes?: string | null
           referrer?: string | null
+          scheduled_call_at?: string | null
           source?: string
           user_agent?: string | null
+          weekly_investment_usd?: number | null
           whatsapp: string
         }
         Update: {
@@ -979,9 +987,13 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          niche?: string | null
+          notes?: string | null
           referrer?: string | null
+          scheduled_call_at?: string | null
           source?: string
           user_agent?: string | null
+          weekly_investment_usd?: number | null
           whatsapp?: string
         }
         Relationships: []
