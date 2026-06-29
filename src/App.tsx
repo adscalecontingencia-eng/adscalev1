@@ -47,6 +47,7 @@ import MarketplaceProfile from "./pages/MarketplaceProfile";
 import MarketplaceClients from "./pages/MarketplaceClients";
 import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
 import AdminTracking from "./pages/AdminTracking";
+import AluguelDeContas from "./pages/AluguelDeContas";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -117,6 +118,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
+              <Route path="/aluguel-de-contas" element={<AluguelDeContas />} />
               <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
               <Route path="/marketplace/produtos" element={<MarketplaceGate><MarketplaceProducts /></MarketplaceGate>} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
