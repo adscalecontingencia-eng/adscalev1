@@ -146,8 +146,8 @@ const EscolhaSeuModelo: React.FC = () => {
             Escolha o <span className="text-primary">modelo ideal</span> para a sua operação.
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Existem dois caminhos para escalar com a AD SCALE: comprar ativos avulsos no
-            Marketplace ou alugar uma estrutura completa de contas. Veja qual faz mais sentido
+            Existem dois caminhos para escalar com a AdScale: comprar ativos no
+            Marketplace ou alugar uma estrutura completa de contas e páginas. Veja qual faz mais sentido
             para o seu momento.
           </p>
         </motion.div>
@@ -159,12 +159,12 @@ const EscolhaSeuModelo: React.FC = () => {
           {/* Marketplace */}
           <ChoiceCard
             icon={ShoppingBag}
-            eyebrow="Compra avulsa"
+            eyebrow="Compra"
             title="Marketplace"
-            subtitle="Compre ativos avulsos quando precisar"
+            subtitle="Compre ativos quando precisar"
             bullets={[
               "Compra única, sem comissão recorrente",
-              "BMs, contas, perfis e páginas vendidas individualmente",
+              "BMs, contas, perfis e páginas vendidos individualmente",
               "Pagamento via PIX com entrega imediata",
               "Ideal para quem já tem operação e precisa repor ativos",
             ]}
@@ -179,12 +179,13 @@ const EscolhaSeuModelo: React.FC = () => {
             icon={InfinityIcon}
             eyebrow="Estrutura completa"
             title="Aluguel de Contas"
-            subtitle="Contas infinitas com créditos de US$ 240"
+            subtitle="Contas infinitas para anúnciar"
             bullets={[
-              "US$ 240 viram crédito para pagar a AD SCALE",
+              "US$ 240 viram crédito para pagar a AdScale",
               "Reposição automática quando a Meta bloquear",
               "Comissão semanal de 5% (pode cair até 1%)",
-              "Painel ao vivo e suporte humano dedicado",
+              "Painel ao vivo de gestão e suporte",
+              "Grupo no WhatsApp com suporte exclusivo",
             ]}
             forWho="Operação em escala que quer terceirizar a estrutura"
             ctaLabel="Conhecer o Aluguel"
@@ -223,14 +224,14 @@ const EscolhaSeuModelo: React.FC = () => {
               </thead>
               <tbody>
                 {[
-                  { c: "Custo inicial", m: "Valor do ativo (avulso, via PIX)", a: "US$ 240 — vira crédito de mídia" },
+                  { c: "Custo inicial", m: "Valor do ativo (via PIX)", a: "US$ 240 — vira crédito para pagar a AdScale" },
                   { c: "Periodicidade de pagamento", m: "Pagamento único por compra", a: "Semanal (sexta a quinta), em USD" },
                   { c: "Comissão recorrente", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Não há</span>, a: "5% sobre o ad spend (cai até 1%)" },
                   { c: "Reposição em caso de bloqueio", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Nova compra</span>, a: <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-primary" /> Automática e ilimitada</span> },
-                  { c: "Painel ao vivo + suporte dedicado", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Self-service</span>, a: <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-primary" /> Incluso</span> },
-                  { c: "Entrega", m: "Imediata após o PIX", a: "Setup guiado em até 24h úteis" },
+                  { c: "Painel ao vivo + suporte dedicado", m: "Painel de compras", a: "Painel de gestão e suporte com grupo dedicado" },
+                  { c: "Entrega", m: "Imediata após o PIX", a: "Setup guiado em até 24h" },
                   { c: "Fidelidade", m: "Nenhuma", a: "Nenhuma" },
-                  { c: "Melhor cenário", m: "Operação madura que só precisa repor ativos pontualmente", a: "Quem está escalando e quer terceirizar bloqueios, reposições e gestão de estrutura" },
+                  { c: "Melhor cenário", m: "Operação que só precisa repor ativos pontualmente", a: "Quem está escalando e precisa de lateralização de contas e quer terceirizar bloqueios, reposições e gestão de estrutura" },
                 ].map((row, i) => (
                   <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-background/30 transition">
                     <td className="px-5 py-4 font-medium text-foreground/90 align-top">{row.c}</td>
