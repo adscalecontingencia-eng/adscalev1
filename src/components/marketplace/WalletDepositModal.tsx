@@ -89,6 +89,18 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
     setStatus("approved");
     refresh();
     loadHistory();
+    // Fire conversion tracking (Meta Pixel + Google Ads + GA4) — once per deposit
+    try {
+      const depId = pix?.deposit_id;
+      const value = pix?.amount ?? parseAmount(amount);
+      if (depId && value > 0) {
+        const key = `tracked_deposit_${depId}`;
+        if (!localStorage.getItem(key)) {
+          window.__trackConversion?.({ value, currency: "BRL", orderId: depId });
+          localStorage.setItem(key, "1");
+        }
+      }
+    } catch { /* ignore */ }
     toast({ title: "Pagamento confirmado", description: "Saldo creditado na sua carteira." });
   }
 
