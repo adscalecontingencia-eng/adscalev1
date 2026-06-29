@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowRight, ShoppingBag, Infinity as InfinityIcon, Sparkles, CheckCircle2,
+  ArrowRight, ShoppingBag, Infinity as InfinityIcon, Sparkles, CheckCircle2, Check, Minus,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 
@@ -13,22 +13,104 @@ const fadeUp = {
   transition: { duration: 0.5 },
 };
 
+const PAGE_URL = "https://adscalev1.lovable.app/escolha-seu-modelo";
+const PAGE_TITLE = "Escolha seu modelo — Marketplace ou Aluguel de Contas | AD SCALE";
+const PAGE_DESC =
+  "Compare Marketplace (compra avulsa via PIX) e Aluguel de Contas (US$ 240 em créditos, reposição automática) e escolha o modelo ideal para escalar seus anúncios.";
+
+function upsertMeta(selector: string, attrs: Record<string, string>) {
+  let el = document.head.querySelector(selector) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k !== "content") el!.setAttribute(k, v);
+    });
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", attrs.content);
+}
+
+function upsertLink(rel: string, href: string) {
+  let el = document.head.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", href);
+}
+
 const EscolhaSeuModelo: React.FC = () => {
+  const [utmQuery, setUtmQuery] = useState<string>("");
+
   useEffect(() => {
-    document.title = "Escolha seu modelo — AD SCALE";
-    const meta =
-      document.querySelector('meta[name="description"]') ||
-      (() => {
-        const m = document.createElement("meta");
-        m.setAttribute("name", "description");
-        document.head.appendChild(m);
-        return m;
-      })();
-    meta.setAttribute(
-      "content",
-      "Escolha entre comprar ativos avulsos no Marketplace ou alugar estrutura completa de contas com créditos de US$ 240."
-    );
+    // SEO meta tags
+    document.title = PAGE_TITLE;
+    upsertMeta('meta[name="description"]', { name: "description", content: PAGE_DESC });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: PAGE_TITLE });
+    upsertMeta('meta[property="og:description"]', { property: "og:description", content: PAGE_DESC });
+    upsertMeta('meta[property="og:type"]', { property: "og:type", content: "website" });
+    upsertMeta('meta[property="og:url"]', { property: "og:url", content: PAGE_URL });
+    upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
+    upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: PAGE_TITLE });
+    upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: PAGE_DESC });
+    upsertLink("canonical", PAGE_URL);
+
+    // JSON-LD FAQ + WebPage
+    const ldId = "ld-escolha-seu-modelo";
+    document.getElementById(ldId)?.remove();
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = ldId;
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        { "@type": "Question", name: "Qual modelo é melhor para mim?", acceptedAnswer: { "@type": "Answer", text: "Marketplace para reposição pontual; Aluguel para escalar terceirizando a estrutura." } },
+        { "@type": "Question", name: "Posso usar os dois ao mesmo tempo?", acceptedAnswer: { "@type": "Answer", text: "Sim. Os dois modelos convivem na mesma conta." } },
+        { "@type": "Question", name: "Como funciona o pagamento?", acceptedAnswer: { "@type": "Answer", text: "Marketplace: PIX único. Aluguel: setup US$ 240 (vira crédito) + cobrança semanal em USD." } },
+        { "@type": "Question", name: "Tem fidelidade?", acceptedAnswer: { "@type": "Answer", text: "Não. Você opera enquanto fizer sentido." } },
+      ],
+    });
+    document.head.appendChild(ld);
+
+    // UTM capture (Instagram tracking) — works with HashRouter
+    const rawSearch = window.location.search || (window.location.hash.includes("?") ? "?" + window.location.hash.split("?")[1] : "");
+    const params = new URLSearchParams(rawSearch);
+    const utmKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+    const collected: Record<string, string> = {};
+    utmKeys.forEach((k) => {
+      const v = params.get(k);
+      if (v) collected[k] = v;
+    });
+    // Default attribution when none provided (page is linked from Instagram bio)
+    if (Object.keys(collected).length === 0) {
+      try {
+        const stored = sessionStorage.getItem("adscale_utm");
+        if (stored) Object.assign(collected, JSON.parse(stored));
+      } catch { /* ignore */ }
+    } else {
+      try { sessionStorage.setItem("adscale_utm", JSON.stringify(collected)); } catch { /* ignore */ }
+    }
+    const qs = new URLSearchParams(collected).toString();
+    setUtmQuery(qs ? `?${qs}` : "");
+
+    // Fire view event on Meta Pixel / GA if loaded
+    const source = (collected.utm_source || "").toLowerCase();
+    try {
+      (window as any).fbq?.("trackCustom", "ChoiceModelView", { source: source || "direct", ...collected });
+      (window as any).gtag?.("event", "choice_model_view", { source: source || "direct", ...collected });
+    } catch { /* ignore */ }
   }, []);
+
+  const withUtm = (path: string) => `${path}${utmQuery}`;
+
+  const trackChoice = (choice: "marketplace" | "aluguel") => {
+    try {
+      (window as any).fbq?.("trackCustom", "ChoiceModelClick", { choice });
+      (window as any).gtag?.("event", "choice_model_click", { choice });
+    } catch { /* ignore */ }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
@@ -88,7 +170,8 @@ const EscolhaSeuModelo: React.FC = () => {
             ]}
             forWho="Gestor que precisa de reposição pontual"
             ctaLabel="Ver Marketplace"
-            ctaTo="/marketplace"
+            ctaTo={withUtm("/marketplace")}
+            onCta={() => trackChoice("marketplace")}
           />
 
           {/* Aluguel */}
@@ -105,10 +188,60 @@ const EscolhaSeuModelo: React.FC = () => {
             ]}
             forWho="Operação em escala que quer terceirizar a estrutura"
             ctaLabel="Conhecer o Aluguel"
-            ctaTo="/aluguel-de-contas"
+            ctaTo={withUtm("/aluguel-de-contas")}
+            onCta={() => trackChoice("aluguel")}
             highlight
           />
         </div>
+      </section>
+
+      {/* TABELA COMPARATIVA */}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <motion.div {...fadeUp} className="text-center mb-10">
+          <span className="text-[11px] uppercase tracking-[0.32em] text-primary/80">Comparativo</span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold mt-3 tracking-tight">
+            Marketplace <span className="text-muted-foreground font-normal">vs</span> Aluguel de Contas
+          </h2>
+          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+            Critério a critério, veja qual modelo encaixa melhor no momento da sua operação.
+          </p>
+        </motion.div>
+
+        <motion.div {...fadeUp} className="rounded-2xl border border-border/60 bg-card/50 backdrop-blur-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/60 bg-background/40">
+                  <th className="text-left font-semibold px-5 py-4 w-[34%]">Critério</th>
+                  <th className="text-left font-semibold px-5 py-4">
+                    <div className="flex items-center gap-2"><ShoppingBag size={16} className="text-primary" /> Marketplace</div>
+                  </th>
+                  <th className="text-left font-semibold px-5 py-4">
+                    <div className="flex items-center gap-2"><InfinityIcon size={16} className="text-primary" /> Aluguel</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { c: "Custo inicial", m: "Valor do ativo (avulso, via PIX)", a: "US$ 240 — vira crédito de mídia" },
+                  { c: "Periodicidade de pagamento", m: "Pagamento único por compra", a: "Semanal (sexta a quinta), em USD" },
+                  { c: "Comissão recorrente", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Não há</span>, a: "5% sobre o ad spend (cai até 1%)" },
+                  { c: "Reposição em caso de bloqueio", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Nova compra</span>, a: <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-primary" /> Automática e ilimitada</span> },
+                  { c: "Painel ao vivo + suporte dedicado", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Self-service</span>, a: <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-primary" /> Incluso</span> },
+                  { c: "Entrega", m: "Imediata após o PIX", a: "Setup guiado em até 24h úteis" },
+                  { c: "Fidelidade", m: "Nenhuma", a: "Nenhuma" },
+                  { c: "Melhor cenário", m: "Operação madura que só precisa repor ativos pontualmente", a: "Quem está escalando e quer terceirizar bloqueios, reposições e gestão de estrutura" },
+                ].map((row, i) => (
+                  <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-background/30 transition">
+                    <td className="px-5 py-4 font-medium text-foreground/90 align-top">{row.c}</td>
+                    <td className="px-5 py-4 text-foreground/80 align-top">{row.m}</td>
+                    <td className="px-5 py-4 text-foreground/80 align-top">{row.a}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
       </section>
 
       {/* FAQ */}
@@ -179,7 +312,8 @@ const ChoiceCard: React.FC<{
   ctaLabel: string;
   ctaTo: string;
   highlight?: boolean;
-}> = ({ icon: Icon, eyebrow, title, subtitle, bullets, forWho, ctaLabel, ctaTo, highlight }) => (
+  onCta?: () => void;
+}> = ({ icon: Icon, eyebrow, title, subtitle, bullets, forWho, ctaLabel, ctaTo, highlight, onCta }) => (
   <motion.div
     {...fadeUp}
     className={`relative rounded-2xl border ${highlight ? "border-primary/40" : "border-border/60"} bg-card/60 backdrop-blur-xl p-6 sm:p-8 flex flex-col hover:border-primary/50 transition overflow-hidden`}
@@ -216,6 +350,7 @@ const ChoiceCard: React.FC<{
 
       <Link
         to={ctaTo}
+        onClick={onCta}
         className={`mt-7 inline-flex items-center justify-center gap-2 font-semibold px-5 py-3 rounded-xl transition ${
           highlight
             ? "bg-primary text-primary-foreground hover:brightness-110 shadow-[0_0_30px_-8px_hsl(var(--primary))]"
