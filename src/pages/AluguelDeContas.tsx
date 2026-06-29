@@ -22,6 +22,8 @@ const fadeUp = {
 };
 
 const AluguelDeContas: React.FC = () => {
+  const [leadOpen, setLeadOpen] = useState(false);
+  const openLead = (e: React.MouseEvent) => { e.preventDefault(); setLeadOpen(true); };
   useEffect(() => {
     document.title = "Aluguel de contas Meta — AD SCALE";
     const meta = document.querySelector('meta[name="description"]') || (() => {
