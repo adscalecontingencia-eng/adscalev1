@@ -35,14 +35,19 @@ const MarketplaceFooter: React.FC = () => {
             </h4>
             <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
-                <Link to="/politica-privacidade" className="hover:text-foreground transition-colors">
-                  Política de Privacidade
-                </Link>
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                  Termos de Uso
+                </a>
               </li>
               <li>
-                <Link to="/termos-uso" className="hover:text-foreground transition-colors">
-                  Termos de Uso
-                </Link>
+                <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                  Política de Publicidade
+                </a>
+              </li>
+              <li>
+                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                  Política de Privacidade
+                </a>
               </li>
             </ul>
           </div>
