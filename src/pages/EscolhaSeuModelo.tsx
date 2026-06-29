@@ -170,7 +170,7 @@ const EscolhaSeuModelo: React.FC = () => {
 };
 
 const ChoiceCard: React.FC<{
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ElementType;
   eyebrow: string;
   title: string;
   subtitle: string;
