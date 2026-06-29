@@ -22,6 +22,7 @@ const MarketplaceSignup: React.FC = () => {
     if (password !== confirm) return setError("As senhas não coincidem");
     if (password.length < 8) return setError("Senha precisa de pelo menos 8 caracteres");
     if (phone.replace(/\D+/g, "").length < 10) return setError("WhatsApp obrigatório com DDD");
+    if (!acceptedTerms) return setError("Você precisa aceitar os Termos de Uso e a Política de Publicidade");
 
     setSubmitting(true);
     try {
@@ -31,7 +32,10 @@ const MarketplaceSignup: React.FC = () => {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ email, password, name, phone: phone.replace(/\D+/g, "") }),
+        body: JSON.stringify({
+          email, password, name, phone: phone.replace(/\D+/g, ""),
+          terms_accepted: true, terms_version: "marketplace.v1",
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
