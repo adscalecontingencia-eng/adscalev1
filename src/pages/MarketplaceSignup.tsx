@@ -145,7 +145,28 @@ const MarketplaceSignup: React.FC = () => {
               </div>
             </div>
 
-            <button type="submit" disabled={submitting}
+            <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-primary cursor-pointer shrink-0"
+                required
+              />
+              <span>
+                Li e aceito os{" "}
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Termos de Uso
+                </a>{" "}
+                e a{" "}
+                <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Política de Publicidade
+                </a>
+                , declarando ser o único responsável pelo uso dos ativos e pelo conteúdo dos meus anúncios.
+              </span>
+            </label>
+
+            <button type="submit" disabled={submitting || !acceptedTerms}
               className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:pointer-events-none">
               {submitting ? "Criando cadastro…" : "Criar conta Marketplace"}
             </button>
