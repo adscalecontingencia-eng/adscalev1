@@ -46,6 +46,7 @@ import AdminWebhookLogs from "./pages/AdminWebhookLogs";
 import MarketplaceProfile from "./pages/MarketplaceProfile";
 import MarketplaceClients from "./pages/MarketplaceClients";
 import AdminMarketplaceAssets from "./pages/AdminMarketplaceAssets";
+import AdminTracking from "./pages/AdminTracking";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -129,6 +130,7 @@ const App = () => (
               <Route path="/meus-pedidos" element={<ProtectedRoute roles={['marketplace_client','admin','support']}><MyOrders /></ProtectedRoute>} />
               <Route path="/admin-marketplace" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplace /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin/marketplace-assets" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminMarketplaceAssets /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/admin-tracking" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AdminTracking /></DashboardLayout></ProtectedRoute>} />
               <Route path="/marketplace-clients" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><MarketplaceClients /></DashboardLayout></ProtectedRoute>} />
               <Route path="/partner-signup" element={<PartnerSignup />} />
               <Route path="/partner-dashboard" element={<ProtectedRoute roles={['partner']}><PartnerDashboard /></ProtectedRoute>} />

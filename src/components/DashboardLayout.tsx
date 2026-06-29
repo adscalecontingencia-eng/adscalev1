@@ -41,6 +41,7 @@ const groups: Group[] = [
       { path: '/admin-payments', label: 'Pagamentos', icon: Wallet },
       { path: '/admin-audit', label: 'Auditoria Pagamentos', icon: Shield, adminOnly: true },
       { path: '/admin-webhook-logs', label: 'Logs Mercado Pago', icon: Activity, adminOnly: true },
+      { path: '/admin-tracking', label: 'Tracking & Pixels', icon: Activity },
     ]
   },
   {
