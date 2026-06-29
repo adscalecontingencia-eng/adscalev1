@@ -10,6 +10,7 @@ interface Row {
   user_id: string;
   email: string;
   name: string;
+  phone?: string;
   created_at: string;
   balance: number;
   total_deposited: number;
@@ -23,47 +24,22 @@ export default function MarketplaceClients() {
   const [rows, setRows] = useState<Row[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
-    // We have wallets + wallet_deposits + wallet_transactions accessible via RLS for admin.
-    // Use marketplace_orders as join to find marketplace users, plus wallets to enrich.
-    const [{ data: wallets }, { data: deposits }, { data: txs }] = await Promise.all([
-      supabase.from("wallets").select("user_id,balance,created_at"),
-      supabase.from("wallet_deposits").select("user_id,amount,status,customer_email,customer_name"),
-      supabase.from("wallet_transactions").select("user_id,type,amount"),
-    ]);
-
-    const map = new Map<string, Row>();
-    (wallets ?? []).forEach((w: any) => {
-      map.set(w.user_id, {
-        user_id: w.user_id,
-        email: "",
-        name: "",
-        created_at: w.created_at,
-        balance: Number(w.balance || 0),
-        total_deposited: 0,
-        total_spent: 0,
-      });
-    });
-    (deposits ?? []).forEach((d: any) => {
-      const r = map.get(d.user_id) ?? {
-        user_id: d.user_id, email: "", name: "", created_at: "",
-        balance: 0, total_deposited: 0, total_spent: 0,
-      };
-      if (d.customer_email && !r.email) r.email = d.customer_email;
-      if (d.customer_name && !r.name) r.name = d.customer_name;
-      if (d.status === "approved") r.total_deposited += Number(d.amount || 0);
-      map.set(d.user_id, r);
-    });
-    (txs ?? []).forEach((t: any) => {
-      const r = map.get(t.user_id);
-      if (!r) return;
-      if (t.type === "purchase") r.total_spent += Math.abs(Number(t.amount || 0));
-    });
-
-    setRows(Array.from(map.values()).sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")));
-    setLoading(false);
+    setError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("list-marketplace-clients", { body: {} });
+      if (error) throw error;
+      const r = (data as any)?.rows ?? [];
+      setRows(r);
+    } catch (e: any) {
+      setError(e?.message || "Erro ao carregar clientes");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
