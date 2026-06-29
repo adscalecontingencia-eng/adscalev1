@@ -71,13 +71,12 @@ const AluguelDeContas: React.FC = () => {
           </span>
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.05] tracking-tight">
             Escale sua operação com{" "}
-            <span className="text-primary">estrutura própria</span> de mídia paga.
+            <span className="text-primary">contas infinitas</span> para anunciar.
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            Aluguel de Business Managers, contas de anúncio, perfis e páginas verificadas para
-            gestores de tráfego e agências. Comece com{" "}
-            <strong className="text-foreground">US$ 240 em créditos</strong> e só pague comissão
-            depois que o crédito for consumido.
+            Aluguel de contas de agência e páginas antigas para operações em alta escala.
+            Comece com <strong className="text-foreground">US$ 240 em créditos</strong> e
+            só pague comissão depois que o crédito esgotar.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
