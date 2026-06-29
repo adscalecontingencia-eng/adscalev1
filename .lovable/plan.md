@@ -1,51 +1,78 @@
-## Diagnóstico
+## 1. Páginas legais (HTML estático em `/public`)
 
-Verifiquei o banco e a sincronização está funcionando:
+- **`public/terms.html`** — reescrever transferindo TODA responsabilidade ao CLIENTE:
+  - Item 3 deixa explícito: a AGÊNCIA não tem qualquer responsabilidade sobre o uso da conta, conteúdo veiculado, produtos anunciados, bloqueios da Meta, prejuízos, fraudes ou crimes — responsabilidade exclusiva e integral do CLIENTE.
+  - CLIENTE indeniza e isenta a AGÊNCIA em qualquer hipótese.
+  - Manter cláusulas LGPD, pagamento, foro.
+- **`public/advertising-policy.html`** (novo) — Política de Publicidade:
+  - Conteúdo permitido / proibido (réplicas, infoprodutos enganosos, conteúdo adulto, jogos de azar não regulados, etc.).
+  - Conformidade com políticas da Meta/Google.
+  - Direito da AGÊNCIA suspender campanhas que violem políticas.
+  - Responsabilidade integral do CLIENTE pelo conteúdo do anúncio.
+- Atualizar `MarketplaceFooter.tsx` (coluna "Políticas"): links para `/terms.html` e `/advertising-policy.html`.
 
-```
- date       | linhas | spend
- 2026-06-27 |   64   |  8567.51   ← Hoje
- 2026-06-26 |   73   | 15125.03   ← Ontem
- 2026-06-25 |   76   |  9560.90
-```
+## 2. Aceite de termos no cadastro do marketplace
 
-Ou seja, os dados existem em `meta_ad_insights`, o `meta-sync` está populando corretamente, e os GRANTs/RLS permitem o admin/support enxergar tudo. O problema não é o sync — é o front-end (`src/pages/AdsDashboard.tsx`) que está renderizando "Nenhum insight encontrado" mesmo com dados disponíveis nas janelas curtas (Hoje/Ontem).
+- **`src/pages/MarketplaceSignup.tsx`**: adicionar checkbox obrigatório "Li e aceito os Termos de Uso e a Política de Publicidade" com links que abrem em nova aba. Bloquear submit se não marcado.
+- **Edge function `marketplace-signup`**: receber `terms_accepted: true` e registrar em `client_terms_acceptances` (tabela já existe) com `version = TERMS_VERSION`, `ip_address`, `user_agent`, `auth_user_id`.
 
-## Causas-raiz no `AdsDashboard.tsx`
+## 3. Fix: clientes do marketplace não aparecem no admin
 
-1. **Stale closure no auto-sync**
-   ```ts
-   await loadInsights();
-   const hasToday = insights.some(i => i.date === today); // 'insights' é do render anterior
-   ```
-   `insights` lido logo após `await loadInsights()` ainda é o valor antigo do render, então `hasToday` é sempre `false` na primeira execução, disparando `sync({forceRecent:true})` sempre — e o `loadInsights({background:true})` disparado depois pode sobrescrever o estado durante uma corrida.
+- Investigar `src/pages/MarketplaceClients.tsx` — provavelmente filtra por `role = 'marketplace_client'` em `user_roles` mas a edge function `marketplace-signup` insere com sucesso. Verificar:
+  - Se a query realmente faz JOIN com `auth.users` (admin precisa de service role ou view).
+  - Se há RLS impedindo admin de ler `user_roles`.
+- Corrigir criando/ajustando uma edge function `list-marketplace-clients` (service role) que retorna lista paginada com email, nome, telefone, criado em, total depositado, total gasto — chamada pela página admin.
 
-2. **Race do generation guard (`loadGen`) deixando `insights = []`**
-   `loadInsights` faz `++loadGen.current` no início e, se outro `loadInsights` (do sync, do useEffect, do StrictMode) bumpa a geração antes do primeiro responder, o primeiro faz `return` sem chamar `setInsights` **nem** `setLoading(false)`. Em janelas curtas (Hoje/Ontem = poucas linhas, resposta rápida) a corrida fica visível e o estado final pode ficar com `insights = []` (estado inicial), enquanto `loading` já foi resetado por outra chamada — exatamente a tela do print: 443 contas, sem skeleton, sem linhas.
+## 4. Sistema de Tracking (Meta Pixel + Google)
 
-3. **Auto-sync silencioso esconde falha real**
-   Quando o `sync({silent:true, forceRecent:true})` falha (Meta instável, erros parciais em 100+ contas), o front-end limpa o `autoSyncError` no fluxo de sucesso seguinte e o usuário não tem nenhuma pista do motivo da tela vazia.
+### Banco
+Nova tabela `tracking_pixels`:
+- `id`, `provider` (`meta` | `google_ads` | `google_analytics`), `pixel_id` (text), `extra` (jsonb — ex: `conversion_label` para Google Ads), `enabled` (bool), `created_at`, `updated_at`.
+- RLS: leitura pública (anon + authenticated) — pixels precisam carregar no marketplace para visitantes. Escrita só admin/support via `has_role`.
+- GRANTs apropriados.
 
-## Correções
+### Painel admin
+- Nova página `src/pages/AdminTracking.tsx` (rota `/admin-tracking`, protegida admin/support, dentro de `DashboardLayout`):
+  - Lista pixels cadastrados.
+  - Form para adicionar/editar: select provider, pixel_id, label de conversão (Google Ads), enabled.
+  - Link no menu lateral do `DashboardLayout`.
 
-### `src/pages/AdsDashboard.tsx`
+### Loader de tracking no marketplace
+- Novo `src/components/marketplace/TrackingLoader.tsx`:
+  - Lê `tracking_pixels` (enabled).
+  - Injeta Meta Pixel base code (`fbq('init', pixel_id); fbq('track', 'PageView')`).
+  - Injeta Google Ads `gtag.js` + `gtag('config', 'AW-xxx')`.
+  - Injeta GA4 `gtag('config', 'G-xxx')`.
+  - Expõe helper global `window.__trackConversion({ value, currency, orderId })` que dispara:
+    - Meta: `fbq('track', 'Purchase', { value, currency: 'BRL' })`.
+    - Google Ads: `gtag('event', 'conversion', { send_to: 'AW-xxx/label', value, currency: 'BRL', transaction_id })`.
+    - GA4: `gtag('event', 'purchase', { value, currency: 'BRL', transaction_id })`.
+- Montar `<TrackingLoader />` nas 3 páginas marketplace (`Marketplace`, `MarketplaceAssets`, `MarketplaceProducts`).
 
-1. Fazer `loadInsights` **retornar** as linhas carregadas e usar esse retorno no auto-sync, em vez de ler o state `insights` (que é stale):
-   ```ts
-   const rows = await loadInsights();
-   const hasToday = rows.some(i => i.date === today);
-   ```
-2. No `loadInsights`, garantir sempre `setLoading(false)` no `finally`, inclusive quando o generation guard descarta o resultado, para nunca deixar o componente travado num estado inconsistente.
-3. Tornar o auto-sync seguro contra corridas: cancelar/ignorar o `loadInsights({background:true})` final do `sync` se o `range` já mudou (já há `loadGen`, basta capturar `gen` antes do sync e abortar caso difira no fim).
-4. Para `range === "today" | "yesterday"`, se a query inicial vier vazia **e** existirem contas, mostrar skeleton + disparar um `sync({forceRecent:true})` foreground e recarregar — em vez de cair direto no empty-state.
-5. Mostrar o erro do auto-sync no banner amarelo também quando vier `data.erros.length > 0` na primeira execução (hoje só aparece em re-execuções), para o admin enxergar quando a Meta devolveu falha parcial.
+### Conversão por depósito (quando PIX confirma)
+- No fluxo que faz polling do status do depósito (provavelmente `WalletDepositModal.tsx` / `useWallet.ts` / `check-marketplace-order-status`):
+  - Quando status muda para `approved`/`confirmado`, chamar `window.__trackConversion({ value: amount_brl, orderId: deposit_id })`.
+  - Marcar localmente (localStorage `tracked_deposit_<id>`) para não duplicar evento em re-renders/polling.
 
-### Sem alterações em backend/sync
+## Arquivos afetados (resumo)
 
-`supabase/functions/meta-sync/index.ts` está correto (usa `time_range: {since, until}` com datas locais vindas do front, faz upsert em `(ad_account_id, date)`), e o DB tem os dados. Nenhuma migração nem mudança de RLS é necessária.
+**Novos:**
+- `public/advertising-policy.html`
+- `src/pages/AdminTracking.tsx`
+- `src/components/marketplace/TrackingLoader.tsx`
+- `supabase/functions/list-marketplace-clients/index.ts` (se necessário após investigar)
 
-## Validação
+**Editados:**
+- `public/terms.html` (reescrita responsabilidades)
+- `src/lib/terms.ts` (atualizar texto + bump `TERMS_VERSION`)
+- `src/components/marketplace/MarketplaceFooter.tsx` (links)
+- `src/pages/MarketplaceSignup.tsx` (checkbox)
+- `supabase/functions/marketplace-signup/index.ts` (registrar aceite)
+- `src/App.tsx` (rota `/admin-tracking`)
+- `src/components/DashboardLayout.tsx` (item de menu)
+- `src/pages/Marketplace.tsx`, `MarketplaceAssets.tsx`, `MarketplaceProducts.tsx` (montar TrackingLoader)
+- `src/pages/MarketplaceClients.tsx` (ajuste de query/fonte de dados)
+- `src/components/marketplace/WalletDepositModal.tsx` (dispatch de conversão)
 
-- Abrir `/ads`, alternar entre Hoje / Ontem / 7d várias vezes seguidas — não pode mais ficar em "Nenhum insight" quando o DB tem linhas (confirmar contra a query SQL acima).
-- Forçar uma falha do `meta-sync` (token inválido temporário) e confirmar que o banner amarelo aparece com a mensagem real.
-- Verificar no console que `loadInsights` não fica preso em `loading=true` após disparos rápidos consecutivos.
+**Migration:**
+- Cria `tracking_pixels` com RLS + GRANTs.
