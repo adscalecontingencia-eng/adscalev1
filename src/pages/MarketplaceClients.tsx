@@ -71,6 +71,13 @@ export default function MarketplaceClients() {
         </Button>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Clientes" value={totals.users.toLocaleString("pt-BR")} />
         <StatCard label="Total Depositado" value={fmtBRL(totals.deposited)} />
