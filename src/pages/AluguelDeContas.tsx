@@ -321,6 +321,8 @@ const AluguelDeContas: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      <LeadFormModal open={leadOpen} onClose={() => setLeadOpen(false)} redirectTo={CTA} />
     </div>
   );
 };
