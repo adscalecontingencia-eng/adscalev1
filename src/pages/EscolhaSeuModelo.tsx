@@ -170,7 +170,8 @@ const EscolhaSeuModelo: React.FC = () => {
             ]}
             forWho="Gestor que precisa de reposição pontual"
             ctaLabel="Ver Marketplace"
-            ctaTo="/marketplace"
+            ctaTo={withUtm("/marketplace")}
+            onCta={() => trackChoice("marketplace")}
           />
 
           {/* Aluguel */}
@@ -187,10 +188,60 @@ const EscolhaSeuModelo: React.FC = () => {
             ]}
             forWho="Operação em escala que quer terceirizar a estrutura"
             ctaLabel="Conhecer o Aluguel"
-            ctaTo="/aluguel-de-contas"
+            ctaTo={withUtm("/aluguel-de-contas")}
+            onCta={() => trackChoice("aluguel")}
             highlight
           />
         </div>
+      </section>
+
+      {/* TABELA COMPARATIVA */}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <motion.div {...fadeUp} className="text-center mb-10">
+          <span className="text-[11px] uppercase tracking-[0.32em] text-primary/80">Comparativo</span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold mt-3 tracking-tight">
+            Marketplace <span className="text-muted-foreground font-normal">vs</span> Aluguel de Contas
+          </h2>
+          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+            Critério a critério, veja qual modelo encaixa melhor no momento da sua operação.
+          </p>
+        </motion.div>
+
+        <motion.div {...fadeUp} className="rounded-2xl border border-border/60 bg-card/50 backdrop-blur-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/60 bg-background/40">
+                  <th className="text-left font-semibold px-5 py-4 w-[34%]">Critério</th>
+                  <th className="text-left font-semibold px-5 py-4">
+                    <div className="flex items-center gap-2"><ShoppingBag size={16} className="text-primary" /> Marketplace</div>
+                  </th>
+                  <th className="text-left font-semibold px-5 py-4">
+                    <div className="flex items-center gap-2"><InfinityIcon size={16} className="text-primary" /> Aluguel</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { c: "Custo inicial", m: "Valor do ativo (avulso, via PIX)", a: "US$ 240 — vira crédito de mídia" },
+                  { c: "Periodicidade de pagamento", m: "Pagamento único por compra", a: "Semanal (sexta a quinta), em USD" },
+                  { c: "Comissão recorrente", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Não há</span>, a: "5% sobre o ad spend (cai até 1%)" },
+                  { c: "Reposição em caso de bloqueio", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Nova compra</span>, a: <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-primary" /> Automática e ilimitada</span> },
+                  { c: "Painel ao vivo + suporte dedicado", m: <span className="inline-flex items-center gap-1.5 text-muted-foreground"><Minus size={14} /> Self-service</span>, a: <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-primary" /> Incluso</span> },
+                  { c: "Entrega", m: "Imediata após o PIX", a: "Setup guiado em até 24h úteis" },
+                  { c: "Fidelidade", m: "Nenhuma", a: "Nenhuma" },
+                  { c: "Melhor cenário", m: "Operação madura que só precisa repor ativos pontualmente", a: "Quem está escalando e quer terceirizar bloqueios, reposições e gestão de estrutura" },
+                ].map((row, i) => (
+                  <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-background/30 transition">
+                    <td className="px-5 py-4 font-medium text-foreground/90 align-top">{row.c}</td>
+                    <td className="px-5 py-4 text-foreground/80 align-top">{row.m}</td>
+                    <td className="px-5 py-4 text-foreground/80 align-top">{row.a}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
       </section>
 
       {/* FAQ */}
