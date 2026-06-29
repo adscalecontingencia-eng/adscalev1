@@ -55,6 +55,7 @@ const AluguelDeContas: React.FC = () => {
           </div>
           <Link
             to={CTA}
+            onClick={openLead}
             className="hidden sm:inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-lg hover:brightness-110 transition"
           >
             Começar agora <ArrowRight size={14} />
