@@ -17,6 +17,15 @@ installSystemErrorLogger();
   if ((hasResetMarker || isRecoveryHash) && !window.location.hash.startsWith('#/reset-password')) {
     window.location.hash = '#/reset-password';
   }
+
+  // SPA path → hash redirect (HashRouter): if the user lands on /some-path with no hash,
+  // forward to /#/some-path so the route resolves correctly.
+  const path = window.location.pathname.replace(/\/+$/, '');
+  const base = (import.meta as any).env?.BASE_URL?.replace(/\/+$/, '') ?? '';
+  const rel = base && path.startsWith(base) ? path.slice(base.length) : path;
+  if (rel && rel !== '/' && !window.location.hash) {
+    window.location.replace(`${base || ''}/#${rel}${window.location.search}`);
+  }
 })();
 
 createRoot(document.getElementById("root")!).render(<App />);
