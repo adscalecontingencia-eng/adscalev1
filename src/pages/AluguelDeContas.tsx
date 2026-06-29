@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -6,6 +6,7 @@ import {
   CreditCard, Wallet, Bitcoin, Globe, Calendar, BarChart3, Layers, Sparkles,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import LeadFormModal from "@/components/landing/LeadFormModal";
 import dashResumo from "@/assets/landing/dash-resumo.png";
 import dashCredito from "@/assets/landing/dash-credito.png";
 import dashContrato from "@/assets/landing/dash-contrato.png";
