@@ -71,13 +71,12 @@ const AluguelDeContas: React.FC = () => {
           </span>
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.05] tracking-tight">
             Escale sua operação com{" "}
-            <span className="text-primary">estrutura própria</span> de mídia paga.
+            <span className="text-primary">contas infinitas</span> para anunciar.
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            Aluguel de Business Managers, contas de anúncio, perfis e páginas verificadas para
-            gestores de tráfego e agências. Comece com{" "}
-            <strong className="text-foreground">US$ 240 em créditos</strong> e só pague comissão
-            depois que o crédito for consumido.
+            Aluguel de contas de agência e páginas antigas para operações em alta escala.
+            Comece com <strong className="text-foreground">US$ 240 em créditos</strong> e
+            só pague comissão depois que o crédito esgotar.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -118,7 +117,7 @@ const AluguelDeContas: React.FC = () => {
 
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: CreditCard, title: "Setup de US$ 240", desc: "Você paga US$ 240 ao começar — esse valor vira crédito de mídia 1:1." },
+            { icon: CreditCard, title: "Setup de US$ 240", desc: "Você paga US$ 240 ao começar — esse valor vira crédito para pagar a AD SCALE." },
             { icon: BarChart3, title: "Crédito é consumido", desc: "Conforme você anuncia, abatemos a comissão semanal do crédito até zerar." },
             { icon: TrendingUp, title: "5% sobre o Ad Spend", desc: "Quando o crédito acaba, passamos a cobrar 5% do gasto da semana." },
             { icon: Zap, title: "Pode cair até 1%", desc: "Bateu metas semanais de spend? A comissão reduz progressivamente." },
