@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -6,6 +6,7 @@ import {
   CreditCard, Wallet, Bitcoin, Globe, Calendar, BarChart3, Layers, Sparkles,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import LeadFormModal from "@/components/landing/LeadFormModal";
 import dashResumo from "@/assets/landing/dash-resumo.png";
 import dashCredito from "@/assets/landing/dash-credito.png";
 import dashContrato from "@/assets/landing/dash-contrato.png";
@@ -21,6 +22,8 @@ const fadeUp = {
 };
 
 const AluguelDeContas: React.FC = () => {
+  const [leadOpen, setLeadOpen] = useState(false);
+  const openLead = (e: React.MouseEvent) => { e.preventDefault(); setLeadOpen(true); };
   useEffect(() => {
     document.title = "Aluguel de contas Meta — AD SCALE";
     const meta = document.querySelector('meta[name="description"]') || (() => {
@@ -52,6 +55,7 @@ const AluguelDeContas: React.FC = () => {
           </div>
           <Link
             to={CTA}
+            onClick={openLead}
             className="hidden sm:inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-lg hover:brightness-110 transition"
           >
             Começar agora <ArrowRight size={14} />
@@ -79,6 +83,7 @@ const AluguelDeContas: React.FC = () => {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               to={CTA}
+              onClick={openLead}
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:brightness-110 transition shadow-[0_0_30px_-8px_hsl(var(--primary))]"
             >
               Criar conta de aluguel <ArrowRight size={16} />
@@ -293,6 +298,7 @@ const AluguelDeContas: React.FC = () => {
             </p>
             <Link
               to={CTA}
+              onClick={openLead}
               className="mt-8 inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-7 py-3.5 rounded-xl hover:brightness-110 transition shadow-[0_0_40px_-8px_hsl(var(--primary))]"
             >
               Criar conta de aluguel <ArrowRight size={16} />
@@ -315,6 +321,8 @@ const AluguelDeContas: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      <LeadFormModal open={leadOpen} onClose={() => setLeadOpen(false)} redirectTo={CTA} />
     </div>
   );
 };
