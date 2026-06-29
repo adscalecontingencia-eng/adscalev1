@@ -18,6 +18,21 @@ installSystemErrorLogger();
     window.location.hash = '#/reset-password';
   }
 
+  // Decode the GitHub Pages SPA 404 hack: /404.html rewrites /foo → /?/foo
+  // Restore the original path into the hash before HashRouter mounts.
+  const search = window.location.search;
+  if (search.startsWith('?/')) {
+    const decoded = search.slice(1).split('&').map((s, i) =>
+      i === 0 ? s.replace(/~and~/g, '&') : s
+    );
+    const restoredPath = decoded[0]; // begins with "/"
+    const restoredSearch = decoded.length > 1 ? '?' + decoded.slice(1).join('&') : '';
+    window.history.replaceState(
+      null, '',
+      window.location.pathname.replace(/\/+$/, '') + '/' + restoredSearch + '#' + restoredPath + (window.location.hash || '')
+    );
+  }
+
   // SPA path → hash redirect (HashRouter): if the user lands on /some-path with no hash,
   // forward to /#/some-path so the route resolves correctly.
   const path = window.location.pathname.replace(/\/+$/, '');
