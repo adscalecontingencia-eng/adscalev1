@@ -350,6 +350,7 @@ const ChoiceCard: React.FC<{
 
       <Link
         to={ctaTo}
+        onClick={onCta}
         className={`mt-7 inline-flex items-center justify-center gap-2 font-semibold px-5 py-3 rounded-xl transition ${
           highlight
             ? "bg-primary text-primary-foreground hover:brightness-110 shadow-[0_0_30px_-8px_hsl(var(--primary))]"
