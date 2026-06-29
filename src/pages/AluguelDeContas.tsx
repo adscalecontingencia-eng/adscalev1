@@ -298,6 +298,7 @@ const AluguelDeContas: React.FC = () => {
             </p>
             <Link
               to={CTA}
+              onClick={openLead}
               className="mt-8 inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-7 py-3.5 rounded-xl hover:brightness-110 transition shadow-[0_0_40px_-8px_hsl(var(--primary))]"
             >
               Criar conta de aluguel <ArrowRight size={16} />
