@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowRight, ShoppingBag, Infinity as InfinityIcon, Sparkles, CheckCircle2,
+  ArrowRight, ShoppingBag, Infinity as InfinityIcon, Sparkles, CheckCircle2, Check, Minus,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 
@@ -13,22 +13,104 @@ const fadeUp = {
   transition: { duration: 0.5 },
 };
 
+const PAGE_URL = "https://adscalev1.lovable.app/escolha-seu-modelo";
+const PAGE_TITLE = "Escolha seu modelo — Marketplace ou Aluguel de Contas | AD SCALE";
+const PAGE_DESC =
+  "Compare Marketplace (compra avulsa via PIX) e Aluguel de Contas (US$ 240 em créditos, reposição automática) e escolha o modelo ideal para escalar seus anúncios.";
+
+function upsertMeta(selector: string, attrs: Record<string, string>) {
+  let el = document.head.querySelector(selector) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k !== "content") el!.setAttribute(k, v);
+    });
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", attrs.content);
+}
+
+function upsertLink(rel: string, href: string) {
+  let el = document.head.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", href);
+}
+
 const EscolhaSeuModelo: React.FC = () => {
+  const [utmQuery, setUtmQuery] = useState<string>("");
+
   useEffect(() => {
-    document.title = "Escolha seu modelo — AD SCALE";
-    const meta =
-      document.querySelector('meta[name="description"]') ||
-      (() => {
-        const m = document.createElement("meta");
-        m.setAttribute("name", "description");
-        document.head.appendChild(m);
-        return m;
-      })();
-    meta.setAttribute(
-      "content",
-      "Escolha entre comprar ativos avulsos no Marketplace ou alugar estrutura completa de contas com créditos de US$ 240."
-    );
+    // SEO meta tags
+    document.title = PAGE_TITLE;
+    upsertMeta('meta[name="description"]', { name: "description", content: PAGE_DESC });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: PAGE_TITLE });
+    upsertMeta('meta[property="og:description"]', { property: "og:description", content: PAGE_DESC });
+    upsertMeta('meta[property="og:type"]', { property: "og:type", content: "website" });
+    upsertMeta('meta[property="og:url"]', { property: "og:url", content: PAGE_URL });
+    upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
+    upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: PAGE_TITLE });
+    upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: PAGE_DESC });
+    upsertLink("canonical", PAGE_URL);
+
+    // JSON-LD FAQ + WebPage
+    const ldId = "ld-escolha-seu-modelo";
+    document.getElementById(ldId)?.remove();
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = ldId;
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        { "@type": "Question", name: "Qual modelo é melhor para mim?", acceptedAnswer: { "@type": "Answer", text: "Marketplace para reposição pontual; Aluguel para escalar terceirizando a estrutura." } },
+        { "@type": "Question", name: "Posso usar os dois ao mesmo tempo?", acceptedAnswer: { "@type": "Answer", text: "Sim. Os dois modelos convivem na mesma conta." } },
+        { "@type": "Question", name: "Como funciona o pagamento?", acceptedAnswer: { "@type": "Answer", text: "Marketplace: PIX único. Aluguel: setup US$ 240 (vira crédito) + cobrança semanal em USD." } },
+        { "@type": "Question", name: "Tem fidelidade?", acceptedAnswer: { "@type": "Answer", text: "Não. Você opera enquanto fizer sentido." } },
+      ],
+    });
+    document.head.appendChild(ld);
+
+    // UTM capture (Instagram tracking) — works with HashRouter
+    const rawSearch = window.location.search || (window.location.hash.includes("?") ? "?" + window.location.hash.split("?")[1] : "");
+    const params = new URLSearchParams(rawSearch);
+    const utmKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+    const collected: Record<string, string> = {};
+    utmKeys.forEach((k) => {
+      const v = params.get(k);
+      if (v) collected[k] = v;
+    });
+    // Default attribution when none provided (page is linked from Instagram bio)
+    if (Object.keys(collected).length === 0) {
+      try {
+        const stored = sessionStorage.getItem("adscale_utm");
+        if (stored) Object.assign(collected, JSON.parse(stored));
+      } catch { /* ignore */ }
+    } else {
+      try { sessionStorage.setItem("adscale_utm", JSON.stringify(collected)); } catch { /* ignore */ }
+    }
+    const qs = new URLSearchParams(collected).toString();
+    setUtmQuery(qs ? `?${qs}` : "");
+
+    // Fire view event on Meta Pixel / GA if loaded
+    const source = (collected.utm_source || "").toLowerCase();
+    try {
+      (window as any).fbq?.("trackCustom", "ChoiceModelView", { source: source || "direct", ...collected });
+      (window as any).gtag?.("event", "choice_model_view", { source: source || "direct", ...collected });
+    } catch { /* ignore */ }
   }, []);
+
+  const withUtm = (path: string) => `${path}${utmQuery}`;
+
+  const trackChoice = (choice: "marketplace" | "aluguel") => {
+    try {
+      (window as any).fbq?.("trackCustom", "ChoiceModelClick", { choice });
+      (window as any).gtag?.("event", "choice_model_click", { choice });
+    } catch { /* ignore */ }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
