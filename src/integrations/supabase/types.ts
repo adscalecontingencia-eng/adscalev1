@@ -953,6 +953,39 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_leads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          referrer: string | null
+          source: string
+          user_agent: string | null
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          referrer?: string | null
+          source?: string
+          user_agent?: string | null
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          referrer?: string | null
+          source?: string
+          user_agent?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       marketplace_orders: {
         Row: {
           amount: number
