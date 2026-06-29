@@ -129,6 +129,7 @@ const MarketplaceFooter: React.FC = () => {
         </div>
       </div>
     </footer>
+    </>
   );
 };
 
