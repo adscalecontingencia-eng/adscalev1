@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Instagram, MessageCircle } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import TrackingLoader from "@/components/marketplace/TrackingLoader";
 
 const WHATSAPP_URL =
   "https://wa.me/5531998416336?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
@@ -9,6 +10,8 @@ const INSTAGRAM_URL = "https://instagram.com/adscale";
 
 const MarketplaceFooter: React.FC = () => {
   return (
+    <>
+    <TrackingLoader />
     <footer className="relative border-t border-border/60 mt-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Logo centered */}
@@ -32,14 +35,19 @@ const MarketplaceFooter: React.FC = () => {
             </h4>
             <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
-                <Link to="/politica-privacidade" className="hover:text-foreground transition-colors">
-                  Política de Privacidade
-                </Link>
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                  Termos de Uso
+                </a>
               </li>
               <li>
-                <Link to="/termos-uso" className="hover:text-foreground transition-colors">
-                  Termos de Uso
-                </Link>
+                <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                  Política de Publicidade
+                </a>
+              </li>
+              <li>
+                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                  Política de Privacidade
+                </a>
               </li>
             </ul>
           </div>
@@ -121,6 +129,7 @@ const MarketplaceFooter: React.FC = () => {
         </div>
       </div>
     </footer>
+    </>
   );
 };
 

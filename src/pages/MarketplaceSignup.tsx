@@ -14,6 +14,7 @@ const MarketplaceSignup: React.FC = () => {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +22,7 @@ const MarketplaceSignup: React.FC = () => {
     if (password !== confirm) return setError("As senhas não coincidem");
     if (password.length < 8) return setError("Senha precisa de pelo menos 8 caracteres");
     if (phone.replace(/\D+/g, "").length < 10) return setError("WhatsApp obrigatório com DDD");
+    if (!acceptedTerms) return setError("Você precisa aceitar os Termos de Uso e a Política de Publicidade");
 
     setSubmitting(true);
     try {
@@ -30,7 +32,10 @@ const MarketplaceSignup: React.FC = () => {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ email, password, name, phone: phone.replace(/\D+/g, "") }),
+        body: JSON.stringify({
+          email, password, name, phone: phone.replace(/\D+/g, ""),
+          terms_accepted: true, terms_version: "marketplace.v1",
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
@@ -140,7 +145,28 @@ const MarketplaceSignup: React.FC = () => {
               </div>
             </div>
 
-            <button type="submit" disabled={submitting}
+            <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-primary cursor-pointer shrink-0"
+                required
+              />
+              <span>
+                Li e aceito os{" "}
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Termos de Uso
+                </a>{" "}
+                e a{" "}
+                <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Política de Publicidade
+                </a>
+                , declarando ser o único responsável pelo uso dos ativos e pelo conteúdo dos meus anúncios.
+              </span>
+            </label>
+
+            <button type="submit" disabled={submitting || !acceptedTerms}
               className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:pointer-events-none">
               {submitting ? "Criando cadastro…" : "Criar conta Marketplace"}
             </button>

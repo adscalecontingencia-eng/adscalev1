@@ -20,13 +20,14 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { email, password, name, phone } = await req.json();
+    const { email, password, name, phone, terms_accepted, terms_version } = await req.json();
     if (!email || !password) return json({ error: "E-mail e senha obrigatórios" }, 400);
     if (typeof email !== "string" || email.length > 255) return json({ error: "E-mail inválido" }, 400);
     if (typeof password !== "string" || password.length < 8) return json({ error: "Senha precisa de 8+ caracteres" }, 400);
     if (!name || typeof name !== "string") return json({ error: "Nome obrigatório" }, 400);
     const normalizedPhone = normalizePhone(phone || "");
     if (!normalizedPhone) return json({ error: "Telefone inválido (DDD + número)" }, 400);
+    if (!terms_accepted) return json({ error: "Você precisa aceitar os Termos de Uso e a Política de Publicidade" }, 400);
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -63,6 +64,15 @@ Deno.serve(async (req) => {
       ip_address: ip,
       user_agent: ua,
       metadata: { phone: normalizedPhone, source: "marketplace" },
+    });
+
+    // Register terms acceptance
+    await admin.from("client_terms_acceptances").insert({
+      auth_user_id: uid,
+      email: normEmail,
+      terms_version: terms_version || "marketplace.v1",
+      ip_address: ip,
+      user_agent: ua,
     });
 
     return json({ success: true });

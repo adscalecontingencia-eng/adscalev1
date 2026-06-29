@@ -402,7 +402,7 @@ export type Database = {
         Row: {
           accepted_at: string
           auth_user_id: string | null
-          client_id: string
+          client_id: string | null
           email: string
           id: string
           ip_address: string | null
@@ -412,7 +412,7 @@ export type Database = {
         Insert: {
           accepted_at?: string
           auth_user_id?: string | null
-          client_id: string
+          client_id?: string | null
           email: string
           id?: string
           ip_address?: string | null
@@ -422,7 +422,7 @@ export type Database = {
         Update: {
           accepted_at?: string
           auth_user_id?: string | null
-          client_id?: string
+          client_id?: string | null
           email?: string
           id?: string
           ip_address?: string | null
@@ -2485,6 +2485,36 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      tracking_pixels: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          extra: Json
+          id: string
+          pixel_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          extra?: Json
+          id?: string
+          pixel_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          extra?: Json
+          id?: string
+          pixel_id?: string
+          provider?: string
+          updated_at?: string
         }
         Relationships: []
       }
