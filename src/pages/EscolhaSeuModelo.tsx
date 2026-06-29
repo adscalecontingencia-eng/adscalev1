@@ -312,7 +312,8 @@ const ChoiceCard: React.FC<{
   ctaLabel: string;
   ctaTo: string;
   highlight?: boolean;
-}> = ({ icon: Icon, eyebrow, title, subtitle, bullets, forWho, ctaLabel, ctaTo, highlight }) => (
+  onCta?: () => void;
+}> = ({ icon: Icon, eyebrow, title, subtitle, bullets, forWho, ctaLabel, ctaTo, highlight, onCta }) => (
   <motion.div
     {...fadeUp}
     className={`relative rounded-2xl border ${highlight ? "border-primary/40" : "border-border/60"} bg-card/60 backdrop-blur-xl p-6 sm:p-8 flex flex-col hover:border-primary/50 transition overflow-hidden`}
