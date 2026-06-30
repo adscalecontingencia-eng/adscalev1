@@ -64,7 +64,16 @@ export function splitOverdueVsCurrent(
   const sorted = [...weeks].sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   let credit = Math.max(0, planCredit);
   let paid = Math.max(0, totalPaid);
-  const paidByWeek = paidRows?.length ? getPaidByTargetWeek(paidRows) : null;
+  // Pool FIFO: pagamentos ordenados pela semana-alvo. À medida que iteramos
+  // as semanas (mais antiga → mais nova), liberamos no pool todos os pagamentos
+  // cuja targetWeek ≤ semana atual. Excedente sobra para semanas seguintes.
+  const paidPoolEntries = paidRows?.length
+    ? Array.from(getPaidByTargetWeek(paidRows).entries())
+        .map(([k, v]) => ({ ts: new Date(k + 'T00:00:00').getTime(), amount: v }))
+        .sort((a, b) => a.ts - b.ts)
+    : null;
+  let paidPoolIdx = 0;
+  let paidPool = 0;
   let overdue = 0;
   let currentPending = 0;
   const weeksOverdue: WeeklyRow[] = [];

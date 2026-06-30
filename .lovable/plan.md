@@ -1,67 +1,33 @@
-# Página de escolha para leads do Instagram
+## Problema identificado
 
-Hub enxuto em `/escolha-seu-modelo` que explica os dois modelos de negócio (Marketplace e Aluguel de Contas) e direciona o lead para o caminho certo.
+`splitOverdueVsCurrent` (em `src/lib/billing-status.ts`) limita cada pagamento à semana exatamente anterior à sua data (`weekStart - 7d`). Quando você valida um pagamento que cobre dívidas antigas, o excedente NÃO sobra para liquidar semanas mais antigas — fica preso na semana-alvo daquele pagamento, e o restante aparece como **Saldo Atrasado** mesmo após a baixa total.
 
-## Objetivo
+Conferi os dados do Roberto (`00e80ef4-89bc-4345-b48d-76acf06b3f25`):
+- Pagamentos: `2026-06-20` (US$ 133,02 → liquida semana 06-12) e `2026-06-27` (US$ 283,90 → liquida semana 06-19).
+- Gasto Meta por semana fiscal (sex→qui): 04-24, 05-01, **06-05**, 06-12, 06-19, 06-26.
+- A semana **2026-06-05** ficou sem pagamento correspondente, mesmo o cliente tendo quitado o total. As linhas em `commissions` já estão todas `pago`, mas o admin recalcula via insights e não roleia o excedente → mostra atrasado.
 
-Quando alguém clicar no link do Instagram, cair numa página única que:
-1. Apresenta a AD SCALE em uma frase.
-2. Mostra lado a lado os dois modelos com diferenças claras.
-3. Deixa o lead escolher com um clique para onde quer ir.
+## Correção
 
-## Estrutura da página
+### 1. `src/lib/billing-status.ts` — pool FIFO de pagamentos
+Substituir a aplicação por-semana por um pool acumulado:
+- Construir lista `[{ targetWeek, amount }]` ordenada por `targetWeek`.
+- Ao iterar as semanas (mais antiga → mais nova), acumular no pool todos os pagamentos cuja `targetWeek ≤ semana atual` (não permite pagamento de semana futura).
+- Para cada semana: aplica crédito do plano FIFO, depois consome do pool FIFO. Excedente continua disponível para a próxima semana.
+- Mantém regra de vencimento (sexta seguinte) e comportamento legado quando `paidRows` não é fornecido.
 
-**Hero curto**
-- Eyebrow: "Bem-vindo · AD SCALE"
-- Título: "Escolha o modelo ideal para a sua operação"
-- Subtítulo de 1 linha: explica que existem dois caminhos — comprar ativos avulsos no Marketplace ou alugar estrutura completa.
-- Sem CTA aqui (a escolha está logo abaixo).
+Isso elimina o "saldo atrasado fantasma" para qualquer cliente cujo total pago ≥ comissão devida, e não muda o cálculo para quem realmente está em atraso.
 
-**Dois cards comparativos (lado a lado, empilham no mobile)**
+### 2. Zerar o saldo atrasado do Roberto
+A correção acima já zera o atrasado dele automaticamente (pagamentos cobrem 100% da dívida com sobra para 06-05). Nenhum dado precisa ser editado: as `commissions` dele já estão `pago`/`valor_pendente=0`. Após o deploy, o painel admin vai refletir corretamente.
 
-Card 1 — Marketplace
-- Ícone: ShoppingBag
-- Título: "Marketplace"
-- Subtítulo: "Compre ativos avulsos quando precisar"
-- Bullets:
-  - Compra única, sem comissão recorrente
-  - BMs, contas, perfis e páginas vendidas individualmente
-  - Pagamento via PIX, entrega imediata
-  - Ideal para quem já tem operação e quer repor ativos
-- Indicador "Para quem é": gestor que precisa de reposição pontual
-- Botão: "Ver Marketplace" → `/marketplace`
+Se preferir uma "trava" no banco para garantir consistência mesmo se algum cálculo futuro divergir, posso (opcional, sob confirmação) inserir um pagamento de ajuste/observação — mas não recomendo, pois duplicaria histórico.
 
-Card 2 — Aluguel de Contas (com destaque visual sutil)
-- Ícone: Infinity
-- Título: "Aluguel de Contas"
-- Subtítulo: "Estrutura completa com créditos de US$ 240"
-- Bullets:
-  - US$ 240 viram crédito para pagar a AD SCALE
-  - Reposição automática quando a Meta bloquear
-  - Comissão semanal de 5% (pode cair até 1%)
-  - Painel ao vivo, suporte humano dedicado
-- Indicador "Para quem é": operação em escala que quer terceirizar a estrutura
-- Botão: "Conhecer o Aluguel" → `/aluguel-de-contas`
+## Validação
+- Rodar `tsgo` para garantir tipos.
+- Verificar manualmente no `/clientes` que Roberto fica com **Saldo Atrasado = 0**.
+- Confirmar que clientes que de fato têm dívida em aberto continuam exibindo atrasado (ex.: qualquer cliente sem pagamentos recentes).
 
-**FAQ curto (3–4 perguntas)**
-- Qual modelo é melhor para mim?
-- Posso usar os dois ao mesmo tempo?
-- Como funciona o pagamento?
-- Tem fidelidade?
-
-**Footer mínimo** (logo + links de termos/privacidade já existentes).
-
-## Detalhes técnicos
-
-- Novo arquivo: `src/pages/EscolhaSeuModelo.tsx`.
-- Nova rota em `src/App.tsx`: `/escolha-seu-modelo` (pública, fora do `DashboardLayout`).
-- Reaproveita o visual da `AluguelDeContas`: dark theme, glows ambientes em `bg-primary`, glassmorphism (`bg-card/60 backdrop-blur-xl`), `framer-motion` para fade-up, `lucide-react` para ícones, `AdScaleLogo` no header e no footer.
-- SEO: `document.title` + `meta description` no `useEffect`, H1 único, alts nos ícones decorativos via `aria-hidden`.
-- Sem mudanças no backend, sem formulário (o lead capture acontece dentro de `/aluguel-de-contas`).
-- Garantir que a rota funcione com o fix de SPA já feito em `src/main.tsx` (já cobre paths arbitrários).
-
-## Fora de escopo
-
-- Não criar nova captura de lead nessa página.
-- Não alterar `/marketplace` nem `/aluguel-de-contas`.
-- Não mudar tema, fontes ou design tokens existentes.
+## Escopo do que será alterado
+- `src/lib/billing-status.ts` — única função afetada (`splitOverdueVsCurrent`).
+- Nenhuma migration, nenhuma alteração em `ClientDashboard.tsx` / `Clients.tsx` (eles só consomem a função).
