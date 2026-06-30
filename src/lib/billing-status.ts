@@ -94,10 +94,16 @@ export function splitOverdueVsCurrent(
     const applyCredit = creditEligible ? Math.min(credit, owe) : 0;
     credit -= applyCredit;
     owe -= applyCredit;
-    const weekKey = format(w.weekStart, 'yyyy-MM-dd');
-    const weeklyPaid = paidByWeek?.get(weekKey) || 0;
-    const applyPaid = paidByWeek ? Math.min(weeklyPaid, owe) : Math.min(paid, owe);
-    if (!paidByWeek) paid -= applyPaid;
+    const weekTs = w.weekStart.getTime();
+    if (paidPoolEntries) {
+      while (paidPoolIdx < paidPoolEntries.length && paidPoolEntries[paidPoolIdx].ts <= weekTs) {
+        paidPool += paidPoolEntries[paidPoolIdx].amount;
+        paidPoolIdx++;
+      }
+    }
+    const applyPaid = paidPoolEntries ? Math.min(paidPool, owe) : Math.min(paid, owe);
+    if (paidPoolEntries) paidPool -= applyPaid;
+    else paid -= applyPaid;
     owe -= applyPaid;
     if (owe <= 0.0001) continue;
 
