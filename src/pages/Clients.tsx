@@ -870,12 +870,31 @@ const Clients: React.FC = () => {
     return total;
   };
 
-  // Weekly breakdown per client (uses ISO week starting Thursday, same as dashboard)
+  const getLedgerPendingByWeek = (clientId: string) => {
+    const byWeek = new Map<string, { pending: number; spend: number }>();
+    getClientCommissions(clientId)
+      .filter(c => c.type === 'daily' || c.type === 'weekly_billing')
+      .forEach(c => {
+        const dateSource = c.billingWeekStart || c.date;
+        const weekStart = startOfWeek(parseDateLocal(dateSource), { weekStartsOn: 5 });
+        const key = format(weekStart, 'yyyy-MM-dd');
+        const pending = Math.max(0, c.valorPendente ?? (c.amount - (c.valorPago || 0)));
+        const current = byWeek.get(key) || { pending: 0, spend: 0 };
+        byWeek.set(key, {
+          pending: current.pending + pending,
+          spend: current.spend + (c.adSpend || 0),
+        });
+      });
+    return byWeek;
+  };
+
+  // Weekly breakdown per client (sexta→quinta). The commission ledger is the
+  // source of truth for closed weeks already validated/settled by admin.
   const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
     const rows = insightsByClient[clientId] || [];
-    if (rows.length === 0) return [];
+    const ledgerPendingByWeek = getLedgerPendingByWeek(clientId);
     const byWeek: Record<string, number> = {};
     rows.forEach(r => {
       const d = parseDateLocal(r.date);
@@ -883,10 +902,16 @@ const Clients: React.FC = () => {
       const key = format(ws, 'yyyy-MM-dd');
       byWeek[key] = (byWeek[key] || 0) + r.spend;
     });
-    return Object.entries(byWeek).map(([k, spend]) => {
+    const weeklyRows = Object.entries(byWeek).map(([k, spend]) => {
       const rate = getClientTierPercentage(client, spend);
-      return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
+      const ledger = ledgerPendingByWeek.get(k);
+      return { weekStart: parseDateLocal(k), spend, commission: ledger ? ledger.pending : spend * (rate / 100) };
     });
+    ledgerPendingByWeek.forEach((ledger, k) => {
+      if (ledger.pending <= 0 || byWeek[k] !== undefined) return;
+      weeklyRows.push({ weekStart: parseDateLocal(k), spend: ledger.spend, commission: ledger.pending });
+    });
+    return weeklyRows;
   };
 
   const getAccumulated = (clientId: string) => {
