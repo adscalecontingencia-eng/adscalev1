@@ -397,8 +397,24 @@ export default function MetaApps() {
           </DialogTrigger>
           <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editId ? "Editar aplicativo Meta" : "Novo aplicativo Meta"}</DialogTitle>
+              <div className="flex items-center justify-between gap-2">
+                <DialogTitle>{editId ? "Editar aplicativo Meta" : "Novo aplicativo Meta"}</DialogTitle>
+                <SystemUserTokenGuide />
+              </div>
             </DialogHeader>
+
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-semibold">Antes de colar o token:</span>
+                <span>
+                  Ele precisa ter <code className="bg-black/20 px-1 rounded">ads_read</code>,{" "}
+                  <code className="bg-black/20 px-1 rounded">ads_management</code> e{" "}
+                  <code className="bg-black/20 px-1 rounded">business_management</code>. Se faltar
+                  qualquer uma, as contas de anúncio não aparecem. Use o guia acima →
+                </span>
+              </div>
+            </div>
+
 
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
