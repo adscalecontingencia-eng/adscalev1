@@ -963,7 +963,7 @@ const Clients: React.FC = () => {
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
     // de toda a história (FIFO, mesma lógica do dashboard do cliente).
     const allTimeCommission = computeCommissionFromInsights(clientId);
-    const creditRemaining = Math.max(0, planCredit - allTimeCommission);
+    const creditRemaining = Math.max(0, Number(client?.planCredit || 0) - allTimeCommission);
 
     return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend, creditRemaining };
   };
