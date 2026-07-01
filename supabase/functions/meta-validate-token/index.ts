@@ -48,8 +48,14 @@ Deno.serve(async (req) => {
 
     const d = body?.data || {};
     const isValid = !!d.is_valid;
-    const scopes: string[] = Array.isArray(d.scopes) ? d.scopes : [];
-    const missing = REQUIRED_SCOPES.filter((s) => !scopes.includes(s));
+    const flatScopes: string[] = Array.isArray(d.scopes) ? d.scopes : [];
+    // Meta may return permissions only inside granular_scopes (per-asset grants like ads_read/ads_management).
+    // Merge them into the effective scope set so validation matches what the user actually granted.
+    const granular: any[] = Array.isArray(d.granular_scopes) ? d.granular_scopes : [];
+    const granularNames = granular.map((g) => g?.scope).filter((s): s is string => typeof s === "string");
+    const effectiveScopes = Array.from(new Set([...flatScopes, ...granularNames]));
+    const scopes = effectiveScopes;
+    const missing = REQUIRED_SCOPES.filter((s) => !effectiveScopes.includes(s));
     const expiresAt = d.expires_at ? new Date(d.expires_at * 1000).toISOString() : null;
     const issuedAt = d.issued_at ? new Date(d.issued_at * 1000).toISOString() : null;
     const dataAccessExp = d.data_access_expires_at ? new Date(d.data_access_expires_at * 1000).toISOString() : null;
