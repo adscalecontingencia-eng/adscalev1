@@ -19,7 +19,7 @@ import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/component
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
-import { WeeklyRow } from '@/lib/billing-status';
+import { splitOverdueVsCurrent, WeeklyRow } from '@/lib/billing-status';
 
 interface Client {
   id: string;
@@ -870,8 +870,8 @@ const Clients: React.FC = () => {
     return total;
   };
 
-  const getLedgerPendingByWeek = (clientId: string) => {
-    const byWeek = new Map<string, { pending: number; spend: number }>();
+  const getLedgerByWeek = (clientId: string) => {
+    const byWeek = new Map<string, { amount: number; pending: number; spend: number }>();
     getClientCommissions(clientId)
       .filter(c => c.type === 'daily' || c.type === 'weekly_billing')
       .forEach(c => {
@@ -879,8 +879,9 @@ const Clients: React.FC = () => {
         const weekStart = startOfWeek(parseDateLocal(dateSource), { weekStartsOn: 5 });
         const key = format(weekStart, 'yyyy-MM-dd');
         const pending = Math.max(0, c.valorPendente ?? (c.amount - (c.valorPago || 0)));
-        const current = byWeek.get(key) || { pending: 0, spend: 0 };
+        const current = byWeek.get(key) || { amount: 0, pending: 0, spend: 0 };
         byWeek.set(key, {
+          amount: current.amount + Math.max(0, c.amount || 0),
           pending: current.pending + pending,
           spend: current.spend + (c.adSpend || 0),
         });
@@ -894,7 +895,7 @@ const Clients: React.FC = () => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
     const rows = insightsByClient[clientId] || [];
-    const ledgerPendingByWeek = getLedgerPendingByWeek(clientId);
+    const ledgerByWeek = getLedgerByWeek(clientId);
     const byWeek: Record<string, number> = {};
     rows.forEach(r => {
       const d = parseDateLocal(r.date);
@@ -904,12 +905,11 @@ const Clients: React.FC = () => {
     });
     const weeklyRows = Object.entries(byWeek).map(([k, spend]) => {
       const rate = getClientTierPercentage(client, spend);
-      const ledger = ledgerPendingByWeek.get(k);
-      return { weekStart: parseDateLocal(k), spend, commission: ledger ? ledger.pending : spend * (rate / 100) };
+      return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
     });
-    ledgerPendingByWeek.forEach((ledger, k) => {
-      if (ledger.pending <= 0 || byWeek[k] !== undefined) return;
-      weeklyRows.push({ weekStart: parseDateLocal(k), spend: ledger.spend, commission: ledger.pending });
+    ledgerByWeek.forEach((ledger, k) => {
+      if (ledger.amount <= 0 || byWeek[k] !== undefined) return;
+      weeklyRows.push({ weekStart: parseDateLocal(k), spend: ledger.spend, commission: ledger.amount });
     });
     return weeklyRows;
   };
@@ -943,22 +943,15 @@ const Clients: React.FC = () => {
     const comissaoPendente = Math.max(0, expectedCommissionInRange - comissaoPaga);
 
 
-    // Saldo Pendente vs Saldo Atrasado: `computeWeeklyForClient` já devolve o
-    // saldo LÍQUIDO por semana (valor_pendente do livro/ledger quando existe).
-    // Portanto aqui apenas classificamos por vencimento; não aplicamos pagamentos
-    // nem crédito de novo, pois isso zerava indevidamente saldos ainda em aberto.
+    // Saldo Pendente vs Saldo Atrasado: usa a comissão bruta recalculada pela
+    // Meta atualizada e só então aplica crédito/pagamentos FIFO. Isso evita que
+    // comissões antigas salvas com valor menor zere o acumulado atual do cliente.
     const weeks = computeWeeklyForClient(clientId);
-    const now = new Date();
-    let saldoCorrente = 0;
-    let saldoAtrasado = 0;
-    weeks.forEach(w => {
-      const pending = Math.max(0, Number(w.commission || 0));
-      if (pending <= 0) return;
-      const dueDate = addDays(w.weekStart, 7);
-      if (now.getTime() > dueDate.getTime()) saldoAtrasado += pending;
-      else saldoCorrente += pending;
-    });
-    const saldoPendente = saldoCorrente + saldoAtrasado;
+    const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
+    const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
+    const split = splitOverdueVsCurrent(weeks, Number(client?.planCredit || 0), totalPaidAllTime, new Date(), null, paidRows);
+    const saldoPendente = split.currentPending + split.overdue;
+    const saldoAtrasado = split.overdue;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
     // de toda a história (FIFO, mesma lógica do dashboard do cliente).
