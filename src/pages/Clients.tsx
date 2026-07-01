@@ -953,7 +953,7 @@ const Clients: React.FC = () => {
     // Mesmo cálculo do dashboard do cliente: semana fiscal corrente (sexta→quinta),
     // com crédito e pagamentos aplicados por semana. No admin o rótulo é Saldo Acumulado.
     const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null, paidRows);
-    const saldoPendente = split.currentPending;
+    const saldoPendente = split.currentPending + split.overdue;
     const saldoAtrasado = split.overdue;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
