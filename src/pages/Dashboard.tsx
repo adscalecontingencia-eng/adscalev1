@@ -84,7 +84,7 @@ const Dashboard: React.FC = () => {
     setSyncing(false);
     await loadSyncHistory();
     if (r.errors > 0) toast.error('Erro ao sincronizar comissões');
-    else if (r.inserted > 0) toast.success(`${r.inserted} comissão(ões) pendente(s) gerada(s) a partir dos gastos`);
+    else if (r.inserted > 0 || r.updated > 0) toast.success(`${r.inserted} comissão(ões) gerada(s) · ${r.updated} atualizada(s) pela Meta`);
     else toast.info('Comissões já estão sincronizadas');
   };
 
