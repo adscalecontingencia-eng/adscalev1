@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   AppWindow, Plus, Pencil, Trash2, Star, Eye, EyeOff, Users as UsersIcon, ShieldCheck,
+  CheckCircle2, XCircle, RefreshCw, KeyRound, Clock, Beaker, Copy, AlertTriangle, Zap,
 } from "lucide-react";
 import { PageHero } from "@/components/ui-kit";
 
@@ -33,9 +34,25 @@ type MetaApp = {
   last_used_at: string | null;
   created_at: string;
   updated_at: string;
+  token_scopes: string[] | null;
+  token_expires_at: string | null;
+  token_issued_at: string | null;
+  token_user_id: string | null;
+  token_type: string | null;
+  last_validated_at: string | null;
+  validation_status: any;
+  data_access_expires_at: string | null;
 };
 
 type Client = { id: string; name: string; meta_app_id: string | null };
+
+const REQUIRED_SCOPES = ["ads_read", "ads_management", "business_management"];
+
+const SCOPE_WARNINGS: Record<string, string> = {
+  ads_read: "Sem ads_read, não será possível ler contas e relatórios de anúncios.",
+  ads_management: "Sem ads_management, ações de gerenciamento podem falhar.",
+  business_management: "Sem business_management, a integração pode não conseguir relacionar contas às BMs e ativos comerciais.",
+};
 
 const emptyForm: Partial<MetaApp> = {
   label: "",
@@ -53,7 +70,8 @@ const SecretField: React.FC<{
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-}> = ({ label, value, onChange, placeholder }) => {
+  hint?: string;
+}> = ({ label, value, onChange, placeholder, hint }) => {
   const [show, setShow] = useState(false);
   return (
     <div className="space-y-1.5">
@@ -75,6 +93,7 @@ const SecretField: React.FC<{
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
       </div>
+      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 };
@@ -85,6 +104,16 @@ const maskToken = (v?: string | null) => {
   return `${v.slice(0, 4)}••••${v.slice(-4)}`;
 };
 
+const fmtDate = (iso: string | null | undefined) => {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleString("pt-BR"); } catch { return "—"; }
+};
+
+type SyncResult = {
+  total: number; active: number; disabled: number; upserted: number;
+  accounts: Array<{ id: string; name: string; account_status?: number; business?: any; currency?: string }>;
+};
+
 export default function MetaApps() {
   const [apps, setApps] = useState<MetaApp[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -93,17 +122,29 @@ export default function MetaApps() {
   const [form, setForm] = useState<Partial<MetaApp>>(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState<Record<string, string | null>>({});
+  const [syncResults, setSyncResults] = useState<Record<string, SyncResult | null>>({});
+  const [accountCounts, setAccountCounts] = useState<Map<string, number>>(new Map());
+
+  const setAppBusy = (id: string, key: string | null) =>
+    setBusy((b) => ({ ...b, [id]: key }));
 
   const load = async () => {
     setLoading(true);
-    const [a, c] = await Promise.all([
+    const [a, c, ac] = await Promise.all([
       supabase.from("meta_apps").select("*").order("is_default", { ascending: false }).order("label"),
       supabase.from("clients").select("id, name, meta_app_id").order("name"),
+      supabase.from("meta_ad_accounts").select("meta_app_id"),
     ]);
     if (a.error) toast.error(a.error.message);
     if (c.error) toast.error(c.error.message);
     setApps((a.data as MetaApp[]) || []);
     setClients((c.data as Client[]) || []);
+    const map = new Map<string, number>();
+    ((ac.data as any[]) || []).forEach((r) => {
+      if (r.meta_app_id) map.set(r.meta_app_id, (map.get(r.meta_app_id) || 0) + 1);
+    });
+    setAccountCounts(map);
     setLoading(false);
   };
 
@@ -129,9 +170,26 @@ export default function MetaApps() {
     setOpen(true);
   };
 
+  // Form validation
+  const appIdIsEmail = !!form.app_id && /@/.test(form.app_id);
+  const appIdIsNumeric = !!form.app_id && /^\d+$/.test(form.app_id.trim());
+  const userTokenPrefixOdd = !!form.user_access_token && !/^EAA/i.test(form.user_access_token);
+
   const save = async () => {
     if (!form.label?.trim() || !form.app_id?.trim()) {
       toast.error("Preencha pelo menos o rótulo e o App ID");
+      return;
+    }
+    if (appIdIsEmail) {
+      toast.error("App ID não é um e-mail. Informe o ID numérico do aplicativo Meta.");
+      return;
+    }
+    if (!appIdIsNumeric) {
+      toast.error("App ID deve conter apenas números.");
+      return;
+    }
+    if (!form.app_secret?.trim()) {
+      toast.error("App Secret é obrigatório.");
       return;
     }
     setSaving(true);
@@ -147,7 +205,6 @@ export default function MetaApps() {
         notes: form.notes || null,
       };
 
-      // Se marcar este como padrão, desmarca os outros para respeitar o índice único.
       if (payload.is_default) {
         const q = supabase.from("meta_apps").update({ is_default: false }).eq("is_default", true);
         if (editId) await q.neq("id", editId); else await q;
@@ -206,6 +263,85 @@ export default function MetaApps() {
     toast.success("Aplicativo do cliente atualizado");
   };
 
+  // === Edge function actions ===
+  const validateToken = async (app: MetaApp, token_type: "user" | "system" = "user") => {
+    setAppBusy(app.id, "validate");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-validate-token", {
+        body: { meta_app_id: app.id, token_type },
+      });
+      if (error) throw error;
+      if (data?.valid) {
+        const missing = (data.missing_scopes || []) as string[];
+        if (missing.length) {
+          toast.warning(`Token válido, mas faltam permissões: ${missing.join(", ")}`);
+        } else {
+          toast.success("Token válido — todas as permissões OK.");
+        }
+      } else {
+        toast.error(data?.error || "Token inválido");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao validar token");
+    } finally {
+      setAppBusy(app.id, null);
+    }
+  };
+
+  const exchangeLongLived = async (app: MetaApp) => {
+    setAppBusy(app.id, "exchange");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-exchange-long-lived-token", {
+        body: { meta_app_id: app.id },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        toast.success("Token longo gerado e salvo com sucesso.");
+      } else {
+        toast.error(data?.error || "Falha ao trocar token");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao trocar token");
+    } finally {
+      setAppBusy(app.id, null);
+    }
+  };
+
+  const syncAdAccounts = async (app: MetaApp, dry_run = false) => {
+    setAppBusy(app.id, dry_run ? "test" : "sync");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-sync-user-adaccounts", {
+        body: { meta_app_id: app.id, dry_run },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        setSyncResults((s) => ({ ...s, [app.id]: data as SyncResult }));
+        if (data.total === 0) {
+          toast.warning("Nenhuma conta de anúncio foi encontrada. Verifique se o perfil que gerou o token possui acesso às contas.");
+        } else {
+          toast.success(`${data.total} conta(s) encontradas · ${data.active} ativas · ${data.disabled} inativas${dry_run ? " (teste, nada salvo)" : ""}`);
+        }
+        if (!dry_run) await load();
+      } else {
+        toast.error(data?.error || "Falha ao sincronizar contas");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao sincronizar contas");
+    } finally {
+      setAppBusy(app.id, null);
+    }
+  };
+
+  const copyTestEndpoint = (app: MetaApp) => {
+    const url = `https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_id,account_status,business&access_token={USER_ACCESS_TOKEN}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast.success("Endpoint copiado"),
+      () => toast.error("Falha ao copiar")
+    );
+  };
+
   const defaultApp = apps.find((a) => a.is_default);
 
   return (
@@ -216,7 +352,6 @@ export default function MetaApps() {
         description="Gerencie um ou mais aplicativos Meta (App ID, Secret, tokens). Defina um padrão geral e, opcionalmente, associe um aplicativo específico por cliente — útil quando as BMs estão em perfis diferentes."
       />
 
-      {/* Resumo + ação */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2 text-xs">
           <Badge variant="secondary" className="gap-1">
@@ -236,7 +371,7 @@ export default function MetaApps() {
               <Plus size={14} className="mr-1" /> Novo aplicativo
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl">
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editId ? "Editar aplicativo Meta" : "Novo aplicativo Meta"}</DialogTitle>
             </DialogHeader>
@@ -259,28 +394,39 @@ export default function MetaApps() {
                     placeholder="1234567890"
                     className="font-mono text-xs"
                   />
+                  {appIdIsEmail && (
+                    <p className="text-[10px] text-destructive flex items-center gap-1">
+                      <AlertTriangle size={10} /> App ID não é e-mail — use o ID numérico.
+                    </p>
+                  )}
+                  {!!form.app_id && !appIdIsEmail && !appIdIsNumeric && (
+                    <p className="text-[10px] text-destructive flex items-center gap-1">
+                      <AlertTriangle size={10} /> App ID deve conter apenas números.
+                    </p>
+                  )}
                 </div>
               </div>
 
               <SecretField
-                label="App Secret"
+                label="App Secret *"
                 value={form.app_secret || ""}
                 onChange={(v) => setForm((f) => ({ ...f, app_secret: v }))}
                 placeholder="Cole o App Secret"
               />
 
               <SecretField
-                label="System User Token"
-                value={form.system_user_token || ""}
-                onChange={(v) => setForm((f) => ({ ...f, system_user_token: v }))}
-                placeholder="EAAB..."
+                label="User Access Token"
+                value={form.user_access_token || ""}
+                onChange={(v) => setForm((f) => ({ ...f, user_access_token: v }))}
+                placeholder="EAAB... (usado para puxar contas de anúncio do perfil)"
+                hint={userTokenPrefixOdd ? "Prefixo diferente de EAA — pode não ser um token Meta padrão, mas será salvo mesmo assim." : undefined}
               />
 
               <SecretField
-                label="User Access Token (opcional)"
-                value={form.user_access_token || ""}
-                onChange={(v) => setForm((f) => ({ ...f, user_access_token: v }))}
-                placeholder="EAAB... (usado como fallback)"
+                label="System User Token (opcional)"
+                value={form.system_user_token || ""}
+                onChange={(v) => setForm((f) => ({ ...f, system_user_token: v }))}
+                placeholder="EAAB... (para ativos atribuídos ao System User da BM)"
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -329,7 +475,6 @@ export default function MetaApps() {
         </Dialog>
       </div>
 
-      {/* Lista de apps */}
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {[0, 1].map((i) => <Skeleton key={i} className="h-44" />)}
@@ -349,6 +494,15 @@ export default function MetaApps() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {apps.map((app) => {
             const usingCount = clientsByApp.get(app.id) || 0;
+            const accountsSynced = accountCounts.get(app.id) || 0;
+            const scopes = app.token_scopes || [];
+            const missing = REQUIRED_SCOPES.filter((s) => !scopes.includes(s));
+            const vs = app.validation_status || {};
+            const isValid = !!vs.is_valid || (scopes.length > 0 && !!app.last_validated_at);
+            const expired = app.token_expires_at && new Date(app.token_expires_at).getTime() < Date.now();
+            const currentBusy = busy[app.id];
+            const result = syncResults[app.id];
+
             return (
               <Card key={app.id} className="p-4 space-y-3 hover:border-primary/40 transition-colors">
                 <div className="flex items-start justify-between gap-3">
@@ -367,16 +521,26 @@ export default function MetaApps() {
                       }>
                         {app.status === "active" ? "Ativo" : "Inativo"}
                       </Badge>
+                      {app.last_validated_at && (
+                        <Badge variant="secondary" className={
+                          isValid && !expired
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1"
+                            : "bg-destructive/10 text-destructive border-destructive/30 gap-1"
+                        }>
+                          {isValid && !expired ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                          Token {isValid && !expired ? "válido" : expired ? "expirado" : "inválido"}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-[11px] text-muted-foreground font-mono mt-1">App ID: {app.app_id}</p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     {!app.is_default && (
                       <Button size="icon" variant="ghost" onClick={() => setDefault(app)} title="Tornar padrão">
                         <Star size={14} />
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(app)} title="Editar">
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(app)} title="Editar (substituir token)">
                       <Pencil size={14} />
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => remove(app)} title="Excluir" className="text-destructive hover:text-destructive">
@@ -399,6 +563,153 @@ export default function MetaApps() {
                     <div className="font-mono">{maskToken(app.user_access_token)}</div>
                   </div>
                 </div>
+
+                {/* Ações */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <Button
+                    size="sm" variant="outline"
+                    disabled={!app.user_access_token || !!currentBusy}
+                    onClick={() => validateToken(app, "user")}
+                  >
+                    {currentBusy === "validate" ? <RefreshCw size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+                    Validar conexão
+                  </Button>
+                  <Button
+                    size="sm" variant="outline"
+                    disabled={!app.user_access_token || !!currentBusy}
+                    onClick={() => syncAdAccounts(app, false)}
+                  >
+                    {currentBusy === "sync" ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                    Sincronizar contas
+                  </Button>
+                  <Button
+                    size="sm" variant="outline"
+                    disabled={!app.user_access_token || !!currentBusy}
+                    onClick={() => syncAdAccounts(app, true)}
+                    title="Chama /me/adaccounts sem salvar"
+                  >
+                    <Beaker size={12} /> Testar /me/adaccounts
+                  </Button>
+                  <Button
+                    size="sm" variant="outline"
+                    disabled={!app.user_access_token || !!currentBusy}
+                    onClick={() => exchangeLongLived(app)}
+                  >
+                    {currentBusy === "exchange" ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} />}
+                    Trocar para token longo
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => copyTestEndpoint(app)}>
+                    <Copy size={12} /> Endpoint
+                  </Button>
+                </div>
+
+                {/* Diagnóstico */}
+                <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <KeyRound size={12} className="text-primary" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Diagnóstico da integração</span>
+                  </div>
+
+                  {!app.user_access_token && (
+                    <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                      <AlertTriangle size={11} /> Adicione um User Access Token para puxar contas de anúncio do perfil.
+                    </p>
+                  )}
+
+                  {app.last_validated_at ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <div className="text-muted-foreground">Usuário do token</div>
+                          <div className="font-mono">{app.token_user_id || "—"}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground flex items-center gap-1"><Clock size={10} /> Expira</div>
+                          <div className={expired ? "text-destructive" : ""}>{fmtDate(app.token_expires_at)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Última validação</div>
+                          <div>{fmtDate(app.last_validated_at)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Contas sincronizadas</div>
+                          <div>{accountsSynced}</div>
+                        </div>
+                      </div>
+
+                      {scopes.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-[10px] uppercase text-muted-foreground">Permissões</div>
+                          <div className="flex flex-wrap gap-1">
+                            {scopes.map((s) => (
+                              <Badge key={s} variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {missing.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-[10px] uppercase text-destructive flex items-center gap-1">
+                            <AlertTriangle size={10} /> Permissões ausentes
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {missing.map((s) => (
+                              <Badge key={s} variant="secondary" className="text-[10px] bg-destructive/10 text-destructive border-destructive/30">
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                          <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
+                            {missing.map((s) => <li key={s}>{SCOPE_WARNINGS[s]}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Clique em "Validar conexão" para verificar o token e permissões.
+                    </p>
+                  )}
+                </div>
+
+                {/* Resultado do teste/sync */}
+                {result && (
+                  <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider">
+                        Contas encontradas ({result.total})
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {result.active} ativas · {result.disabled} inativas
+                      </span>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto divide-y divide-border/40">
+                      {result.accounts.slice(0, 50).map((acc) => (
+                        <div key={acc.id} className="flex items-center justify-between py-1.5 text-[11px]">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">{acc.name || acc.id}</div>
+                            <div className="font-mono text-[10px] text-muted-foreground truncate">
+                              {acc.id} {acc.business?.name ? `· BM: ${acc.business.name}` : ""}
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className={
+                            acc.account_status === 1
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]"
+                              : "bg-muted text-muted-foreground text-[10px]"
+                          }>
+                            {acc.account_status === 1 ? "ativa" : `status ${acc.account_status ?? "?"}`}
+                          </Badge>
+                        </div>
+                      ))}
+                      {result.accounts.length > 50 && (
+                        <p className="text-[10px] text-muted-foreground pt-1">+ {result.accounts.length - 50} contas…</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
                   <span className="inline-flex items-center gap-1">
