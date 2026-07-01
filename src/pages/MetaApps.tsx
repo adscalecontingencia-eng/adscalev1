@@ -20,6 +20,7 @@ import {
   CheckCircle2, XCircle, RefreshCw, KeyRound, Clock, Beaker, Copy, AlertTriangle, Zap,
 } from "lucide-react";
 import { PageHero } from "@/components/ui-kit";
+import { SystemUserTokenGuide } from "@/components/meta/SystemUserTokenGuide";
 
 type MetaApp = {
   id: string;
