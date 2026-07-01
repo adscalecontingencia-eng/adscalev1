@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
     const dbgUrl = `${META_API}/debug_token?input_token=${encodeURIComponent(newToken)}&access_token=${encodeURIComponent(appAccessToken)}`;
     const dbg = await fetch(dbgUrl).then((r) => r.json()).catch(() => ({}));
     const d = dbg?.data || {};
-    const scopes: string[] = Array.isArray(d.scopes) ? d.scopes : [];
+    const flatScopes: string[] = Array.isArray(d.scopes) ? d.scopes : [];
+    const granular: any[] = Array.isArray(d.granular_scopes) ? d.granular_scopes : [];
+    const granularNames = granular.map((g: any) => g?.scope).filter((s: any): s is string => typeof s === "string");
+    const scopes = Array.from(new Set([...flatScopes, ...granularNames]));
     const finalExp = d.expires_at ? new Date(d.expires_at * 1000).toISOString() : expiresAt;
 
     await supabase.from("meta_apps").update({
