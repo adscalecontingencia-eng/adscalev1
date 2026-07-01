@@ -72,13 +72,18 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     meta_app_id = payload.meta_app_id;
     const dry_run = !!payload.dry_run;
+    const force_token_type: "system" | "user" | undefined = payload.token_type;
     if (!meta_app_id) return json({ error: "meta_app_id obrigatório" }, 400);
 
     const { data: app } = await supabase.from("meta_apps").select("*").eq("id", meta_app_id).single();
     if (!app) return json({ error: "App não encontrado" }, 404);
-    const token = app.user_access_token || app.system_user_token;
-    if (!token) return json({ error: "Nenhum token configurado" }, 400);
-    log("app", { label: app.label, token_type: app.user_access_token ? "user" : "system", token_scopes: app.token_scopes });
+    // Contas de anúncio SEMPRE via System User Token. User Access Token é só para páginas.
+    const token = force_token_type === "user"
+      ? app.user_access_token
+      : (app.system_user_token || app.user_access_token);
+    const usedTokenType = token === app.system_user_token ? "system" : "user";
+    if (!token) return json({ error: "System User Token não configurado" }, 400);
+    log("app", { label: app.label, token_type: usedTokenType, token_scopes: app.token_scopes });
 
     const hasAdsRead = Array.isArray(app.token_scopes) && (app.token_scopes.includes("ads_read") || app.token_scopes.includes("ads_management"));
     const hasBM = Array.isArray(app.token_scopes) && app.token_scopes.includes("business_management");
@@ -88,7 +93,15 @@ Deno.serve(async (req) => {
     const sources: Record<string, number> = {};
     const endpointErrors: Array<{ endpoint: string; error: any }> = [];
 
-    // 1) /me/adaccounts
+    // 0) /me?fields=id,name,business{id,name} — System User pertence a UMA BM (dona)
+    log("try /me?fields=business");
+    const meRes = await fetch(`${META_API}/me?fields=id,name,business{id,name}&access_token=${encodeURIComponent(token)}`);
+    const meBody = await meRes.json().catch(() => ({}));
+    log("/me response", { status: meRes.status, body: meBody });
+    const owningBiz = meBody?.business ? [{ id: meBody.business.id, name: meBody.business.name }] : [];
+    if (meBody?.error) endpointErrors.push({ endpoint: "me", error: meBody.error });
+
+    // 1) /me/adaccounts (raramente traz algo para System User, mas mantemos)
     log("try /me/adaccounts");
     const meAcc = await fetchAll(`${META_API}/me/adaccounts?fields=${encodeURIComponent(AD_FIELDS)}`, token, (m, x) => log(`me/adaccounts:${m}`, x));
     if (meAcc.ok) {
@@ -98,12 +111,25 @@ Deno.serve(async (req) => {
       endpointErrors.push({ endpoint: "me/adaccounts", error: meAcc.error });
     }
 
-    // 2) /me/businesses  →  owned_ad_accounts + client_ad_accounts por BM
+    // 2) /me/assigned_ad_accounts — endpoint específico para System User
+    log("try /me/assigned_ad_accounts");
+    const assigned = await fetchAll(`${META_API}/me/assigned_ad_accounts?fields=${encodeURIComponent(AD_FIELDS)}`, token, (m, x) => log(`me/assigned_ad_accounts:${m}`, x));
+    if (assigned.ok) {
+      for (const a of assigned.items) if (!collected.has(a.id)) collected.set(a.id, a);
+      sources["me/assigned_ad_accounts"] = assigned.items.length;
+    } else {
+      endpointErrors.push({ endpoint: "me/assigned_ad_accounts", error: assigned.error });
+    }
+
+    // 3) /me/businesses (System User geralmente retorna vazio) + BM dona vinda de /me
     log("try /me/businesses");
     const meBiz = await fetchAll(`${META_API}/me/businesses?fields=id,name`, token, (m, x) => log(`me/businesses:${m}`, x));
     if (!meBiz.ok) endpointErrors.push({ endpoint: "me/businesses", error: meBiz.error });
-    const businesses = meBiz.items || [];
-    log("businesses_found", { count: businesses.length, ids: businesses.map((b: any) => ({ id: b.id, name: b.name })) });
+    const bizMap = new Map<string, { id: string; name: string }>();
+    for (const b of (meBiz.items || [])) bizMap.set(b.id, { id: b.id, name: b.name });
+    for (const b of owningBiz) if (!bizMap.has(b.id)) bizMap.set(b.id, b);
+    const businesses = Array.from(bizMap.values());
+    log("businesses_found", { count: businesses.length, ids: businesses });
 
     for (const b of businesses) {
       const bid = b.id;
@@ -165,11 +191,9 @@ Deno.serve(async (req) => {
       businesses_count: businesses.length,
       endpointErrors,
       hint: accounts.length === 0
-        ? (!hasAdsRead
-            ? "Token não tem ads_read/ads_management — /me/adaccounts sempre volta vazio. Regenere o System User Token no BM marcando essas permissões, ou atribua o System User às contas de anúncio (aba Ativos)."
-            : (businesses.length === 0
-                ? "Token não retorna businesses. Perfil pode não ter cargo em nenhuma BM."
-                : "Businesses encontradas, mas nenhuma conta atribuída ao System User dentro delas. Vá em BM → Usuários do Sistema → aba Ativos → adicione as contas de anúncio."))
+        ? (businesses.length === 0
+            ? "System User Token não retornou nenhuma BM (nem via /me/business, nem /me/businesses). Verifique no Business Manager → Configurações → Usuários do Sistema se este System User está dentro da BM correta e regenere o token."
+            : "BMs encontradas, mas nenhuma conta de anúncio atribuída a este System User. Vá em BM → Configurações → Usuários do Sistema → selecione o usuário → aba 'Ativos atribuídos' → botão 'Adicionar ativos' → escolha 'Contas de anúncio' → marque TODAS → nível de acesso 'Gerenciar campanhas' ou 'Gerenciamento total' → Salvar. Depois clique em Sincronizar novamente.")
         : null,
     };
     log("summary", summary);
