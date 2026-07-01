@@ -5,6 +5,7 @@ import { fetchCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tier
 
 export interface AutoCommissionResult {
   inserted: number;
+  updated: number;
   skipped: number;
   errors: number;
 }
@@ -20,19 +21,19 @@ export interface AutoCommissionResult {
  */
 export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 'manual' | 'auto' }): Promise<AutoCommissionResult> {
   const startedAt = Date.now();
-  const result: AutoCommissionResult = { inserted: 0, skipped: 0, errors: 0 };
+  const result: AutoCommissionResult = { inserted: 0, updated: 0, skipped: 0, errors: 0 };
 
   const tiers = await fetchCommissionTiers();
 
   const [clientsRes, assignRes, insightsRes, existingRes] = await Promise.all([
-    supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value'),
+    supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value, custom_tiers'),
     supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active, effective_from, effective_to').eq('active', true),
     supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
-    supabase.from('commissions').select('id, client_id, billing_week_start').eq('type', 'daily').not('billing_week_start', 'is', null),
+    supabase.from('commissions').select('id, client_id, billing_week_start, amount, ad_spend, valor_pago').eq('type', 'daily').not('billing_week_start', 'is', null),
   ]);
 
   if (clientsRes.error || assignRes.error || insightsRes.error || existingRes.error) {
-    return { inserted: 0, skipped: 0, errors: 1 };
+    return { inserted: 0, updated: 0, skipped: 0, errors: 1 };
   }
 
   const clients = (clientsRes.data || []).filter(c => c.client_type !== 'venda');
@@ -48,10 +49,11 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     effective_to: a.effective_to || null,
   }));
 
-  // existing weeks: set of `${client_id}|${billing_week_start}`
-  const existing = new Set<string>();
+  // existing weeks: first saved commission row by `${client_id}|${billing_week_start}`
+  const existing = new Map<string, any>();
   (existingRes.data || []).forEach((c: any) => {
-    existing.add(`${c.client_id}|${c.billing_week_start}`);
+    const key = `${c.client_id}|${c.billing_week_start}`;
+    if (!existing.has(key)) existing.set(key, c);
   });
 
   // Group spend by client + Thu-week
@@ -79,6 +81,7 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 5 }), 'yyyy-MM-dd');
 
   const inserts: any[] = [];
+  const updates: { id: string; patch: any }[] = [];
 
   for (const [clientId, weeks] of spendByClient.entries()) {
     const client: any = clientById.get(clientId)!;
@@ -89,15 +92,41 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     for (const [weekKey, weekSpend] of weeks.entries()) {
       if (weekKey === currentWeekStart) continue; // open week
       if (weekSpend <= 0) continue;
-      if (existing.has(`${clientId}|${weekKey}`)) {
-        result.skipped++;
-        continue;
-      }
-      const rate = getTierPctFromTiers(weekSpend, basePct, tiers);
+      const clientTiers = Array.isArray((client as any).custom_tiers) && (client as any).custom_tiers.length > 0
+        ? (client as any).custom_tiers
+            .filter((t: any) => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
+            .map((t: any) => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
+        : tiers;
+      const rate = getTierPctFromTiers(weekSpend, basePct, clientTiers);
       const commission = weekSpend * (rate / 100);
       if (commission <= 0) continue;
       const wsDate = parseDateLocal(weekKey);
       const weekEnd = format(addDays(wsDate, 6), 'yyyy-MM-dd');
+      const existingRow = existing.get(`${clientId}|${weekKey}`);
+      if (existingRow) {
+        const prevAmount = Number(existingRow.amount || 0);
+        const prevSpend = Number(existingRow.ad_spend || 0);
+        const paid = Number(existingRow.valor_pago || 0);
+        const changed = Math.abs(prevAmount - commission) > 0.01 || Math.abs(prevSpend - weekSpend) > 0.01;
+        if (!changed) {
+          result.skipped++;
+          continue;
+        }
+        const pending = Math.max(0, commission - paid);
+        updates.push({
+          id: existingRow.id,
+          patch: {
+            amount: commission,
+            ad_spend: weekSpend,
+            billing_week_end: weekEnd,
+            percentual_aplicado: rate,
+            valor_pendente: pending,
+            status: pending <= 0 ? 'pago' : paid > 0 ? 'parcial' : 'pendente',
+            note: `Auto-atualizada • Gasto Meta ${weekKey} a ${weekEnd}`,
+          },
+        });
+        continue;
+      }
       inserts.push({
         client_id: clientId,
         date: wsDate.toISOString(),
@@ -124,6 +153,12 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
       if (error) result.errors++;
       else result.inserted += chunk.length;
     }
+  }
+
+  for (const u of updates) {
+    const { error } = await supabase.from('commissions').update(u.patch).eq('id', u.id);
+    if (error) result.errors++;
+    else result.updated++;
   }
 
   if (opts?.logAudit) {
