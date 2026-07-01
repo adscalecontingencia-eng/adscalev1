@@ -331,17 +331,25 @@ export default function MetaApps() {
         body: { meta_app_id: app.id, dry_run },
       });
       if (error) throw error;
+      console.groupCollapsed("[meta-sync-user-adaccounts] diagnóstico");
+      console.log("total:", data?.total, "sources:", data?.sources);
+      console.log("businesses_count:", data?.businesses_count);
+      console.log("endpointErrors:", data?.endpointErrors);
+      console.log("hint:", data?.hint);
+      console.log("logs:", data?.logs);
+      console.groupEnd();
       if (data?.ok) {
         setSyncResults((s) => ({ ...s, [app.id]: data as SyncResult }));
         if (data.total === 0) {
-          toast.warning("Nenhuma conta de anúncio foi encontrada. Verifique se o perfil que gerou o token possui acesso às contas.");
+          toast.warning(data?.hint || "Nenhuma conta encontrada. Veja o console (F12) para o log completo.", { duration: 10000 });
         } else {
-          toast.success(`${data.total} conta(s) encontradas · ${data.active} ativas · ${data.disabled} inativas${dry_run ? " (teste, nada salvo)" : ""}`);
+          toast.success(`${data.total} conta(s) · ${data.active} ativas · ${data.disabled} inativas${dry_run ? " (teste)" : ""}`);
         }
         if (!dry_run) await load();
       } else {
         toast.error(data?.error || "Falha ao sincronizar contas");
       }
+
     } catch (e: any) {
       toast.error(e.message || "Falha ao sincronizar contas");
     } finally {
