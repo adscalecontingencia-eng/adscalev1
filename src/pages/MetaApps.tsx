@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   AppWindow, Plus, Pencil, Trash2, Star, Eye, EyeOff, Users as UsersIcon, ShieldCheck,
-  CheckCircle2, XCircle, RefreshCw, KeyRound, Clock, Beaker, Copy, AlertTriangle, Zap,
+  CheckCircle2, XCircle, RefreshCw, KeyRound, Clock, Beaker, Copy, AlertTriangle, Zap, BookOpen,
 } from "lucide-react";
 import { PageHero } from "@/components/ui-kit";
+import { SystemUserTokenGuide } from "@/components/meta/SystemUserTokenGuide";
 
 type MetaApp = {
   id: string;
@@ -396,8 +397,24 @@ export default function MetaApps() {
           </DialogTrigger>
           <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editId ? "Editar aplicativo Meta" : "Novo aplicativo Meta"}</DialogTitle>
+              <div className="flex items-center justify-between gap-2">
+                <DialogTitle>{editId ? "Editar aplicativo Meta" : "Novo aplicativo Meta"}</DialogTitle>
+                <SystemUserTokenGuide />
+              </div>
             </DialogHeader>
+
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-semibold">Antes de colar o token:</span>
+                <span>
+                  Ele precisa ter <code className="bg-black/20 px-1 rounded">ads_read</code>,{" "}
+                  <code className="bg-black/20 px-1 rounded">ads_management</code> e{" "}
+                  <code className="bg-black/20 px-1 rounded">business_management</code>. Se faltar
+                  qualquer uma, as contas de anúncio não aparecem. Use o guia acima →
+                </span>
+              </div>
+            </div>
+
 
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -688,6 +705,14 @@ export default function MetaApps() {
                           <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
                             {missing.map((s) => <li key={s}>{SCOPE_WARNINGS[s]}</li>)}
                           </ul>
+                          <SystemUserTokenGuide
+                            trigger={
+                              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 mt-1">
+                                <BookOpen size={12} /> Ver guia passo-a-passo
+                              </Button>
+                            }
+                          />
+
                         </div>
                       )}
                     </>
