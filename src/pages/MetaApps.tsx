@@ -705,6 +705,14 @@ export default function MetaApps() {
                           <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
                             {missing.map((s) => <li key={s}>{SCOPE_WARNINGS[s]}</li>)}
                           </ul>
+                          <SystemUserTokenGuide
+                            trigger={
+                              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 mt-1">
+                                <BookOpen size={12} /> Ver guia passo-a-passo
+                              </Button>
+                            }
+                          />
+
                         </div>
                       )}
                     </>
