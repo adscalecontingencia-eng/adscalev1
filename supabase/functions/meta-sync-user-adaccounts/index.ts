@@ -191,11 +191,9 @@ Deno.serve(async (req) => {
       businesses_count: businesses.length,
       endpointErrors,
       hint: accounts.length === 0
-        ? (!hasAdsRead
-            ? "Token não tem ads_read/ads_management — /me/adaccounts sempre volta vazio. Regenere o System User Token no BM marcando essas permissões, ou atribua o System User às contas de anúncio (aba Ativos)."
-            : (businesses.length === 0
-                ? "Token não retorna businesses. Perfil pode não ter cargo em nenhuma BM."
-                : "Businesses encontradas, mas nenhuma conta atribuída ao System User dentro delas. Vá em BM → Usuários do Sistema → aba Ativos → adicione as contas de anúncio."))
+        ? (businesses.length === 0
+            ? "System User Token não retornou nenhuma BM (nem via /me/business, nem /me/businesses). Verifique no Business Manager → Configurações → Usuários do Sistema se este System User está dentro da BM correta e regenere o token."
+            : "BMs encontradas, mas nenhuma conta de anúncio atribuída a este System User. Vá em BM → Configurações → Usuários do Sistema → selecione o usuário → aba 'Ativos atribuídos' → botão 'Adicionar ativos' → escolha 'Contas de anúncio' → marque TODAS → nível de acesso 'Gerenciar campanhas' ou 'Gerenciamento total' → Salvar. Depois clique em Sincronizar novamente.")
         : null,
     };
     log("summary", summary);
