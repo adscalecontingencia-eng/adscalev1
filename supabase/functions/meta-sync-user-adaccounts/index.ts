@@ -1,9 +1,7 @@
-// Syncs ALL ad accounts accessible by the token stored in meta_apps.
-// Strategy: try multiple endpoints and record every step in meta_diagnostics_log.
-//   1) /me/adaccounts                             — funciona só com ads_read/ads_management
-//   2) /me/businesses                             — lista BMs
-//   3) /{business_id}/owned_ad_accounts           — contas de propriedade da BM
-//   4) /{business_id}/client_ad_accounts          — contas de clientes atribuídas à BM
+// Sincroniza contas de anúncio de UM meta_app específico usando EXATAMENTE a
+// mesma estratégia da função `meta-sync` (que já funciona com o app conectado
+// via variáveis de ambiente). Preferência: user_access_token → system_user_token.
+// Endpoints: /me/businesses → /{bm}/owned_ad_accounts + /{bm}/client_ad_accounts.
 // Request: { meta_app_id: uuid, dry_run?: boolean }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -13,32 +11,53 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const META_API = "https://graph.facebook.com/v21.0";
-const AD_FIELDS = "id,name,account_id,account_status,business,currency,timezone_name,disable_reason,created_time";
+
+const ACCOUNT_FIELDS = [
+  "id","account_id","name","account_status","currency","amount_spent","spend_cap",
+  "timezone_name","created_time","disable_reason","funding_source",
+  "funding_source_details","is_prepay_account",
+  "balance","business_country_code","age","business",
+  "agencies{id,name,verification_status}",
+].join(",");
+
+const DISABLE_REASONS: Record<number, string> = {
+  0: "Nenhum", 1: "ADS_INTEGRITY_POLICY", 2: "ADS_IP_REVIEW", 3: "RISK_PAYMENT",
+  4: "GRAY_ACCOUNT_SHUT_DOWN", 5: "ADS_AFC_REVIEW", 6: "BUSINESS_INTEGRITY_RAR",
+  7: "PERMANENT_CLOSE", 8: "UNUSED_RESELLER_ACCOUNT", 9: "UNUSED_ACCOUNT",
+  10: "UMBRELLA_AD_ACCOUNT", 11: "BUSINESS_MANAGER_INTEGRITY_POLICY",
+  12: "MISREPRESENTED_AD_ACCOUNT", 13: "AOAB_DESHARE_LEGAL_ENTITY",
+  14: "CTX_THREAD_REVIEW", 15: "COMPROMISED_AD_ACCOUNT",
+};
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-function sanitize(s: string): string {
-  return String(s || "").replace(/access_token=[^&\s"']+/gi, "access_token=***");
-}
+const sanitize = (s: string) => String(s || "").replace(/access_token=[^&\s"']+/gi, "access_token=***");
 
-async function fetchAll(baseUrl: string, token: string, log: (m: string, x?: unknown) => void): Promise<{ ok: boolean; items: any[]; error: any; status: number }> {
-  const items: any[] = [];
-  const sep = baseUrl.includes("?") ? "&" : "?";
-  let url: string | null = `${baseUrl}${sep}limit=200&access_token=${encodeURIComponent(token)}`;
-  let lastStatus = 0;
+const maskFunding = (acc: any): string | null => {
+  const fsd = acc.funding_source_details;
+  if (!fsd) return acc.funding_source ? "Vinculado" : null;
+  const raw: string = fsd.display_string || "";
+  const digits = (raw.match(/\d/g) || []).join("");
+  const last4 = digits.slice(-4);
+  const brand = (raw.match(/^([A-Za-z]+)/) || [])[1]?.toUpperCase() || "";
+  if (last4) return `${brand || "CARTÃO"} •••• ${last4}`;
+  return raw || "Vinculado";
+};
+
+async function paginateMeta(firstUrl: string, log: (m: string, x?: unknown) => void): Promise<any[]> {
+  const out: any[] = [];
+  let url: string | null = firstUrl;
   while (url) {
     log("GET", { url: sanitize(url) });
-    const res = await fetch(url);
-    lastStatus = res.status;
-    const body = await res.json().catch(() => ({}));
-    log("response", { status: res.status, has_error: !!body?.error, count: Array.isArray(body?.data) ? body.data.length : null, error: body?.error || null });
-    if (body?.error) return { ok: false, items, error: body.error, status: res.status };
-    const chunk = Array.isArray(body?.data) ? body.data : [];
-    items.push(...chunk);
-    url = body?.paging?.next || null;
+    const r = await fetch(url);
+    const d = await r.json().catch(() => ({}));
+    log("response", { status: r.status, count: Array.isArray(d?.data) ? d.data.length : null, error: d?.error || null });
+    if (!r.ok || d.error) throw new Error(JSON.stringify(d.error || d));
+    out.push(...(d.data || []));
+    url = d.paging?.next || null;
   }
-  return { ok: true, items, error: null, status: lastStatus };
+  return out;
 }
 
 Deno.serve(async (req) => {
@@ -52,162 +71,168 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   let meta_app_id: string | null = null;
 
-  const persist = async (summary: Record<string, unknown>, fb_error: any = null, http_status: number | null = null, endpoint = "multi") => {
+  const persist = async (summary: Record<string, unknown>, fb_error: any = null, http_status: number | null = null) => {
     try {
       await supabase.from("meta_diagnostics_log").insert({
-        meta_app_id,
-        operation: "sync_adaccounts",
-        endpoint,
-        http_status,
-        fb_error,
-        summary,
-        logs,
+        meta_app_id, operation: "sync_adaccounts", endpoint: "multi",
+        http_status, fb_error, summary, logs,
       });
-    } catch (e) {
-      console.warn("could not persist diagnostics", e);
-    }
+    } catch (e) { console.warn("could not persist diagnostics", e); }
   };
 
   try {
     const payload = await req.json();
     meta_app_id = payload.meta_app_id;
     const dry_run = !!payload.dry_run;
-    const force_token_type: "system" | "user" | undefined = payload.token_type;
     if (!meta_app_id) return json({ error: "meta_app_id obrigatório" }, 400);
 
     const { data: app } = await supabase.from("meta_apps").select("*").eq("id", meta_app_id).single();
     if (!app) return json({ error: "App não encontrado" }, 404);
-    // Contas de anúncio SEMPRE via System User Token. User Access Token é só para páginas.
-    const token = force_token_type === "user"
-      ? app.user_access_token
-      : (app.system_user_token || app.user_access_token);
-    const usedTokenType = token === app.system_user_token ? "system" : "user";
-    if (!token) return json({ error: "System User Token não configurado" }, 400);
-    log("app", { label: app.label, token_type: usedTokenType, token_scopes: app.token_scopes });
 
-    const hasAdsRead = Array.isArray(app.token_scopes) && (app.token_scopes.includes("ads_read") || app.token_scopes.includes("ads_management"));
-    const hasBM = Array.isArray(app.token_scopes) && app.token_scopes.includes("business_management");
-    log("scope_check", { hasAdsRead, hasBM });
+    // Mesma escolha da função meta-sync (que já funciona): user token > system token
+    const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
+    const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
+    const token = usr || sys;
+    const tokenType = token === usr ? "user" : "system";
+    if (!token) return json({ error: "Nenhum token configurado (user_access_token ou system_user_token)" }, 400);
+    log("app", { label: app.label, token_type: tokenType, has_user: !!usr, has_system: !!sys });
 
-    const collected = new Map<string, any>();
+    // 1) BMs do perfil
+    log("fetching /me/businesses");
+    let bms: any[] = [];
+    try {
+      bms = await paginateMeta(
+        `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`,
+        (m, x) => log(`me/businesses:${m}`, x),
+      );
+    } catch (e: any) {
+      log("me/businesses failed", { error: e?.message });
+      await persist({ total: 0, businesses_count: 0, error: e?.message,
+        hint: "Falha ao listar BMs. Confira se o token tem business_management e se o perfil está em pelo menos uma BM." });
+      return json({ ok: false, error: sanitize(e?.message || "Falha /me/businesses"), logs }, 500);
+    }
+    log("businesses_found", { count: bms.length, ids: bms.map((b) => ({ id: b.id, name: b.name, verification: b.verification_status })) });
+
+    if (bms.length === 0) {
+      const hint = "Perfil sem BMs. Verifique se o token pertence a um usuário admin/employee de pelo menos uma Business Manager em business.facebook.com.";
+      await persist({ total: 0, businesses_count: 0, hint });
+      return json({ ok: true, total: 0, active: 0, disabled: 0, upserted: 0, businesses_count: 0, sources: {}, endpointErrors: [], hint, accounts: [], logs });
+    }
+
+    // Upsert BMs (mesma lógica de meta-sync)
+    const bmRows = bms.map((bm: any) => ({
+      meta_bm_id: bm.id, name: bm.name,
+      status: bm.verification_status || "active",
+      verification_status: bm.verification_status || null,
+      meta_app_id, last_synced_at: new Date().toISOString(),
+    }));
+    await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+    const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
+    const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+    const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
+
+    // 2) Contas de cada BM
     const sources: Record<string, number> = {};
-    const endpointErrors: Array<{ endpoint: string; error: any }> = [];
+    const endpointErrors: Array<{ endpoint: string; error: string }> = [];
+    const allAccounts: any[] = [];
 
-    // 0) /me?fields=id,name,business{id,name} — System User pertence a UMA BM (dona)
-    log("try /me?fields=business");
-    const meRes = await fetch(`${META_API}/me?fields=id,name,business{id,name}&access_token=${encodeURIComponent(token)}`);
-    const meBody = await meRes.json().catch(() => ({}));
-    log("/me response", { status: meRes.status, body: meBody });
-    const owningBiz = meBody?.business ? [{ id: meBody.business.id, name: meBody.business.name }] : [];
-    if (meBody?.error) endpointErrors.push({ endpoint: "me", error: meBody.error });
-
-    // 1) /me/adaccounts (raramente traz algo para System User, mas mantemos)
-    log("try /me/adaccounts");
-    const meAcc = await fetchAll(`${META_API}/me/adaccounts?fields=${encodeURIComponent(AD_FIELDS)}`, token, (m, x) => log(`me/adaccounts:${m}`, x));
-    if (meAcc.ok) {
-      for (const a of meAcc.items) if (!collected.has(a.id)) collected.set(a.id, a);
-      sources["me/adaccounts"] = meAcc.items.length;
-    } else {
-      endpointErrors.push({ endpoint: "me/adaccounts", error: meAcc.error });
-    }
-
-    // 2) /me/assigned_ad_accounts — endpoint específico para System User
-    log("try /me/assigned_ad_accounts");
-    const assigned = await fetchAll(`${META_API}/me/assigned_ad_accounts?fields=${encodeURIComponent(AD_FIELDS)}`, token, (m, x) => log(`me/assigned_ad_accounts:${m}`, x));
-    if (assigned.ok) {
-      for (const a of assigned.items) if (!collected.has(a.id)) collected.set(a.id, a);
-      sources["me/assigned_ad_accounts"] = assigned.items.length;
-    } else {
-      endpointErrors.push({ endpoint: "me/assigned_ad_accounts", error: assigned.error });
-    }
-
-    // 3) /me/businesses (System User geralmente retorna vazio) + BM dona vinda de /me
-    log("try /me/businesses");
-    const meBiz = await fetchAll(`${META_API}/me/businesses?fields=id,name`, token, (m, x) => log(`me/businesses:${m}`, x));
-    if (!meBiz.ok) endpointErrors.push({ endpoint: "me/businesses", error: meBiz.error });
-    const bizMap = new Map<string, { id: string; name: string }>();
-    for (const b of (meBiz.items || [])) bizMap.set(b.id, { id: b.id, name: b.name });
-    for (const b of owningBiz) if (!bizMap.has(b.id)) bizMap.set(b.id, b);
-    const businesses = Array.from(bizMap.values());
-    log("businesses_found", { count: businesses.length, ids: businesses });
-
-    for (const b of businesses) {
-      const bid = b.id;
-      const owned = await fetchAll(`${META_API}/${bid}/owned_ad_accounts?fields=${encodeURIComponent(AD_FIELDS)}`, token, (m, x) => log(`biz ${bid} owned:${m}`, x));
-      if (owned.ok) {
-        for (const a of owned.items) if (!collected.has(a.id)) collected.set(a.id, { ...a, business: a.business || { id: bid, name: b.name } });
-        sources[`biz/${bid}/owned_ad_accounts`] = owned.items.length;
-      } else {
-        endpointErrors.push({ endpoint: `biz/${bid}/owned_ad_accounts`, error: owned.error });
-      }
-      const client = await fetchAll(`${META_API}/${bid}/client_ad_accounts?fields=${encodeURIComponent(AD_FIELDS)}`, token, (m, x) => log(`biz ${bid} client:${m}`, x));
-      if (client.ok) {
-        for (const a of client.items) if (!collected.has(a.id)) collected.set(a.id, { ...a, business: a.business || { id: bid, name: b.name } });
-        sources[`biz/${bid}/client_ad_accounts`] = client.items.length;
-      } else {
-        endpointErrors.push({ endpoint: `biz/${bid}/client_ad_accounts`, error: client.error });
+    for (const bm of bms) {
+      for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
+        try {
+          const items = await paginateMeta(
+            `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+            (m, x) => log(`biz ${bm.id} ${edge}:${m}`, x),
+          );
+          sources[`biz/${bm.id}/${edge}`] = items.length;
+          for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
+        } catch (e: any) {
+          endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: e?.message });
+        }
       }
     }
 
-    const accounts = Array.from(collected.values());
-    let active = 0, disabled = 0, upserted = 0;
-    const rows = accounts.map((a: any) => {
-      const status = Number(a.account_status);
-      if (status === 1) active++; else disabled++;
+    const seen = new Set<string>();
+    const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
+    log("collected_accounts", { total: unique.length });
+
+    const computeScore = (acc: any) => {
+      let s = 100;
+      if (acc.account_status !== 1) s -= 60;
+      if (acc.disable_reason && acc.disable_reason !== 0) s -= 40;
+      if (!acc.funding_source) s -= 20;
+      const bmVer = bmStatusMap.get(acc._bm_meta_id);
+      if (bmVer && bmVer !== "verified") s -= 10;
+      if (!acc.amount_spent || Number(acc.amount_spent) === 0) s -= 5;
+      s = Math.max(0, Math.min(100, s));
+      return { score: s, label: s >= 80 ? "Excelente" : s >= 60 ? "Bom" : s >= 40 ? "Atenção" : "Crítico" };
+    };
+
+    const accRows = unique.map((acc: any) => {
+      const { score, label } = computeScore(acc);
       return {
+        meta_account_id: acc.id,
+        bm_id: bmIdMap.get(acc._bm_meta_id) || null,
         meta_app_id,
-        meta_account_id: a.id,
-        name: a.name || a.id,
-        account_status: Number.isFinite(status) ? status : null,
-        currency: a.currency || null,
-        timezone_name: a.timezone_name || null,
-        disable_reason: a.disable_reason ?? null,
-        business_id: a.business?.id || null,
-        business_name: a.business?.name || null,
-        account_created_time: a.created_time || null,
-        raw_json: a,
+        name: acc.name,
+        account_status: acc.account_status,
+        status: acc.account_status === 1 ? "active" : "blocked",
+        currency: acc.currency || "USD",
+        amount_spent: acc.amount_spent ? Number(acc.amount_spent) / 100 : 0,
+        spend_cap: acc.spend_cap ? Number(acc.spend_cap) / 100 : null,
+        timezone_name: acc.timezone_name || null,
+        account_created_time: acc.created_time || null,
+        disable_reason: acc.disable_reason ?? null,
+        disable_reason_label: acc.disable_reason ? (DISABLE_REASONS[acc.disable_reason] || `Código ${acc.disable_reason}`) : DISABLE_REASONS[0],
+        funding_source: maskFunding(acc),
+        billing_cycle: acc.is_prepay_account === true ? "Pré-paga" : acc.is_prepay_account === false ? "Pós-paga" : null,
+        balance: acc.balance ? Number(acc.balance) / 100 : 0,
+        business_country_code: acc.business_country_code || null,
+        age: acc.age ?? null,
+        owner_business_name: acc.business?.name || null,
+        owner_business_id: acc.business?.id || null,
+        shared_with_businesses: Array.isArray(acc.agencies?.data)
+          ? acc.agencies.data.map((b: any) => ({ id: b.id, name: b.name, verification_status: b.verification_status || null }))
+          : [],
+        score, score_label: label,
         last_synced_at: new Date().toISOString(),
       };
     });
 
-    if (!dry_run && rows.length) {
-      const { error: upErr, count } = await supabase
-        .from("meta_ad_accounts")
-        .upsert(rows, { onConflict: "meta_account_id", count: "exact" });
-      if (upErr) {
-        log("upsert_error", { message: upErr.message });
-        await persist({ total: accounts.length, sources, endpointErrors, upsert_error: upErr.message }, null, null, "multi");
-        return json({ ok: false, error: sanitize(upErr.message), sources, endpointErrors, logs }, 500);
+    let active = 0, disabled = 0, upserted = 0;
+    accRows.forEach((r) => { if (r.account_status === 1) active++; else disabled++; });
+
+    if (!dry_run && accRows.length) {
+      const CHUNK = 200;
+      for (let i = 0; i < accRows.length; i += CHUNK) {
+        const { error } = await supabase.from("meta_ad_accounts")
+          .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+        if (error) {
+          log("upsert_error", { message: error.message });
+          await persist({ total: accRows.length, sources, endpointErrors, upsert_error: error.message });
+          return json({ ok: false, error: sanitize(error.message), sources, endpointErrors, logs }, 500);
+        }
       }
-      upserted = count ?? rows.length;
+      upserted = accRows.length;
     }
 
-    const summary = {
-      total: accounts.length,
-      active,
-      disabled,
-      upserted,
-      sources,
-      businesses_count: businesses.length,
-      endpointErrors,
-      hint: accounts.length === 0
-        ? (businesses.length === 0
-            ? "System User Token não retornou nenhuma BM (nem via /me/business, nem /me/businesses). Verifique no Business Manager → Configurações → Usuários do Sistema se este System User está dentro da BM correta e regenere o token."
-            : "BMs encontradas, mas nenhuma conta de anúncio atribuída a este System User. Vá em BM → Configurações → Usuários do Sistema → selecione o usuário → aba 'Ativos atribuídos' → botão 'Adicionar ativos' → escolha 'Contas de anúncio' → marque TODAS → nível de acesso 'Gerenciar campanhas' ou 'Gerenciamento total' → Salvar. Depois clique em Sincronizar novamente.")
-        : null,
-    };
+    const hint = accRows.length === 0
+      ? (bms.length > 0
+          ? `Foram encontradas ${bms.length} BM(s) mas nenhuma conta de anúncio. O token/perfil não é admin nem tem acesso às contas dentro dessas BMs.`
+          : "Nenhuma BM acessível pelo token.")
+      : null;
+
+    const summary = { total: accRows.length, active, disabled, upserted, sources, businesses_count: bms.length, endpointErrors, hint };
     log("summary", summary);
-    await persist(summary, null, null, "multi");
+    await persist(summary);
 
     return json({
-      ok: true,
-      ...summary,
-      accounts: accounts.map((a: any) => ({ id: a.id, name: a.name, account_status: a.account_status, business: a.business || null, currency: a.currency })),
+      ok: true, ...summary,
+      accounts: accRows.map((a) => ({ id: a.meta_account_id, name: a.name, account_status: a.account_status, business: { id: a.owner_business_id, name: a.owner_business_name }, currency: a.currency })),
       logs,
     });
   } catch (e: any) {
     log("exception", { message: e?.message, stack: e?.stack });
-    await persist({ exception: e?.message }, null, null, "multi");
+    await persist({ exception: e?.message });
     return json({ error: sanitize(e?.message || "internal error"), logs }, 500);
   }
 });
