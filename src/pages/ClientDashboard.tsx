@@ -420,14 +420,7 @@ const ClientDashboard: React.FC = () => {
     const startTs = 0;
 
     let remaining = credit;
-    const paidByWeek = new Map<string, number>();
-    paidCommissionRows.forEach(p => {
-      const paidDate = parseDateLocal(String(p.date));
-      const targetWeek = startOfWeek(paidDate, { weekStartsOn: 5 });
-      targetWeek.setDate(targetWeek.getDate() - 7);
-      const key = format(targetWeek, 'yyyy-MM-dd');
-      paidByWeek.set(key, (paidByWeek.get(key) || 0) + Number(p.amount || 0));
-    });
+    let paidPool = paidCommissionRows.reduce((sum, p) => sum + Math.max(0, Number(p.amount || 0)), 0);
 
     const rows = weeklyCommissionHistory.map(w => {
       const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
@@ -435,8 +428,8 @@ const ClientDashboard: React.FC = () => {
       const afterCredit = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
 
-      const weekKey = format(w.weekStart, 'yyyy-MM-dd');
-      const paidApplied = Math.min(paidByWeek.get(weekKey) || 0, afterCredit);
+      const paidApplied = Math.min(paidPool, afterCredit);
+      paidPool = Math.max(0, paidPool - paidApplied);
       const stillOwed = Math.max(0, afterCredit - paidApplied);
 
       return {
