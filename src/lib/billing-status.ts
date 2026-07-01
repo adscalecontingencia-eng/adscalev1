@@ -1,4 +1,4 @@
-import { addDays, format, startOfWeek } from 'date-fns';
+import { addDays } from 'date-fns';
 
 export interface WeeklyRow {
   weekStart: Date;
@@ -10,32 +10,6 @@ export interface PaymentRow {
   date: string | Date;
   amount: number;
 }
-
-const parsePaymentDate = (date: string | Date) => {
-  if (date instanceof Date) return date;
-  const isoDate = date.slice(0, 10);
-  const [y, m, d] = isoDate.split('-').map(Number);
-  if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) {
-    return new Date(y, (m || 1) - 1, d || 1);
-  }
-  return new Date(date);
-};
-
-const getPaidByTargetWeek = (payments: PaymentRow[]) => {
-  const paidByWeek = new Map<string, number>();
-  payments.forEach(payment => {
-    const amount = Math.max(0, Number(payment.amount || 0));
-    if (amount <= 0) return;
-    // Pagamento validado em uma data liquida a última semana fechada
-    // (sexta→quinta), não cria dívida nova nem é redistribuído para semanas futuras.
-    const paymentDate = parsePaymentDate(payment.date);
-    const currentWeekStart = startOfWeek(paymentDate, { weekStartsOn: 5 });
-    const targetWeekStart = addDays(currentWeekStart, -7);
-    const key = format(targetWeekStart, 'yyyy-MM-dd');
-    paidByWeek.set(key, (paidByWeek.get(key) || 0) + amount);
-  });
-  return paidByWeek;
-};
 
 /**
  * Divide o saldo não pago entre:
@@ -64,16 +38,13 @@ export function splitOverdueVsCurrent(
   const sorted = [...weeks].sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   let credit = Math.max(0, planCredit);
   let paid = Math.max(0, totalPaid);
-  // Pool FIFO: pagamentos ordenados pela semana-alvo. À medida que iteramos
-  // as semanas (mais antiga → mais nova), liberamos no pool todos os pagamentos
-  // cuja targetWeek ≤ semana atual. Excedente sobra para semanas seguintes.
-  const paidPoolEntries = paidRows?.length
-    ? Array.from(getPaidByTargetWeek(paidRows).entries())
-        .map(([k, v]) => ({ ts: new Date(k + 'T00:00:00').getTime(), amount: v }))
-        .sort((a, b) => a.ts - b.ts)
-    : null;
-  let paidPoolIdx = 0;
-  let paidPool = 0;
+  // Pagamento validado sempre liquida a dívida mais antiga primeiro (FIFO).
+  // Antes, o pagamento era preso à semana anterior à data de validação; ao
+  // recarregar, valores pequenos voltavam para "atrasado" mesmo com pagamento
+  // suficiente registrado. O saldo atrasado deve olhar o caixa total validado.
+  if (paidRows?.length) {
+    paid = paidRows.reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0)), 0);
+  }
   let overdue = 0;
   let currentPending = 0;
   const weeksOverdue: WeeklyRow[] = [];
@@ -94,16 +65,8 @@ export function splitOverdueVsCurrent(
     const applyCredit = creditEligible ? Math.min(credit, owe) : 0;
     credit -= applyCredit;
     owe -= applyCredit;
-    const weekTs = w.weekStart.getTime();
-    if (paidPoolEntries) {
-      while (paidPoolIdx < paidPoolEntries.length && paidPoolEntries[paidPoolIdx].ts <= weekTs) {
-        paidPool += paidPoolEntries[paidPoolIdx].amount;
-        paidPoolIdx++;
-      }
-    }
-    const applyPaid = paidPoolEntries ? Math.min(paidPool, owe) : Math.min(paid, owe);
-    if (paidPoolEntries) paidPool -= applyPaid;
-    else paid -= applyPaid;
+    const applyPaid = Math.min(paid, owe);
+    paid -= applyPaid;
     owe -= applyPaid;
     if (owe <= 0.0001) continue;
 
