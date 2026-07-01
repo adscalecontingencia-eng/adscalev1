@@ -271,16 +271,31 @@ export default function MetaApps() {
         body: { meta_app_id: app.id, token_type },
       });
       if (error) throw error;
+      console.groupCollapsed("[meta-validate-token] diagnóstico");
+      console.log("valid:", data?.valid, "user_id:", data?.user_id, "app_id:", data?.app_id);
+      console.log("flat_scopes:", data?.flat_scopes);
+      console.log("granular_scopes:", data?.granular_scopes);
+      console.log("permissions_granted:", data?.permissions_granted);
+      console.log("permissions_declined:", data?.permissions_declined);
+      console.log("permissions_error:", data?.permissions_error);
+      console.log("effective scopes:", data?.scopes);
+      console.log("missing_scopes:", data?.missing_scopes);
+      console.log("debug_raw:", data?.debug_raw);
+      console.log("logs backend:", data?.logs);
+      console.groupEnd();
       if (data?.valid) {
         const missing = (data.missing_scopes || []) as string[];
+        const declined = (data.permissions_declined || []) as string[];
         if (missing.length) {
-          toast.warning(`Token válido, mas faltam permissões: ${missing.join(", ")}`);
+          const declinedMsg = declined.length ? ` | Recusadas: ${declined.join(", ")}` : "";
+          toast.warning(`Token válido, mas faltam permissões: ${missing.join(", ")}${declinedMsg}. Abra o console (F12) para o log completo.`);
         } else {
           toast.success("Token válido — todas as permissões OK.");
         }
       } else {
         toast.error(data?.error || "Token inválido");
       }
+
       await load();
     } catch (e: any) {
       toast.error(e.message || "Falha ao validar token");
