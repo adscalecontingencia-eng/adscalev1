@@ -1226,6 +1226,8 @@ export type Database = {
           billing_cycle: string | null
           bm_id: string | null
           business_country_code: string | null
+          business_id: string | null
+          business_name: string | null
           created_at: string
           currency: string | null
           disable_reason: number | null
@@ -1240,6 +1242,7 @@ export type Database = {
           owner_business_name: string | null
           page_count: number | null
           pixel_count: number | null
+          raw_json: Json | null
           score: number | null
           score_label: string | null
           shared_with_businesses: Json | null
@@ -1257,6 +1260,8 @@ export type Database = {
           billing_cycle?: string | null
           bm_id?: string | null
           business_country_code?: string | null
+          business_id?: string | null
+          business_name?: string | null
           created_at?: string
           currency?: string | null
           disable_reason?: number | null
@@ -1271,6 +1276,7 @@ export type Database = {
           owner_business_name?: string | null
           page_count?: number | null
           pixel_count?: number | null
+          raw_json?: Json | null
           score?: number | null
           score_label?: string | null
           shared_with_businesses?: Json | null
@@ -1288,6 +1294,8 @@ export type Database = {
           billing_cycle?: string | null
           bm_id?: string | null
           business_country_code?: string | null
+          business_id?: string | null
+          business_name?: string | null
           created_at?: string
           currency?: string | null
           disable_reason?: number | null
@@ -1302,6 +1310,7 @@ export type Database = {
           owner_business_name?: string | null
           page_count?: number | null
           pixel_count?: number | null
+          raw_json?: Json | null
           score?: number | null
           score_label?: string | null
           shared_with_businesses?: Json | null
@@ -1441,43 +1450,67 @@ export type Database = {
           app_id: string
           app_secret: string | null
           created_at: string
+          data_access_expires_at: string | null
           id: string
           is_default: boolean
           label: string
           last_used_at: string | null
+          last_validated_at: string | null
           notes: string | null
           status: string
           system_user_token: string | null
+          token_expires_at: string | null
+          token_issued_at: string | null
+          token_scopes: string[] | null
+          token_type: string | null
+          token_user_id: string | null
           updated_at: string
           user_access_token: string | null
+          validation_status: Json | null
         }
         Insert: {
           app_id: string
           app_secret?: string | null
           created_at?: string
+          data_access_expires_at?: string | null
           id?: string
           is_default?: boolean
           label: string
           last_used_at?: string | null
+          last_validated_at?: string | null
           notes?: string | null
           status?: string
           system_user_token?: string | null
+          token_expires_at?: string | null
+          token_issued_at?: string | null
+          token_scopes?: string[] | null
+          token_type?: string | null
+          token_user_id?: string | null
           updated_at?: string
           user_access_token?: string | null
+          validation_status?: Json | null
         }
         Update: {
           app_id?: string
           app_secret?: string | null
           created_at?: string
+          data_access_expires_at?: string | null
           id?: string
           is_default?: boolean
           label?: string
           last_used_at?: string | null
+          last_validated_at?: string | null
           notes?: string | null
           status?: string
           system_user_token?: string | null
+          token_expires_at?: string | null
+          token_issued_at?: string | null
+          token_scopes?: string[] | null
+          token_type?: string | null
+          token_user_id?: string | null
           updated_at?: string
           user_access_token?: string | null
+          validation_status?: Json | null
         }
         Relationships: []
       }
