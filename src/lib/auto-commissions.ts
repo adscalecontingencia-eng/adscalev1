@@ -26,7 +26,7 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
   const tiers = await fetchCommissionTiers();
 
   const [clientsRes, assignRes, insightsRes, existingRes] = await Promise.all([
-    supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value'),
+    supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value, custom_tiers'),
     supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active, effective_from, effective_to').eq('active', true),
     supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
     supabase.from('commissions').select('id, client_id, billing_week_start, amount, ad_spend, valor_pago').eq('type', 'daily').not('billing_week_start', 'is', null),
@@ -92,7 +92,12 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     for (const [weekKey, weekSpend] of weeks.entries()) {
       if (weekKey === currentWeekStart) continue; // open week
       if (weekSpend <= 0) continue;
-      const rate = getTierPctFromTiers(weekSpend, basePct, tiers);
+      const clientTiers = Array.isArray((client as any).custom_tiers) && (client as any).custom_tiers.length > 0
+        ? (client as any).custom_tiers
+            .filter((t: any) => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
+            .map((t: any) => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
+        : tiers;
+      const rate = getTierPctFromTiers(weekSpend, basePct, clientTiers);
       const commission = weekSpend * (rate / 100);
       if (commission <= 0) continue;
       const wsDate = parseDateLocal(weekKey);
