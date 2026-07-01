@@ -1672,6 +1672,50 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_diagnostics_log: {
+        Row: {
+          created_at: string
+          endpoint: string | null
+          fb_error: Json | null
+          http_status: number | null
+          id: string
+          logs: Json | null
+          meta_app_id: string | null
+          operation: string
+          summary: Json | null
+        }
+        Insert: {
+          created_at?: string
+          endpoint?: string | null
+          fb_error?: Json | null
+          http_status?: number | null
+          id?: string
+          logs?: Json | null
+          meta_app_id?: string | null
+          operation: string
+          summary?: Json | null
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string | null
+          fb_error?: Json | null
+          http_status?: number | null
+          id?: string
+          logs?: Json | null
+          meta_app_id?: string | null
+          operation?: string
+          summary?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_diagnostics_log_meta_app_id_fkey"
+            columns: ["meta_app_id"]
+            isOneToOne: false
+            referencedRelation: "meta_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_page_assignments: {
         Row: {
           active: boolean
