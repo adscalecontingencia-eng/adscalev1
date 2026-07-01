@@ -943,18 +943,22 @@ const Clients: React.FC = () => {
     const comissaoPendente = Math.max(0, expectedCommissionInRange - comissaoPaga);
 
 
-    // Saldo Pendente vs Saldo Atrasado: separa semana corrente (ainda não venceu)
-    // do que já passou da sexta de cobrança sem pagamento.
-
+    // Saldo Pendente vs Saldo Atrasado: `computeWeeklyForClient` já devolve o
+    // saldo LÍQUIDO por semana (valor_pendente do livro/ledger quando existe).
+    // Portanto aqui apenas classificamos por vencimento; não aplicamos pagamentos
+    // nem crédito de novo, pois isso zerava indevidamente saldos ainda em aberto.
     const weeks = computeWeeklyForClient(clientId);
-    const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
-    const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
-    const planCredit = Number(client?.planCredit || 0);
-    // Mesmo cálculo do dashboard do cliente: semana fiscal corrente (sexta→quinta),
-    // com crédito e pagamentos aplicados por semana. No admin o rótulo é Saldo Acumulado.
-    const split = splitOverdueVsCurrent(weeks, planCredit, totalPaidAllTime, new Date(), null, paidRows);
-    const saldoPendente = split.currentPending + split.overdue;
-    const saldoAtrasado = split.overdue;
+    const now = new Date();
+    let saldoCorrente = 0;
+    let saldoAtrasado = 0;
+    weeks.forEach(w => {
+      const pending = Math.max(0, Number(w.commission || 0));
+      if (pending <= 0) return;
+      const dueDate = addDays(w.weekStart, 7);
+      if (now.getTime() > dueDate.getTime()) saldoAtrasado += pending;
+      else saldoCorrente += pending;
+    });
+    const saldoPendente = saldoCorrente + saldoAtrasado;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
     // de toda a história (FIFO, mesma lógica do dashboard do cliente).
