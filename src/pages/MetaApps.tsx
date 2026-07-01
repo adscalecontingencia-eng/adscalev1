@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   AppWindow, Plus, Pencil, Trash2, Star, Eye, EyeOff, Users as UsersIcon, ShieldCheck,
-  CheckCircle2, XCircle, RefreshCw, KeyRound, Clock, Beaker, Copy, AlertTriangle, Zap,
+  CheckCircle2, XCircle, RefreshCw, KeyRound, Clock, Beaker, Copy, AlertTriangle, Zap, BookOpen,
 } from "lucide-react";
 import { PageHero } from "@/components/ui-kit";
 import { SystemUserTokenGuide } from "@/components/meta/SystemUserTokenGuide";
