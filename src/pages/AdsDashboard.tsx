@@ -111,7 +111,14 @@ export default function AdsDashboard() {
       supabase.from("meta_business_managers").select("id, name").order("name"),
       supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at").order("name"),
       supabase.from("clients").select("id, name").order("name"),
-      supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active, effective_from, effective_to").eq("active", true),
+      // Load ALL assignments (including inactive/expired) so historical spend
+      // stays attributed to the client that owned the account on that date.
+      // Order by effective_from desc so resolveClientForSpend picks the most
+      // recent window that contains the insight date.
+      supabase
+        .from("meta_ad_account_assignments")
+        .select("ad_account_id, client_id, active, effective_from, effective_to")
+        .order("effective_from", { ascending: false, nullsFirst: false }),
     ]);
     setBms((b.data as BM[]) || []);
     setAccounts((a.data as Account[]) || []);
