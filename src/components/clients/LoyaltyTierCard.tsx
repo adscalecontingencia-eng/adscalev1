@@ -108,29 +108,58 @@ export const LoyaltyTierCard: React.FC<Props> = ({ progress, compact, className 
 
       {/* Roadmap chips (não-compact) */}
       {!compact && (
-        <div className="relative mt-4 flex flex-wrap gap-2">
-          {LOYALTY_TIERS.map(t => {
-            const reached = totalPaid >= t.threshold;
-            const isCurrent = t.id === current.id;
-            const TIcon = iconMap[t.icon] ?? Sparkles;
-            return (
-              <div
-                key={t.id}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all',
-                  reached
-                    ? isCurrent
-                      ? cn('border-current', t.accent, 'bg-background/40')
-                      : 'border-border/60 text-foreground/70 bg-background/30'
-                    : 'border-dashed border-border/40 text-muted-foreground/60',
-                )}
-              >
-                <TIcon size={10} />
-                {t.label} · {t.basePct}%
-                <span className="opacity-60">({fmt(t.threshold)})</span>
-              </div>
-            );
-          })}
+        <div className="relative mt-5">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">Jornada de níveis</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {LOYALTY_TIERS.map(t => {
+              const reached = totalPaid >= t.threshold;
+              const isCurrent = t.id === current.id;
+              const TIcon = iconMap[t.icon] ?? Sparkles;
+              return (
+                <div
+                  key={t.id}
+                  className={cn(
+                    'relative rounded-xl border-2 px-3 py-2.5 transition-all overflow-hidden',
+                    isCurrent
+                      ? cn(
+                          'shadow-lg scale-[1.02]',
+                          t.id === 'elite' && 'border-amber-400 bg-amber-500/15 shadow-amber-500/30',
+                          t.id === 'premium' && 'border-violet-400 bg-violet-500/15 shadow-violet-500/30',
+                          t.id === 'standard' && 'border-primary bg-primary/15 shadow-primary/30',
+                        )
+                      : reached
+                        ? 'border-border/70 bg-background/50'
+                        : 'border-dashed border-border/40 bg-background/20 opacity-70',
+                  )}
+                >
+                  {isCurrent && (
+                    <span className={cn('absolute top-1 right-1 text-[8px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-background/80 border', t.accent, 'border-current')}>
+                      Atual
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={cn(
+                      'w-7 h-7 rounded-lg flex items-center justify-center',
+                      reached ? cn('bg-background/60 ring-1', t.ring) : 'bg-background/30',
+                    )}>
+                      <TIcon size={14} className={reached ? t.accent : 'text-muted-foreground'} />
+                    </div>
+                    <div className={cn('font-display font-bold text-sm', reached ? t.accent : 'text-muted-foreground')}>
+                      {t.label}
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className={cn('font-display text-lg font-bold', reached ? t.accent : 'text-foreground/60')}>
+                      {t.basePct}%
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {fmt(t.threshold)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
