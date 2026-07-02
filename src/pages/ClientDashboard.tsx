@@ -17,6 +17,8 @@ import { splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
+import LoyaltyTierCard from '@/components/clients/LoyaltyTierCard';
+import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
