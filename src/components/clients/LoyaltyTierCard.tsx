@@ -5,7 +5,7 @@ import { LoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0);
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+const iconMap: Record<string, React.ComponentType<any>> = {
   Sparkles,
   Gem,
   Crown,
