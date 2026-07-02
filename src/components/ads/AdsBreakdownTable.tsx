@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface Insight {
   ad_account_id: string;
+  date: string;
   spend: number;
   revenue: number;
   purchases: number;
@@ -28,6 +29,8 @@ interface Props {
   bms: BM[];
   clients: Client[];
   clientByAccount: Map<string, string>;
+  /** Date-aware resolver — preferred over clientByAccount when provided. */
+  resolveClient?: (accountId: string, date: string) => string | null;
   onPickClient?: (clientId: string) => void;
   onPickAccount?: (accountId: string) => void;
   onPickBm?: (bmId: string) => void;
