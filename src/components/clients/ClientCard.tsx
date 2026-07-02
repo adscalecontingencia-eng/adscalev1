@@ -12,6 +12,9 @@ import {
   AlertTriangle,
   CircleDot,
   CalendarIcon,
+  Gem,
+  Crown,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
+import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
 
 export interface ClientLite {
   id: string;
@@ -208,6 +212,24 @@ export const ClientCard: React.FC<Props> = (props) => {
                 {c.clientType === 'venda' ? 'Venda' : 'Aluguel'}
               </span>
               <StatusBadge status={status} />
+              {c.clientType === 'aluguel' && (() => {
+                const lp = computeLoyaltyProgress(comissaoPaga);
+                if (lp.current.id === 'standard') return null;
+                const Icon = lp.current.id === 'elite' ? Crown : Gem;
+                return (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border',
+                      lp.current.id === 'elite'
+                        ? 'border-amber-400/50 text-amber-300 bg-amber-400/10 shadow-[0_0_10px_rgba(251,191,36,0.35)]'
+                        : 'border-violet-400/50 text-violet-300 bg-violet-500/10 shadow-[0_0_10px_rgba(167,139,250,0.35)]',
+                    )}
+                    title={`Nível ${lp.current.label} · comissão base ${lp.current.basePct}%`}
+                  >
+                    <Icon size={10} /> {lp.current.label}
+                  </span>
+                );
+              })()}
             </div>
             {/* Sub-header: metadados densos */}
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground mt-1.5">

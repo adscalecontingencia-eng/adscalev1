@@ -17,6 +17,8 @@ import { splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
+import LoyaltyTierCard from '@/components/clients/LoyaltyTierCard';
+import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -494,6 +496,52 @@ const ClientDashboard: React.FC = () => {
     }
   }, [loading, isAdminView, billingSplit.overdue]);
 
+  // Loyalty tier: calcula progressão pela comissão paga acumulada
+  const loyalty = useMemo(
+    () => computeLoyaltyProgress(allTimeTotals.paid),
+    [allTimeTotals.paid],
+  );
+
+  // Auto-ajuste do percentual base ao cruzar meta (apenas rental)
+  const loyaltyAdjustedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!client || client.client_type !== 'aluguel') return;
+    const currentPct = Number(client.percentage_value) || 0;
+    const targetPct = loyalty.current.basePct;
+    // Só reduz — nunca aumenta um pct que admin possa ter definido manualmente
+    if (currentPct <= targetPct) return;
+    const key = `${client.id}:${targetPct}`;
+    if (loyaltyAdjustedRef.current === key) return;
+    loyaltyAdjustedRef.current = key;
+    (async () => {
+      const { error } = await supabase
+        .from('clients')
+        .update({ percentage_value: targetPct })
+        .eq('id', client.id);
+      if (!error) {
+        setClient((c: any) => c ? { ...c, percentage_value: targetPct } : c);
+        toast.success(`🎉 Nível ${loyalty.current.label} desbloqueado! Sua comissão base agora é ${targetPct}%.`, { duration: 8000 });
+      }
+    })();
+  }, [client, loyalty.current.basePct, loyalty.current.label]);
+
+  // Pop-up de boas-vindas / incentivo (1x por sessão por cliente)
+  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
+  const loyaltyDialogShownRef = useRef(false);
+  useEffect(() => {
+    if (loading || isAdminView || !client) return;
+    if (client.client_type !== 'aluguel') return;
+    if (loyaltyDialogShownRef.current) return;
+    const storageKey = `loyalty-popup:${client.id}:${loyalty.current.id}:${loyalty.nearNext ? 'near' : 'idle'}`;
+    if (sessionStorage.getItem(storageKey)) return;
+    // Mostra se: acabou de subir de tier (não-standard) OU está perto do próximo
+    if (loyalty.current.id !== 'standard' || loyalty.nearNext) {
+      loyaltyDialogShownRef.current = true;
+      sessionStorage.setItem(storageKey, '1');
+      setTimeout(() => setLoyaltyDialogOpen(true), 600);
+    }
+  }, [loading, isAdminView, client, loyalty.current.id, loyalty.nearNext]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
 
 
@@ -586,6 +634,14 @@ const ClientDashboard: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {client.client_type === 'aluguel' && (
+          <div className="mb-5">
+            <LoyaltyTierCard progress={loyalty} />
+          </div>
+        )}
+
+
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
           <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto p-1 bg-secondary/60 border border-border">
@@ -1812,8 +1868,51 @@ const ClientDashboard: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pop-up de Fidelidade (nível conquistado ou perto do próximo) */}
+      <Dialog open={loyaltyDialogOpen} onOpenChange={setLoyaltyDialogOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-0 bg-transparent">
+          <div className={cn(
+            'relative rounded-2xl border p-6 bg-gradient-to-br',
+            loyalty.current.gradient,
+            loyalty.current.id === 'elite' && 'border-amber-400/40',
+            loyalty.current.id === 'premium' && 'border-violet-400/40',
+            loyalty.current.id === 'standard' && 'border-primary/30',
+          )}>
+            <div className={cn('absolute -top-20 -right-20 w-56 h-56 rounded-full blur-[70px]', loyalty.current.glow)} />
+            <div className="relative">
+              <DialogHeader className="mb-3">
+                <DialogTitle className={cn('font-display text-2xl', loyalty.current.accent)}>
+                  {loyalty.current.id === 'standard'
+                    ? `🚀 Você está a ${Math.round(loyalty.progressPct)}% do nível ${loyalty.next?.label}!`
+                    : loyalty.nearNext
+                      ? `🔥 Falta pouco para o nível ${loyalty.next?.label}!`
+                      : `🎉 Nível ${loyalty.current.label} desbloqueado!`}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  {loyalty.achievedTop
+                    ? 'Você atingiu o topo — comissão base no menor patamar da agência.'
+                    : loyalty.nearNext
+                      ? `Continue pagando sua comissão em dia — faltam apenas ${fmt(loyalty.remainingToNext)} para reduzir seu percentual base para ${loyalty.next?.basePct}%.`
+                      : loyalty.current.tagline}
+                </DialogDescription>
+              </DialogHeader>
+
+              <LoyaltyTierCard progress={loyalty} compact className="!bg-background/40 !border-border/40 !shadow-none" />
+
+              <button
+                onClick={() => setLoyaltyDialogOpen(false)}
+                className="mt-4 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
+              >
+                {loyalty.nearNext ? 'Vamos lá!' : 'Continuar'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+
 };
 
 export default ClientDashboard;
