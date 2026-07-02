@@ -56,7 +56,7 @@ interface Row {
 }
 
 export default function AdsBreakdownTable({
-  insights, accounts, bms, clients, clientByAccount,
+  insights, accounts, bms, clients, clientByAccount, resolveClient,
   onPickClient, onPickAccount, onPickBm,
 }: Props) {
   const [tab, setTab] = useState<Tab>("client");
@@ -65,6 +65,8 @@ export default function AdsBreakdownTable({
 
   const rows: Row[] = useMemo(() => {
     const acc = new Map<string, Row>();
+    const getClient = (accountId: string, date: string) =>
+      resolveClient ? resolveClient(accountId, date) : (clientByAccount.get(accountId) || null);
 
     insights.forEach((i) => {
       const account = accounts.find((a) => a.id === i.ad_account_id);
@@ -74,13 +76,13 @@ export default function AdsBreakdownTable({
       let status: string | null | undefined;
 
       if (tab === "client") {
-        const cid = clientByAccount.get(i.ad_account_id);
+        const cid = getClient(i.ad_account_id, i.date);
         key = cid || "__unassigned__";
         label = cid ? (clients.find((c) => c.id === cid)?.name || cid) : "Sem cliente";
       } else if (tab === "account") {
         key = i.ad_account_id;
         label = account?.name || i.ad_account_id;
-        const cid = clientByAccount.get(i.ad_account_id);
+        const cid = getClient(i.ad_account_id, i.date) || clientByAccount.get(i.ad_account_id) || null;
         sublabel = cid ? (clients.find((c) => c.id === cid)?.name || "") : "Sem cliente";
         status = account?.status;
       } else {
