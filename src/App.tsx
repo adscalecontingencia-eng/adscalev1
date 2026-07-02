@@ -51,6 +51,7 @@ import AluguelDeContas from "./pages/AluguelDeContas";
 import EscolhaSeuModelo from "./pages/EscolhaSeuModelo";
 import Obrigado from "./pages/Obrigado";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,7 @@ const App = () => (
       <ErrorBoundary>
         <AuthProvider>
           <HashRouter>
+            <ScrollToTop />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
@@ -122,7 +124,6 @@ const App = () => (
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
               <Route path="/aluguel-de-contas" element={<AluguelDeContas />} />
               <Route path="/inicio" element={<EscolhaSeuModelo />} />
-              <Route path="/escolha-seu-modelo" element={<Navigate to="/inicio" replace />} />
               <Route path="/escolha-seu-modelo" element={<Navigate to="/inicio" replace />} />
               <Route path="/obrigado" element={<Obrigado />} />
               <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
