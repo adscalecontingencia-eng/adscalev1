@@ -11,6 +11,7 @@ import AdsKpiHero, { AdsMetrics } from "@/components/ads/AdsKpiHero";
 import AdsFiltersBar, { AdsRange, AccountStatus } from "@/components/ads/AdsFiltersBar";
 import AdsTimeCharts from "@/components/ads/AdsTimeCharts";
 import AdsBreakdownTable from "@/components/ads/AdsBreakdownTable";
+import { resolveClientForSpend } from "@/lib/assignment-filter";
 
 type BM = { id: string; name: string };
 type Account = {
@@ -110,7 +111,14 @@ export default function AdsDashboard() {
       supabase.from("meta_business_managers").select("id, name").order("name"),
       supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at").order("name"),
       supabase.from("clients").select("id, name").order("name"),
-      supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active, effective_from, effective_to").eq("active", true),
+      // Load ALL assignments (including inactive/expired) so historical spend
+      // stays attributed to the client that owned the account on that date.
+      // Order by effective_from desc so resolveClientForSpend picks the most
+      // recent window that contains the insight date.
+      supabase
+        .from("meta_ad_account_assignments")
+        .select("ad_account_id, client_id, active, effective_from, effective_to")
+        .order("effective_from", { ascending: false, nullsFirst: false }),
     ]);
     setBms((b.data as BM[]) || []);
     setAccounts((a.data as Account[]) || []);
@@ -200,18 +208,28 @@ export default function AdsDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, customStart, customEnd]);
 
+  // Current (latest) client per account — used only for chip labels and for
+  // the "Por Conta" sublabel. NEVER use it to attribute spend to a client:
+  // do that per-insight via resolveClientForSpend so historical spend is
+  // credited to whoever owned the account on that date.
   const clientByAccount = useMemo(() => {
     const m = new Map<string, string>();
-    assignments.forEach((a) => m.set(a.ad_account_id, a.client_id));
+    // assignments is ordered by effective_from desc → first hit is the newest
+    assignments.forEach((a) => {
+      if (!m.has(a.ad_account_id)) m.set(a.ad_account_id, a.client_id);
+    });
     return m;
   }, [assignments]);
 
-  const filteredAccountIds = useMemo(() => {
-    const includeAll = filterClients.length === 0;
-    const onlyUnassigned = filterClients.length === 1 && filterClients[0] === "__unassigned__";
-    const clientSet = new Set(filterClients.filter((c) => c !== "__unassigned__"));
-    const includeUnassigned = filterClients.includes("__unassigned__");
+  const resolveClient = useMemo(
+    () => (accountId: string, date: string) =>
+      resolveClientForSpend(assignments, accountId, date),
+    [assignments]
+  );
 
+  // Account-level filters (BM / status / explicit account picks) — client
+  // filter is applied per-insight below so date windows are respected.
+  const accountLevelIds = useMemo(() => {
     return new Set(
       accounts
         .filter((a) => {
@@ -219,30 +237,37 @@ export default function AdsDashboard() {
           if (filterAccounts.length > 0 && !filterAccounts.includes(a.id)) return false;
           if (statusFilter === "active" && a.status !== "active") return false;
           if (statusFilter === "blocked" && a.status === "active") return false;
-          if (!includeAll) {
-            const cid = clientByAccount.get(a.id);
-            if (onlyUnassigned) {
-              if (cid) return false;
-            } else {
-              const matchesClient = cid && clientSet.has(cid);
-              const matchesUnassigned = includeUnassigned && !cid;
-              if (!matchesClient && !matchesUnassigned) return false;
-            }
-          }
           return true;
         })
         .map((a) => a.id)
     );
-  }, [accounts, filterBm, filterAccounts, filterClients, clientByAccount, statusFilter]);
+  }, [accounts, filterBm, filterAccounts, statusFilter]);
+
+  const matchesClientFilter = (accountId: string, date: string): boolean => {
+    if (filterClients.length === 0) return true;
+    const cid = resolveClient(accountId, date);
+    const wantsUnassigned = filterClients.includes("__unassigned__");
+    if (!cid) return wantsUnassigned;
+    return filterClients.includes(cid);
+  };
 
   const filteredInsights = useMemo(
-    () => insights.filter((i) => filteredAccountIds.has(i.ad_account_id)),
-    [insights, filteredAccountIds]
+    () => insights.filter((i) =>
+      accountLevelIds.has(i.ad_account_id) && matchesClientFilter(i.ad_account_id, i.date)
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [insights, accountLevelIds, filterClients, assignments]
   );
   const filteredPrevInsights = useMemo(
-    () => prevInsights.filter((i) => filteredAccountIds.has(i.ad_account_id)),
-    [prevInsights, filteredAccountIds]
+    () => prevInsights.filter((i) =>
+      accountLevelIds.has(i.ad_account_id) && matchesClientFilter(i.ad_account_id, i.date)
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [prevInsights, accountLevelIds, filterClients, assignments]
   );
+
+  // Kept for the hero subtitle count — accounts that pass the non-client filters.
+  const filteredAccountIds = accountLevelIds;
 
   const metrics = useMemo(() => computeMetrics(filteredInsights), [filteredInsights]);
   const prevMetrics = useMemo(
@@ -391,6 +416,7 @@ export default function AdsDashboard() {
             bms={bms}
             clients={clients}
             clientByAccount={clientByAccount}
+            resolveClient={resolveClient}
             onPickClient={(id) => setFilterClients([id])}
             onPickAccount={(id) => setFilterAccounts([id])}
             onPickBm={(id) => setFilterBm(id)}
