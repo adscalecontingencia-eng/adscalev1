@@ -1868,8 +1868,51 @@ const ClientDashboard: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pop-up de Fidelidade (nível conquistado ou perto do próximo) */}
+      <Dialog open={loyaltyDialogOpen} onOpenChange={setLoyaltyDialogOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-0 bg-transparent">
+          <div className={cn(
+            'relative rounded-2xl border p-6 bg-gradient-to-br',
+            loyalty.current.gradient,
+            loyalty.current.id === 'elite' && 'border-amber-400/40',
+            loyalty.current.id === 'premium' && 'border-violet-400/40',
+            loyalty.current.id === 'standard' && 'border-primary/30',
+          )}>
+            <div className={cn('absolute -top-20 -right-20 w-56 h-56 rounded-full blur-[70px]', loyalty.current.glow)} />
+            <div className="relative">
+              <DialogHeader className="mb-3">
+                <DialogTitle className={cn('font-display text-2xl', loyalty.current.accent)}>
+                  {loyalty.current.id === 'standard'
+                    ? `🚀 Você está a ${Math.round(loyalty.progressPct)}% do nível ${loyalty.next?.label}!`
+                    : loyalty.nearNext
+                      ? `🔥 Falta pouco para o nível ${loyalty.next?.label}!`
+                      : `🎉 Nível ${loyalty.current.label} desbloqueado!`}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  {loyalty.achievedTop
+                    ? 'Você atingiu o topo — comissão base no menor patamar da agência.'
+                    : loyalty.nearNext
+                      ? `Continue pagando sua comissão em dia — faltam apenas ${fmt(loyalty.remainingToNext)} para reduzir seu percentual base para ${loyalty.next?.basePct}%.`
+                      : loyalty.current.tagline}
+                </DialogDescription>
+              </DialogHeader>
+
+              <LoyaltyTierCard progress={loyalty} compact className="!bg-background/40 !border-border/40 !shadow-none" />
+
+              <button
+                onClick={() => setLoyaltyDialogOpen(false)}
+                className="mt-4 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
+              >
+                {loyalty.nearNext ? 'Vamos lá!' : 'Continuar'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+
 };
 
 export default ClientDashboard;
