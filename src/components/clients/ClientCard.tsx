@@ -12,6 +12,9 @@ import {
   AlertTriangle,
   CircleDot,
   CalendarIcon,
+  Gem,
+  Crown,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
+import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
 
 export interface ClientLite {
   id: string;
