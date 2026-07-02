@@ -416,6 +416,7 @@ export default function AdsDashboard() {
             bms={bms}
             clients={clients}
             clientByAccount={clientByAccount}
+            resolveClient={resolveClient}
             onPickClient={(id) => setFilterClients([id])}
             onPickAccount={(id) => setFilterAccounts([id])}
             onPickBm={(id) => setFilterBm(id)}
