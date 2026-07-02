@@ -121,7 +121,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
               <Route path="/aluguel-de-contas" element={<AluguelDeContas />} />
-              <Route path="/escolha-seu-modelo" element={<EscolhaSeuModelo />} />
+              <Route path="/inicio" element={<EscolhaSeuModelo />} />
               <Route path="/obrigado" element={<Obrigado />} />
               <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
               <Route path="/marketplace/produtos" element={<MarketplaceGate><MarketplaceProducts /></MarketplaceGate>} />
