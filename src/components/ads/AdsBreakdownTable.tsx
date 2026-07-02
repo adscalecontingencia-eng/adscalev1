@@ -105,7 +105,7 @@ export default function AdsBreakdownTable({
       roas: r.spend > 0 ? r.revenue / r.spend : 0,
       profit: r.revenue - r.spend,
     }));
-  }, [insights, accounts, bms, clients, clientByAccount, tab]);
+  }, [insights, accounts, bms, clients, clientByAccount, resolveClient, tab]);
 
   const totalSpend = rows.reduce((s, r) => s + r.spend, 0);
 
