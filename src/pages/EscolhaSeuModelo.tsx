@@ -13,7 +13,7 @@ const fadeUp = {
   transition: { duration: 0.5 },
 };
 
-const PAGE_URL = "https://adscalev1.lovable.app/escolha-seu-modelo";
+const PAGE_URL = "https://adscalev1.lovable.app/inicio";
 const PAGE_TITLE = "Escolha seu modelo — Marketplace ou Aluguel de Contas | AD SCALE";
 const PAGE_DESC =
   "Compare Marketplace (compra avulsa via PIX) e Aluguel de Contas (US$ 240 em créditos, reposição automática) e escolha o modelo ideal para escalar seus anúncios.";
