@@ -496,6 +496,52 @@ const ClientDashboard: React.FC = () => {
     }
   }, [loading, isAdminView, billingSplit.overdue]);
 
+  // Loyalty tier: calcula progressão pela comissão paga acumulada
+  const loyalty = useMemo(
+    () => computeLoyaltyProgress(allTimeTotals.paid),
+    [allTimeTotals.paid],
+  );
+
+  // Auto-ajuste do percentual base ao cruzar meta (apenas rental)
+  const loyaltyAdjustedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!client || client.client_type !== 'aluguel') return;
+    const currentPct = Number(client.percentage_value) || 0;
+    const targetPct = loyalty.current.basePct;
+    // Só reduz — nunca aumenta um pct que admin possa ter definido manualmente
+    if (currentPct <= targetPct) return;
+    const key = `${client.id}:${targetPct}`;
+    if (loyaltyAdjustedRef.current === key) return;
+    loyaltyAdjustedRef.current = key;
+    (async () => {
+      const { error } = await supabase
+        .from('clients')
+        .update({ percentage_value: targetPct })
+        .eq('id', client.id);
+      if (!error) {
+        setClient((c: any) => c ? { ...c, percentage_value: targetPct } : c);
+        toast.success(`🎉 Nível ${loyalty.current.label} desbloqueado! Sua comissão base agora é ${targetPct}%.`, { duration: 8000 });
+      }
+    })();
+  }, [client, loyalty.current.basePct, loyalty.current.label]);
+
+  // Pop-up de boas-vindas / incentivo (1x por sessão por cliente)
+  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
+  const loyaltyDialogShownRef = useRef(false);
+  useEffect(() => {
+    if (loading || isAdminView || !client) return;
+    if (client.client_type !== 'aluguel') return;
+    if (loyaltyDialogShownRef.current) return;
+    const storageKey = `loyalty-popup:${client.id}:${loyalty.current.id}:${loyalty.nearNext ? 'near' : 'idle'}`;
+    if (sessionStorage.getItem(storageKey)) return;
+    // Mostra se: acabou de subir de tier (não-standard) OU está perto do próximo
+    if (loyalty.current.id !== 'standard' || loyalty.nearNext) {
+      loyaltyDialogShownRef.current = true;
+      sessionStorage.setItem(storageKey, '1');
+      setTimeout(() => setLoyaltyDialogOpen(true), 600);
+    }
+  }, [loading, isAdminView, client, loyalty.current.id, loyalty.nearNext]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
 
 
