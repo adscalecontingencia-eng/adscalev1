@@ -618,28 +618,45 @@ const ClientDashboard: React.FC = () => {
       </header>
 
 
-      <div className="p-4 lg:p-8 max-w-5xl mx-auto">
-        {/* Hero header KPI strip */}
-        <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-5 mb-5">
-          <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/15 blur-[60px] pointer-events-none" />
-          <div className="relative">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">
-              <Sparkles size={11} /> Bem-vindo, {client.name?.split(' ')[0]}
+      <div className="p-4 lg:p-8 max-w-[1400px] mx-auto">
+        {/* Hero + Loyalty — side-by-side no desktop */}
+        <div className={cn(
+          'grid gap-5 mb-5',
+          client.client_type === 'aluguel' ? 'lg:grid-cols-12' : 'grid-cols-1'
+        )}>
+          <div className={cn(
+            'relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-6 flex flex-col justify-between',
+            client.client_type === 'aluguel' ? 'lg:col-span-4' : ''
+          )}>
+            <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/15 blur-[60px] pointer-events-none" />
+            <div className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
+            <div className="relative">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">
+                <Sparkles size={11} /> Bem-vindo, {client.name?.split(' ')[0]}
+              </div>
+              <h2 className="font-display text-2xl lg:text-3xl font-bold text-foreground mb-2 leading-tight">
+                Sua operação em <span className="text-primary glow-text">tempo real</span>
+              </h2>
+              <p className="text-xs text-muted-foreground max-w-md">
+                Acompanhe investimento, contrato e cobranças em um só lugar. A agência protege seus ativos 24/7.
+              </p>
             </div>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-1">
-              Sua operação em <span className="text-primary glow-text">tempo real</span>
-            </h2>
-            <p className="text-xs text-muted-foreground max-w-xl">
-              Acompanhe seu investimento, contrato e cobranças em um só lugar. A agência protege seus ativos 24/7.
-            </p>
+            <div className="relative mt-6 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2.5 py-1">
+                <ShieldCheck size={11} /> Estrutura protegida
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary bg-primary/10 border border-primary/30 rounded-full px-2.5 py-1">
+                <Sparkles size={11} /> Sync automático
+              </span>
+            </div>
           </div>
-        </div>
 
-        {client.client_type === 'aluguel' && (
-          <div className="mb-5">
-            <LoyaltyTierCard progress={loyalty} />
-          </div>
-        )}
+          {client.client_type === 'aluguel' && (
+            <div className="lg:col-span-8">
+              <LoyaltyTierCard progress={loyalty} className="h-full" />
+            </div>
+          )}
+        </div>
 
 
 
