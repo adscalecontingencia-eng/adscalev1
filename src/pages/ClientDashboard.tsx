@@ -635,6 +635,14 @@ const ClientDashboard: React.FC = () => {
           </div>
         </div>
 
+        {client.client_type === 'aluguel' && (
+          <div className="mb-5">
+            <LoyaltyTierCard progress={loyalty} />
+          </div>
+        )}
+
+
+
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
           <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
