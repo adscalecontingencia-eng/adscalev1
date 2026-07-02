@@ -111,6 +111,7 @@ const App = () => (
       <ErrorBoundary>
         <AuthProvider>
           <HashRouter>
+            <ScrollToTop />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
