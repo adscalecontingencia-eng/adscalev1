@@ -23,6 +23,15 @@ export interface WeeklyRow {
   weekStart: Date;
   spend: number;
   commission: number;
+  rate?: number;
+  accounts?: WeeklyAccountSpend[];
+}
+
+export interface WeeklyAccountSpend {
+  id: string;
+  metaAccountId: string;
+  name: string;
+  spend: number;
 }
 
 export interface PaymentRow {
@@ -112,11 +121,13 @@ export interface AuditWeekRow {
   weekStart: Date;
   dueDate: Date;
   spend: number;
+  rate?: number;
   grossCommission: number;
   creditApplied: number;
   paidApplied: number;
   remaining: number;
   status: AuditWeekStatus;
+  accounts?: WeeklyAccountSpend[];
 }
 
 export interface BillingAudit {
@@ -184,11 +195,13 @@ export function computeBillingAudit(
       weekStart: w.weekStart,
       dueDate,
       spend: w.spend,
+      rate: w.rate,
       grossCommission: gross,
       creditApplied,
       paidApplied,
       remaining: Math.max(0, owe),
       status,
+      accounts: w.accounts,
     });
   }
 
