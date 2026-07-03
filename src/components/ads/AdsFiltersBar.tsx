@@ -132,6 +132,7 @@ export default function AdsFiltersBar(props: Props) {
           <span className="text-xs text-muted-foreground hidden md:inline">
             {activeAccountsCount} conta(s) ativa(s)
           </span>
+          <MetaApiHealthDialog />
           {syncChip}
         </div>
       </div>
