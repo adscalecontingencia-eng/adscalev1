@@ -221,6 +221,7 @@ export const ClientCard: React.FC<Props> = (props) => {
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showStructure, setShowStructure] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   // sparkline: últimos 14 dias
   const last14 = useMemo(() => {
