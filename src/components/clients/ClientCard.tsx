@@ -22,12 +22,12 @@ import {
   Copy,
   Search,
 } from 'lucide-react';
-import { BillingAudit } from '@/lib/billing-status';
+import { BillingAudit, getLastClosedBillingWeekRange } from '@/lib/billing-status';
 import { BillingAuditDialog } from './BillingAuditDialog';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
 import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
@@ -180,13 +180,13 @@ const sumInRange = (rows: { date: string; spend: number }[], start: Date, end: D
 const getRangeFor = (period: PeriodKey, custom: { start?: Date; end?: Date }): { start: Date; end: Date } | null => {
   const now = new Date();
   if (period === 'today') return { start: startOfDay(now), end: endOfDay(now) };
-  // Semana de cobrança do projeto: sexta → quinta (weekStartsOn: 5).
+  // Semana de cobrança do projeto: última semana fechada sexta → quinta.
   if (period === 'billing_week') {
-    return { start: startOfWeek(now, { weekStartsOn: 5 }), end: endOfWeek(now, { weekStartsOn: 5 }) };
+    return getLastClosedBillingWeekRange(now);
   }
   if (period === 'last_billing_week') {
-    const prev = subDays(startOfWeek(now, { weekStartsOn: 5 }), 1);
-    return { start: startOfWeek(prev, { weekStartsOn: 5 }), end: endOfWeek(prev, { weekStartsOn: 5 }) };
+    const lastClosed = getLastClosedBillingWeekRange(now);
+    return { start: startOfDay(subDays(lastClosed.start, 7)), end: endOfDay(subDays(lastClosed.end, 7)) };
   }
   if (period === '7d') return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
   if (period === '30d') return { start: startOfDay(subDays(now, 29)), end: endOfDay(now) };
@@ -400,8 +400,8 @@ export const ClientCard: React.FC<Props> = (props) => {
         <div className="mt-4 flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Detalhar por período:</span>
           <PeriodPill id="today" label="Hoje" />
-          <PeriodPill id="billing_week" label="Semana (sex→qui)" />
-          <PeriodPill id="last_billing_week" label="Semana anterior" />
+          <PeriodPill id="billing_week" label="Última semana fechada" />
+          <PeriodPill id="last_billing_week" label="Semana fechada anterior" />
           <PeriodPill id="7d" label="7 dias corridos" />
           <PeriodPill id="30d" label="30 dias" />
           <Popover>
@@ -448,8 +448,8 @@ export const ClientCard: React.FC<Props> = (props) => {
             icon={<DollarSign size={11} />}
             label={
               period === 'today' ? 'Gasto hoje' :
-              period === 'billing_week' ? 'Gasto semana (sex→qui)' :
-              period === 'last_billing_week' ? 'Gasto semana anterior' :
+              period === 'billing_week' ? 'Gasto última semana fechada' :
+              period === 'last_billing_week' ? 'Gasto semana fechada anterior' :
               period === '7d' ? 'Gasto 7d corridos' :
               period === '30d' ? 'Gasto 30d' :
               'Gasto período'

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHero } from "@/components/ui-kit";
 import { format, subDays, differenceInCalendarDays } from "date-fns";
 import { parseDateLocal } from "@/lib/date-utils";
+import { getLastClosedBillingWeekRange } from "@/lib/billing-status";
 
 import AdsKpiHero, { AdsMetrics } from "@/components/ads/AdsKpiHero";
 import AdsFiltersBar, { AdsRange, AccountStatus } from "@/components/ads/AdsFiltersBar";
@@ -50,6 +51,13 @@ function rangeToDates(r: AdsRange, customStart?: Date, customEnd?: Date): { sinc
   if (r === "yesterday") {
     const y = subDays(today, 1);
     return { since: fmtISO(y), until: fmtISO(y) };
+  }
+  if (r === "billing_week") {
+    const range = getLastClosedBillingWeekRange(today);
+    return {
+      since: fmtISO(range.start),
+      until: fmtISO(range.end),
+    };
   }
   if (r === "custom" && customStart && customEnd) {
     return { since: fmtISO(customStart), until: fmtISO(customEnd) };
@@ -98,7 +106,7 @@ export default function AdsDashboard() {
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const [autoSyncError, setAutoSyncError] = useState<string | null>(null);
 
-  const [range, setRange] = useState<AdsRange>("7d");
+  const [range, setRange] = useState<AdsRange>("billing_week");
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [filterBm, setFilterBm] = useState<string>("all");
