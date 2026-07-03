@@ -104,7 +104,7 @@ export const BillingAuditDialog: React.FC<Props> = ({ open, onOpenChange, client
                 <TableBody>
                   {audit.weeks.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-6 text-sm">
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-6 text-sm">
                         Nenhuma semana com comissão registrada.
                       </TableCell>
                     </TableRow>
