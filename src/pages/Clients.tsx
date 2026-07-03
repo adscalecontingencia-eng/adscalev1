@@ -19,7 +19,7 @@ import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/component
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
-import { splitOverdueVsCurrent, WeeklyRow } from '@/lib/billing-status';
+import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit } from '@/lib/billing-status';
 
 interface Client {
   id: string;
@@ -1000,6 +1000,18 @@ const Clients: React.FC = () => {
     return { comissaoPendente, comissaoPaga, saldoPendente, saldoAtrasado, totalAdSpend, creditRemaining };
   };
 
+  // Auditoria de cálculo: expõe o passo-a-passo semanal (crédito + pagamentos FIFO)
+  // usado para chegar em Saldo Acumulado / Pendente / Atrasado.
+  const getBillingAudit = (clientId: string): BillingAudit | null => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || client.clientType !== 'aluguel') return null;
+    const weeks = computeWeeklyForClient(clientId);
+    if (weeks.length === 0) return null;
+    const cc = getClientCommissions(clientId);
+    const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
+    return computeBillingAudit(weeks, Number(client.planCredit || 0), paidRows, new Date());
+  };
+
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
@@ -1401,6 +1413,7 @@ const Clients: React.FC = () => {
               saldoPendente={acc.saldoPendente}
               saldoAtrasado={acc.saldoAtrasado}
               creditRemaining={acc.creditRemaining}
+              audit={getBillingAudit(c.id)}
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
               accounts={accountsByClient[c.id] || []}

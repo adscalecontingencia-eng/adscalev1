@@ -20,7 +20,10 @@ import {
   Ban,
   Zap,
   Copy,
+  Search,
 } from 'lucide-react';
+import { BillingAudit } from '@/lib/billing-status';
+import { BillingAuditDialog } from './BillingAuditDialog';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -66,6 +69,7 @@ interface Props {
   saldoPendente: number;
   saldoAtrasado: number;
   creditRemaining?: number;
+  audit?: BillingAudit | null;
   status: ClientStatus;
   spendByDay: { date: string; spend: number }[];
   accounts?: AccountBreakdown[];
@@ -193,6 +197,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     saldoPendente,
     saldoAtrasado,
     creditRemaining,
+    audit,
     status,
     spendByDay,
     accounts = [],
@@ -216,6 +221,7 @@ export const ClientCard: React.FC<Props> = (props) => {
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showStructure, setShowStructure] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   // sparkline: últimos 14 dias
   const last14 = useMemo(() => {
@@ -493,9 +499,22 @@ export const ClientCard: React.FC<Props> = (props) => {
               <ChevronDown size={12} className={cn('transition-transform', showStructure && 'rotate-180')} />
             </button>
           )}
+          {c.clientType === 'aluguel' && (
+            <button
+              onClick={() => setShowAudit(true)}
+              disabled={!audit}
+              className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 border border-primary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
+              title="Ver como cada saldo foi calculado por semana"
+            >
+              <Search size={12} /> Auditar cálculo
+            </button>
+          )}
           <button
             onClick={onOpenHistory}
-            className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground border border-border transition-colors ml-auto"
+            className={cn(
+              "flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground border border-border transition-colors",
+              c.clientType !== 'aluguel' && 'ml-auto'
+            )}
           >
             <History size={12} /> Histórico
           </button>
@@ -656,6 +675,12 @@ export const ClientCard: React.FC<Props> = (props) => {
           Comissões geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
         </p>
       </div>
+      <BillingAuditDialog
+        open={showAudit}
+        onOpenChange={setShowAudit}
+        clientName={`${c.name}${c.companyName ? ' · ' + c.companyName : ''}`}
+        audit={audit ?? null}
+      />
     </motion.div>
   );
 };
