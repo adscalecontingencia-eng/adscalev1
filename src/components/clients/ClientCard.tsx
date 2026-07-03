@@ -180,6 +180,14 @@ const sumInRange = (rows: { date: string; spend: number }[], start: Date, end: D
 const getRangeFor = (period: PeriodKey, custom: { start?: Date; end?: Date }): { start: Date; end: Date } | null => {
   const now = new Date();
   if (period === 'today') return { start: startOfDay(now), end: endOfDay(now) };
+  // Semana de cobrança do projeto: sexta → quinta (weekStartsOn: 5).
+  if (period === 'billing_week') {
+    return { start: startOfWeek(now, { weekStartsOn: 5 }), end: endOfWeek(now, { weekStartsOn: 5 }) };
+  }
+  if (period === 'last_billing_week') {
+    const prev = subDays(startOfWeek(now, { weekStartsOn: 5 }), 1);
+    return { start: startOfWeek(prev, { weekStartsOn: 5 }), end: endOfWeek(prev, { weekStartsOn: 5 }) };
+  }
   if (period === '7d') return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
   if (period === '30d') return { start: startOfDay(subDays(now, 29)), end: endOfDay(now) };
   if (period === 'custom' && custom.start && custom.end) {
