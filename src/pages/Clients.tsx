@@ -19,7 +19,7 @@ import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/component
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
-import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit } from '@/lib/billing-status';
+import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit, getLastClosedBillingWeekRange } from '@/lib/billing-status';
 
 interface Client {
   id: string;
@@ -288,26 +288,26 @@ const Clients: React.FC = () => {
     return allInsights;
   };
 
-  // Garante que Hoje/Ontem dos clientes refletem o último sync da Meta:
-  // se as últimas 2 datas vierem sem nada, dispara meta-sync e recarrega.
-  // Evita que o gasto por cliente fique zerado quando o admin abre a tela
-  // antes do auto-sync de /ads ter rodado.
+  // Garante que a última semana fechada (sexta→quinta) esteja sincronizada
+  // antes de calcular cobrança/atraso. Essa é a janela usada para comparar
+  // com o Meta Ads e para mover de acumulado para atrasado na sexta.
   const didInsightsAutoSync = useRef(false);
   const ensureRecentInsights = async () => {
     if (didInsightsAutoSync.current) return;
     didInsightsAutoSync.current = true;
-    const today = fmtISO(new Date());
-    const yday = fmtISO(subDays(new Date(), 1));
+    const closedWeek = getLastClosedBillingWeekRange(new Date());
+    const since = fmtISO(closedWeek.start);
+    const until = fmtISO(closedWeek.end);
     const { data } = await supabase
       .from('meta_ad_insights')
       .select('date')
-      .gte('date', yday)
-      .lte('date', today)
+      .gte('date', since)
+      .lte('date', until)
       .limit(1);
     if ((data || []).length > 0) return;
     try {
       await supabase.functions.invoke('meta-sync', {
-        body: { action: 'sync_insights', since: yday, until: today },
+        body: { action: 'sync_insights', since, until },
       });
       await fetchInsightsByClient();
     } catch (e) {
