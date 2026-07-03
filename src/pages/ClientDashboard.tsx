@@ -80,11 +80,11 @@ const ClientDashboard: React.FC = () => {
     const { data: assigns } = await supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
-      .eq('client_id', clientId)
-      .eq('active', true);
-    const list = assigns || [];
+      .eq('client_id', clientId);
+    const assignments = assigns || [];
+    const list = assignments.filter((a: any) => a.active);
     setActiveAccounts(list);
-    const latest = list
+    const latest = assignments
       .map((a: any) => a.ad_account?.last_synced_at)
       .filter(Boolean)
       .sort()
@@ -94,11 +94,12 @@ const ClientDashboard: React.FC = () => {
     // Load insights for these ad accounts.
     // CRÍTICO: filtra por vigência (effective_from / effective_to) para nunca
     // contar gasto anterior à atribuição da conta a este cliente.
-    if (list.length > 0) {
+    const assignmentsForInsights = assignments.filter((a: any) => a.ad_account?.id);
+    if (assignmentsForInsights.length > 0) {
       const fallback = new Date();
       fallback.setMonth(fallback.getMonth() - 12);
       const fallbackStr = fallback.toISOString().split('T')[0];
-      const results = await Promise.all(list.map(async (a: any) => {
+      const results = await Promise.all(assignmentsForInsights.map(async (a: any) => {
         const accId = a.ad_account?.id;
         if (!accId) return [] as any[];
         const since = a.effective_from || fallbackStr;
@@ -111,7 +112,13 @@ const ClientDashboard: React.FC = () => {
         const { data } = await q.order('date', { ascending: true }).range(0, 99999);
         return data || [];
       }));
-      setInsights(results.flat());
+      const seen = new Set<string>();
+      setInsights(results.flat().filter((row: any) => {
+        const key = `${row.ad_account_id}|${String(row.date).slice(0, 10)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }));
     } else {
       setInsights([]);
     }
@@ -364,7 +371,7 @@ const ClientDashboard: React.FC = () => {
     rows.forEach(r => {
       const d = parseDateLocal(r.date);
       const ws = startOfWeek(d, { weekStartsOn: 5 });
-      const key = ws.toISOString().slice(0, 10);
+      const key = format(ws, 'yyyy-MM-dd');
       byWeek[key] = (byWeek[key] || 0) + Number(r.spend || 0);
     });
     let total = 0;
@@ -415,7 +422,7 @@ const ClientDashboard: React.FC = () => {
     insights.forEach((i: any) => {
       const d = parseDateLocal(i.date);
       const ws = startOfWeek(d, { weekStartsOn: 5 });
-      const key = ws.toISOString().slice(0, 10);
+      const key = format(ws, 'yyyy-MM-dd');
       byWeek[key] = (byWeek[key] || 0) + Number(i.spend || 0);
     });
     return Object.entries(byWeek)
