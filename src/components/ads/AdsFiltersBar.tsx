@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import {
   RefreshCw, BarChart3, Users, X, Search, CalendarIcon, Building2, ShieldCheck,
 } from "lucide-react";
+import MetaApiHealthDialog from "./MetaApiHealthDialog";
 
 export type AdsRange = "today" | "yesterday" | "7d" | "30d" | "90d" | "custom";
 export type AccountStatus = "all" | "active" | "blocked";
@@ -132,6 +133,7 @@ export default function AdsFiltersBar(props: Props) {
           <span className="text-xs text-muted-foreground hidden md:inline">
             {activeAccountsCount} conta(s) ativa(s)
           </span>
+          <MetaApiHealthDialog />
           {syncChip}
         </div>
       </div>
