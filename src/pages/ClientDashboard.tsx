@@ -451,7 +451,6 @@ const ClientDashboard: React.FC = () => {
 
     const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
     const totalApplied = rows.reduce((s, r) => s + r.creditApplied, 0);
-    const totalPaying = rows.reduce((s, r) => s + r.clientPays, 0);
     const totalStillOwed = rows.reduce((s, r) => s + r.stillOwed, 0);
     const totalPaidApplied = rows.reduce((s, r) => s + r.paidApplied, 0);
 
@@ -460,7 +459,6 @@ const ClientDashboard: React.FC = () => {
       remaining,
       totalCommission,
       totalApplied,
-      totalPaying,
       totalStillOwed,
       totalPaidApplied,
       startDate: startDateStr,
