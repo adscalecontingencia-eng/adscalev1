@@ -662,6 +662,12 @@ export const ClientCard: React.FC<Props> = (props) => {
           Comissões geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
         </p>
       </div>
+      <BillingAuditDialog
+        open={showAudit}
+        onOpenChange={setShowAudit}
+        clientName={`${c.name}${c.companyName ? ' · ' + c.companyName : ''}`}
+        audit={audit ?? null}
+      />
     </motion.div>
   );
 };
