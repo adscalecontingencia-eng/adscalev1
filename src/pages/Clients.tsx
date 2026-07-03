@@ -298,13 +298,6 @@ const Clients: React.FC = () => {
     const closedWeek = getLastClosedBillingWeekRange(new Date());
     const since = fmtISO(closedWeek.start);
     const until = fmtISO(closedWeek.end);
-    const { data } = await supabase
-      .from('meta_ad_insights')
-      .select('date')
-      .gte('date', since)
-      .lte('date', until)
-      .limit(1);
-    if ((data || []).length > 0) return;
     try {
       await supabase.functions.invoke('meta-sync', {
         body: { action: 'sync_insights', since, until },
