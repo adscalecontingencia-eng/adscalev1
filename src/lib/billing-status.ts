@@ -82,3 +82,103 @@ export function splitOverdueVsCurrent(
 
   return { overdue, currentPending, weeksOverdue, weeksCurrent };
 }
+
+export type AuditWeekStatus = 'liquidada' | 'creditada' | 'paga' | 'pendente' | 'atrasada';
+
+export interface AuditWeekRow {
+  weekStart: Date;
+  dueDate: Date;
+  spend: number;
+  grossCommission: number;
+  creditApplied: number;
+  paidApplied: number;
+  remaining: number;
+  status: AuditWeekStatus;
+}
+
+export interface BillingAudit {
+  planCredit: number;
+  totalPaid: number;
+  creditUsed: number;
+  creditRemaining: number;
+  paidUsed: number;
+  paidRemaining: number;
+  grossTotal: number;
+  overdue: number;
+  currentPending: number;
+  weeks: AuditWeekRow[];
+}
+
+/**
+ * Reproduz o mesmo motor FIFO de `splitOverdueVsCurrent`, mas retorna o
+ * detalhamento por semana (crédito aplicado, pagamento aplicado, restante,
+ * status). Serve para a tela de auditoria exibida ao cliente/admin, deixando
+ * cada centavo do "Saldo Acumulado" / "Saldo Atrasado" rastreável.
+ */
+export function computeBillingAudit(
+  weeks: WeeklyRow[],
+  planCredit: number,
+  paidRows: PaymentRow[] = [],
+  now: Date = new Date(),
+): BillingAudit {
+  const sorted = [...weeks].sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+  const totalCredit = Math.max(0, planCredit);
+  const totalPaid = paidRows.reduce((sum, p) => sum + Math.max(0, Number(p.amount || 0)), 0);
+  let credit = totalCredit;
+  let paid = totalPaid;
+  let overdue = 0;
+  let currentPending = 0;
+  let grossTotal = 0;
+  const rows: AuditWeekRow[] = [];
+
+  for (const w of sorted) {
+    const gross = Math.max(0, w.commission);
+    grossTotal += gross;
+    if (gross <= 0) continue;
+    const creditApplied = Math.min(credit, gross);
+    credit -= creditApplied;
+    let owe = gross - creditApplied;
+    const paidApplied = Math.min(paid, owe);
+    paid -= paidApplied;
+    owe -= paidApplied;
+    const dueDate = addDays(w.weekStart, 7);
+
+    let status: AuditWeekStatus;
+    if (owe <= 0.0001) {
+      if (creditApplied > 0 && paidApplied <= 0) status = 'creditada';
+      else if (paidApplied > 0 && creditApplied <= 0) status = 'paga';
+      else status = 'liquidada';
+    } else if (now.getTime() > dueDate.getTime()) {
+      status = 'atrasada';
+      overdue += owe;
+    } else {
+      status = 'pendente';
+      currentPending += owe;
+    }
+
+    rows.push({
+      weekStart: w.weekStart,
+      dueDate,
+      spend: w.spend,
+      grossCommission: gross,
+      creditApplied,
+      paidApplied,
+      remaining: Math.max(0, owe),
+      status,
+    });
+  }
+
+  return {
+    planCredit: totalCredit,
+    totalPaid,
+    creditUsed: totalCredit - credit,
+    creditRemaining: credit,
+    paidUsed: totalPaid - paid,
+    paidRemaining: paid,
+    grossTotal,
+    overdue,
+    currentPending,
+    weeks: rows,
+  };
+}
+
