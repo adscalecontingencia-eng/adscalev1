@@ -480,7 +480,13 @@ const ClientDashboard: React.FC = () => {
     const startTs = 0;
 
     let remaining = credit;
-    let paidPool = paidCommissionRows.reduce((sum, p) => sum + Math.max(0, Number(p.amount || 0)), 0);
+    const paymentPool = paidCommissionRows
+      .map(p => ({
+        ts: parseDateLocal(String(p.date)).getTime(),
+        remaining: Math.max(0, Number(p.amount || 0)),
+      }))
+      .filter(p => p.remaining > 0)
+      .sort((a, b) => a.ts - b.ts);
 
     const rows = weeklyCommissionHistory.map(w => {
       const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
@@ -488,8 +494,17 @@ const ClientDashboard: React.FC = () => {
       const afterCredit = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
 
-      const paidApplied = Math.min(paidPool, afterCredit);
-      paidPool = Math.max(0, paidPool - paidApplied);
+      const dueTs = getBillingDueDate(w.weekStart).getTime();
+      let paidApplied = 0;
+      let oweAfterPayment = afterCredit;
+      for (const payment of paymentPool) {
+        if (oweAfterPayment <= 0.0001) break;
+        if (payment.ts < dueTs || payment.remaining <= 0) continue;
+        const pay = Math.min(payment.remaining, oweAfterPayment);
+        payment.remaining -= pay;
+        paidApplied += pay;
+        oweAfterPayment -= pay;
+      }
       const stillOwed = Math.max(0, afterCredit - paidApplied);
 
       return {
