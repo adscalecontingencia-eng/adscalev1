@@ -8,6 +8,37 @@ const WHATSAPP_URL =
   "https://wa.me/5531998416336?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
 const INSTAGRAM_URL = "https://instagram.com/adscale";
 
+const SEO_KEYWORDS: string[] = [
+  "comprar bm verificada","bm verificada","bm verificada comprar","comprar bm verificada facebook",
+  "bm verificada facebook","comprar bm","comprar bm facebook","comprar bm facebook ads",
+  "comprar bm ilimitada","bm ilimitada","bm com gastos","bm contingencia","bm contingência",
+  "contingência meta ads","contingencia meta ads","contingência facebook ads","contingencia facebook ads",
+  "contingência facebook ads comprar","contingência facebook","contingencia facebook","contingência meta",
+  "contingencia meta","fornecedor de bm","fornecedor bm verificada","fornecedor de contas de anúncio",
+  "qualidade da conta meta","qualidade da conta meta ads","qualidade da conta","qualidade conta facebook ads",
+  "meta account quality","account quality","account quality facebook","trust tier facebook",
+  "trust tier meta ads","trust tier meta","auditoria do facebook","auditoria conta facebook ads",
+  "auditoria meta ads","consultoria de facebook ads","consultoria facebook ads","consultoria meta ads",
+  "consultoria de tráfego pago","aluguel de bm","aluguel de conta de anúncio","aluguel bm verificada",
+  "alugar bm facebook","alugar conta de anúncio facebook","alugar conta meta ads",
+  "conta de anúncio facebook","conta de anúncio meta","conta de anúncio bloqueada",
+  "conta anúncio bloqueada facebook","desbloquear conta de anúncio facebook",
+  "recuperar conta de anúncio meta","reativar conta de anúncio facebook","bm bloqueada facebook",
+  "bm bloqueada meta","bm banida recuperar","business manager bloqueado","business manager verificado",
+  "business manager comprar","business manager ilimitado","business manager com limite alto",
+  "bm com limite alto","bm sem limite","bm gastos altos","bm alta qualidade","bm antiga",
+  "bm envelhecida","bm aquecida","conta antiga facebook ads","conta envelhecida facebook ads",
+  "conta aquecida meta ads","perfil facebook para bm","perfil aquecido facebook",
+  "perfil antigo facebook anúncios","página antiga facebook","página facebook para anúncios",
+  "página verificada facebook comprar","estrutura para tráfego pago","estrutura anti bloqueio meta ads",
+  "estrutura contingência facebook","escalar facebook ads","escalar meta ads","escalar tráfego pago",
+  "lateralização de contas facebook","reposição de bm","reposição de conta de anúncio",
+  "gestor de tráfego contingência","agência de tráfego pago","serviços meta ads","serviços facebook ads",
+  "proxy para facebook ads","multilogin para facebook ads","anti detect facebook ads",
+  "tráfego pago escala","tráfego pago black","tráfego pago contingência",
+  "marketplace de contas de anúncio","marketplace bm verificada",
+];
+
 const MarketplaceFooter: React.FC = () => {
   return (
     <>
