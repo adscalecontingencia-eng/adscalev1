@@ -610,10 +610,10 @@ const Clients: React.FC = () => {
     const percentApplied = client.clientType === 'aluguel'
       ? getClientTierPercentage(client, accumWeek + adSpend)
       : 0;
-    const now = new Date();
-    // weekStartsOn=5 (sexta) — convenção do projeto: "sexta a quinta — fecha quinta, paga sexta seguinte"
-    const weekStart = startOfWeek(now, { weekStartsOn: 5 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 5 });
+    // weekStartsOn=5 (sexta) — usa a data lançada para não atribuir gasto
+    // manual à semana errada quando o lançamento é retroativo.
+    const weekStart = startOfWeek(commissionDate, { weekStartsOn: 5 });
+    const weekEnd = endOfWeek(commissionDate, { weekStartsOn: 5 });
 
     const { error: commError } = await supabase.from('commissions').insert({
       client_id: clientId, 
@@ -734,10 +734,8 @@ const Clients: React.FC = () => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
 
-    const now = new Date();
-    // weekStartsOn=5 (sexta) — convenção do projeto
-    const weekStart = startOfWeek(now, { weekStartsOn: 5 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 5 });
+    // Fechamento semanal sempre olha a última semana fechada sexta→quinta.
+    const { start: weekStart, end: weekEnd } = getLastClosedBillingWeekRange(new Date());
 
     const existing = commissions.find(c =>
       c.clientId === clientId && c.type === 'weekly_billing' &&
@@ -880,7 +878,7 @@ const Clients: React.FC = () => {
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
       case 'yesterday': { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
-      case 'week': return { start: startOfWeek(now, { weekStartsOn: 5 }), end: endOfWeek(now, { weekStartsOn: 5 }) };
+      case 'week': return getLastClosedBillingWeekRange(now);
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return customStart && customEnd ? { start: startOfDay(customStart), end: endOfDay(customEnd) } : null;
     }
