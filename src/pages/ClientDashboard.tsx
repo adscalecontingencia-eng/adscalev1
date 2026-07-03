@@ -58,6 +58,24 @@ const ClientDashboard: React.FC = () => {
   const [estruturaCustomStart, setEstruturaCustomStart] = useState<Date>(new Date(Date.now() - 6 * 86400000));
   const [estruturaCustomEnd, setEstruturaCustomEnd] = useState<Date>(new Date());
 
+  const fmtISO = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const syncClosedBillingWeek = async () => {
+    const range = getLastClosedBillingWeekRange(new Date());
+    try {
+      await supabase.functions.invoke('meta-sync', {
+        body: { action: 'sync_insights', since: fmtISO(range.start), until: fmtISO(range.end) },
+      });
+    } catch (e) {
+      console.warn('[ClientDashboard] sync da semana fechada falhou:', e);
+    }
+  };
+
   const fetchAccounts = useCallback(async (clientId: string) => {
     const { data: assigns } = await supabase
       .from('meta_ad_account_assignments')
@@ -158,6 +176,7 @@ const ClientDashboard: React.FC = () => {
           if (Object.keys(subErrors).length > 0) {
             console.warn('[ClientDashboard][telemetry] falhas em sub-consultas', { ...ctx, clientId: clientData.id, subErrors });
           }
+          await syncClosedBillingWeek();
           await fetchAccounts(clientData.id);
           setCommissions(commRes.data || []);
           setSavedAccounts(blockedRes.data || []);
@@ -211,6 +230,7 @@ const ClientDashboard: React.FC = () => {
   const refreshAccounts = async () => {
     if (!client?.id) return;
     setRefreshingAccounts(true);
+    await syncClosedBillingWeek();
     await fetchAccounts(client.id);
     setRefreshingAccounts(false);
     toast.success('Contas atualizadas');
