@@ -197,6 +197,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     saldoPendente,
     saldoAtrasado,
     creditRemaining,
+    audit,
     status,
     spendByDay,
     accounts = [],
