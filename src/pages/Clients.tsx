@@ -192,6 +192,14 @@ const Clients: React.FC = () => {
 
   // Insights + assignments (para calcular Saldo Acumulado igual ao dashboard do cliente)
   const [insightsByClient, setInsightsByClient] = useState<Record<string, { date: string; spend: number }[]>>({});
+  const [accountsByClient, setAccountsByClient] = useState<Record<string, {
+    id: string;
+    meta_account_id: string;
+    name: string;
+    status: string;
+    account_status: number | null;
+    spendByDay: { date: string; spend: number }[];
+  }[]>>({});
   const fmtISO = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -199,15 +207,19 @@ const Clients: React.FC = () => {
     return `${y}-${m}-${day}`;
   };
   const fetchInsightsByClient = async () => {
-    const assignRes = await supabase
-      .from('meta_ad_account_assignments')
-      .select('ad_account_id, client_id, active, effective_from, effective_to')
-      .eq('active', true);
+    const [assignRes, accRes] = await Promise.all([
+      supabase
+        .from('meta_ad_account_assignments')
+        .select('ad_account_id, client_id, active, effective_from, effective_to')
+        .eq('active', true),
+      supabase
+        .from('meta_ad_accounts')
+        .select('id, meta_account_id, name, status, account_status'),
+    ]);
     if (assignRes.error) return;
 
     // A API limita cada resposta em 1000 linhas mesmo com range maior.
-    // Paginar garante que semanas recentes (sexta→quinta) não fiquem fora do admin,
-    // que era o motivo do Saldo Acumulado zerar enquanto o dashboard do cliente estava correto.
+    // Paginar garante que semanas recentes (sexta→quinta) não fiquem fora do admin.
     const allInsights: any[] = [];
     const pageSize = 1000;
     for (let from = 0; ; from += pageSize) {
@@ -220,15 +232,17 @@ const Clients: React.FC = () => {
       allInsights.push(...(data || []));
       if (!data || data.length < pageSize) break;
     }
-    // CRÍTICO: respeitar vigência da atribuição. Gasto antes de effective_from
-    // (ou após effective_to) NÃO pertence ao cliente.
     const accWindows = new Map<string, { client_id: string; from: string | null; to: string | null }>();
     (assignRes.data || []).forEach((a: any) => accWindows.set(a.ad_account_id, {
       client_id: a.client_id,
       from: a.effective_from || null,
       to: a.effective_to || null,
     }));
+    const accMeta = new Map<string, any>();
+    (accRes.data || []).forEach((a: any) => accMeta.set(a.id, a));
+
     const byClient: Record<string, { date: string; spend: number }[]> = {};
+    const perAccByClient: Record<string, Record<string, { date: string; spend: number }[]>> = {};
     allInsights.forEach((i: any) => {
       const win = accWindows.get(i.ad_account_id);
       if (!win) return;
@@ -238,8 +252,29 @@ const Clients: React.FC = () => {
       const cid = win.client_id;
       if (!byClient[cid]) byClient[cid] = [];
       byClient[cid].push({ date: i.date, spend: Number(i.spend || 0) });
+      if (!perAccByClient[cid]) perAccByClient[cid] = {};
+      if (!perAccByClient[cid][i.ad_account_id]) perAccByClient[cid][i.ad_account_id] = [];
+      perAccByClient[cid][i.ad_account_id].push({ date: i.date, spend: Number(i.spend || 0) });
     });
+
+    // Listar todas as contas atribuídas (mesmo sem insights)
+    const accsByClient: Record<string, any[]> = {};
+    (assignRes.data || []).forEach((a: any) => {
+      const meta = accMeta.get(a.ad_account_id);
+      if (!meta) return;
+      if (!accsByClient[a.client_id]) accsByClient[a.client_id] = [];
+      accsByClient[a.client_id].push({
+        id: meta.id,
+        meta_account_id: meta.meta_account_id,
+        name: meta.name || meta.meta_account_id,
+        status: meta.status || 'unknown',
+        account_status: meta.account_status ?? null,
+        spendByDay: (perAccByClient[a.client_id]?.[a.ad_account_id] || []),
+      });
+    });
+
     setInsightsByClient(byClient);
+    setAccountsByClient(accsByClient);
     return allInsights;
   };
 
@@ -1364,6 +1399,7 @@ const Clients: React.FC = () => {
               creditRemaining={acc.creditRemaining}
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
+              accounts={accountsByClient[c.id] || []}
               isAdmin={isAdmin}
               showPayForm={showPaidForm === c.id}
               isSubmittingPayment={validatingPaymentClientId === c.id}
