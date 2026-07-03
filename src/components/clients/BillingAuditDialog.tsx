@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { BillingAudit, AuditWeekStatus } from '@/lib/billing-status';
-import { AlertTriangle, CheckCircle, CircleDot, Gift, Wallet, Info } from 'lucide-react';
+import { AlertTriangle, CheckCircle, CircleDot, Gift, Wallet, Info, ChevronDown } from 'lucide-react';
 
 const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -43,6 +43,8 @@ const KpiCard: React.FC<{ label: string; value: string; tone?: 'default'|'succes
 };
 
 export const BillingAuditDialog: React.FC<Props> = ({ open, onOpenChange, clientName, audit }) => {
+  const [expandedWeek, setExpandedWeek] = React.useState<number | null>(null);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -96,6 +98,7 @@ export const BillingAuditDialog: React.FC<Props> = ({ open, onOpenChange, client
                     <TableHead className="text-[10px] uppercase text-right">Pago</TableHead>
                     <TableHead className="text-[10px] uppercase text-right">Restante</TableHead>
                     <TableHead className="text-[10px] uppercase">Status</TableHead>
+                    <TableHead className="text-[10px] uppercase text-right">Contas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -109,7 +112,8 @@ export const BillingAuditDialog: React.FC<Props> = ({ open, onOpenChange, client
                   {audit.weeks.map((w, idx) => {
                     const meta = STATUS_META[w.status];
                     return (
-                      <TableRow key={idx} className="text-xs">
+                      <React.Fragment key={idx}>
+                      <TableRow className="text-xs">
                         <TableCell className="whitespace-nowrap font-medium">
                           {format(w.weekStart, 'dd/MM', { locale: ptBR })} → {format(new Date(w.weekStart.getTime() + 6*86400000), 'dd/MM/yy', { locale: ptBR })}
                         </TableCell>
@@ -137,7 +141,59 @@ export const BillingAuditDialog: React.FC<Props> = ({ open, onOpenChange, client
                             {meta.icon}{meta.label}
                           </span>
                         </TableCell>
+                        <TableCell className="text-right">
+                          {w.accounts?.length ? (
+                            <button
+                              onClick={() => setExpandedWeek(expandedWeek === idx ? null : idx)}
+                              className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
+                            >
+                              {w.accounts.length} contas
+                              <ChevronDown size={11} className={cn('transition-transform', expandedWeek === idx && 'rotate-180')} />
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                       </TableRow>
+                      {expandedWeek === idx && w.accounts?.length ? (
+                        <TableRow className="bg-secondary/20">
+                          <TableCell colSpan={9} className="p-0">
+                            <div className="p-3">
+                              <div className="flex items-center justify-between gap-3 mb-2">
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Gasto direto por conta Meta</p>
+                                  <p className="text-[11px] text-muted-foreground">Soma dos insights sincronizados no período da semana selecionada.</p>
+                                </div>
+                                <div className="text-right text-[11px]">
+                                  <span className="text-muted-foreground">Total Meta</span>
+                                  <div className="font-bold text-foreground">{fmt(w.accounts.reduce((s, a) => s + a.spend, 0))}</div>
+                                </div>
+                              </div>
+                              <div className="max-h-64 overflow-y-auto rounded-md border border-border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow className="bg-background/40">
+                                      <TableHead className="text-[10px] uppercase">Conta</TableHead>
+                                      <TableHead className="text-[10px] uppercase">ID Meta</TableHead>
+                                      <TableHead className="text-[10px] uppercase text-right">Gasto</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {w.accounts.map(account => (
+                                      <TableRow key={account.id} className="text-xs">
+                                        <TableCell className="font-medium">{account.name}</TableCell>
+                                        <TableCell className="font-mono text-[11px] text-muted-foreground">{account.metaAccountId}</TableCell>
+                                        <TableCell className="text-right tabular-nums font-semibold">{fmt(account.spend)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      </React.Fragment>
                     );
                   })}
                 </TableBody>
