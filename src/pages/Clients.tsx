@@ -1413,6 +1413,7 @@ const Clients: React.FC = () => {
               saldoPendente={acc.saldoPendente}
               saldoAtrasado={acc.saldoAtrasado}
               creditRemaining={acc.creditRemaining}
+              audit={getBillingAudit(c.id)}
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
               accounts={accountsByClient[c.id] || []}
