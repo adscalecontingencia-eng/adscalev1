@@ -824,14 +824,14 @@ const ClientDashboard: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · valor a pagar acumulado <strong className="text-amber-300">{fmt(creditPlan.totalPaying)}</strong>.
+                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · saldo em aberto real <strong className="text-amber-300">{fmt(creditPlan.totalStillOwed)}</strong>.
                   </p>
 
                   {(() => {
                     const PAGE_SIZE = 8;
                     // Filtro do histórico
                     const filteredRows = creditPlan.rows.filter(r => {
-                      if (historyFilter === 'paying') return r.clientPays > 0;
+                      if (historyFilter === 'paying') return r.stillOwed > 0;
                       if (historyFilter === 'covered') return r.creditApplied >= r.commission && r.commission > 0;
                       return true; // 'recent' | 'all'
                     });
@@ -851,7 +851,7 @@ const ClientDashboard: React.FC = () => {
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filtrar:</span>
                           {([
                             { k: 'recent', l: 'Mais recentes' },
-                            { k: 'paying', l: 'Com pagamento' },
+                            { k: 'paying', l: 'Em aberto' },
                             { k: 'covered', l: 'Cobertas pelo crédito' },
                             { k: 'all', l: `Todas (${creditPlan.rows.length})` },
                           ] as const).map(opt => (
@@ -875,8 +875,8 @@ const ClientDashboard: React.FC = () => {
                             const absoluteIdx = creditPlan.rows.indexOf(r);
                             const pct = r.commission > 0 ? Math.max(1, (r.creditApplied / r.commission) * 100) : 0;
                             const isFirstPaying = r.creditApplied < r.commission
-                              && r.clientPays > 0
-                              && (absoluteIdx === 0 || creditPlan.rows[absoluteIdx - 1].clientPays === 0);
+                              && r.stillOwed > 0
+                              && (absoluteIdx === 0 || creditPlan.rows[absoluteIdx - 1].stillOwed === 0);
                             return (
                               <div key={absoluteIdx} className={cn(
                                 "rounded-lg border p-3",
@@ -890,7 +890,7 @@ const ClientDashboard: React.FC = () => {
                                     </span>
                                     {isFirstPaying && (
                                       <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
-                                        Início dos pagamentos
+                                        Primeiro saldo em aberto
                                       </span>
                                     )}
                                   </div>
@@ -909,13 +909,13 @@ const ClientDashboard: React.FC = () => {
                                       </span>
                                     </div>
                                   )}
-                                  {r.clientPays > 0 && (
+                                  {r.stillOwed > 0 && (
                                     <div
                                       className="absolute inset-y-0 right-0 bg-amber-400/80 flex items-center justify-end px-2"
                                       style={{ width: `${100 - pct}%` }}
                                     >
                                       <span className="text-[10px] font-bold text-background whitespace-nowrap">
-                                        {fmt(r.clientPays)}
+                                        {fmt(r.stillOwed)}
                                       </span>
                                     </div>
                                   )}
