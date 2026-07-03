@@ -1,7 +1,19 @@
-import { addDays, endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
+import { addDays, endOfDay, endOfWeek, format, startOfDay, startOfWeek } from 'date-fns';
+
+export function formatDateISO(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
+}
 
 export function getBillingDueDate(weekStart: Date): Date {
   return startOfDay(addDays(weekStart, 7));
+}
+
+export function getBillingWeekEnd(weekStart: Date): Date {
+  return endOfDay(addDays(weekStart, 6));
+}
+
+export function isBillingWeekOverdue(weekStart: Date, now: Date = new Date()): boolean {
+  return startOfDay(now).getTime() >= getBillingDueDate(weekStart).getTime();
 }
 
 export function getCurrentBillingWeekRange(now: Date = new Date()): { start: Date; end: Date } {
@@ -102,8 +114,7 @@ export function splitOverdueVsCurrent(
     // (weekStart + 7). No próprio dia do vencimento a dívida JÁ é
     // considerada atrasada — ex.: semana 26/06→02/07 vira "atrasada"
     // em 03/07 (sexta). Usamos startOfDay para incluir a sexta inteira.
-    const dueDate = getBillingDueDate(w.weekStart);
-    if (now.getTime() >= dueDate.getTime()) {
+    if (isBillingWeekOverdue(w.weekStart, now)) {
       overdue += owe;
       weeksOverdue.push({ ...w, commission: owe });
     } else {
@@ -183,7 +194,7 @@ export function computeBillingAudit(
       if (creditApplied > 0 && paidApplied <= 0) status = 'creditada';
       else if (paidApplied > 0 && creditApplied <= 0) status = 'paga';
       else status = 'liquidada';
-    } else if (now.getTime() >= dueDate.getTime()) {
+    } else if (isBillingWeekOverdue(w.weekStart, now)) {
       status = 'atrasada';
       overdue += owe;
     } else {
