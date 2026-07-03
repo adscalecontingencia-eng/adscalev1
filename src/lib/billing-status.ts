@@ -70,13 +70,12 @@ export function splitOverdueVsCurrent(
     owe -= applyPaid;
     if (owe <= 0.0001) continue;
 
-    // Vencimento = sexta seguinte (weekStart + 7 dias). A dívida só vira
-    // "atrasada" APÓS o fim dessa sexta — no dia do vencimento ainda está
-    // pendente (é o dia em que o cliente paga). Sem o endOfDay, toda sexta
-    // as semanas fechadas apareciam como atrasadas às 00:00, inflando o
-    // "Saldo Atrasado" e drenando o "Saldo Acumulado".
-    const dueDate = endOfDay(addDays(w.weekStart, 7));
-    if (now.getTime() > dueDate.getTime()) {
+    // Regra do produto: semana sex→qui vence na sexta seguinte
+    // (weekStart + 7). No próprio dia do vencimento a dívida JÁ é
+    // considerada atrasada — ex.: semana 26/06→02/07 vira "atrasada"
+    // em 03/07 (sexta). Usamos startOfDay para incluir a sexta inteira.
+    const dueDate = addDays(w.weekStart, 7);
+    if (now.getTime() >= dueDate.getTime()) {
       overdue += owe;
       weeksOverdue.push({ ...w, commission: owe });
     } else {
@@ -146,10 +145,7 @@ export function computeBillingAudit(
     const paidApplied = Math.min(paid, owe);
     paid -= paidApplied;
     owe -= paidApplied;
-    // Vence na sexta seguinte; só atrasa APÓS o fim daquela sexta (senão
-    // toda sexta-feira o card mostrava a semana anterior como atrasada às
-    // 00:00, mesmo sendo o próprio dia do pagamento).
-    const dueDateEnd = endOfDay(addDays(w.weekStart, 7));
+    // Vence na sexta seguinte; a partir das 00:00 dessa sexta já é atrasada.
     const dueDate = addDays(w.weekStart, 7);
 
     let status: AuditWeekStatus;
@@ -157,7 +153,7 @@ export function computeBillingAudit(
       if (creditApplied > 0 && paidApplied <= 0) status = 'creditada';
       else if (paidApplied > 0 && creditApplied <= 0) status = 'paga';
       else status = 'liquidada';
-    } else if (now.getTime() > dueDateEnd.getTime()) {
+    } else if (now.getTime() >= dueDate.getTime()) {
       status = 'atrasada';
       overdue += owe;
     } else {
