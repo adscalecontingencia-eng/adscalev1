@@ -499,9 +499,22 @@ export const ClientCard: React.FC<Props> = (props) => {
               <ChevronDown size={12} className={cn('transition-transform', showStructure && 'rotate-180')} />
             </button>
           )}
+          {c.clientType === 'aluguel' && (
+            <button
+              onClick={() => setShowAudit(true)}
+              disabled={!audit}
+              className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 border border-primary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
+              title="Ver como cada saldo foi calculado por semana"
+            >
+              <Search size={12} /> Auditar cálculo
+            </button>
+          )}
           <button
             onClick={onOpenHistory}
-            className="flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground border border-border transition-colors ml-auto"
+            className={cn(
+              "flex items-center gap-1.5 text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground border border-border transition-colors",
+              c.clientType !== 'aluguel' && 'ml-auto'
+            )}
           >
             <History size={12} /> Histórico
           </button>
