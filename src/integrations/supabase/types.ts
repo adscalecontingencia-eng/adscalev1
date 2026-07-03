@@ -2458,6 +2458,98 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_bm_stock: {
+        Row: {
+          added_at: string
+          bm_id: string
+          buyer: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          sold_at: string | null
+          sold_price: number | null
+          status: string
+          stock_id: string
+          updated_at: string
+        }
+        Insert: {
+          added_at?: string
+          bm_id: string
+          buyer?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sold_at?: string | null
+          sold_price?: number | null
+          status?: string
+          stock_id: string
+          updated_at?: string
+        }
+        Update: {
+          added_at?: string
+          bm_id?: string
+          buyer?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sold_at?: string | null
+          sold_price?: number | null
+          status?: string
+          stock_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_bm_stock_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "meta_business_managers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bm_stock_stock_id_fkey"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "sales_stocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_stocks: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          meta_app_id: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          meta_app_id?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          meta_app_id?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_stocks_meta_app_id_fkey"
+            columns: ["meta_app_id"]
+            isOneToOne: false
+            referencedRelation: "meta_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           created_at: string
