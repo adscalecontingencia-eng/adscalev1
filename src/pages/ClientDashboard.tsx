@@ -96,6 +96,35 @@ const ClientDashboard: React.FC = () => {
     // contar gasto anterior à atribuição da conta a este cliente.
     const assignmentsForInsights = assignments.filter((a: any) => a.ad_account?.id);
     if (assignmentsForInsights.length > 0) {
+      const accountIds = Array.from(new Set(assignmentsForInsights.map((a: any) => a.ad_account.id)));
+      const { data: allAccountAssignments } = await supabase
+        .from('meta_ad_account_assignments')
+        .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at')
+        .in('ad_account_id', accountIds);
+      type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
+      const windowsByAccount = new Map<string, AssignmentWindow[]>();
+      (allAccountAssignments || []).forEach((a: any) => {
+        const list = windowsByAccount.get(a.ad_account_id) || [];
+        list.push({
+          client_id: a.client_id,
+          active: !!a.active,
+          from: a.effective_from || null,
+          to: a.effective_to || null,
+          assigned_at: a.assigned_at || null,
+        });
+        windowsByAccount.set(a.ad_account_id, list);
+      });
+      const belongsToClientOnDate = (adAccountId: string, dateISO: string) => {
+        const picked = (windowsByAccount.get(adAccountId) || [])
+          .filter(a => (!a.from || dateISO >= a.from) && (!a.to || dateISO <= a.to))
+          .sort((a, b) => {
+            if (a.active !== b.active) return a.active ? -1 : 1;
+            const fromCmp = String(b.from || '').localeCompare(String(a.from || ''));
+            if (fromCmp !== 0) return fromCmp;
+            return String(b.assigned_at || '').localeCompare(String(a.assigned_at || ''));
+          })[0];
+        return picked?.client_id === clientId;
+      };
       const fallback = new Date();
       fallback.setMonth(fallback.getMonth() - 12);
       const fallbackStr = fallback.toISOString().split('T')[0];
@@ -114,6 +143,8 @@ const ClientDashboard: React.FC = () => {
       }));
       const seen = new Set<string>();
       setInsights(results.flat().filter((row: any) => {
+        const dateISO = String(row.date).slice(0, 10);
+        if (!belongsToClientOnDate(row.ad_account_id, dateISO)) return false;
         const key = `${row.ad_account_id}|${String(row.date).slice(0, 10)}`;
         if (seen.has(key)) return false;
         seen.add(key);
