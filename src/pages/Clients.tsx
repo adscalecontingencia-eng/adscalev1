@@ -233,11 +233,16 @@ const Clients: React.FC = () => {
       if (!data || data.length < pageSize) break;
     }
     const accWindows = new Map<string, { client_id: string; from: string | null; to: string | null }>();
-    (assignRes.data || []).forEach((a: any) => accWindows.set(a.ad_account_id, {
-      client_id: a.client_id,
-      from: a.effective_from || null,
-      to: a.effective_to || null,
-    }));
+    (assignRes.data || []).forEach((a: any) => {
+      const existing = accWindows.get(a.ad_account_id);
+      if (!existing || String(a.effective_from || '') > String(existing.from || '')) {
+        accWindows.set(a.ad_account_id, {
+          client_id: a.client_id,
+          from: a.effective_from || null,
+          to: a.effective_to || null,
+        });
+      }
+    });
     const accMeta = new Map<string, any>();
     (accRes.data || []).forEach((a: any) => accMeta.set(a.id, a));
 
@@ -257,11 +262,16 @@ const Clients: React.FC = () => {
       perAccByClient[cid][i.ad_account_id].push({ date: i.date, spend: Number(i.spend || 0) });
     });
 
-    // Listar todas as contas atribuídas (mesmo sem insights)
+    // Listar todas as contas atribuídas (mesmo sem insights). Mantém uma única
+    // entrada por conta para não duplicar gasto no card/auditoria.
     const accsByClient: Record<string, any[]> = {};
+    const listed = new Set<string>();
     (assignRes.data || []).forEach((a: any) => {
       const meta = accMeta.get(a.ad_account_id);
       if (!meta) return;
+      const key = `${a.client_id}|${a.ad_account_id}`;
+      if (listed.has(key)) return;
+      listed.add(key);
       if (!accsByClient[a.client_id]) accsByClient[a.client_id] = [];
       accsByClient[a.client_id].push({
         id: meta.id,
@@ -924,29 +934,48 @@ const Clients: React.FC = () => {
     return byWeek;
   };
 
-  // Weekly breakdown per client (sexta→quinta). The commission ledger is the
-  // source of truth for closed weeks already validated/settled by admin.
+  // Weekly breakdown per client (sexta→quinta). Fonte primária: gasto direto
+  // das contas Meta atribuídas ao cliente, agregado por semana e por conta.
   const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
-    const rows = insightsByClient[clientId] || [];
     const ledgerByWeek = getLedgerByWeek(clientId);
-    const byWeek: Record<string, number> = {};
-    rows.forEach(r => {
-      const d = parseDateLocal(r.date);
-      const ws = startOfWeek(d, { weekStartsOn: 5 });
-      const key = format(ws, 'yyyy-MM-dd');
-      byWeek[key] = (byWeek[key] || 0) + r.spend;
+    const byWeek = new Map<string, { spend: number; accounts: Map<string, { id: string; metaAccountId: string; name: string; spend: number }> }>();
+    (accountsByClient[clientId] || []).forEach(acc => {
+      (acc.spendByDay || []).forEach(r => {
+        const d = parseDateLocal(r.date);
+        const ws = startOfWeek(d, { weekStartsOn: 5 });
+        const key = format(ws, 'yyyy-MM-dd');
+        const week = byWeek.get(key) || { spend: 0, accounts: new Map() };
+        const spend = Number(r.spend || 0);
+        week.spend += spend;
+        const current = week.accounts.get(acc.id) || {
+          id: acc.id,
+          metaAccountId: acc.meta_account_id,
+          name: acc.name || acc.meta_account_id,
+          spend: 0,
+        };
+        current.spend += spend;
+        week.accounts.set(acc.id, current);
+        byWeek.set(key, week);
+      });
     });
-    const weeklyRows = Object.entries(byWeek).map(([k, spend]) => {
+    const weeklyRows = Array.from(byWeek.entries()).map(([k, week]) => {
+      const spend = week.spend;
       const rate = getClientTierPercentage(client, spend);
-      return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
+      return {
+        weekStart: parseDateLocal(k),
+        spend,
+        rate,
+        commission: spend * (rate / 100),
+        accounts: Array.from(week.accounts.values()).filter(a => a.spend > 0).sort((a, b) => b.spend - a.spend),
+      };
     });
     ledgerByWeek.forEach((ledger, k) => {
-      if (ledger.amount <= 0 || byWeek[k] !== undefined) return;
+      if (ledger.amount <= 0 || byWeek.has(k)) return;
       weeklyRows.push({ weekStart: parseDateLocal(k), spend: ledger.spend, commission: ledger.amount });
     });
-    return weeklyRows;
+    return weeklyRows.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   };
 
   const getAccumulated = (clientId: string) => {
