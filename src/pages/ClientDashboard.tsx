@@ -80,11 +80,11 @@ const ClientDashboard: React.FC = () => {
     const { data: assigns } = await supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
-      .eq('client_id', clientId)
-      .eq('active', true);
-    const list = assigns || [];
+      .eq('client_id', clientId);
+    const assignments = assigns || [];
+    const list = assignments.filter((a: any) => a.active);
     setActiveAccounts(list);
-    const latest = list
+    const latest = assignments
       .map((a: any) => a.ad_account?.last_synced_at)
       .filter(Boolean)
       .sort()
@@ -94,11 +94,41 @@ const ClientDashboard: React.FC = () => {
     // Load insights for these ad accounts.
     // CRÍTICO: filtra por vigência (effective_from / effective_to) para nunca
     // contar gasto anterior à atribuição da conta a este cliente.
-    if (list.length > 0) {
+    const assignmentsForInsights = assignments.filter((a: any) => a.ad_account?.id);
+    if (assignmentsForInsights.length > 0) {
+      const accountIds = Array.from(new Set(assignmentsForInsights.map((a: any) => a.ad_account.id)));
+      const { data: allAccountAssignments } = await supabase
+        .from('meta_ad_account_assignments')
+        .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at')
+        .in('ad_account_id', accountIds);
+      type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
+      const windowsByAccount = new Map<string, AssignmentWindow[]>();
+      (allAccountAssignments || []).forEach((a: any) => {
+        const list = windowsByAccount.get(a.ad_account_id) || [];
+        list.push({
+          client_id: a.client_id,
+          active: !!a.active,
+          from: a.effective_from || null,
+          to: a.effective_to || null,
+          assigned_at: a.assigned_at || null,
+        });
+        windowsByAccount.set(a.ad_account_id, list);
+      });
+      const belongsToClientOnDate = (adAccountId: string, dateISO: string) => {
+        const picked = (windowsByAccount.get(adAccountId) || [])
+          .filter(a => (!a.from || dateISO >= a.from) && (!a.to || dateISO <= a.to))
+          .sort((a, b) => {
+            if (a.active !== b.active) return a.active ? -1 : 1;
+            const fromCmp = String(b.from || '').localeCompare(String(a.from || ''));
+            if (fromCmp !== 0) return fromCmp;
+            return String(b.assigned_at || '').localeCompare(String(a.assigned_at || ''));
+          })[0];
+        return picked?.client_id === clientId;
+      };
       const fallback = new Date();
       fallback.setMonth(fallback.getMonth() - 12);
       const fallbackStr = fallback.toISOString().split('T')[0];
-      const results = await Promise.all(list.map(async (a: any) => {
+      const results = await Promise.all(assignmentsForInsights.map(async (a: any) => {
         const accId = a.ad_account?.id;
         if (!accId) return [] as any[];
         const since = a.effective_from || fallbackStr;
@@ -111,7 +141,15 @@ const ClientDashboard: React.FC = () => {
         const { data } = await q.order('date', { ascending: true }).range(0, 99999);
         return data || [];
       }));
-      setInsights(results.flat());
+      const seen = new Set<string>();
+      setInsights(results.flat().filter((row: any) => {
+        const dateISO = String(row.date).slice(0, 10);
+        if (!belongsToClientOnDate(row.ad_account_id, dateISO)) return false;
+        const key = `${row.ad_account_id}|${String(row.date).slice(0, 10)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }));
     } else {
       setInsights([]);
     }
@@ -364,7 +402,7 @@ const ClientDashboard: React.FC = () => {
     rows.forEach(r => {
       const d = parseDateLocal(r.date);
       const ws = startOfWeek(d, { weekStartsOn: 5 });
-      const key = ws.toISOString().slice(0, 10);
+      const key = format(ws, 'yyyy-MM-dd');
       byWeek[key] = (byWeek[key] || 0) + Number(r.spend || 0);
     });
     let total = 0;
@@ -415,7 +453,7 @@ const ClientDashboard: React.FC = () => {
     insights.forEach((i: any) => {
       const d = parseDateLocal(i.date);
       const ws = startOfWeek(d, { weekStartsOn: 5 });
-      const key = ws.toISOString().slice(0, 10);
+      const key = format(ws, 'yyyy-MM-dd');
       byWeek[key] = (byWeek[key] || 0) + Number(i.spend || 0);
     });
     return Object.entries(byWeek)
@@ -442,7 +480,13 @@ const ClientDashboard: React.FC = () => {
     const startTs = 0;
 
     let remaining = credit;
-    let paidPool = paidCommissionRows.reduce((sum, p) => sum + Math.max(0, Number(p.amount || 0)), 0);
+    const paymentPool = paidCommissionRows
+      .map(p => ({
+        ts: parseDateLocal(String(p.date)).getTime(),
+        remaining: Math.max(0, Number(p.amount || 0)),
+      }))
+      .filter(p => p.remaining > 0)
+      .sort((a, b) => a.ts - b.ts);
 
     const rows = weeklyCommissionHistory.map(w => {
       const eligible = w.commission > 0 && w.weekStart.getTime() >= startTs;
@@ -450,8 +494,17 @@ const ClientDashboard: React.FC = () => {
       const afterCredit = Math.max(0, w.commission - applied);
       remaining = Math.max(0, remaining - applied);
 
-      const paidApplied = Math.min(paidPool, afterCredit);
-      paidPool = Math.max(0, paidPool - paidApplied);
+      const dueTs = getBillingDueDate(w.weekStart).getTime();
+      let paidApplied = 0;
+      let oweAfterPayment = afterCredit;
+      for (const payment of paymentPool) {
+        if (oweAfterPayment <= 0.0001) break;
+        if (payment.ts < dueTs || payment.remaining <= 0) continue;
+        const pay = Math.min(payment.remaining, oweAfterPayment);
+        payment.remaining -= pay;
+        paidApplied += pay;
+        oweAfterPayment -= pay;
+      }
       const stillOwed = Math.max(0, afterCredit - paidApplied);
 
       return {

@@ -1,7 +1,19 @@
-import { addDays, endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
+import { addDays, endOfDay, endOfWeek, format, startOfDay, startOfWeek } from 'date-fns';
+
+export function formatDateISO(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
+}
 
 export function getBillingDueDate(weekStart: Date): Date {
   return startOfDay(addDays(weekStart, 7));
+}
+
+export function getBillingWeekEnd(weekStart: Date): Date {
+  return endOfDay(addDays(weekStart, 6));
+}
+
+export function isBillingWeekOverdue(weekStart: Date, now: Date = new Date()): boolean {
+  return startOfDay(now).getTime() >= getBillingDueDate(weekStart).getTime();
 }
 
 export function getCurrentBillingWeekRange(now: Date = new Date()): { start: Date; end: Date } {
@@ -39,6 +51,41 @@ export interface PaymentRow {
   amount: number;
 }
 
+function paymentDateTs(date: string | Date): number {
+  if (date instanceof Date) return startOfDay(date).getTime();
+  const clean = String(date || '').split('T')[0];
+  const [y, m, d] = clean.split('-').map(Number);
+  if (!y || !m || !d) return 0;
+  return startOfDay(new Date(y, m - 1, d)).getTime();
+}
+
+function buildPaymentPool(totalPaid: number, now: Date, paidRows?: PaymentRow[]) {
+  if (paidRows?.length) {
+    return paidRows
+      .map(payment => ({
+        ts: paymentDateTs(payment.date),
+        remaining: Math.max(0, Number(payment.amount || 0)),
+      }))
+      .filter(payment => payment.remaining > 0)
+      .sort((a, b) => a.ts - b.ts);
+  }
+  return [{ ts: startOfDay(now).getTime(), remaining: Math.max(0, totalPaid) }];
+}
+
+function applyEligiblePayments(owe: number, dueDate: Date, payments: { ts: number; remaining: number }[]) {
+  let paidApplied = 0;
+  const dueTs = startOfDay(dueDate).getTime();
+  for (const payment of payments) {
+    if (owe <= 0.0001) break;
+    if (payment.ts < dueTs || payment.remaining <= 0) continue;
+    const amount = Math.min(payment.remaining, owe);
+    payment.remaining -= amount;
+    owe -= amount;
+    paidApplied += amount;
+  }
+  return { owe, paidApplied };
+}
+
 /**
  * Divide o saldo não pago entre:
  *  - overdue (atrasado): semanas cuja sexta-feira de cobrança já passou
@@ -65,14 +112,7 @@ export function splitOverdueVsCurrent(
 } {
   const sorted = [...weeks].sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   let credit = Math.max(0, planCredit);
-  let paid = Math.max(0, totalPaid);
-  // Pagamento validado sempre liquida a dívida mais antiga primeiro (FIFO).
-  // Antes, o pagamento era preso à semana anterior à data de validação; ao
-  // recarregar, valores pequenos voltavam para "atrasado" mesmo com pagamento
-  // suficiente registrado. O saldo atrasado deve olhar o caixa total validado.
-  if (paidRows?.length) {
-    paid = paidRows.reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0)), 0);
-  }
+  const paymentPool = buildPaymentPool(totalPaid, now, paidRows);
   let overdue = 0;
   let currentPending = 0;
   const weeksOverdue: WeeklyRow[] = [];
@@ -93,17 +133,15 @@ export function splitOverdueVsCurrent(
     const applyCredit = creditEligible ? Math.min(credit, owe) : 0;
     credit -= applyCredit;
     owe -= applyCredit;
-    const applyPaid = Math.min(paid, owe);
-    paid -= applyPaid;
-    owe -= applyPaid;
+    const paidResult = applyEligiblePayments(owe, getBillingDueDate(w.weekStart), paymentPool);
+    owe = paidResult.owe;
     if (owe <= 0.0001) continue;
 
     // Regra do produto: semana sex→qui vence na sexta seguinte
     // (weekStart + 7). No próprio dia do vencimento a dívida JÁ é
     // considerada atrasada — ex.: semana 26/06→02/07 vira "atrasada"
     // em 03/07 (sexta). Usamos startOfDay para incluir a sexta inteira.
-    const dueDate = getBillingDueDate(w.weekStart);
-    if (now.getTime() >= dueDate.getTime()) {
+    if (isBillingWeekOverdue(w.weekStart, now)) {
       overdue += owe;
       weeksOverdue.push({ ...w, commission: owe });
     } else {
@@ -159,7 +197,8 @@ export function computeBillingAudit(
   const totalCredit = Math.max(0, planCredit);
   const totalPaid = paidRows.reduce((sum, p) => sum + Math.max(0, Number(p.amount || 0)), 0);
   let credit = totalCredit;
-  let paid = totalPaid;
+  const paymentPool = buildPaymentPool(totalPaid, now, paidRows);
+  let paidUsed = 0;
   let overdue = 0;
   let currentPending = 0;
   let grossTotal = 0;
@@ -172,18 +211,19 @@ export function computeBillingAudit(
     const creditApplied = Math.min(credit, gross);
     credit -= creditApplied;
     let owe = gross - creditApplied;
-    const paidApplied = Math.min(paid, owe);
-    paid -= paidApplied;
-    owe -= paidApplied;
     // Vence na sexta seguinte; a partir das 00:00 dessa sexta já é atrasada.
     const dueDate = getBillingDueDate(w.weekStart);
+    const paidResult = applyEligiblePayments(owe, dueDate, paymentPool);
+    const paidApplied = paidResult.paidApplied;
+    paidUsed += paidApplied;
+    owe = paidResult.owe;
 
     let status: AuditWeekStatus;
     if (owe <= 0.0001) {
       if (creditApplied > 0 && paidApplied <= 0) status = 'creditada';
       else if (paidApplied > 0 && creditApplied <= 0) status = 'paga';
       else status = 'liquidada';
-    } else if (now.getTime() >= dueDate.getTime()) {
+    } else if (isBillingWeekOverdue(w.weekStart, now)) {
       status = 'atrasada';
       overdue += owe;
     } else {
@@ -210,8 +250,8 @@ export function computeBillingAudit(
     totalPaid,
     creditUsed: totalCredit - credit,
     creditRemaining: credit,
-    paidUsed: totalPaid - paid,
-    paidRemaining: paid,
+    paidUsed,
+    paidRemaining: totalPaid - paidUsed,
     grossTotal,
     overdue,
     currentPending,

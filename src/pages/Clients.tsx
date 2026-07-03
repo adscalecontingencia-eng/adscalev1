@@ -86,7 +86,7 @@ const Clients: React.FC = () => {
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
+  const [periodFilter, setPeriodFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -210,8 +210,7 @@ const Clients: React.FC = () => {
     const [assignRes, accRes] = await Promise.all([
       supabase
         .from('meta_ad_account_assignments')
-        .select('ad_account_id, client_id, active, effective_from, effective_to')
-        .eq('active', true),
+        .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at'),
       supabase
         .from('meta_ad_accounts')
         .select('id, meta_account_id, name, status, account_status'),
@@ -232,28 +231,39 @@ const Clients: React.FC = () => {
       allInsights.push(...(data || []));
       if (!data || data.length < pageSize) break;
     }
-    const accWindows = new Map<string, { client_id: string; from: string | null; to: string | null }>();
+    type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
+    const assignmentsByAccount = new Map<string, AssignmentWindow[]>();
     (assignRes.data || []).forEach((a: any) => {
-      const existing = accWindows.get(a.ad_account_id);
-      if (!existing || String(a.effective_from || '') > String(existing.from || '')) {
-        accWindows.set(a.ad_account_id, {
-          client_id: a.client_id,
-          from: a.effective_from || null,
-          to: a.effective_to || null,
-        });
-      }
+      const list = assignmentsByAccount.get(a.ad_account_id) || [];
+      list.push({
+        client_id: a.client_id,
+        active: !!a.active,
+        from: a.effective_from || null,
+        to: a.effective_to || null,
+        assigned_at: a.assigned_at || null,
+      });
+      assignmentsByAccount.set(a.ad_account_id, list);
     });
+    const pickAssignmentForDate = (adAccountId: string, dateISO: string) => {
+      const candidates = (assignmentsByAccount.get(adAccountId) || [])
+        .filter(a => (!a.from || dateISO >= a.from) && (!a.to || dateISO <= a.to))
+        .sort((a, b) => {
+          if (a.active !== b.active) return a.active ? -1 : 1;
+          const fromCmp = String(b.from || '').localeCompare(String(a.from || ''));
+          if (fromCmp !== 0) return fromCmp;
+          return String(b.assigned_at || '').localeCompare(String(a.assigned_at || ''));
+        });
+      return candidates[0] || null;
+    };
     const accMeta = new Map<string, any>();
     (accRes.data || []).forEach((a: any) => accMeta.set(a.id, a));
 
     const byClient: Record<string, { date: string; spend: number }[]> = {};
     const perAccByClient: Record<string, Record<string, { date: string; spend: number }[]>> = {};
     allInsights.forEach((i: any) => {
-      const win = accWindows.get(i.ad_account_id);
-      if (!win) return;
       const d: string = typeof i.date === 'string' ? i.date.slice(0, 10) : '';
-      if (win.from && d < win.from) return;
-      if (win.to && d > win.to) return;
+      const win = pickAssignmentForDate(i.ad_account_id, d);
+      if (!win) return;
       const cid = win.client_id;
       if (!byClient[cid]) byClient[cid] = [];
       byClient[cid].push({ date: i.date, spend: Number(i.spend || 0) });
@@ -262,11 +272,12 @@ const Clients: React.FC = () => {
       perAccByClient[cid][i.ad_account_id].push({ date: i.date, spend: Number(i.spend || 0) });
     });
 
-    // Listar todas as contas atribuídas (mesmo sem insights). Mantém uma única
-    // entrada por conta para não duplicar gasto no card/auditoria.
+    // Listar contas ativas e contas históricas com gasto; o valor vem direto
+    // dos insights Meta dentro da vigência escolhida para cada dia.
     const accsByClient: Record<string, any[]> = {};
     const listed = new Set<string>();
     (assignRes.data || []).forEach((a: any) => {
+      if (!a.active && !perAccByClient[a.client_id]?.[a.ad_account_id]?.length) return;
       const meta = accMeta.get(a.ad_account_id);
       if (!meta) return;
       const key = `${a.client_id}|${a.ad_account_id}`;
@@ -930,7 +941,6 @@ const Clients: React.FC = () => {
   const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
-    const ledgerByWeek = getLedgerByWeek(clientId);
     const byWeek = new Map<string, { spend: number; accounts: Map<string, { id: string; metaAccountId: string; name: string; spend: number }> }>();
     (accountsByClient[clientId] || []).forEach(acc => {
       (acc.spendByDay || []).forEach(r => {
@@ -961,10 +971,6 @@ const Clients: React.FC = () => {
         commission: spend * (rate / 100),
         accounts: Array.from(week.accounts.values()).filter(a => a.spend > 0).sort((a, b) => b.spend - a.spend),
       };
-    });
-    ledgerByWeek.forEach((ledger, k) => {
-      if (ledger.amount <= 0 || byWeek.has(k)) return;
-      weeklyRows.push({ weekStart: parseDateLocal(k), spend: ledger.spend, commission: ledger.amount });
     });
     return weeklyRows.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   };
