@@ -20,7 +20,10 @@ import {
   Ban,
   Zap,
   Copy,
+  Search,
 } from 'lucide-react';
+import { BillingAudit } from '@/lib/billing-status';
+import { BillingAuditDialog } from './BillingAuditDialog';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
