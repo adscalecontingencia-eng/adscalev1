@@ -36,6 +36,7 @@ const groups: Group[] = [
   {
     id: 'venda', label: 'Venda', icon: ShoppingBag, defaultOpen: true, links: [
       { path: '/admin-marketplace', label: 'Marketplace', icon: ShoppingBag },
+      { path: '/vendas-ads', label: 'Ads de Venda', icon: BarChart3 },
       { path: '/admin/marketplace-assets', label: 'Ativos c/ Gastos', icon: Boxes },
       { path: '/marketplace-clients', label: 'Clientes Marketplace', icon: UsersRound },
       { path: '/admin-payments', label: 'Pagamentos', icon: Wallet },
