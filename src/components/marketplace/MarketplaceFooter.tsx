@@ -150,6 +150,16 @@ const MarketplaceFooter: React.FC = () => {
           </a>
         </div>
 
+        {/* SEO — hidden keyword section for crawlers */}
+        <section aria-hidden="true" className="sr-only">
+          <h2>SEO</h2>
+          <ul>
+            {SEO_KEYWORDS.map((kw) => (
+              <li key={kw}>{kw}</li>
+            ))}
+          </ul>
+        </section>
+
         {/* Legal */}
         <div className="text-center space-y-1.5 text-xs text-muted-foreground">
           <p>
