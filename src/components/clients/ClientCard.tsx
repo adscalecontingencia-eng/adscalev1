@@ -400,7 +400,9 @@ export const ClientCard: React.FC<Props> = (props) => {
         <div className="mt-4 flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Detalhar por período:</span>
           <PeriodPill id="today" label="Hoje" />
-          <PeriodPill id="7d" label="7 dias" />
+          <PeriodPill id="billing_week" label="Semana (sex→qui)" />
+          <PeriodPill id="last_billing_week" label="Semana anterior" />
+          <PeriodPill id="7d" label="7 dias corridos" />
           <PeriodPill id="30d" label="30 dias" />
           <Popover>
             <PopoverTrigger asChild>
