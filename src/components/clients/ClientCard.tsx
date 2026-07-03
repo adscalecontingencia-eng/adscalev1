@@ -69,6 +69,7 @@ interface Props {
   saldoPendente: number;
   saldoAtrasado: number;
   creditRemaining?: number;
+  audit?: BillingAudit | null;
   status: ClientStatus;
   spendByDay: { date: string; spend: number }[];
   accounts?: AccountBreakdown[];
