@@ -70,13 +70,12 @@ export function splitOverdueVsCurrent(
     owe -= applyPaid;
     if (owe <= 0.0001) continue;
 
-    // Vencimento = sexta seguinte (weekStart + 7 dias). A dívida só vira
-    // "atrasada" APÓS o fim dessa sexta — no dia do vencimento ainda está
-    // pendente (é o dia em que o cliente paga). Sem o endOfDay, toda sexta
-    // as semanas fechadas apareciam como atrasadas às 00:00, inflando o
-    // "Saldo Atrasado" e drenando o "Saldo Acumulado".
-    const dueDate = endOfDay(addDays(w.weekStart, 7));
-    if (now.getTime() > dueDate.getTime()) {
+    // Regra do produto: semana sex→qui vence na sexta seguinte
+    // (weekStart + 7). No próprio dia do vencimento a dívida JÁ é
+    // considerada atrasada — ex.: semana 26/06→02/07 vira "atrasada"
+    // em 03/07 (sexta). Usamos startOfDay para incluir a sexta inteira.
+    const dueDate = addDays(w.weekStart, 7);
+    if (now.getTime() >= dueDate.getTime()) {
       overdue += owe;
       weeksOverdue.push({ ...w, commission: owe });
     } else {
