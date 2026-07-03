@@ -14,6 +14,7 @@ import MetaConnections from "./pages/MetaConnections";
 import MetaApps from "./pages/MetaApps";
 import AdsDashboard from "./pages/AdsDashboard";
 import SalesAdsDashboard from "./pages/SalesAdsDashboard";
+import SalesStock from "./pages/SalesStock";
 import AssetMap from "./pages/AssetMap";
 import PagesAdmin from "./pages/Pages";
 import BlockLog from "./pages/BlockLog";
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="/meta-apps" element={<ProtectedRoute roles={['admin']}><DashboardLayout><MetaApps /></DashboardLayout></ProtectedRoute>} />
               <Route path="/ads-dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AdsDashboard /></DashboardLayout></ProtectedRoute>} />
               <Route path="/vendas-ads" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><SalesAdsDashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/estoque-vendas" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><SalesStock /></DashboardLayout></ProtectedRoute>} />
 
               <Route path="/asset-map" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AssetMap /></DashboardLayout></ProtectedRoute>} />
               <Route path="/pages" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><PagesAdmin /></DashboardLayout></ProtectedRoute>} />
