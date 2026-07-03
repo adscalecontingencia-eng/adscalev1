@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import {
   RefreshCw, BarChart3, Users, X, Search, CalendarIcon, Building2, ShieldCheck,
 } from "lucide-react";
+import MetaApiHealthDialog from "./MetaApiHealthDialog";
 
 export type AdsRange = "today" | "yesterday" | "7d" | "30d" | "90d" | "custom";
 export type AccountStatus = "all" | "active" | "blocked";
