@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import MetaApiHealthDialog from "./MetaApiHealthDialog";
 
-export type AdsRange = "today" | "yesterday" | "7d" | "30d" | "90d" | "custom";
+export type AdsRange = "today" | "yesterday" | "billing_week" | "7d" | "30d" | "90d" | "custom";
 export type AccountStatus = "all" | "active" | "blocked";
 
 interface BM { id: string; name: string }
@@ -53,7 +53,8 @@ interface Props {
 const RANGES: { key: AdsRange; label: string }[] = [
   { key: "today", label: "Hoje" },
   { key: "yesterday", label: "Ontem" },
-  { key: "7d", label: "7 dias" },
+  { key: "billing_week", label: "Última semana fechada" },
+  { key: "7d", label: "7 dias corridos" },
   { key: "30d", label: "30 dias" },
   { key: "90d", label: "90 dias" },
   { key: "custom", label: "Custom" },

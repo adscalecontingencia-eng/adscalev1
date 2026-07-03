@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
-import { splitOverdueVsCurrent } from '@/lib/billing-status';
+import { getBillingDueDate, getLastClosedBillingWeekRange, splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -54,7 +54,7 @@ const ClientDashboard: React.FC = () => {
   const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
   // Período global da aba Estrutura (aplica-se a todas as contas)
-  const [estruturaPeriod, setEstruturaPeriod] = useState<'today' | '7d' | '30d' | 'all' | 'custom'>('7d');
+  const [estruturaPeriod, setEstruturaPeriod] = useState<'today' | 'billing_week' | '7d' | '30d' | 'all' | 'custom'>('billing_week');
   const [estruturaCustomStart, setEstruturaCustomStart] = useState<Date>(new Date(Date.now() - 6 * 86400000));
   const [estruturaCustomEnd, setEstruturaCustomEnd] = useState<Date>(new Date());
 
@@ -305,7 +305,7 @@ const ClientDashboard: React.FC = () => {
     const now = new Date();
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
-      case 'week': return { start: startOfWeek(now, { weekStartsOn: 5 }), end: endOfWeek(now, { weekStartsOn: 5 }) };
+      case 'week': return getLastClosedBillingWeekRange(now);
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return { start: startOfDay(customStart), end: endOfDay(customEnd) };
     }
@@ -451,7 +451,6 @@ const ClientDashboard: React.FC = () => {
 
     const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
     const totalApplied = rows.reduce((s, r) => s + r.creditApplied, 0);
-    const totalPaying = rows.reduce((s, r) => s + r.clientPays, 0);
     const totalStillOwed = rows.reduce((s, r) => s + r.stillOwed, 0);
     const totalPaidApplied = rows.reduce((s, r) => s + r.paidApplied, 0);
 
@@ -460,7 +459,6 @@ const ClientDashboard: React.FC = () => {
       remaining,
       totalCommission,
       totalApplied,
-      totalPaying,
       totalStillOwed,
       totalPaidApplied,
       startDate: startDateStr,
@@ -722,13 +720,13 @@ const ClientDashboard: React.FC = () => {
                 <TrendingUp size={18} className="text-sky-400" />
                 <div className="text-2xl font-bold text-sky-400 mt-2">{fmt(periodTotals.adSpend)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Investido em Ads</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Esta semana' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Última semana fechada' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <DollarSign size={18} className="text-amber-400" />
                 <div className="text-2xl font-bold text-amber-400 mt-2">{fmt(periodTotals.commission)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Comissão Agência</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Esta semana' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Última semana fechada' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
               </div>
               <div className="rounded-xl bg-gradient-to-br from-primary/15 to-emerald-500/10 border border-primary/30 p-4">
                 <CreditCard size={18} className="text-primary" />
@@ -754,7 +752,7 @@ const ClientDashboard: React.FC = () => {
                       className={cn("px-3 py-1 rounded-lg text-xs font-medium transition-colors",
                         periodFilter === p ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
                       )}>
-                      {p === 'today' ? 'Hoje' : p === 'week' ? 'Semana' : p === 'month' ? 'Mês' : 'Personalizado'}
+                      {p === 'today' ? 'Hoje' : p === 'week' ? 'Semana fechada' : p === 'month' ? 'Mês' : 'Personalizado'}
                     </button>
                   ))}
                 </div>
@@ -824,14 +822,14 @@ const ClientDashboard: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · valor a pagar acumulado <strong className="text-amber-300">{fmt(creditPlan.totalPaying)}</strong>.
+                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · saldo em aberto real <strong className="text-amber-300">{fmt(creditPlan.totalStillOwed)}</strong>.
                   </p>
 
                   {(() => {
                     const PAGE_SIZE = 8;
                     // Filtro do histórico
                     const filteredRows = creditPlan.rows.filter(r => {
-                      if (historyFilter === 'paying') return r.clientPays > 0;
+                      if (historyFilter === 'paying') return r.stillOwed > 0;
                       if (historyFilter === 'covered') return r.creditApplied >= r.commission && r.commission > 0;
                       return true; // 'recent' | 'all'
                     });
@@ -851,7 +849,7 @@ const ClientDashboard: React.FC = () => {
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filtrar:</span>
                           {([
                             { k: 'recent', l: 'Mais recentes' },
-                            { k: 'paying', l: 'Com pagamento' },
+                            { k: 'paying', l: 'Em aberto' },
                             { k: 'covered', l: 'Cobertas pelo crédito' },
                             { k: 'all', l: `Todas (${creditPlan.rows.length})` },
                           ] as const).map(opt => (
@@ -875,8 +873,8 @@ const ClientDashboard: React.FC = () => {
                             const absoluteIdx = creditPlan.rows.indexOf(r);
                             const pct = r.commission > 0 ? Math.max(1, (r.creditApplied / r.commission) * 100) : 0;
                             const isFirstPaying = r.creditApplied < r.commission
-                              && r.clientPays > 0
-                              && (absoluteIdx === 0 || creditPlan.rows[absoluteIdx - 1].clientPays === 0);
+                              && r.stillOwed > 0
+                              && (absoluteIdx === 0 || creditPlan.rows[absoluteIdx - 1].stillOwed === 0);
                             return (
                               <div key={absoluteIdx} className={cn(
                                 "rounded-lg border p-3",
@@ -890,7 +888,7 @@ const ClientDashboard: React.FC = () => {
                                     </span>
                                     {isFirstPaying && (
                                       <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
-                                        Início dos pagamentos
+                                        Primeiro saldo em aberto
                                       </span>
                                     )}
                                   </div>
@@ -909,13 +907,13 @@ const ClientDashboard: React.FC = () => {
                                       </span>
                                     </div>
                                   )}
-                                  {r.clientPays > 0 && (
+                                  {r.stillOwed > 0 && (
                                     <div
                                       className="absolute inset-y-0 right-0 bg-amber-400/80 flex items-center justify-end px-2"
                                       style={{ width: `${100 - pct}%` }}
                                     >
                                       <span className="text-[10px] font-bold text-background whitespace-nowrap">
-                                        {fmt(r.clientPays)}
+                                        {fmt(r.stillOwed)}
                                       </span>
                                     </div>
                                   )}
@@ -1050,8 +1048,7 @@ const ClientDashboard: React.FC = () => {
 
             {client.client_type !== 'venda' && (() => {
               const now = new Date();
-              const ws = startOfWeek(now, { weekStartsOn: 5 });
-              const we = endOfWeek(now, { weekStartsOn: 5 });
+                const { start: ws, end: we } = getLastClosedBillingWeekRange(now);
               const weekSpend = insights
                 .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
                 .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
@@ -1074,7 +1071,7 @@ const ClientDashboard: React.FC = () => {
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div className="bg-secondary/60 rounded-lg p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto desta semana</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto última semana fechada</p>
                       <p className="font-bold text-lg text-foreground mt-1">{fmt(weekSpend)}</p>
                     </div>
                     <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
@@ -1198,7 +1195,8 @@ const ClientDashboard: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {([
                         { v: 'today', l: 'Hoje' },
-                        { v: '7d', l: '7 dias' },
+                        { v: 'billing_week', l: 'Última semana fechada' },
+                        { v: '7d', l: '7 dias corridos' },
                         { v: '30d', l: '30 dias' },
                         { v: 'all', l: 'Tudo' },
                         { v: 'custom', l: 'Personalizado' },
@@ -1256,13 +1254,18 @@ const ClientDashboard: React.FC = () => {
                         if (!acc) return null;
                         const isBlocked = acc.status === 'blocked' || (acc.disable_reason ?? 0) > 0;
                         const now = new Date();
+                        const closedBillingWeek = getLastClosedBillingWeekRange(now);
                         const since =
                           estruturaPeriod === 'today' ? startOfDay(now) :
+                          estruturaPeriod === 'billing_week' ? closedBillingWeek.start :
                           estruturaPeriod === '7d' ? startOfDay(new Date(now.getTime() - 6 * 86400000)) :
                           estruturaPeriod === '30d' ? startOfDay(new Date(now.getTime() - 29 * 86400000)) :
                           estruturaPeriod === 'custom' ? startOfDay(estruturaCustomStart) :
                           new Date(0);
-                        const until = estruturaPeriod === 'custom' ? endOfDay(estruturaCustomEnd) : endOfDay(now);
+                        const until =
+                          estruturaPeriod === 'billing_week' ? closedBillingWeek.end :
+                          estruturaPeriod === 'custom' ? endOfDay(estruturaCustomEnd) :
+                          endOfDay(now);
                         const accInsights = insights.filter((i: any) => {
                           if (i.ad_account_id !== acc.id) return false;
                           const d = parseDateLocal(i.date);
@@ -1633,7 +1636,7 @@ const ClientDashboard: React.FC = () => {
             </div>
 
             {/* Comissões pendentes por semana (preview antes da validação) */}
-            {creditPlan && creditPlan.rows.some(r => r.clientPays > 0) && (
+            {creditPlan && creditPlan.rows.some(r => r.stillOwed > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                   <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
@@ -1642,13 +1645,12 @@ const ClientDashboard: React.FC = () => {
                   Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já validados na semana correspondente.
                 </p>
                 <div className="space-y-2">
-                  {creditPlan.rows.filter(r => r.clientPays > 0).map((r, idx) => {
+                  {creditPlan.rows.filter(r => r.stillOwed > 0).map((r, idx) => {
                     const weekEnd = new Date(r.weekStart);
                     weekEnd.setDate(weekEnd.getDate() + 6);
                     const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
-                    const dueDate = new Date(r.weekStart);
-                    dueDate.setDate(dueDate.getDate() + 7);
-                    const isOverdue = Date.now() > dueDate.getTime();
+                    const dueDate = getBillingDueDate(r.weekStart);
+                    const isOverdue = Date.now() >= dueDate.getTime();
                     const isPaid = r.stillOwed <= 0;
                     return (
                       <div key={idx} className={cn(
@@ -1710,16 +1712,15 @@ const ClientDashboard: React.FC = () => {
                 </div>
                 {(() => {
                   // Mesma regra do card "Saldo Pendente / Atrasado": vencimento =
-                  // weekStart + 7 dias (sexta seguinte). Tudo que já passou é atrasado;
-                  // o que ainda não venceu é a semana corrente.
+                  // 00:00 de weekStart + 7 dias (sexta seguinte). No próprio dia
+                  // do vencimento já é atrasado; o que ainda não venceu é semana corrente.
                   const now = Date.now();
                   let overdueSum = 0;
                   let currentSum = 0;
                   creditPlan.rows.forEach(r => {
                     if (r.stillOwed <= 0) return;
-                    const due = new Date(r.weekStart);
-                    due.setDate(due.getDate() + 7);
-                    if (now > due.getTime()) overdueSum += r.stillOwed;
+                    const due = getBillingDueDate(r.weekStart);
+                    if (now >= due.getTime()) overdueSum += r.stillOwed;
                     else currentSum += r.stillOwed;
                   });
                   return (
