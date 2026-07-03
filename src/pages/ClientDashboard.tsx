@@ -1638,7 +1638,7 @@ const ClientDashboard: React.FC = () => {
             </div>
 
             {/* Comissões pendentes por semana (preview antes da validação) */}
-            {creditPlan && creditPlan.rows.some(r => r.clientPays > 0) && (
+            {creditPlan && creditPlan.rows.some(r => r.stillOwed > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                   <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
@@ -1647,7 +1647,7 @@ const ClientDashboard: React.FC = () => {
                   Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já validados na semana correspondente.
                 </p>
                 <div className="space-y-2">
-                  {creditPlan.rows.filter(r => r.clientPays > 0).map((r, idx) => {
+                  {creditPlan.rows.filter(r => r.stillOwed > 0).map((r, idx) => {
                     const weekEnd = new Date(r.weekStart);
                     weekEnd.setDate(weekEnd.getDate() + 6);
                     const rate = r.spend > 0 ? (r.commission / r.spend) * 100 : 0;
