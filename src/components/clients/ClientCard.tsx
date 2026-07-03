@@ -225,7 +225,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     onOpenHistory,
   } = props;
 
-  const [period, setPeriod] = useState<PeriodKey>('30d');
+  const [period, setPeriod] = useState<PeriodKey>('billing_week');
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showStructure, setShowStructure] = useState(false);
