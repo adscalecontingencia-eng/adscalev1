@@ -193,10 +193,11 @@ export default function SalesStock() {
   return (
     <div className="space-y-6">
       <PageHero
-        icon={Boxes}
+        eyebrow="Venda"
         title="Estoque de BMs"
-        subtitle="Gerencie inventário de Business Managers para venda — separado entre WhatsApp e Site."
+        description="Gerencie inventário de Business Managers para venda — separado entre WhatsApp e Site."
       />
+
 
       <Tabs value={activeKind} onValueChange={(v) => setActiveKind(v as any)}>
         <div className="flex items-center justify-between flex-wrap gap-3">
