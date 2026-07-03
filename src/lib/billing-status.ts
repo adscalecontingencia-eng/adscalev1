@@ -1,4 +1,4 @@
-import { addDays } from 'date-fns';
+import { addDays, endOfDay } from 'date-fns';
 
 export interface WeeklyRow {
   weekStart: Date;
