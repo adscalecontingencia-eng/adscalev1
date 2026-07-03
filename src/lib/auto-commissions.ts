@@ -13,11 +13,11 @@ export interface AutoCommissionResult {
 /**
  * Scans synced ad spend (meta_ad_insights) per client and creates
  * pending commission rows (type='daily', status='pendente') for each
- * completed Thursday→Wednesday week that doesn't yet have one.
+ * completed Friday→Thursday week that doesn't yet have one.
  *
  * Only commission percentage clients (payment_type includes percentage)
  * of client_type 'aluguel' are processed. The current week (still open)
- * is skipped because Saturday's spend isn't closed yet.
+ * is skipped because the week only closes on Thursday.
  */
 export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 'manual' | 'auto' }): Promise<AutoCommissionResult> {
   const startedAt = Date.now();
@@ -25,29 +25,58 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
 
   const tiers = await fetchCommissionTiers();
 
-  const [clientsRes, assignRes, insightsRes, existingRes] = await Promise.all([
+  const [clientsRes, assignRes, existingRes] = await Promise.all([
     supabase.from('clients').select('id, client_type, payment_type, percentage_value, fixed_value, custom_tiers'),
-    supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active, effective_from, effective_to').eq('active', true),
-    supabase.from('meta_ad_insights').select('ad_account_id, date, spend').limit(50000),
+    supabase.from('meta_ad_account_assignments').select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at'),
     supabase.from('commissions').select('id, client_id, billing_week_start, amount, ad_spend, valor_pago').eq('type', 'daily').not('billing_week_start', 'is', null),
   ]);
 
-  if (clientsRes.error || assignRes.error || insightsRes.error || existingRes.error) {
+  if (clientsRes.error || assignRes.error || existingRes.error) {
     return { inserted: 0, updated: 0, skipped: 0, errors: 1 };
+  }
+
+  const allInsights: any[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('meta_ad_insights')
+      .select('ad_account_id, date, spend')
+      .order('date', { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) return { inserted: 0, updated: 0, skipped: 0, errors: 1 };
+    allInsights.push(...(data || []));
+    if (!data || data.length < pageSize) break;
   }
 
   const clients = (clientsRes.data || []).filter(c => c.client_type !== 'venda');
   const clientById = new Map(clients.map(c => [c.id, c]));
 
-  // ad_account_id -> { client_id, effective_from, effective_to }
-  // CRÍTICO: gasto antes de effective_from não pertence ao cliente.
-  type Window = { client_id: string; effective_from: string | null; effective_to: string | null };
-  const accWindows = new Map<string, Window>();
-  (assignRes.data || []).forEach((a: any) => accWindows.set(a.ad_account_id, {
-    client_id: a.client_id,
-    effective_from: a.effective_from || null,
-    effective_to: a.effective_to || null,
-  }));
+  // ad_account_id -> janelas de vigência. Para cada dia escolhemos uma única
+  // atribuição: ativa primeiro, depois effective_from/assigned_at mais recente.
+  // Isso evita cobrar a mesma conta para dois clientes e evita perder histórico.
+  type Window = { client_id: string; active: boolean; effective_from: string | null; effective_to: string | null; assigned_at: string | null };
+  const accWindows = new Map<string, Window[]>();
+  (assignRes.data || []).forEach((a: any) => {
+    const list = accWindows.get(a.ad_account_id) || [];
+    list.push({
+      client_id: a.client_id,
+      active: !!a.active,
+      effective_from: a.effective_from || null,
+      effective_to: a.effective_to || null,
+      assigned_at: a.assigned_at || null,
+    });
+    accWindows.set(a.ad_account_id, list);
+  });
+  const pickWindow = (adAccountId: string, dateISO: string) => {
+    return (accWindows.get(adAccountId) || [])
+      .filter(w => (!w.effective_from || dateISO >= w.effective_from) && (!w.effective_to || dateISO <= w.effective_to))
+      .sort((a, b) => {
+        if (a.active !== b.active) return a.active ? -1 : 1;
+        const fromCmp = String(b.effective_from || '').localeCompare(String(a.effective_from || ''));
+        if (fromCmp !== 0) return fromCmp;
+        return String(b.assigned_at || '').localeCompare(String(a.assigned_at || ''));
+      })[0] || null;
+  };
 
   // existing weeks: first saved commission row by `${client_id}|${billing_week_start}`
   const existing = new Map<string, any>();
@@ -56,19 +85,16 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     if (!existing.has(key)) existing.set(key, c);
   });
 
-  // Group spend by client + Thu-week
-  type WeekKey = string; // yyyy-MM-dd of Thursday
+  // Group spend by client + billing week (Friday start)
+  type WeekKey = string; // yyyy-MM-dd of Friday
   const spendByClient = new Map<string, Map<WeekKey, number>>();
 
-  (insightsRes.data || []).forEach((i: any) => {
-    const win = accWindows.get(i.ad_account_id);
+  allInsights.forEach((i: any) => {
+    const insightDate: string = typeof i.date === 'string' ? i.date.slice(0, 10) : '';
+    const win = pickWindow(i.ad_account_id, insightDate);
     if (!win) return;
     const clientId = win.client_id;
     if (!clientById.has(clientId)) return;
-    // Respeita vigência: ignora gasto anterior à atribuição (ou posterior ao fim)
-    const insightDate: string = typeof i.date === 'string' ? i.date.slice(0, 10) : '';
-    if (win.effective_from && insightDate < win.effective_from) return;
-    if (win.effective_to && insightDate > win.effective_to) return;
     const d = parseDateLocal(i.date);
     const ws = startOfWeek(d, { weekStartsOn: 5 });
     const key = format(ws, 'yyyy-MM-dd');
