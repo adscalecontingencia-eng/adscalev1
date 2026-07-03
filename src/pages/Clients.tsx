@@ -19,7 +19,7 @@ import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/component
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
-import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit } from '@/lib/billing-status';
+import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit, getLastClosedBillingWeekRange } from '@/lib/billing-status';
 
 interface Client {
   id: string;
@@ -233,11 +233,16 @@ const Clients: React.FC = () => {
       if (!data || data.length < pageSize) break;
     }
     const accWindows = new Map<string, { client_id: string; from: string | null; to: string | null }>();
-    (assignRes.data || []).forEach((a: any) => accWindows.set(a.ad_account_id, {
-      client_id: a.client_id,
-      from: a.effective_from || null,
-      to: a.effective_to || null,
-    }));
+    (assignRes.data || []).forEach((a: any) => {
+      const existing = accWindows.get(a.ad_account_id);
+      if (!existing || String(a.effective_from || '') > String(existing.from || '')) {
+        accWindows.set(a.ad_account_id, {
+          client_id: a.client_id,
+          from: a.effective_from || null,
+          to: a.effective_to || null,
+        });
+      }
+    });
     const accMeta = new Map<string, any>();
     (accRes.data || []).forEach((a: any) => accMeta.set(a.id, a));
 
@@ -257,11 +262,16 @@ const Clients: React.FC = () => {
       perAccByClient[cid][i.ad_account_id].push({ date: i.date, spend: Number(i.spend || 0) });
     });
 
-    // Listar todas as contas atribuídas (mesmo sem insights)
+    // Listar todas as contas atribuídas (mesmo sem insights). Mantém uma única
+    // entrada por conta para não duplicar gasto no card/auditoria.
     const accsByClient: Record<string, any[]> = {};
+    const listed = new Set<string>();
     (assignRes.data || []).forEach((a: any) => {
       const meta = accMeta.get(a.ad_account_id);
       if (!meta) return;
+      const key = `${a.client_id}|${a.ad_account_id}`;
+      if (listed.has(key)) return;
+      listed.add(key);
       if (!accsByClient[a.client_id]) accsByClient[a.client_id] = [];
       accsByClient[a.client_id].push({
         id: meta.id,
@@ -278,26 +288,19 @@ const Clients: React.FC = () => {
     return allInsights;
   };
 
-  // Garante que Hoje/Ontem dos clientes refletem o último sync da Meta:
-  // se as últimas 2 datas vierem sem nada, dispara meta-sync e recarrega.
-  // Evita que o gasto por cliente fique zerado quando o admin abre a tela
-  // antes do auto-sync de /ads ter rodado.
+  // Garante que a última semana fechada (sexta→quinta) esteja sincronizada
+  // antes de calcular cobrança/atraso. Essa é a janela usada para comparar
+  // com o Meta Ads e para mover de acumulado para atrasado na sexta.
   const didInsightsAutoSync = useRef(false);
   const ensureRecentInsights = async () => {
     if (didInsightsAutoSync.current) return;
     didInsightsAutoSync.current = true;
-    const today = fmtISO(new Date());
-    const yday = fmtISO(subDays(new Date(), 1));
-    const { data } = await supabase
-      .from('meta_ad_insights')
-      .select('date')
-      .gte('date', yday)
-      .lte('date', today)
-      .limit(1);
-    if ((data || []).length > 0) return;
+    const closedWeek = getLastClosedBillingWeekRange(new Date());
+    const since = fmtISO(closedWeek.start);
+    const until = fmtISO(closedWeek.end);
     try {
       await supabase.functions.invoke('meta-sync', {
-        body: { action: 'sync_insights', since: yday, until: today },
+        body: { action: 'sync_insights', since, until },
       });
       await fetchInsightsByClient();
     } catch (e) {
@@ -607,10 +610,10 @@ const Clients: React.FC = () => {
     const percentApplied = client.clientType === 'aluguel'
       ? getClientTierPercentage(client, accumWeek + adSpend)
       : 0;
-    const now = new Date();
-    // weekStartsOn=5 (sexta) — convenção do projeto: "sexta a quinta — fecha quinta, paga sexta seguinte"
-    const weekStart = startOfWeek(now, { weekStartsOn: 5 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 5 });
+    // weekStartsOn=5 (sexta) — usa a data lançada para não atribuir gasto
+    // manual à semana errada quando o lançamento é retroativo.
+    const weekStart = startOfWeek(commissionDate, { weekStartsOn: 5 });
+    const weekEnd = endOfWeek(commissionDate, { weekStartsOn: 5 });
 
     const { error: commError } = await supabase.from('commissions').insert({
       client_id: clientId, 
@@ -731,10 +734,8 @@ const Clients: React.FC = () => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
 
-    const now = new Date();
-    // weekStartsOn=5 (sexta) — convenção do projeto
-    const weekStart = startOfWeek(now, { weekStartsOn: 5 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 5 });
+    // Fechamento semanal sempre olha a última semana fechada sexta→quinta.
+    const { start: weekStart, end: weekEnd } = getLastClosedBillingWeekRange(new Date());
 
     const existing = commissions.find(c =>
       c.clientId === clientId && c.type === 'weekly_billing' &&
@@ -758,7 +759,7 @@ const Clients: React.FC = () => {
     }
 
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: now.toISOString(), amount: totalCommission,
+      client_id: clientId, date: new Date().toISOString(), amount: totalCommission,
       ad_spend: totalAdSpend, type: 'weekly_billing',
       billing_week_start: format(weekStart, 'yyyy-MM-dd'),
       billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
@@ -877,7 +878,7 @@ const Clients: React.FC = () => {
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
       case 'yesterday': { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
-      case 'week': return { start: startOfWeek(now, { weekStartsOn: 5 }), end: endOfWeek(now, { weekStartsOn: 5 }) };
+      case 'week': return getLastClosedBillingWeekRange(now);
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return customStart && customEnd ? { start: startOfDay(customStart), end: endOfDay(customEnd) } : null;
     }
@@ -924,29 +925,48 @@ const Clients: React.FC = () => {
     return byWeek;
   };
 
-  // Weekly breakdown per client (sexta→quinta). The commission ledger is the
-  // source of truth for closed weeks already validated/settled by admin.
+  // Weekly breakdown per client (sexta→quinta). Fonte primária: gasto direto
+  // das contas Meta atribuídas ao cliente, agregado por semana e por conta.
   const computeWeeklyForClient = (clientId: string): WeeklyRow[] => {
     const client = clients.find(c => c.id === clientId);
     if (!client || client.clientType === 'venda') return [];
-    const rows = insightsByClient[clientId] || [];
     const ledgerByWeek = getLedgerByWeek(clientId);
-    const byWeek: Record<string, number> = {};
-    rows.forEach(r => {
-      const d = parseDateLocal(r.date);
-      const ws = startOfWeek(d, { weekStartsOn: 5 });
-      const key = format(ws, 'yyyy-MM-dd');
-      byWeek[key] = (byWeek[key] || 0) + r.spend;
+    const byWeek = new Map<string, { spend: number; accounts: Map<string, { id: string; metaAccountId: string; name: string; spend: number }> }>();
+    (accountsByClient[clientId] || []).forEach(acc => {
+      (acc.spendByDay || []).forEach(r => {
+        const d = parseDateLocal(r.date);
+        const ws = startOfWeek(d, { weekStartsOn: 5 });
+        const key = format(ws, 'yyyy-MM-dd');
+        const week = byWeek.get(key) || { spend: 0, accounts: new Map() };
+        const spend = Number(r.spend || 0);
+        week.spend += spend;
+        const current = week.accounts.get(acc.id) || {
+          id: acc.id,
+          metaAccountId: acc.meta_account_id,
+          name: acc.name || acc.meta_account_id,
+          spend: 0,
+        };
+        current.spend += spend;
+        week.accounts.set(acc.id, current);
+        byWeek.set(key, week);
+      });
     });
-    const weeklyRows = Object.entries(byWeek).map(([k, spend]) => {
+    const weeklyRows: WeeklyRow[] = Array.from(byWeek.entries()).map(([k, week]) => {
+      const spend = week.spend;
       const rate = getClientTierPercentage(client, spend);
-      return { weekStart: parseDateLocal(k), spend, commission: spend * (rate / 100) };
+      return {
+        weekStart: parseDateLocal(k),
+        spend,
+        rate,
+        commission: spend * (rate / 100),
+        accounts: Array.from(week.accounts.values()).filter(a => a.spend > 0).sort((a, b) => b.spend - a.spend),
+      };
     });
     ledgerByWeek.forEach((ledger, k) => {
-      if (ledger.amount <= 0 || byWeek[k] !== undefined) return;
+      if (ledger.amount <= 0 || byWeek.has(k)) return;
       weeklyRows.push({ weekStart: parseDateLocal(k), spend: ledger.spend, commission: ledger.amount });
     });
-    return weeklyRows;
+    return weeklyRows.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   };
 
   const getAccumulated = (clientId: string) => {
@@ -1048,7 +1068,7 @@ const Clients: React.FC = () => {
     // 'recent' mantém ordem do fetch (created_at desc) que é a ordem em `clients`
     return withAcc;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, commissions, insightsByClient, search, typeFilter, statusFilter, sort, periodFilter, customStart, customEnd, commissionTiers]);
+  }, [clients, commissions, insightsByClient, accountsByClient, search, typeFilter, statusFilter, sort, periodFilter, customStart, customEnd, commissionTiers]);
 
   // KPIs globais (somam todos os clientes do período/filtros aplicados)
   const kpi = useMemo(() => {
@@ -1065,7 +1085,7 @@ const Clients: React.FC = () => {
     });
     return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalAtrasado, totalPaga, inadimplentes };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, commissions, insightsByClient, periodFilter, customStart, customEnd, commissionTiers]);
+  }, [clients, commissions, insightsByClient, accountsByClient, periodFilter, customStart, customEnd, commissionTiers]);
 
   // Mapa de gasto diário por cliente (usado na sparkline do card)
   const spendByClient = insightsByClient;
