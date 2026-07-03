@@ -1416,6 +1416,132 @@ const ClientDashboard: React.FC = () => {
               );
             })()}
 
+            {/* Relatório consolidado: Gasto x Comissão por conta */}
+            {(() => {
+              if (!client || client.client_type === 'venda') return null;
+              const now = new Date();
+              const closedBillingWeek = getLastClosedBillingWeekRange(now);
+              const since =
+                estruturaPeriod === 'today' ? startOfDay(now) :
+                estruturaPeriod === 'billing_week' ? closedBillingWeek.start :
+                estruturaPeriod === '7d' ? startOfDay(new Date(now.getTime() - 6 * 86400000)) :
+                estruturaPeriod === '30d' ? startOfDay(new Date(now.getTime() - 29 * 86400000)) :
+                estruturaPeriod === 'custom' ? startOfDay(estruturaCustomStart) :
+                new Date(0);
+              const until =
+                estruturaPeriod === 'billing_week' ? closedBillingWeek.end :
+                estruturaPeriod === 'custom' ? endOfDay(estruturaCustomEnd) :
+                endOfDay(now);
+              const periodLabel =
+                estruturaPeriod === 'today' ? 'Hoje' :
+                estruturaPeriod === 'billing_week' ? `${format(closedBillingWeek.start, 'dd/MM', { locale: ptBR })} → ${format(closedBillingWeek.end, 'dd/MM', { locale: ptBR })}` :
+                estruturaPeriod === '7d' ? 'Últimos 7 dias' :
+                estruturaPeriod === '30d' ? 'Últimos 30 dias' :
+                estruturaPeriod === 'custom' ? `${format(estruturaCustomStart, 'dd/MM/yyyy', { locale: ptBR })} → ${format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: ptBR })}` :
+                'Todo o período';
+
+              const rows = activeAccounts.map((a: any) => {
+                const acc = a.ad_account;
+                if (!acc) return null;
+                const spend = insights.reduce((s: number, i: any) => {
+                  if (i.ad_account_id !== acc.id) return s;
+                  const d = parseDateLocal(i.date);
+                  if (d < since || d > until) return s;
+                  return s + Number(i.spend || 0);
+                }, 0);
+                const isBlocked = acc.status === 'blocked' || (acc.disable_reason ?? 0) > 0;
+                return {
+                  id: a.id,
+                  name: acc.name as string,
+                  metaId: acc.meta_account_id as string,
+                  isBlocked,
+                  disableLabel: acc.disable_reason_label as string | null,
+                  spend,
+                };
+              }).filter(Boolean) as { id: string; name: string; metaId: string; isBlocked: boolean; disableLabel: string | null; spend: number }[];
+
+              const totalSpend = rows.reduce((s, r) => s + r.spend, 0);
+              const basePct = Number(client.percentage_value) || 0;
+              const effectivePct = getTierPct(totalSpend, basePct);
+              const withCommission = rows
+                .map(r => ({ ...r, commission: r.spend * (effectivePct / 100) }))
+                .sort((a, b) => b.spend - a.spend);
+              const totalCommission = totalSpend * (effectivePct / 100);
+
+              return (
+                <div className="bg-card border border-border rounded-xl p-5 border-glow">
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                    <div>
+                      <h3 className="font-display text-sm font-semibold flex items-center gap-2">
+                        <Layers size={16} className="text-primary" /> Estrutura de contas de anúncio
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Gasto e comissão estimada por conta — {periodLabel}
+                      </p>
+                    </div>
+                    <span className="text-[10px] px-2 py-1 rounded-md bg-primary/10 border border-primary/30 text-primary font-medium">
+                      Tier atual: {effectivePct.toFixed(2)}%
+                    </span>
+                  </div>
+
+                  {withCommission.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Sem dados no período selecionado.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-border/60">
+                      <table className="w-full text-xs">
+                        <thead className="bg-secondary/60 text-muted-foreground">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Conta</th>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">ID Meta</th>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Status</th>
+                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Gasto período</th>
+                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Comissão est.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {withCommission.map(r => (
+                            <tr key={r.id} className="border-t border-border/40 hover:bg-secondary/30 transition-colors">
+                              <td className="px-3 py-2 font-medium text-foreground">{r.name}</td>
+                              <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">{r.metaId}</td>
+                              <td className="px-3 py-2">
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border",
+                                  r.isBlocked
+                                    ? "bg-destructive/10 border-destructive/30 text-destructive"
+                                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                )}>
+                                  {r.isBlocked ? <Ban size={9} /> : <ShieldCheck size={9} />}
+                                  {r.isBlocked ? (r.disableLabel || 'Bloqueada') : 'Ativa'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold text-foreground">{fmt(r.spend)}</td>
+                              <td className="px-3 py-2 text-right font-semibold text-primary">{fmt(r.commission)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-secondary/80 border-t-2 border-primary/40">
+                          <tr>
+                            <td colSpan={3} className="px-3 py-2.5 text-right text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                              Total ({withCommission.length} {withCommission.length === 1 ? 'conta' : 'contas'})
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-display text-sm font-bold text-foreground">{fmt(totalSpend)}</td>
+                            <td className="px-3 py-2.5 text-right font-display text-sm font-bold text-primary">{fmt(totalCommission)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
+                    * A comissão é calculada sobre o gasto total do período aplicando o tier vigente ({effectivePct.toFixed(2)}%).
+                    O valor por conta é uma estimativa proporcional para facilitar a conferência.
+                  </p>
+                </div>
+              );
+            })()}
+
 
             {/* Pages */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
