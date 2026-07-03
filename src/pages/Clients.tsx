@@ -759,7 +759,7 @@ const Clients: React.FC = () => {
     }
 
     const { error } = await supabase.from('commissions').insert({
-      client_id: clientId, date: now.toISOString(), amount: totalCommission,
+      client_id: clientId, date: new Date().toISOString(), amount: totalCommission,
       ad_spend: totalAdSpend, type: 'weekly_billing',
       billing_week_start: format(weekStart, 'yyyy-MM-dd'),
       billing_week_end: format(weekEnd, 'yyyy-MM-dd'),
