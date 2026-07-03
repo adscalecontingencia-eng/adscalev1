@@ -1399,6 +1399,7 @@ const Clients: React.FC = () => {
               creditRemaining={acc.creditRemaining}
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
+              accounts={accountsByClient[c.id] || []}
               isAdmin={isAdmin}
               showPayForm={showPaidForm === c.id}
               isSubmittingPayment={validatingPaymentClientId === c.id}
