@@ -448,7 +448,9 @@ export const ClientCard: React.FC<Props> = (props) => {
             icon={<DollarSign size={11} />}
             label={
               period === 'today' ? 'Gasto hoje' :
-              period === '7d' ? 'Gasto 7d' :
+              period === 'billing_week' ? 'Gasto semana (sex→qui)' :
+              period === 'last_billing_week' ? 'Gasto semana anterior' :
+              period === '7d' ? 'Gasto 7d corridos' :
               period === '30d' ? 'Gasto 30d' :
               'Gasto período'
             }
