@@ -960,7 +960,7 @@ const Clients: React.FC = () => {
         byWeek.set(key, week);
       });
     });
-    const weeklyRows = Array.from(byWeek.entries()).map(([k, week]) => {
+    const weeklyRows: WeeklyRow[] = Array.from(byWeek.entries()).map(([k, week]) => {
       const spend = week.spend;
       const rate = getClientTierPercentage(client, spend);
       return {
@@ -1077,7 +1077,7 @@ const Clients: React.FC = () => {
     // 'recent' mantém ordem do fetch (created_at desc) que é a ordem em `clients`
     return withAcc;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, commissions, insightsByClient, search, typeFilter, statusFilter, sort, periodFilter, customStart, customEnd, commissionTiers]);
+  }, [clients, commissions, insightsByClient, accountsByClient, search, typeFilter, statusFilter, sort, periodFilter, customStart, customEnd, commissionTiers]);
 
   // KPIs globais (somam todos os clientes do período/filtros aplicados)
   const kpi = useMemo(() => {
@@ -1094,7 +1094,7 @@ const Clients: React.FC = () => {
     });
     return { totalClients: clients.length, aluguelCount, vendaCount, totalAdSpend, totalPendente, totalAtrasado, totalPaga, inadimplentes };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, commissions, insightsByClient, periodFilter, customStart, customEnd, commissionTiers]);
+  }, [clients, commissions, insightsByClient, accountsByClient, periodFilter, customStart, customEnd, commissionTiers]);
 
   // Mapa de gasto diário por cliente (usado na sparkline do card)
   const spendByClient = insightsByClient;
