@@ -985,7 +985,11 @@ const Clients: React.FC = () => {
     const paidRows = cc.filter(c => c.type === 'paid').map(c => ({ date: c.date, amount: c.amount }));
     const totalPaidAllTime = paidRows.reduce((s, c) => s + c.amount, 0);
     const split = splitOverdueVsCurrent(weeks, Number(client?.planCredit || 0), totalPaidAllTime, new Date(), null, paidRows);
-    const saldoPendente = split.currentPending + split.overdue;
+    // "Saldo Acumulado" mostra somente a semana corrente (ainda não vencida).
+    // O que já venceu vai integralmente para "Saldo Atrasado" e não deve ser
+    // somado novamente no acumulado, senão o card exibe o mesmo valor nas
+    // duas colunas quando toda a dívida está atrasada.
+    const saldoPendente = split.currentPending;
     const saldoAtrasado = split.overdue;
 
     // Crédito restante: planCredit menos a comissão total já gerada ao longo
