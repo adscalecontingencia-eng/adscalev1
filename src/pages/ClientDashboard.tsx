@@ -65,13 +65,13 @@ const ClientDashboard: React.FC = () => {
     return `${y}-${m}-${day}`;
   };
 
-  const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error(`${label} demorou demais para responder`)), ms);
     });
     try {
-      return await Promise.race([promise, timeout]);
+      return await Promise.race([Promise.resolve(promise), timeout]);
     } finally {
       clearTimeout(timer!);
     }
@@ -89,10 +89,10 @@ const ClientDashboard: React.FC = () => {
   };
 
   const fetchAccounts = useCallback(async (clientId: string) => {
-    const { data: assigns } = await withTimeout(supabase
+    const { data: assigns } = await withTimeout<{ data: any[] | null }>(supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
-      .eq('client_id', clientId), 10000, 'Contas de anúncio');
+      .eq('client_id', clientId) as any, 10000, 'Contas de anúncio');
     const assignments = assigns || [];
     const list = assignments.filter((a: any) => a.active);
     setActiveAccounts(list);
@@ -108,11 +108,11 @@ const ClientDashboard: React.FC = () => {
     // contar gasto anterior à atribuição da conta a este cliente.
     const assignmentsForInsights = assignments.filter((a: any) => a.ad_account?.id);
     if (assignmentsForInsights.length > 0) {
-      const accountIds = Array.from(new Set(assignmentsForInsights.map((a: any) => a.ad_account.id)));
-      const { data: allAccountAssignments } = await withTimeout(supabase
+      const accountIds = Array.from(new Set(assignmentsForInsights.map((a: any) => String(a.ad_account.id)))) as string[];
+      const { data: allAccountAssignments } = await withTimeout<{ data: any[] | null }>(supabase
         .from('meta_ad_account_assignments')
         .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at')
-        .in('ad_account_id', accountIds), 10000, 'Atribuições de contas');
+        .in('ad_account_id', accountIds) as any, 10000, 'Atribuições de contas');
       type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
       const windowsByAccount = new Map<string, AssignmentWindow[]>();
       (allAccountAssignments || []).forEach((a: any) => {
@@ -156,7 +156,7 @@ const ClientDashboard: React.FC = () => {
           .eq('ad_account_id', accId)
           .gte('date', since);
         if (a.effective_to) q = q.lte('date', a.effective_to);
-        const { data, error } = await withTimeout(q.order('date', { ascending: false }).limit(5000), 12000, 'Insights de anúncio');
+        const { data, error } = await withTimeout<{ data: any[] | null; error: any }>(q.order('date', { ascending: false }).limit(5000) as any, 12000, 'Insights de anúncio');
         if (error) throw error;
         return data || [];
       }));
