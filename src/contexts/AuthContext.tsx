@@ -21,6 +21,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} demorou demais para responder`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
+};
+
 async function fetchUserProfile(authUserId: string, email: string): Promise<User | null> {
   const { data: roles } = await supabase
     .from('user_roles')
@@ -110,13 +122,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Load session once on mount
     const initSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 8000, 'Sessão');
         if (session?.user && isMounted) {
-          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+          const profile = await withTimeout(fetchUserProfile(session.user.id, session.user.email || ''), 8000, 'Perfil');
           if (isMounted) setUser(profile);
         }
       } catch (e) {
         console.error('Error loading session:', e);
+        if (isMounted) setUser(null);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -139,10 +152,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Use setTimeout to avoid deadlock from calling Supabase inside the callback
           setTimeout(async () => {
             if (!isMounted) return;
-            const profile = await fetchUserProfile(session.user.id, session.user.email || '');
-            if (isMounted) {
-              setUser(profile);
-              setLoading(false);
+            try {
+              const profile = await withTimeout(fetchUserProfile(session.user.id, session.user.email || ''), 8000, 'Perfil');
+              if (isMounted) setUser(profile);
+            } catch (e) {
+              console.error('Error refreshing profile:', e);
+              if (isMounted) setUser(null);
+            } finally {
+              if (isMounted) setLoading(false);
             }
           }, 0);
         }
