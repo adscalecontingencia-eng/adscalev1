@@ -1464,6 +1464,7 @@ const ClientDashboard: React.FC = () => {
               const basePct = Number(client.percentage_value) || 0;
               const effectivePct = getTierPct(totalSpend, basePct);
               const withCommission = rows
+                .filter(r => r.spend > 0)
                 .map(r => ({ ...r, commission: r.spend * (effectivePct / 100) }))
                 .sort((a, b) => b.spend - a.spend);
               const totalCommission = totalSpend * (effectivePct / 100);
