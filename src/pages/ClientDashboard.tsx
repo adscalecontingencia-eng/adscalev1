@@ -65,22 +65,34 @@ const ClientDashboard: React.FC = () => {
     return `${y}-${m}-${day}`;
   };
 
+  const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} demorou demais para responder`)), ms);
+    });
+    try {
+      return await Promise.race([Promise.resolve(promise), timeout]);
+    } finally {
+      clearTimeout(timer!);
+    }
+  };
+
   const syncClosedBillingWeek = async () => {
     const range = getLastClosedBillingWeekRange(new Date());
     try {
-      await supabase.functions.invoke('meta-sync', {
+      await withTimeout(supabase.functions.invoke('meta-sync', {
         body: { action: 'sync_insights', since: fmtISO(range.start), until: fmtISO(range.end) },
-      });
+      }), 12000, 'Sync Meta');
     } catch (e) {
       console.warn('[ClientDashboard] sync da semana fechada falhou:', e);
     }
   };
 
   const fetchAccounts = useCallback(async (clientId: string) => {
-    const { data: assigns } = await supabase
+    const { data: assigns } = await withTimeout<{ data: any[] | null }>(supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
-      .eq('client_id', clientId);
+      .eq('client_id', clientId) as any, 10000, 'Contas de anúncio');
     const assignments = assigns || [];
     const list = assignments.filter((a: any) => a.active);
     setActiveAccounts(list);
@@ -96,11 +108,11 @@ const ClientDashboard: React.FC = () => {
     // contar gasto anterior à atribuição da conta a este cliente.
     const assignmentsForInsights = assignments.filter((a: any) => a.ad_account?.id);
     if (assignmentsForInsights.length > 0) {
-      const accountIds = Array.from(new Set(assignmentsForInsights.map((a: any) => a.ad_account.id)));
-      const { data: allAccountAssignments } = await supabase
+      const accountIds = Array.from(new Set(assignmentsForInsights.map((a: any) => String(a.ad_account.id)))) as string[];
+      const { data: allAccountAssignments } = await withTimeout<{ data: any[] | null }>(supabase
         .from('meta_ad_account_assignments')
         .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at')
-        .in('ad_account_id', accountIds);
+        .in('ad_account_id', accountIds) as any, 10000, 'Atribuições de contas');
       type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
       const windowsByAccount = new Map<string, AssignmentWindow[]>();
       (allAccountAssignments || []).forEach((a: any) => {
@@ -128,21 +140,51 @@ const ClientDashboard: React.FC = () => {
       const fallback = new Date();
       fallback.setMonth(fallback.getMonth() - 12);
       const fallbackStr = fallback.toISOString().split('T')[0];
+      const periodStarts = [
+        fallbackStr,
+        ...assignmentsForInsights.map((a: any) => a.effective_from).filter(Boolean),
+      ].sort();
+      const globalSince = periodStarts[0] || fallbackStr;
+      const globalUntil = fmtISO(new Date());
       const results = await Promise.all(assignmentsForInsights.map(async (a: any) => {
         const accId = a.ad_account?.id;
         if (!accId) return [] as any[];
-        const since = a.effective_from || fallbackStr;
+        const since = a.effective_from && a.effective_from > fallbackStr ? a.effective_from : fallbackStr;
         let q = supabase
           .from('meta_ad_insights')
           .select('ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue')
           .eq('ad_account_id', accId)
           .gte('date', since);
         if (a.effective_to) q = q.lte('date', a.effective_to);
-        const { data } = await q.order('date', { ascending: true }).range(0, 99999);
+        const { data, error } = await withTimeout<{ data: any[] | null; error: any }>(q.order('date', { ascending: false }).limit(5000) as any, 12000, 'Insights de anúncio');
+        if (error) throw error;
         return data || [];
       }));
+      const fetchedRows = results.flat();
+      const fetchedKeys = new Set(fetchedRows.map((row: any) => `${row.ad_account_id}|${String(row.date).slice(0, 10)}`));
+      const missingDays: { adAccountId: string; date: string }[] = [];
+      for (const accountId of accountIds) {
+        const day = parseDateLocal(globalSince);
+        const end = parseDateLocal(globalUntil);
+        while (day <= end) {
+          const key = `${accountId}|${fmtISO(day)}`;
+          if (!fetchedKeys.has(key)) missingDays.push({ adAccountId: accountId, date: fmtISO(day) });
+          day.setDate(day.getDate() + 1);
+        }
+      }
+      if (missingDays.length > 0) {
+        const missingByAccount = missingDays.reduce((acc: Record<string, string[]>, row) => {
+          if (!acc[row.adAccountId]) acc[row.adAccountId] = [];
+          acc[row.adAccountId].push(row.date);
+          return acc;
+        }, {});
+        console.warn('[ClientDashboard] insights incompletos após limite de segurança', {
+          accounts: Object.keys(missingByAccount).length,
+          missingDays: missingDays.length,
+        });
+      }
       const seen = new Set<string>();
-      setInsights(results.flat().filter((row: any) => {
+      setInsights(fetchedRows.filter((row: any) => {
         const dateISO = String(row.date).slice(0, 10);
         if (!belongsToClientOnDate(row.ad_account_id, dateISO)) return false;
         const key = `${row.ad_account_id}|${String(row.date).slice(0, 10)}`;
@@ -214,7 +256,6 @@ const ClientDashboard: React.FC = () => {
           if (Object.keys(subErrors).length > 0) {
             console.warn('[ClientDashboard][telemetry] falhas em sub-consultas', { ...ctx, clientId: clientData.id, subErrors });
           }
-          await syncClosedBillingWeek();
           await fetchAccounts(clientData.id);
           setCommissions(commRes.data || []);
           setSavedAccounts(blockedRes.data || []);
@@ -229,6 +270,9 @@ const ClientDashboard: React.FC = () => {
             requests: reqsRes.data?.length || 0,
             elapsed_ms: Math.round(performance.now() - t0),
           });
+          syncClosedBillingWeek()
+            .then(() => fetchAccounts(clientData.id))
+            .catch((e) => console.warn('[ClientDashboard] atualização em background falhou:', e));
         } else if (!clientErr) {
           // Sem registro de cliente para este e-mail/ID — situação importante de rastrear
           console.warn('[ClientDashboard][telemetry] cliente não encontrado', {
