@@ -586,9 +586,14 @@ Deno.serve(async (req) => {
       const since: string = body.since || body.date || yday;
       const until: string = body.until || body.date || yday;
 
+      // Only pull insights for accounts that Meta will actually respond to.
+      // Blocked/disabled accounts return errors that don't help the operator
+      // and burn through the edge-function timeout for nothing.
       const { data: accounts, error: accErr } = await supabase
         .from("meta_ad_accounts")
-        .select("id, meta_account_id, name, meta_app_id");
+        .select("id, meta_account_id, name, meta_app_id, status, account_status")
+        .eq("status", "active")
+        .in("account_status", [1, 101, 201]);
       if (accErr) throw accErr;
 
       const purchasePriority = [
