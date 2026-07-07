@@ -655,7 +655,7 @@ Deno.serve(async (req) => {
           }
         }
       };
-      await Promise.all(Array.from({ length: Math.min(3, list.length) }, worker));
+      await Promise.all(Array.from({ length: Math.min(8, list.length) }, worker));
 
       let totalRows = 0;
       const CHUNK = 500;
