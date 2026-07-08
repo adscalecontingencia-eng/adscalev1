@@ -374,6 +374,8 @@ export default function AdsDashboard() {
         lastSyncAt={lastSyncAt}
         syncing={syncing}
         onSync={() => sync()}
+        syncScope={syncScope}
+        onSyncScopeChange={setSyncScope}
         activeAccountsCount={filteredAccountIds.size}
       />
 
