@@ -113,6 +113,7 @@ export default function AdsDashboard() {
   const [filterClients, setFilterClients] = useState<string[]>([]);
   const [filterAccounts, setFilterAccounts] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<AccountStatus>("all");
+  const [syncScope, setSyncScope] = useState<"active" | "recent_spenders">("active");
 
   const loadMeta = async () => {
     const [b, a, c, asn] = await Promise.all([
