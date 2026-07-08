@@ -47,8 +47,12 @@ interface Props {
   lastSyncAt?: Date | null;
   syncing: boolean;
   onSync: () => void;
+  syncScope: SyncScope;
+  onSyncScopeChange: (v: SyncScope) => void;
   activeAccountsCount: number;
 }
+
+export type SyncScope = "active" | "recent_spenders";
 
 const RANGES: { key: AdsRange; label: string }[] = [
   { key: "today", label: "Hoje" },
