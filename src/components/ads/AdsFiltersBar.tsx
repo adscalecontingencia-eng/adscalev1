@@ -47,8 +47,12 @@ interface Props {
   lastSyncAt?: Date | null;
   syncing: boolean;
   onSync: () => void;
+  syncScope: SyncScope;
+  onSyncScopeChange: (v: SyncScope) => void;
   activeAccountsCount: number;
 }
+
+export type SyncScope = "active" | "recent_spenders";
 
 const RANGES: { key: AdsRange; label: string }[] = [
   { key: "today", label: "Hoje" },
@@ -68,7 +72,7 @@ export default function AdsFiltersBar(props: Props) {
     filterClients, onFilterClientsChange,
     filterAccounts, onFilterAccountsChange,
     statusFilter, onStatusFilterChange,
-    lastSyncAt, syncing, onSync, activeAccountsCount,
+    lastSyncAt, syncing, onSync, syncScope, onSyncScopeChange, activeAccountsCount,
   } = props;
 
   const [clientSearch, setClientSearch] = useState("");
@@ -77,19 +81,30 @@ export default function AdsFiltersBar(props: Props) {
   const accountOptions = accounts.filter((a) => filterBm === "all" || a.bm_id === filterBm);
 
   const syncChip = (
-    <button
-      onClick={onSync}
-      disabled={syncing}
-      className={cn(
-        "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-        "bg-secondary/60 border-border hover:border-primary/60 hover:text-primary disabled:opacity-60",
-      )}
-    >
-      <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin text-primary")} />
-      {syncing ? "Sincronizando..." : lastSyncAt
-        ? `Sync · há ${formatDistanceToNowStrict(lastSyncAt, { locale: ptBR })}`
-        : "Sincronizar"}
-    </button>
+    <div className="inline-flex items-center gap-1">
+      <Select value={syncScope} onValueChange={(v) => onSyncScopeChange(v as SyncScope)}>
+        <SelectTrigger className="h-8 w-[210px] text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="active">Todas as contas ativas</SelectItem>
+          <SelectItem value="recent_spenders">Com gasto (últimos 7 dias)</SelectItem>
+        </SelectContent>
+      </Select>
+      <button
+        onClick={onSync}
+        disabled={syncing}
+        className={cn(
+          "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+          "bg-secondary/60 border-border hover:border-primary/60 hover:text-primary disabled:opacity-60",
+        )}
+      >
+        <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin text-primary")} />
+        {syncing ? "Sincronizando..." : lastSyncAt
+          ? `Sync · há ${formatDistanceToNowStrict(lastSyncAt, { locale: ptBR })}`
+          : "Sincronizar"}
+      </button>
+    </div>
   );
 
   return (

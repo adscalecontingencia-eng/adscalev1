@@ -113,6 +113,7 @@ export default function AdsDashboard() {
   const [filterClients, setFilterClients] = useState<string[]>([]);
   const [filterAccounts, setFilterAccounts] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<AccountStatus>("all");
+  const [syncScope, setSyncScope] = useState<"active" | "recent_spenders">("active");
 
   const loadMeta = async () => {
     const [b, a, c, asn] = await Promise.all([
@@ -318,7 +319,7 @@ export default function AdsDashboard() {
         ({ since, until } = rangeToDates(range, customStart, customEnd));
       }
       const { data, error } = await supabase.functions.invoke("meta-sync", {
-        body: { action: "sync_insights", since, until },
+        body: { action: "sync_insights", since, until, only_recent_spenders: syncScope === "recent_spenders" },
       });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
@@ -373,6 +374,8 @@ export default function AdsDashboard() {
         lastSyncAt={lastSyncAt}
         syncing={syncing}
         onSync={() => sync()}
+        syncScope={syncScope}
+        onSyncScopeChange={setSyncScope}
         activeAccountsCount={filteredAccountIds.size}
       />
 
