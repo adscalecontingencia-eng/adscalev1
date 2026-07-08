@@ -306,7 +306,7 @@ export default function SalesAdsDashboard() {
         ({ since, until } = rangeToDates(range, customStart, customEnd));
       }
       const { data, error } = await supabase.functions.invoke("meta-sync", {
-        body: { action: "sync_insights", since, until, app_ids: [selectedAppId] },
+        body: { action: "sync_insights", since, until, app_ids: [selectedAppId], only_recent_spenders: syncScope === "recent_spenders" },
       });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
