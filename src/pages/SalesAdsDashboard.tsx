@@ -101,6 +101,7 @@ export default function SalesAdsDashboard() {
   const [filterClients, setFilterClients] = useState<string[]>([]);
   const [filterAccounts, setFilterAccounts] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<AccountStatus>("all");
+  const [syncScope, setSyncScope] = useState<"active" | "recent_spenders">("active");
 
   // Load apps once and pick a sensible default (persisted → default → first active).
   useEffect(() => {
