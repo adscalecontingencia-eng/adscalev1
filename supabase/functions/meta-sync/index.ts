@@ -589,12 +589,33 @@ Deno.serve(async (req) => {
       // Only pull insights for accounts that Meta will actually respond to.
       // Blocked/disabled accounts return errors that don't help the operator
       // and burn through the edge-function timeout for nothing.
-      const { data: accounts, error: accErr } = await supabase
+      const { data: accountsRaw, error: accErr } = await supabase
         .from("meta_ad_accounts")
         .select("id, meta_account_id, name, meta_app_id, status, account_status")
         .eq("status", "active")
         .in("account_status", [1, 101, 201]);
       if (accErr) throw accErr;
+
+      let accounts = accountsRaw || [];
+
+      // Optional filter: only accounts that spent in the last 7 days.
+      if (body.only_recent_spenders === true && accounts.length > 0) {
+        const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+        const { data: recent, error: recErr } = await supabase
+          .from("meta_ad_insights")
+          .select("ad_account_id, spend")
+          .gte("date", sevenAgo)
+          .gt("spend", 0);
+        if (recErr) throw recErr;
+        const active = new Set((recent || []).map((r: any) => r.ad_account_id));
+        accounts = accounts.filter((a: any) => active.has(a.id));
+      }
+
+      // Optional filter: explicit list of account ids (internal PK).
+      if (Array.isArray(body.account_ids) && body.account_ids.length > 0) {
+        const wanted = new Set(body.account_ids);
+        accounts = accounts.filter((a: any) => wanted.has(a.id));
+      }
 
       const purchasePriority = [
         "omni_purchase",
