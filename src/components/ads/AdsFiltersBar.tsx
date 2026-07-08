@@ -72,7 +72,7 @@ export default function AdsFiltersBar(props: Props) {
     filterClients, onFilterClientsChange,
     filterAccounts, onFilterAccountsChange,
     statusFilter, onStatusFilterChange,
-    lastSyncAt, syncing, onSync, activeAccountsCount,
+    lastSyncAt, syncing, onSync, syncScope, onSyncScopeChange, activeAccountsCount,
   } = props;
 
   const [clientSearch, setClientSearch] = useState("");
