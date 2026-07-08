@@ -386,6 +386,8 @@ export default function SalesAdsDashboard() {
             lastSyncAt={lastSyncAt}
             syncing={syncing}
             onSync={() => sync()}
+            syncScope={syncScope}
+            onSyncScopeChange={setSyncScope}
             activeAccountsCount={accountLevelIds.size}
           />
 
