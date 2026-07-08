@@ -589,11 +589,25 @@ Deno.serve(async (req) => {
       // Only pull insights for accounts that Meta will actually respond to.
       // Blocked/disabled accounts return errors that don't help the operator
       // and burn through the edge-function timeout for nothing.
+      //
+      // Regra:
+      // - account_status = 1 (ACTIVE) — Meta responde normalmente.
+      // - disable_reason ∈ {1,4,7,11,12,13,15} = banimento PERMANENTE
+      //   (integridade, permanent_close, misrepresented, compromised).
+      //   Nunca mais volta; não faz sentido bater na API.
+      // - disable_reason = 3 (RISK_PAYMENT) NÃO é permanente — pode voltar
+      //   assim que o cliente ajustar o meio de pagamento; mantemos fora do
+      //   sync porque hoje retorna erro, mas expomos o rótulo na UI para
+      //   diferenciar de banimento definitivo.
+      const PERMANENT_DISABLE_REASONS = [1, 4, 7, 11, 12, 13, 15];
       const { data: accountsRaw, error: accErr } = await supabase
         .from("meta_ad_accounts")
-        .select("id, meta_account_id, name, meta_app_id, status, account_status")
+        .select("id, meta_account_id, name, meta_app_id, status, account_status, disable_reason")
         .eq("status", "active")
-        .in("account_status", [1, 101, 201]);
+        .eq("account_status", 1)
+        .or(
+          `disable_reason.is.null,disable_reason.not.in.(${PERMANENT_DISABLE_REASONS.join(",")})`
+        );
       if (accErr) throw accErr;
 
       let accounts = accountsRaw || [];
