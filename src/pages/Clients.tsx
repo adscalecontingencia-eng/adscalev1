@@ -322,6 +322,41 @@ const Clients: React.FC = () => {
     }
   };
 
+  // Sincronização manual disparada pelo admin no header do Dashboard de Clientes.
+  // Cobre a última semana fechada + a semana corrente para garantir que gastos
+  // recém-detectados apareçam nos cards antes de fechar a cobrança de sexta.
+  const handleManualAdsSync = async () => {
+    if (syncingAds) return;
+    setSyncingAds(true);
+    const toastId = toast.loading('Sincronizando contas de anúncio com a Meta...');
+    try {
+      const today = new Date();
+      const closed = getLastClosedBillingWeekRange(today);
+      const since = fmtISO(closed.start);
+      const until = fmtISO(endOfDay(today));
+      const { data, error } = await supabase.functions.invoke('meta-sync', {
+        body: { action: 'sync_insights', since, until },
+      });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      const rows = (data as any)?.linhas_upsertadas ?? 0;
+      const errs = (data as any)?.erros || [];
+      await fetchInsightsByClient();
+      await fetchCommissions();
+      setLastAdsSyncAt(new Date());
+      if (errs.length > 0) {
+        toast.warning(`Sincronizado com avisos: ${rows} registro(s), ${errs.length} conta(s) com erro na Meta.`, { id: toastId });
+      } else {
+        toast.success(`Sincronizado: ${rows} registro(s) atualizado(s).`, { id: toastId });
+      }
+    } catch (e: any) {
+      toast.error(`Falha ao sincronizar: ${e?.message || e}`, { id: toastId });
+    } finally {
+      setSyncingAds(false);
+    }
+  };
+
+
   const fetchPartners = async () => {
     const { data } = await supabase.from('partners').select('id, name, email').order('name');
     setPartners((data as any) || []);
