@@ -81,7 +81,7 @@ const ClientDashboard: React.FC = () => {
     const range = getLastClosedBillingWeekRange(new Date());
     try {
       await withTimeout(supabase.functions.invoke('meta-sync', {
-        body: { action: 'sync_insights', since: fmtISO(range.start), until: fmtISO(range.end) },
+        body: { action: 'sync_insights', since: fmtISO(range.start), until: fmtISO(new Date()) },
       }), 12000, 'Sync Meta');
     } catch (e) {
       console.warn('[ClientDashboard] sync da semana fechada falhou:', e);
