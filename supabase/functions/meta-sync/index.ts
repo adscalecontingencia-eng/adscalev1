@@ -739,6 +739,8 @@ Deno.serve(async (req) => {
         contas: list.length,
         linhas_upsertadas: totalRows,
         erros: errors,
+        contas_stale: staleAccounts.length,
+        contas_stale_nomes: staleAccounts.slice(0, 20).map((a: any) => a.name),
       });
     }
 
