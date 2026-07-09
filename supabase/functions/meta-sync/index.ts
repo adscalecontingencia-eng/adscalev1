@@ -754,8 +754,25 @@ Deno.serve(async (req) => {
                 revenue: pickByPriority(row.action_values),
               });
             }
+            // sucesso: limpa último erro de sync e marca sincronizada
+            await supabase.from("meta_ad_accounts").update({
+              last_sync_error_code: null,
+              last_sync_error_message: null,
+              last_sync_error_at: null,
+              last_synced_at: new Date().toISOString(),
+            }).eq("id", acc.id);
           } catch (e) {
-            errors.push({ account: acc.name, erro: (e as Error).message });
+            const msg = (e as Error).message || "";
+            errors.push({ account: acc.name, erro: msg });
+            // extrai o code do payload da Meta (ex: {"code":200,...})
+            let code: number | null = null;
+            const m = msg.match(/"code"\s*:\s*(\d+)/);
+            if (m) code = Number(m[1]);
+            await supabase.from("meta_ad_accounts").update({
+              last_sync_error_code: code,
+              last_sync_error_message: msg.slice(0, 500),
+              last_sync_error_at: new Date().toISOString(),
+            }).eq("id", acc.id);
           }
         }
       };
