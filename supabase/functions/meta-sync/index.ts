@@ -586,6 +586,24 @@ Deno.serve(async (req) => {
       const since: string = body.since || body.date || yday;
       const until: string = body.until || body.date || yday;
 
+      // Freshness check: if any active account hasn't been re-discovered in
+      // the last 6h, run sync_accounts first. Meta occasionally drops accounts
+      // from a BM's edges silently; without a fresh discovery we'd keep hitting
+      // the API for accounts the token can no longer see (they return errors
+      // and their spend never lands in the DB — the exact Quantum 05/09 bug).
+      const staleCutoff = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+      const { count: staleCount } = await supabase
+        .from("meta_ad_accounts")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "active")
+        .or(`last_synced_at.is.null,last_synced_at.lt.${staleCutoff}`);
+      const skipRefresh = body.skip_refresh === true;
+      if (!skipRefresh && (staleCount || 0) > 0) {
+        try {
+          await Promise.all(apps.map((app) => syncAccountsForApp(supabase, app).catch(() => null)));
+        } catch { /* discovery best-effort — insights still runs */ }
+      }
+
       // Only pull insights for accounts that Meta will actually respond to.
       // Blocked/disabled accounts return errors that don't help the operator
       // and burn through the edge-function timeout for nothing.
@@ -602,7 +620,7 @@ Deno.serve(async (req) => {
       const PERMANENT_DISABLE_REASONS = [1, 4, 7, 11, 12, 13, 15];
       const { data: accountsRaw, error: accErr } = await supabase
         .from("meta_ad_accounts")
-        .select("id, meta_account_id, name, meta_app_id, status, account_status, disable_reason")
+        .select("id, meta_account_id, name, meta_app_id, status, account_status, disable_reason, last_synced_at")
         .eq("status", "active")
         .eq("account_status", 1)
         .or(
@@ -611,6 +629,17 @@ Deno.serve(async (req) => {
       if (accErr) throw accErr;
 
       let accounts = accountsRaw || [];
+
+      // Skip accounts that weren't seen in the latest discovery run. If Meta
+      // no longer returns them via /me/businesses edges, the token has lost
+      // access — repeated insight calls will only produce errors.
+      const freshnessCutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const staleAccounts = accounts.filter(
+        (a: any) => !a.last_synced_at || a.last_synced_at < freshnessCutoff,
+      );
+      accounts = accounts.filter(
+        (a: any) => a.last_synced_at && a.last_synced_at >= freshnessCutoff,
+      );
 
       // Optional filter: only accounts that spent in the last 7 days.
       if (body.only_recent_spenders === true && accounts.length > 0) {
