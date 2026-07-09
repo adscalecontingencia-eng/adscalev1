@@ -302,16 +302,16 @@ const Clients: React.FC = () => {
     return allInsights;
   };
 
-  // Garante que a última semana fechada (sexta→quinta) esteja sincronizada
-  // antes de calcular cobrança/atraso. Essa é a janela usada para comparar
-  // com o Meta Ads e para mover de acumulado para atrasado na sexta.
+  // Garante que a última semana fechada + a semana corrente estejam sincronizadas
+  // antes de calcular cards/estrutura. Sem isso, a visão "7 dias corridos" do
+  // Dashboard Clientes fica zerada até alguém apertar sync manualmente.
   const didInsightsAutoSync = useRef(false);
   const ensureRecentInsights = async () => {
     if (didInsightsAutoSync.current) return;
     didInsightsAutoSync.current = true;
     const closedWeek = getLastClosedBillingWeekRange(new Date());
     const since = fmtISO(closedWeek.start);
-    const until = fmtISO(closedWeek.end);
+    const until = fmtISO(new Date());
     try {
       await supabase.functions.invoke('meta-sync', {
         body: { action: 'sync_insights', since, until },

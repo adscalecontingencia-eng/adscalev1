@@ -77,12 +77,17 @@ const ClientDashboard: React.FC = () => {
     }
   };
 
-  const syncClosedBillingWeek = async () => {
+  const syncClosedBillingWeek = async (accountIds?: string[]) => {
     const range = getLastClosedBillingWeekRange(new Date());
     try {
       await withTimeout(supabase.functions.invoke('meta-sync', {
-        body: { action: 'sync_insights', since: fmtISO(range.start), until: fmtISO(range.end) },
-      }), 12000, 'Sync Meta');
+        body: {
+          action: 'sync_insights',
+          since: fmtISO(range.start),
+          until: fmtISO(new Date()),
+          ...(accountIds && accountIds.length > 0 ? { account_ids: accountIds, skip_refresh: true } : {}),
+        },
+      }), 45000, 'Sync Meta');
     } catch (e) {
       console.warn('[ClientDashboard] sync da semana fechada falhou:', e);
     }
@@ -192,8 +197,10 @@ const ClientDashboard: React.FC = () => {
         seen.add(key);
         return true;
       }));
+      return accountIds;
     } else {
       setInsights([]);
+      return [];
     }
   }, []);
 
@@ -256,7 +263,7 @@ const ClientDashboard: React.FC = () => {
           if (Object.keys(subErrors).length > 0) {
             console.warn('[ClientDashboard][telemetry] falhas em sub-consultas', { ...ctx, clientId: clientData.id, subErrors });
           }
-          await fetchAccounts(clientData.id);
+          const accountIds = await fetchAccounts(clientData.id);
           setCommissions(commRes.data || []);
           setSavedAccounts(blockedRes.data || []);
           setPages((pagesRes.data || []).map((a: any) => a.page).filter(Boolean));
@@ -270,7 +277,7 @@ const ClientDashboard: React.FC = () => {
             requests: reqsRes.data?.length || 0,
             elapsed_ms: Math.round(performance.now() - t0),
           });
-          syncClosedBillingWeek()
+          syncClosedBillingWeek(accountIds)
             .then(() => fetchAccounts(clientData.id))
             .catch((e) => console.warn('[ClientDashboard] atualização em background falhou:', e));
         } else if (!clientErr) {
@@ -312,7 +319,8 @@ const ClientDashboard: React.FC = () => {
   const refreshAccounts = async () => {
     if (!client?.id) return;
     setRefreshingAccounts(true);
-    await syncClosedBillingWeek();
+    const accountIds = activeAccounts.map((a: any) => a.ad_account?.id).filter(Boolean);
+    await syncClosedBillingWeek(accountIds);
     await fetchAccounts(client.id);
     setRefreshingAccounts(false);
     toast.success('Contas atualizadas');

@@ -131,13 +131,33 @@ type AppRow = {
   user_access_token: string | null;
 };
 
-// Picks the best token for a given action. For pages we prefer the System User
-// token (broader scope); for everything else the User Access token wins.
+// Picks the best token for a given action. System User must win for account
+// discovery/insights because ad accounts are granted to the connected profile's
+// System User; falling back to the personal user token was keeping Quantum
+// accounts on Meta error #200 even after the SU permissions were fixed.
 function pickToken(app: AppRow, action: string): string {
   const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
   const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
-  if (action === "sync_pages") return sys || usr;
-  return usr || sys;
+  return sys || usr;
+}
+
+function tokenCandidates(apps: AppRow[], preferredAppId?: string | null): string[] {
+  const ordered = preferredAppId
+    ? [...apps.filter((a) => a.id === preferredAppId), ...apps.filter((a) => a.id !== preferredAppId)]
+    : apps;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const app of ordered) {
+    const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
+    const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
+    for (const tok of [sys, usr]) {
+      if (tok && !seen.has(tok)) {
+        seen.add(tok);
+        out.push(tok);
+      }
+    }
+  }
+  return out;
 }
 
 // Loads every active app. If body.app_ids is provided, restrict to that subset.
@@ -714,10 +734,6 @@ Deno.serve(async (req) => {
         return 0;
       };
 
-      // Group accounts by app so each request uses the correct token.
-      const appTokens = new Map(apps.map((a) => [a.id, pickToken(a, "sync_insights")]));
-      const fallbackToken = Array.from(appTokens.values()).find((t) => !!t) || "";
-
       const errors: any[] = [];
       const allRows: any[] = [];
       let idx = 0;
@@ -728,16 +744,27 @@ Deno.serve(async (req) => {
           const i = idx++;
           if (i >= list.length) return;
           const acc: any = list[i];
-          const tok = (acc.meta_app_id && appTokens.get(acc.meta_app_id)) || fallbackToken;
-          if (!tok) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
+          const tokens = tokenCandidates(apps, acc.meta_app_id);
+          if (tokens.length === 0) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
+          let lastError: unknown = null;
           try {
-            const data = await metaFetch(`/${acc.meta_account_id}/insights`, tok, {
-              fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
-              time_range: JSON.stringify({ since, until }),
-              level: "account",
-              time_increment: "1",
-              limit: "500",
-            });
+            let data: any = null;
+            for (const tok of tokens) {
+              try {
+                data = await metaFetch(`/${acc.meta_account_id}/insights`, tok, {
+                  fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
+                  time_range: JSON.stringify({ since, until }),
+                  level: "account",
+                  time_increment: "1",
+                  limit: "500",
+                });
+                lastError = null;
+                break;
+              } catch (e) {
+                lastError = e;
+              }
+            }
+            if (!data) throw lastError || new Error("Nenhum token conseguiu ler insights");
             for (const row of data.data || []) {
               allRows.push({
                 ad_account_id: acc.id,
