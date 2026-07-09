@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
-import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -94,6 +94,9 @@ const Clients: React.FC = () => {
   const [sort, setSort] = useState<SortKey>('saldo_desc');
   const [tiersOpen, setTiersOpen] = useState(false);
   const [historyClientId, setHistoryClientId] = useState<string | null>(null);
+  const [syncingAds, setSyncingAds] = useState(false);
+  const [lastAdsSyncAt, setLastAdsSyncAt] = useState<Date | null>(null);
+
 
   // Tiers admin-editable
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
@@ -318,6 +321,41 @@ const Clients: React.FC = () => {
       console.warn('[Clients] auto-sync de insights falhou:', e);
     }
   };
+
+  // Sincronização manual disparada pelo admin no header do Dashboard de Clientes.
+  // Cobre a última semana fechada + a semana corrente para garantir que gastos
+  // recém-detectados apareçam nos cards antes de fechar a cobrança de sexta.
+  const handleManualAdsSync = async () => {
+    if (syncingAds) return;
+    setSyncingAds(true);
+    const toastId = toast.loading('Sincronizando contas de anúncio com a Meta...');
+    try {
+      const today = new Date();
+      const closed = getLastClosedBillingWeekRange(today);
+      const since = fmtISO(closed.start);
+      const until = fmtISO(endOfDay(today));
+      const { data, error } = await supabase.functions.invoke('meta-sync', {
+        body: { action: 'sync_insights', since, until },
+      });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      const rows = (data as any)?.linhas_upsertadas ?? 0;
+      const errs = (data as any)?.erros || [];
+      await fetchInsightsByClient();
+      await fetchCommissions();
+      setLastAdsSyncAt(new Date());
+      if (errs.length > 0) {
+        toast.warning(`Sincronizado com avisos: ${rows} registro(s), ${errs.length} conta(s) com erro na Meta.`, { id: toastId });
+      } else {
+        toast.success(`Sincronizado: ${rows} registro(s) atualizado(s).`, { id: toastId });
+      }
+    } catch (e: any) {
+      toast.error(`Falha ao sincronizar: ${e?.message || e}`, { id: toastId });
+    } finally {
+      setSyncingAds(false);
+    }
+  };
+
 
   const fetchPartners = async () => {
     const { data } = await supabase.from('partners').select('id, name, email').order('name');
@@ -1104,7 +1142,26 @@ const Clients: React.FC = () => {
         eyebrow="Clientes & Comissões"
         title={<>Carteira de <span className="text-primary glow-text">clientes</span></>}
         description="Gestão completa de clientes, comissões diárias e fechamento semanal de Ad Spend."
+        actions={
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleManualAdsSync}
+              disabled={syncingAds}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary text-sm font-medium hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Puxa os gastos das contas Meta para a semana atual e a última semana fechada"
+            >
+              <RefreshCw size={14} className={syncingAds ? 'animate-spin' : ''} />
+              {syncingAds ? 'Sincronizando...' : 'Sincronizar contas de anúncio'}
+            </button>
+            {lastAdsSyncAt && (
+              <span className="text-[10px] text-muted-foreground">
+                Última sincronização: {format(lastAdsSyncAt, "HH:mm:ss")}
+              </span>
+            )}
+          </div>
+        }
       />
+
 
       <ClientKPIBar kpi={kpi} />
 
