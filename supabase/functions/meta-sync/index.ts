@@ -672,16 +672,14 @@ Deno.serve(async (req) => {
 
       let accounts = accountsRaw || [];
 
-      // Skip accounts that weren't seen in the latest discovery run. If Meta
-      // no longer returns them via /me/businesses edges, the token has lost
-      // access — repeated insight calls will only produce errors.
-      const freshnessCutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-      const staleAccounts = accounts.filter(
-        (a: any) => !a.last_synced_at || a.last_synced_at < freshnessCutoff,
-      );
-      accounts = accounts.filter(
-        (a: any) => a.last_synced_at && a.last_synced_at >= freshnessCutoff,
-      );
+      // Só reportamos contas nunca descobertas (last_synced_at is null) como
+      // "stale" — NÃO as excluímos do fetch. O filtro agressivo de 24h estava
+      // descartando contas legítimas cuja descoberta ficou defasada (ex.: BM
+      // rediscovery falhou por rate limit), zerando o gasto do cliente no
+      // dashboard mesmo tendo campanha ativa. O filtro de banimento
+      // permanente logo acima já elimina o desperdício real de API.
+      const staleAccounts = accounts.filter((a: any) => !a.last_synced_at);
+
 
       // Optional filter: only accounts that spent in the last 7 days.
       if (body.only_recent_spenders === true && accounts.length > 0) {
