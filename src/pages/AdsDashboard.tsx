@@ -380,6 +380,8 @@ export default function AdsDashboard() {
         activeAccountsCount={filteredAccountIds.size}
       />
 
+      <AdsPermissionErrorsPanel refreshKey={lastSyncAt?.getTime() ?? 0} />
+
       {autoSyncError && (
         <Card className="p-3 border-amber-500/40 bg-amber-500/10 flex items-center justify-between gap-3">
           <p className="text-xs text-amber-200">{autoSyncError}</p>
