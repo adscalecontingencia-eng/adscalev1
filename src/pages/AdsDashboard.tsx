@@ -13,6 +13,7 @@ import AdsFiltersBar, { AdsRange, AccountStatus } from "@/components/ads/AdsFilt
 import AdsTimeCharts from "@/components/ads/AdsTimeCharts";
 import AdsBreakdownTable from "@/components/ads/AdsBreakdownTable";
 import { resolveClientForSpend } from "@/lib/assignment-filter";
+import AdsPermissionErrorsPanel from "@/components/ads/AdsPermissionErrorsPanel";
 
 type BM = { id: string; name: string };
 type Account = {
