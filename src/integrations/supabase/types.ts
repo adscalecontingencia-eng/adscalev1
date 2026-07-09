@@ -1234,6 +1234,9 @@ export type Database = {
           disable_reason_label: string | null
           funding_source: string | null
           id: string
+          last_sync_error_at: string | null
+          last_sync_error_code: number | null
+          last_sync_error_message: string | null
           last_synced_at: string | null
           meta_account_id: string
           meta_app_id: string | null
@@ -1268,6 +1271,9 @@ export type Database = {
           disable_reason_label?: string | null
           funding_source?: string | null
           id?: string
+          last_sync_error_at?: string | null
+          last_sync_error_code?: number | null
+          last_sync_error_message?: string | null
           last_synced_at?: string | null
           meta_account_id: string
           meta_app_id?: string | null
@@ -1302,6 +1308,9 @@ export type Database = {
           disable_reason_label?: string | null
           funding_source?: string | null
           id?: string
+          last_sync_error_at?: string | null
+          last_sync_error_code?: number | null
+          last_sync_error_message?: string | null
           last_synced_at?: string | null
           meta_account_id?: string
           meta_app_id?: string | null
