@@ -228,6 +228,48 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
   };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
 
+  // Also pull /me/adaccounts — accounts assigned directly to the System User
+  // that don't surface through /me/businesses/{bm}/*_ad_accounts edges. Without
+  // this, accounts shared to the SU (typical of BM-agnostic sharing) get lost.
+  try {
+    const meAccounts = await paginateMeta(
+      `${META_API}/me/adaccounts?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+    );
+    for (const acc of meAccounts) {
+      allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null });
+    }
+  } catch (e) {
+    errors.push({ app: app.label, bm: "-", edge: "/me/adaccounts", erro: (e as Error).message });
+  }
+
+  // Auto-upsert any BM referenced by /me/adaccounts that we didn't get from
+  // /me/businesses — otherwise bmIdMap lookup fails and bm_id ends up null.
+  const knownBmIds = new Set(bms.map((b: any) => b.id));
+  const extraBmIds = new Set<string>();
+  const extraBmNames = new Map<string, string>();
+  for (const acc of allAccounts) {
+    const bid = acc._bm_meta_id;
+    if (bid && !knownBmIds.has(bid) && acc.business?.name) {
+      extraBmIds.add(bid);
+      extraBmNames.set(bid, acc.business.name);
+    }
+  }
+  if (extraBmIds.size > 0) {
+    const extraRows = Array.from(extraBmIds).map((bid) => ({
+      meta_bm_id: bid,
+      name: extraBmNames.get(bid) || bid,
+      status: "active",
+      meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+      last_synced_at: new Date().toISOString(),
+    }));
+    await supabase.from("meta_business_managers").upsert(extraRows, { onConflict: "meta_bm_id" });
+    const { data: refreshed } = await supabase
+      .from("meta_business_managers")
+      .select("id, meta_bm_id")
+      .in("meta_bm_id", Array.from(extraBmIds));
+    for (const b of refreshed || []) bmIdMap.set(b.meta_bm_id, b.id);
+  }
+
   const seen = new Set<string>();
   const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
 
