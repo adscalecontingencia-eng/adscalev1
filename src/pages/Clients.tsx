@@ -94,6 +94,9 @@ const Clients: React.FC = () => {
   const [sort, setSort] = useState<SortKey>('saldo_desc');
   const [tiersOpen, setTiersOpen] = useState(false);
   const [historyClientId, setHistoryClientId] = useState<string | null>(null);
+  const [syncingAds, setSyncingAds] = useState(false);
+  const [lastAdsSyncAt, setLastAdsSyncAt] = useState<Date | null>(null);
+
 
   // Tiers admin-editable
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
