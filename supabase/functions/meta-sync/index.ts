@@ -801,13 +801,18 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
       }
     }));
 
+    const fatalCount = allErrors.filter((e) => e?.fatal).length;
+    const finalStatus = fatalCount >= apps.length && totalAccounts === 0 ? "failed" : "completed";
+    const finalProgressTotal = Math.max(estimatedStageTotal, stageFinished.size, apps.length);
     await update({
-      status: "completed",
+      status: finalStatus,
       finished_at: new Date().toISOString(),
-      progress_current: Math.max(stageFinished.size, apps.length),
-      progress_total: Math.max(estimatedStageTotal, stageFinished.size, apps.length),
+      progress_current: finalStatus === "completed" ? finalProgressTotal : Math.max(stageFinished.size, apps.length),
+      progress_total: finalProgressTotal,
       synced_count: totalAccounts,
-      message: `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
+      message: finalStatus === "failed"
+        ? `Falhou: ${fatalCount}/${apps.length} app(s) travaram antes de concluir`
+        : `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
       errors: [...stageEvents, ...allErrors],
     });
   } catch (e) {
