@@ -20,6 +20,10 @@ const corsHeaders = {
 };
 
 const META_API = "https://graph.facebook.com/v21.0";
+const FETCH_TIMEOUT_MS = 25000;
+const RETRY_ATTEMPTS = 3;
+const JOB_TIMEOUT_MS = 110000;
+const MAX_PAGINATION_PAGES = 80;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -31,13 +35,13 @@ function json(body: unknown, status = 200) {
 type BackoffInfo = { attempt: number; waitMs: number; reason: string };
 let onBackoff: ((info: BackoffInfo) => void) | null = null;
 
-async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Promise<Response> {
+async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_ATTEMPTS): Promise<Response> {
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
     try {
-      const res = await fetch(url, init);
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (res.status === 429 || res.status >= 500) {
-        const wait = Math.min(60000, 2000 * Math.pow(2, i));
+        const wait = Math.min(10000, 1500 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `HTTP ${res.status}` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
@@ -50,7 +54,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Pr
         || [4, 17, 32, 613].includes(code)
         || [2446079, 1487390, 1487742].includes(subcode);
       if (transient && i < attempts - 1) {
-        const wait = Math.min(90000, 3000 * Math.pow(2, i));
+        const wait = Math.min(10000, 2000 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `Meta code ${code} (rate limit)` });
         await new Promise((r) => setTimeout(r, wait));
         continue;
@@ -58,13 +62,14 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = 6): Pr
       return res;
     } catch (e) {
       lastErr = e;
-      const wait = Math.min(30000, 1500 * Math.pow(2, i));
-      onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `network error` });
+      const wait = Math.min(8000, 1000 * Math.pow(2, i));
+      const reason = (e as Error)?.name === "TimeoutError" ? "timeout Meta API" : "network error";
+      onBackoff?.({ attempt: i + 1, waitMs: wait, reason });
       await new Promise((r) => setTimeout(r, wait));
     }
   }
   if (lastErr) throw lastErr;
-  return fetch(url, init);
+  return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }
 
 async function metaFetch(path: string, token: string, params: Record<string, string> = {}) {
@@ -82,7 +87,12 @@ async function metaFetch(path: string, token: string, params: Record<string, str
 async function paginateMeta(firstUrl: string): Promise<any[]> {
   const out: any[] = [];
   let url: string | null = firstUrl;
+  let pages = 0;
   while (url) {
+    pages++;
+    if (pages > MAX_PAGINATION_PAGES) {
+      throw new Error(`Meta API pagination limit reached (${MAX_PAGINATION_PAGES} pages)`);
+    }
     const r = await fetchWithRetry(url);
     const d = await r.json();
     if (!r.ok || d.error) throw new Error(`Meta API error: ${JSON.stringify(d.error || d)}`);
