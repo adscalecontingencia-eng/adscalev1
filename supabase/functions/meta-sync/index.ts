@@ -1315,8 +1315,16 @@ Deno.serve(async (req) => {
         .single();
       if (jobErr) throw jobErr;
       // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJob(supabase, job.id, appIds));
+      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, job.id, appIds));
       return json({ sucesso: true, job_id: job.id });
+    }
+
+    if (action === "continue_sync_accounts") {
+      const jobId = body.job_id;
+      if (!jobId) return json({ erro: "job_id obrigatório" }, 400);
+      // @ts-ignore EdgeRuntime is provided by Supabase runtime
+      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, jobId, appIds));
+      return json({ sucesso: true, job_id: jobId });
     }
 
     // ===== Multi-app sync of BMs + accounts =====
