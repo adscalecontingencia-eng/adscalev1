@@ -263,6 +263,62 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     await Promise.all(Array.from({ length: Math.min(4, tasks.length) }, worker));
   };
 
+  const pullSystemUserAssignedAccounts = async (
+    token: string,
+    tokenLabel: string,
+    bms: any[],
+    recordErrors = true,
+  ) => {
+    const systemUsers: { id: string; name: string; bmId: string; bmName: string }[] = [];
+    let bmCursor = 0;
+    const bmWorker = async () => {
+      while (true) {
+        const i = bmCursor++;
+        if (i >= bms.length) return;
+        const bm = bms[i];
+        if (!bm?.id) continue;
+        try {
+          const users = await paginateMeta(
+            `${META_API}/${bm.id}/system_users?access_token=${encodeURIComponent(token)}&fields=id,name,role&limit=200`,
+          );
+          for (const su of users) {
+            if (su?.id) systemUsers.push({ id: su.id, name: su.name || su.id, bmId: bm.id, bmName: bm.name || bm.id });
+          }
+        } catch (e) {
+          if (recordErrors) errors.push({ app: app.label, token: tokenLabel, bm: bm.name || bm.id, edge: "system_users", erro: (e as Error).message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, bms.length) }, bmWorker));
+
+    const seenSystemUsers = new Set<string>();
+    const uniqueSystemUsers = systemUsers.filter((su) => {
+      if (seenSystemUsers.has(su.id)) return false;
+      seenSystemUsers.add(su.id);
+      return true;
+    });
+
+    let suCursor = 0;
+    const suWorker = async () => {
+      while (true) {
+        const i = suCursor++;
+        if (i >= uniqueSystemUsers.length) return;
+        const su = uniqueSystemUsers[i];
+        try {
+          const items = await paginateMeta(
+            `${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+          );
+          for (const acc of items) {
+            allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || su.bmId, _source_token: token });
+          }
+        } catch (e) {
+          if (recordErrors) errors.push({ app: app.label, token: tokenLabel, bm: su.bmName, edge: `system_user:${su.name}`, erro: (e as Error).message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, uniqueSystemUsers.length) }, suWorker));
+  };
+
   for (const choice of choices) {
     let bms: any[] = [];
     try {
@@ -278,6 +334,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     // asset-level access only (no BM employee role), and accounts must still
     // be discovered via direct account edges and the fallback user token.
     await pullBmAccounts(choice.token, choice.label, bms);
+    await pullSystemUserAssignedAccounts(choice.token, choice.label, bms, false);
 
     try {
       const meAccounts = await paginateMeta(
@@ -367,6 +424,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       .filter((bm) => !!bm._token);
     for (const bm of extraTasks) {
       await pullBmAccounts(bm._token as string, "Fallback", [bm], false);
+      await pullSystemUserAssignedAccounts(bm._token as string, "Fallback", [bm], false);
     }
   }
 
