@@ -51,6 +51,16 @@ function json(body: unknown, status = 200) {
 type BackoffInfo = { attempt: number; waitMs: number; reason: string };
 let onBackoff: ((info: BackoffInfo) => void) | null = null;
 
+type SyncStageEvent = {
+  app: string;
+  endpoint: string;
+  status: "running" | "done" | "error" | "skipped";
+  token?: string;
+  detail?: string;
+  found?: number;
+};
+type SyncReporter = (event: SyncStageEvent) => Promise<void> | void;
+
 async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_ATTEMPTS): Promise<Response> {
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
@@ -240,7 +250,7 @@ async function loadActiveApps(supabase: any, appIds?: string[]): Promise<AppRow[
 
 // ---- Per-app sync routines ----------------------------------------------------
 
-async function syncAccountsForApp(supabase: any, app: AppRow) {
+async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncReporter) {
   const choices = tokenChoicesForApp(app);
   if (choices.length === 0) return { app: app.label, erro: "Sem token configurado" };
 
@@ -248,6 +258,16 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
   const allAccounts: any[] = [];
   const bmsById = new Map<string, any>();
   const bmStatusMap = new Map<string, string | null>();
+
+  const reportStage = async (
+    endpoint: string,
+    status: SyncStageEvent["status"],
+    token?: string,
+    detail?: string,
+    found?: number,
+  ) => {
+    await report?.({ app: app.label, endpoint, status, token, detail, found });
+  };
 
   const rememberBms = (bms: any[]) => {
     for (const bm of bms || []) {
@@ -347,21 +367,33 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
 
   for (const choice of choices) {
     let bms: any[] = [];
+    await reportStage("/me/businesses", "running", choice.label, "Varrendo BMs do perfil");
     try {
       bms = await paginateMeta(
         `${META_API}/me/businesses?access_token=${encodeURIComponent(choice.token)}&fields=id,name,verification_status&limit=200`
       );
       rememberBms(bms);
+      await reportStage("/me/businesses", "done", choice.label, `${bms.length} BM(s) encontradas`, bms.length);
     } catch (e) {
-      errors.push({ app: app.label, token: choice.label, bm: "-", edge: "/me/businesses", erro: (e as Error).message });
+      const msg = (e as Error).message;
+      errors.push({ app: app.label, token: choice.label, bm: "-", edge: "/me/businesses", erro: msg });
+      await reportStage("/me/businesses", "error", choice.label, msg);
     }
 
     // Do NOT early-return when bms is empty: a System User token may have
     // asset-level access only (no BM employee role), and accounts must still
     // be discovered via direct account edges and the fallback user token.
+    const beforeBmAccounts = allAccounts.length;
+    await reportStage("BM ad accounts", "running", choice.label, `Varrendo owned_ad_accounts/client_ad_accounts em ${bms.length} BM(s)`);
     await pullBmAccounts(choice.token, choice.label, bms);
-    await pullSystemUserAssignedAccounts(choice.token, choice.label, bms, false);
+    await reportStage("BM ad accounts", "done", choice.label, `${allAccounts.length - beforeBmAccounts} conta(s) via BMs`, allAccounts.length - beforeBmAccounts);
 
+    const beforeSystemUser = allAccounts.length;
+    await reportStage("/system_users/assigned_ad_accounts", "running", choice.label, "Varrendo contas atribuídas a system users das BMs");
+    await pullSystemUserAssignedAccounts(choice.token, choice.label, bms, false);
+    await reportStage("/system_users/assigned_ad_accounts", "done", choice.label, `${allAccounts.length - beforeSystemUser} conta(s) via system users`, allAccounts.length - beforeSystemUser);
+
+    await reportStage("/me/adaccounts", "running", choice.label, "Varrendo contas diretamente acessíveis");
     try {
       const meAccounts = await paginateMeta(
         `${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
@@ -369,12 +401,16 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       for (const acc of meAccounts) {
         allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token });
       }
+      await reportStage("/me/adaccounts", "done", choice.label, `${meAccounts.length} conta(s) encontradas`, meAccounts.length);
     } catch (e) {
-      errors.push({ app: app.label, token: choice.label, bm: "-", edge: "/me/adaccounts", erro: (e as Error).message });
+      const msg = (e as Error).message;
+      errors.push({ app: app.label, token: choice.label, bm: "-", edge: "/me/adaccounts", erro: msg });
+      await reportStage("/me/adaccounts", "error", choice.label, msg);
     }
 
     // This edge behaves differently for user tokens and system-user tokens, so
     // try both /me/assigned_ad_accounts and /{me.id}/assigned_ad_accounts.
+    await reportStage("/me/assigned_ad_accounts", "running", choice.label, "Varrendo contas atribuídas ao usuário/token");
     try {
       const assigned = await paginateMeta(
         `${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
@@ -382,8 +418,12 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       for (const acc of assigned) {
         allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token });
       }
-    } catch { /* optional edge; direct /me/adaccounts and BM scans remain authoritative */ }
+      await reportStage("/me/assigned_ad_accounts", "done", choice.label, `${assigned.length} conta(s) encontradas`, assigned.length);
+    } catch (e) {
+      await reportStage("/me/assigned_ad_accounts", "skipped", choice.label, (e as Error).message);
+    }
 
+    await reportStage("/{me.id}/assigned_ad_accounts", "running", choice.label, "Resolvendo ID do token e varrendo atribuições diretas");
     try {
       const me = await metaFetch("/me", choice.token, { fields: "id,name" });
       if (me?.id) {
@@ -393,12 +433,18 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
         for (const acc of assignedByNode) {
           allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token });
         }
+        await reportStage("/{me.id}/assigned_ad_accounts", "done", choice.label, `${assignedByNode.length} conta(s) encontradas`, assignedByNode.length);
+      } else {
+        await reportStage("/{me.id}/assigned_ad_accounts", "skipped", choice.label, "Token sem ID retornado em /me");
       }
-    } catch { /* optional edge; not every token principal supports it */ }
+    } catch (e) {
+      await reportStage("/{me.id}/assigned_ad_accounts", "skipped", choice.label, (e as Error).message);
+    }
   }
 
   const ownAppId = app.id.startsWith("00000000") ? null : app.id;
   const bms = Array.from(bmsById.values());
+  await reportStage("Salvar BMs", "running", undefined, `${bms.length} BM(s) para salvar`);
   if (bms.length > 0) {
     const bmRows = bms.map((bm: any) => ({
       meta_bm_id: bm.id,
@@ -410,6 +456,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     }));
     await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
   }
+  await reportStage("Salvar BMs", "done", undefined, `${bms.length} BM(s) salvas`, bms.length);
 
   const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
   const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
@@ -449,8 +496,11 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       .map((bid) => ({ id: bid, name: extraBmNames.get(bid) || bid, verification_status: null, _token: extraBmToken.get(bid) }))
       .filter((bm) => !!bm._token);
     for (const bm of extraTasks) {
+      const beforeFallback = allAccounts.length;
+      await reportStage("Fallback BM ad accounts", "running", "Fallback", `Varrendo BM descoberta: ${bm.name}`);
       await pullBmAccounts(bm._token as string, "Fallback", [bm], false);
       await pullSystemUserAssignedAccounts(bm._token as string, "Fallback", [bm], false);
+      await reportStage("Fallback BM ad accounts", "done", "Fallback", `${allAccounts.length - beforeFallback} conta(s) adicionais`, allAccounts.length - beforeFallback);
     }
   }
 
@@ -519,11 +569,13 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
   });
 
   const CHUNK = 200;
+  await reportStage("Salvar contas", "running", undefined, `${accRows.length} conta(s) únicas para salvar`);
   for (let i = 0; i < accRows.length; i += CHUNK) {
     const { error } = await supabase.from("meta_ad_accounts")
       .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
     if (error) throw error;
   }
+  await reportStage("Salvar contas", "done", undefined, `${accRows.length} conta(s) salvas`, accRows.length);
 
   return { app: app.label, bms: bms.length + extraBmIds.size, accounts: accRows.length, erros: errors };
 }
@@ -662,6 +714,42 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
   const update = (patch: Record<string, any>) =>
     supabase.from("meta_sync_jobs").update(patch).eq("id", jobId);
 
+  const stageEvents: any[] = [];
+  const stageStarted = new Set<string>();
+  const stageFinished = new Set<string>();
+  let estimatedStageTotal = 1;
+  let acceptingStageUpdates = true;
+  const stageKey = (event: SyncStageEvent) => `${event.app}|${event.token || "-"}|${event.endpoint}`;
+
+  const publishStage = async (event: SyncStageEvent, actualErrors: any[] = []) => {
+    if (!acceptingStageUpdates) return;
+    const key = stageKey(event);
+    stageStarted.add(key);
+    if (["done", "error", "skipped"].includes(event.status)) stageFinished.add(key);
+    const item = {
+      kind: "stage",
+      key,
+      app: event.app,
+      endpoint: event.endpoint,
+      status: event.status,
+      token: event.token || null,
+      detail: event.detail || null,
+      found: event.found ?? null,
+      at: new Date().toISOString(),
+    };
+    const existing = stageEvents.findIndex((s) => s.key === key);
+    if (existing >= 0) stageEvents[existing] = item;
+    else stageEvents.push(item);
+
+    const statusLabel = event.status === "running" ? "Varrendo" : event.status === "done" ? "Concluído" : event.status === "error" ? "Erro" : "Ignorado";
+    await update({
+      progress_current: stageFinished.size,
+      progress_total: Math.max(estimatedStageTotal, stageStarted.size, 1),
+      message: `${statusLabel} ${event.endpoint}${event.token ? ` (${event.token})` : ""}${event.detail ? ` — ${event.detail}` : ""}`,
+      errors: [...stageEvents, ...actualErrors],
+    });
+  };
+
   onBackoff = (info) => {
     update({ message: `Retry ${info.attempt} em ${Math.round(info.waitMs / 1000)}s — ${info.reason}` });
   };
@@ -672,13 +760,15 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
       await update({ status: "failed", finished_at: new Date().toISOString(), message: "Nenhum aplicativo Meta ativo." });
       return;
     }
+    estimatedStageTotal = apps.reduce((sum, app) => sum + (tokenChoicesForApp(app).length * 6) + 2, 0);
 
     await update({
       status: "running",
       started_at: new Date().toISOString(),
-      progress_total: apps.length,
+      progress_total: Math.max(estimatedStageTotal, 1),
       progress_current: 0,
       message: `Sincronizando ${apps.length} aplicativo(s) em paralelo...`,
+      errors: [],
     });
 
     let done = 0;
@@ -692,7 +782,7 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
       try {
         await update({ message: `Sincronizando ${app.label}...` });
         const r = await withTimeout(
-          syncAccountsForApp(supabase, app),
+          syncAccountsForApp(supabase, app, (event) => publishStage(event, allErrors)),
           Math.max(30000, Math.floor(JOB_TIMEOUT_MS / Math.max(1, apps.length))),
           `Sync de ${app.label}`,
         );
@@ -700,24 +790,33 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
         if (r.erros && r.erros.length) allErrors.push(...r.erros);
       } catch (e) {
         allErrors.push({ app: app.label, fatal: (e as Error).message });
+        await publishStage({ app: app.label, endpoint: "timeout/fatal", status: "error", detail: (e as Error).message }, allErrors);
       } finally {
         done++;
         await update({
-          progress_current: done,
+          progress_current: Math.max(stageFinished.size, done),
+          progress_total: Math.max(estimatedStageTotal, stageStarted.size, apps.length),
           synced_count: totalAccounts,
           message: `${done}/${apps.length} app(s) concluído(s) · ${totalAccounts} contas`,
-          errors: allErrors,
+          errors: [...stageEvents, ...allErrors],
         });
       }
     }));
 
+    const fatalCount = allErrors.filter((e) => e?.fatal).length;
+    const finalStatus = fatalCount >= apps.length && totalAccounts === 0 ? "failed" : "completed";
+    const finalProgressTotal = Math.max(estimatedStageTotal, stageFinished.size, apps.length);
+    acceptingStageUpdates = false;
     await update({
-      status: "completed",
+      status: finalStatus,
       finished_at: new Date().toISOString(),
-      progress_current: apps.length,
+      progress_current: finalStatus === "completed" ? finalProgressTotal : Math.max(stageFinished.size, apps.length),
+      progress_total: finalProgressTotal,
       synced_count: totalAccounts,
-      message: `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
-      errors: allErrors,
+      message: finalStatus === "failed"
+        ? `Falhou: ${fatalCount}/${apps.length} app(s) travaram antes de concluir`
+        : `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
+      errors: [...stageEvents, ...allErrors],
     });
   } catch (e) {
     await update({
