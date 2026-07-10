@@ -262,6 +262,22 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     errors.push({ app: app.label, bm: "-", edge: "/me/adaccounts", erro: (e as Error).message });
   }
 
+  // Also pull /me/assigned_ad_accounts — the definitive list of accounts a
+  // System User has been granted, regardless of BM membership. This covers
+  // brand-new accounts added to the SU whose parent BM isn't returned by
+  // /me/businesses (SU is only asset-user, not employee).
+  try {
+    const assigned = await paginateMeta(
+      `${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+    );
+    for (const acc of assigned) {
+      allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null });
+    }
+  } catch (e) {
+    // Not fatal — falls back to the other discovery paths.
+    errors.push({ app: app.label, bm: "-", edge: "/me/assigned_ad_accounts", erro: (e as Error).message });
+  }
+
   // Auto-upsert any BM referenced by /me/adaccounts that we didn't get from
   // /me/businesses — otherwise bmIdMap lookup fails and bm_id ends up null.
   const knownBmIds = new Set(bms.map((b: any) => b.id));
@@ -288,6 +304,34 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       .select("id, meta_bm_id")
       .in("meta_bm_id", Array.from(extraBmIds));
     for (const b of refreshed || []) bmIdMap.set(b.meta_bm_id, b.id);
+
+    // Second discovery pass: for BMs surfaced via /me/adaccounts (SU only had
+    // asset-level access), also scan owned_ad_accounts + client_ad_accounts so
+    // sibling accounts under that BM don't get missed.
+    const extraTasks: { bmId: string; edge: string }[] = [];
+    for (const bid of extraBmIds) {
+      for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
+        extraTasks.push({ bmId: bid, edge });
+      }
+    }
+    let ec = 0;
+    const extraWorker = async () => {
+      while (true) {
+        const i = ec++;
+        if (i >= extraTasks.length) return;
+        const t = extraTasks[i];
+        try {
+          const items = await paginateMeta(
+            `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+          );
+          for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
+        } catch (e) {
+          // Expected when SU lacks BM-level permission; asset-level pull above
+          // already caught the individual account.
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, extraTasks.length) }, extraWorker));
   }
 
   const seen = new Set<string>();
