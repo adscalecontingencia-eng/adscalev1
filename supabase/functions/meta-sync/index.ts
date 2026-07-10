@@ -717,6 +717,7 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
   const stageEvents: any[] = [];
   const stageStarted = new Set<string>();
   const stageFinished = new Set<string>();
+  let estimatedStageTotal = 1;
   const stageKey = (event: SyncStageEvent) => `${event.app}|${event.token || "-"}|${event.endpoint}`;
 
   const publishStage = async (event: SyncStageEvent, actualErrors: any[] = []) => {
@@ -741,7 +742,7 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
     const statusLabel = event.status === "running" ? "Varrendo" : event.status === "done" ? "Concluído" : event.status === "error" ? "Erro" : "Ignorado";
     await update({
       progress_current: stageFinished.size,
-      progress_total: Math.max(stageStarted.size, 1),
+      progress_total: Math.max(estimatedStageTotal, stageStarted.size, 1),
       message: `${statusLabel} ${event.endpoint}${event.token ? ` (${event.token})` : ""}${event.detail ? ` — ${event.detail}` : ""}`,
       errors: [...stageEvents, ...actualErrors],
     });
@@ -757,11 +758,12 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
       await update({ status: "failed", finished_at: new Date().toISOString(), message: "Nenhum aplicativo Meta ativo." });
       return;
     }
+    estimatedStageTotal = apps.reduce((sum, app) => sum + (tokenChoicesForApp(app).length * 6) + 2, 0);
 
     await update({
       status: "running",
       started_at: new Date().toISOString(),
-      progress_total: 1,
+      progress_total: Math.max(estimatedStageTotal, 1),
       progress_current: 0,
       message: `Sincronizando ${apps.length} aplicativo(s) em paralelo...`,
       errors: [],
@@ -791,7 +793,7 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
         done++;
         await update({
           progress_current: Math.max(stageFinished.size, done),
-          progress_total: Math.max(stageStarted.size, apps.length),
+          progress_total: Math.max(estimatedStageTotal, stageStarted.size, apps.length),
           synced_count: totalAccounts,
           message: `${done}/${apps.length} app(s) concluído(s) · ${totalAccounts} contas`,
           errors: [...stageEvents, ...allErrors],
@@ -802,8 +804,8 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
     await update({
       status: "completed",
       finished_at: new Date().toISOString(),
-      progress_current: apps.length,
-      progress_total: apps.length,
+      progress_current: Math.max(stageFinished.size, apps.length),
+      progress_total: Math.max(estimatedStageTotal, stageFinished.size, apps.length),
       synced_count: totalAccounts,
       message: `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
       errors: [...stageEvents, ...allErrors],
