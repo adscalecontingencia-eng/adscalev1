@@ -25,6 +25,22 @@ const RETRY_ATTEMPTS = 3;
 const JOB_TIMEOUT_MS = 110000;
 const MAX_PAGINATION_PAGES = 80;
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} excedeu ${Math.round(ms / 1000)}s`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -669,10 +685,17 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
     let totalAccounts = 0;
     const allErrors: any[] = [];
 
-    // Run apps in parallel — each one is rate-limited internally per token.
+    // Run apps in parallel, but never let a single Meta app leave the job stuck
+    // forever. Edge runtimes have hard wall-clock limits; timing out here lets
+    // the UI receive a failed/completed state instead of looping at 0%.
     await Promise.all(apps.map(async (app) => {
       try {
-        const r = await syncAccountsForApp(supabase, app);
+        await update({ message: `Sincronizando ${app.label}...` });
+        const r = await withTimeout(
+          syncAccountsForApp(supabase, app),
+          Math.max(30000, Math.floor(JOB_TIMEOUT_MS / Math.max(1, apps.length))),
+          `Sync de ${app.label}`,
+        );
         totalAccounts += (r.accounts || 0);
         if (r.erros && r.erros.length) allErrors.push(...r.erros);
       } catch (e) {
@@ -748,6 +771,17 @@ Deno.serve(async (req) => {
 
     // ===== Background job =====
     if (action === "start_sync_accounts") {
+      const staleCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      await supabase
+        .from("meta_sync_jobs")
+        .update({
+          status: "failed",
+          finished_at: new Date().toISOString(),
+          message: "Sincronização anterior expirou antes de finalizar. Iniciando nova tentativa...",
+        })
+        .in("status", ["pending", "running"])
+        .lt("created_at", staleCutoff);
+
       const { data: job, error: jobErr } = await supabase
         .from("meta_sync_jobs")
         .insert({ kind: "accounts", status: "pending", message: "Aguardando início..." })
