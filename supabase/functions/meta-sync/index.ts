@@ -714,6 +714,39 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
   const update = (patch: Record<string, any>) =>
     supabase.from("meta_sync_jobs").update(patch).eq("id", jobId);
 
+  const stageEvents: any[] = [];
+  const stageStarted = new Set<string>();
+  const stageFinished = new Set<string>();
+  const stageKey = (event: SyncStageEvent) => `${event.app}|${event.token || "-"}|${event.endpoint}`;
+
+  const publishStage = async (event: SyncStageEvent, actualErrors: any[] = []) => {
+    const key = stageKey(event);
+    stageStarted.add(key);
+    if (["done", "error", "skipped"].includes(event.status)) stageFinished.add(key);
+    const item = {
+      kind: "stage",
+      key,
+      app: event.app,
+      endpoint: event.endpoint,
+      status: event.status,
+      token: event.token || null,
+      detail: event.detail || null,
+      found: event.found ?? null,
+      at: new Date().toISOString(),
+    };
+    const existing = stageEvents.findIndex((s) => s.key === key);
+    if (existing >= 0) stageEvents[existing] = item;
+    else stageEvents.push(item);
+
+    const statusLabel = event.status === "running" ? "Varrendo" : event.status === "done" ? "Concluído" : event.status === "error" ? "Erro" : "Ignorado";
+    await update({
+      progress_current: stageFinished.size,
+      progress_total: Math.max(stageStarted.size, 1),
+      message: `${statusLabel} ${event.endpoint}${event.token ? ` (${event.token})` : ""}${event.detail ? ` — ${event.detail}` : ""}`,
+      errors: [...stageEvents, ...actualErrors],
+    });
+  };
+
   onBackoff = (info) => {
     update({ message: `Retry ${info.attempt} em ${Math.round(info.waitMs / 1000)}s — ${info.reason}` });
   };
@@ -728,9 +761,10 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
     await update({
       status: "running",
       started_at: new Date().toISOString(),
-      progress_total: apps.length,
+      progress_total: 1,
       progress_current: 0,
       message: `Sincronizando ${apps.length} aplicativo(s) em paralelo...`,
+      errors: [],
     });
 
     let done = 0;
@@ -744,7 +778,7 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
       try {
         await update({ message: `Sincronizando ${app.label}...` });
         const r = await withTimeout(
-          syncAccountsForApp(supabase, app),
+          syncAccountsForApp(supabase, app, (event) => publishStage(event, allErrors)),
           Math.max(30000, Math.floor(JOB_TIMEOUT_MS / Math.max(1, apps.length))),
           `Sync de ${app.label}`,
         );
@@ -752,13 +786,15 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
         if (r.erros && r.erros.length) allErrors.push(...r.erros);
       } catch (e) {
         allErrors.push({ app: app.label, fatal: (e as Error).message });
+        await publishStage({ app: app.label, endpoint: "timeout/fatal", status: "error", detail: (e as Error).message }, allErrors);
       } finally {
         done++;
         await update({
-          progress_current: done,
+          progress_current: Math.max(stageFinished.size, done),
+          progress_total: Math.max(stageStarted.size, apps.length),
           synced_count: totalAccounts,
           message: `${done}/${apps.length} app(s) concluído(s) · ${totalAccounts} contas`,
-          errors: allErrors,
+          errors: [...stageEvents, ...allErrors],
         });
       }
     }));
@@ -767,9 +803,10 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
       status: "completed",
       finished_at: new Date().toISOString(),
       progress_current: apps.length,
+      progress_total: apps.length,
       synced_count: totalAccounts,
       message: `Concluído: ${totalAccounts} contas em ${apps.length} aplicativo(s)${allErrors.length ? ` (${allErrors.length} erros)` : ""}`,
-      errors: allErrors,
+      errors: [...stageEvents, ...allErrors],
     });
   } catch (e) {
     await update({
