@@ -257,6 +257,23 @@ export default function MetaConnections() {
   const hasFilters = filterStatus !== "all" || filterClient !== "all" || filterScore !== "all" || !!search || !!filterOwnerBmId.trim();
   const clearFilters = () => { setFilterStatus("all"); setFilterClient("all"); setFilterScore("all"); setSearch(""); setFilterOwnerBmId(""); };
 
+  const stageEvents = useMemo(() => {
+    const rows = Array.isArray(job?.errors) ? job.errors : [];
+    return rows.filter((e: any) => e?.kind === "stage");
+  }, [job?.errors]);
+
+  const progressPct = job?.progress_total
+    ? Math.min(100, Math.round((job.progress_current / job.progress_total) * 100))
+    : 0;
+
+  const stageStatusLabel = (status: string) => {
+    if (status === "running") return "varrendo";
+    if (status === "done") return "ok";
+    if (status === "error") return "erro";
+    if (status === "skipped") return "ignorado";
+    return status;
+  };
+
   const sidebarNode = (
     <BmSidebar
       bms={bms}
@@ -302,14 +319,14 @@ export default function MetaConnections() {
                "Sincronizando em segundo plano"}
             </div>
             <Badge variant={job.status === "failed" ? "destructive" : "default"}>
-              {job.synced_count} contas
+              {job.synced_count} contas · {progressPct}%
             </Badge>
           </div>
           {job.progress_total > 0 && (
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className={`h-full transition-all ${job.status === "failed" ? "bg-destructive" : "bg-primary"}`}
-                style={{ width: `${Math.min(100, (job.progress_current / job.progress_total) * 100)}%` }}
+                style={{ width: `${progressPct}%` }}
               />
             </div>
           )}
@@ -318,6 +335,24 @@ export default function MetaConnections() {
               {job.message.startsWith("Retry") && <AlertTriangle className="inline h-3 w-3 mr-1 text-yellow-400" />}
               {job.message}
             </p>
+          )}
+          {stageEvents.length > 0 && (
+            <div className="grid gap-1.5 pt-1">
+              {stageEvents.map((stage: any) => (
+                <div key={stage.key} className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-2.5 py-2 text-xs">
+                  <Badge
+                    variant={stage.status === "error" ? "destructive" : stage.status === "done" ? "default" : "secondary"}
+                    className="h-5"
+                  >
+                    {stageStatusLabel(stage.status)}
+                  </Badge>
+                  <span className="font-mono text-foreground">{stage.endpoint}</span>
+                  {stage.token && <span className="text-muted-foreground">{stage.token}</span>}
+                  {typeof stage.found === "number" && <span className="text-muted-foreground">{stage.found} encontradas</span>}
+                  {stage.detail && <span className="min-w-0 flex-1 truncate text-muted-foreground">{stage.detail}</span>}
+                </div>
+              ))}
+            </div>
           )}
         </Card>
       )}
