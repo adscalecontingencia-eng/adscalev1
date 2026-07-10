@@ -201,26 +201,35 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
   const token = pickToken(app, "sync_accounts");
   if (!token) return { app: app.label, erro: "Sem token configurado" };
 
-  const bms = await paginateMeta(
-    `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
-  );
-  if (bms.length === 0) return { app: app.label, bms: 0, accounts: 0 };
+  const errors: any[] = [];
+  let bms: any[] = [];
+  try {
+    bms = await paginateMeta(
+      `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
+    );
+  } catch (e) {
+    errors.push({ app: app.label, bm: "-", edge: "/me/businesses", erro: (e as Error).message });
+  }
+  // Do NOT early-return when bms is empty: a System User token may have
+  // asset-level access only (no BM employee role), and accounts must still
+  // be discovered via /me/adaccounts and /me/assigned_ad_accounts below.
 
-  const bmRows = bms.map((bm: any) => ({
-    meta_bm_id: bm.id,
-    name: bm.name,
-    status: bm.verification_status || "active",
-    verification_status: bm.verification_status || null,
-    meta_app_id: app.id.startsWith("00000000") ? null : app.id,
-    last_synced_at: new Date().toISOString(),
-  }));
-  await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+  if (bms.length > 0) {
+    const bmRows = bms.map((bm: any) => ({
+      meta_bm_id: bm.id,
+      name: bm.name,
+      status: bm.verification_status || "active",
+      verification_status: bm.verification_status || null,
+      meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+      last_synced_at: new Date().toISOString(),
+    }));
+    await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+  }
 
   const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
   const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
 
   const allAccounts: any[] = [];
-  const errors: any[] = [];
   const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
 
   const tasks: { bmId: string; bmName: string; edge: string }[] = [];
