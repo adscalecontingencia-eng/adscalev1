@@ -160,6 +160,23 @@ function tokenCandidates(apps: AppRow[], preferredAppId?: string | null): string
   return out;
 }
 
+function tokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
+  const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
+  const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
+  const seen = new Set<string>();
+  const out: { token: string; label: string }[] = [];
+  for (const item of [
+    { token: sys, label: "System User" },
+    { token: usr, label: "Usuário" },
+  ]) {
+    if (item.token && !seen.has(item.token)) {
+      seen.add(item.token);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
 // Loads every active app. If body.app_ids is provided, restrict to that subset.
 async function loadActiveApps(supabase: any, appIds?: string[]): Promise<AppRow[]> {
   let q = supabase
@@ -198,29 +215,171 @@ async function loadActiveApps(supabase: any, appIds?: string[]): Promise<AppRow[
 // ---- Per-app sync routines ----------------------------------------------------
 
 async function syncAccountsForApp(supabase: any, app: AppRow) {
-  const token = pickToken(app, "sync_accounts");
-  if (!token) return { app: app.label, erro: "Sem token configurado" };
+  const choices = tokenChoicesForApp(app);
+  if (choices.length === 0) return { app: app.label, erro: "Sem token configurado" };
 
   const errors: any[] = [];
-  let bms: any[] = [];
-  try {
-    bms = await paginateMeta(
-      `${META_API}/me/businesses?access_token=${encodeURIComponent(token)}&fields=id,name,verification_status&limit=200`
-    );
-  } catch (e) {
-    errors.push({ app: app.label, bm: "-", edge: "/me/businesses", erro: (e as Error).message });
-  }
-  // Do NOT early-return when bms is empty: a System User token may have
-  // asset-level access only (no BM employee role), and accounts must still
-  // be discovered via /me/adaccounts and /me/assigned_ad_accounts below.
+  const allAccounts: any[] = [];
+  const bmsById = new Map<string, any>();
+  const bmStatusMap = new Map<string, string | null>();
 
+  const rememberBms = (bms: any[]) => {
+    for (const bm of bms || []) {
+      if (!bm?.id) continue;
+      bmsById.set(bm.id, bm);
+      bmStatusMap.set(bm.id, bm.verification_status || null);
+    }
+  };
+
+  const pullBmAccounts = async (
+    token: string,
+    tokenLabel: string,
+    bms: any[],
+    recordErrors = true,
+  ) => {
+    const tasks: { bmId: string; bmName: string; edge: string }[] = [];
+    for (const bm of bms) {
+      if (!bm?.id) continue;
+      for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
+        tasks.push({ bmId: bm.id, bmName: bm.name || bm.id, edge: e });
+      }
+    }
+
+    let cursor = 0;
+    const worker = async () => {
+      while (true) {
+        const i = cursor++;
+        if (i >= tasks.length) return;
+        const t = tasks[i];
+        const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
+        try {
+          const items = await paginateMeta(url);
+          for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId, _source_token: token });
+        } catch (e) {
+          if (recordErrors) errors.push({ app: app.label, token: tokenLabel, bm: t.bmName, edge: t.edge, erro: (e as Error).message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, tasks.length) }, worker));
+  };
+
+  const pullSystemUserAssignedAccounts = async (
+    token: string,
+    tokenLabel: string,
+    bms: any[],
+    recordErrors = true,
+  ) => {
+    const systemUsers: { id: string; name: string; bmId: string; bmName: string }[] = [];
+    let bmCursor = 0;
+    const bmWorker = async () => {
+      while (true) {
+        const i = bmCursor++;
+        if (i >= bms.length) return;
+        const bm = bms[i];
+        if (!bm?.id) continue;
+        try {
+          const users = await paginateMeta(
+            `${META_API}/${bm.id}/system_users?access_token=${encodeURIComponent(token)}&fields=id,name,role&limit=200`,
+          );
+          for (const su of users) {
+            if (su?.id) systemUsers.push({ id: su.id, name: su.name || su.id, bmId: bm.id, bmName: bm.name || bm.id });
+          }
+        } catch (e) {
+          if (recordErrors) errors.push({ app: app.label, token: tokenLabel, bm: bm.name || bm.id, edge: "system_users", erro: (e as Error).message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, bms.length) }, bmWorker));
+
+    const seenSystemUsers = new Set<string>();
+    const uniqueSystemUsers = systemUsers.filter((su) => {
+      if (seenSystemUsers.has(su.id)) return false;
+      seenSystemUsers.add(su.id);
+      return true;
+    });
+
+    let suCursor = 0;
+    const suWorker = async () => {
+      while (true) {
+        const i = suCursor++;
+        if (i >= uniqueSystemUsers.length) return;
+        const su = uniqueSystemUsers[i];
+        try {
+          const items = await paginateMeta(
+            `${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+          );
+          for (const acc of items) {
+            allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || su.bmId, _source_token: token });
+          }
+        } catch (e) {
+          if (recordErrors) errors.push({ app: app.label, token: tokenLabel, bm: su.bmName, edge: `system_user:${su.name}`, erro: (e as Error).message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, uniqueSystemUsers.length) }, suWorker));
+  };
+
+  for (const choice of choices) {
+    let bms: any[] = [];
+    try {
+      bms = await paginateMeta(
+        `${META_API}/me/businesses?access_token=${encodeURIComponent(choice.token)}&fields=id,name,verification_status&limit=200`
+      );
+      rememberBms(bms);
+    } catch (e) {
+      errors.push({ app: app.label, token: choice.label, bm: "-", edge: "/me/businesses", erro: (e as Error).message });
+    }
+
+    // Do NOT early-return when bms is empty: a System User token may have
+    // asset-level access only (no BM employee role), and accounts must still
+    // be discovered via direct account edges and the fallback user token.
+    await pullBmAccounts(choice.token, choice.label, bms);
+    await pullSystemUserAssignedAccounts(choice.token, choice.label, bms, false);
+
+    try {
+      const meAccounts = await paginateMeta(
+        `${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+      );
+      for (const acc of meAccounts) {
+        allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token });
+      }
+    } catch (e) {
+      errors.push({ app: app.label, token: choice.label, bm: "-", edge: "/me/adaccounts", erro: (e as Error).message });
+    }
+
+    // This edge behaves differently for user tokens and system-user tokens, so
+    // try both /me/assigned_ad_accounts and /{me.id}/assigned_ad_accounts.
+    try {
+      const assigned = await paginateMeta(
+        `${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+      );
+      for (const acc of assigned) {
+        allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token });
+      }
+    } catch { /* optional edge; direct /me/adaccounts and BM scans remain authoritative */ }
+
+    try {
+      const me = await metaFetch("/me", choice.token, { fields: "id,name" });
+      if (me?.id) {
+        const assignedByNode = await paginateMeta(
+          `${META_API}/${me.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+        );
+        for (const acc of assignedByNode) {
+          allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token });
+        }
+      }
+    } catch { /* optional edge; not every token principal supports it */ }
+  }
+
+  const ownAppId = app.id.startsWith("00000000") ? null : app.id;
+  const bms = Array.from(bmsById.values());
   if (bms.length > 0) {
     const bmRows = bms.map((bm: any) => ({
       meta_bm_id: bm.id,
       name: bm.name,
       status: bm.verification_status || "active",
       verification_status: bm.verification_status || null,
-      meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+      meta_app_id: ownAppId,
       last_synced_at: new Date().toISOString(),
     }));
     await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
@@ -229,74 +388,18 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
   const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
   const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
 
-  const allAccounts: any[] = [];
-  const bmStatusMap = new Map(bms.map((b: any) => [b.id, b.verification_status]));
-
-  const tasks: { bmId: string; bmName: string; edge: string }[] = [];
-  for (const bm of bms) {
-    for (const e of ["owned_ad_accounts", "client_ad_accounts"]) {
-      tasks.push({ bmId: bm.id, bmName: bm.name, edge: e });
-    }
-  }
-
-  const CONCURRENCY = 4;
-  let cursor = 0;
-  const worker = async () => {
-    while (true) {
-      const i = cursor++;
-      if (i >= tasks.length) return;
-      const t = tasks[i];
-      const url = `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`;
-      try {
-        const items = await paginateMeta(url);
-        for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
-      } catch (e) {
-        errors.push({ app: app.label, bm: t.bmName, edge: t.edge, erro: (e as Error).message });
-      }
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
-
-  // Also pull /me/adaccounts — accounts assigned directly to the System User
-  // that don't surface through /me/businesses/{bm}/*_ad_accounts edges. Without
-  // this, accounts shared to the SU (typical of BM-agnostic sharing) get lost.
-  try {
-    const meAccounts = await paginateMeta(
-      `${META_API}/me/adaccounts?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
-    );
-    for (const acc of meAccounts) {
-      allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null });
-    }
-  } catch (e) {
-    errors.push({ app: app.label, bm: "-", edge: "/me/adaccounts", erro: (e as Error).message });
-  }
-
-  // Also pull /me/assigned_ad_accounts — the definitive list of accounts a
-  // System User has been granted, regardless of BM membership. This covers
-  // brand-new accounts added to the SU whose parent BM isn't returned by
-  // /me/businesses (SU is only asset-user, not employee).
-  try {
-    const assigned = await paginateMeta(
-      `${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
-    );
-    for (const acc of assigned) {
-      allAccounts.push({ ...acc, _bm_meta_id: acc.business?.id || null });
-    }
-  } catch (e) {
-    // Not fatal — falls back to the other discovery paths.
-    errors.push({ app: app.label, bm: "-", edge: "/me/assigned_ad_accounts", erro: (e as Error).message });
-  }
-
-  // Auto-upsert any BM referenced by /me/adaccounts that we didn't get from
-  // /me/businesses — otherwise bmIdMap lookup fails and bm_id ends up null.
+  // Auto-upsert any BM referenced by direct account edges that we didn't get
+  // from /me/businesses — otherwise bmIdMap lookup fails and bm_id ends up null.
   const knownBmIds = new Set(bms.map((b: any) => b.id));
   const extraBmIds = new Set<string>();
   const extraBmNames = new Map<string, string>();
+  const extraBmToken = new Map<string, string>();
   for (const acc of allAccounts) {
     const bid = acc._bm_meta_id;
-    if (bid && !knownBmIds.has(bid) && acc.business?.name) {
+    if (bid && !knownBmIds.has(bid)) {
       extraBmIds.add(bid);
-      extraBmNames.set(bid, acc.business.name);
+      extraBmNames.set(bid, acc.business?.name || bid);
+      if (acc._source_token && !extraBmToken.has(bid)) extraBmToken.set(bid, acc._source_token);
     }
   }
   if (extraBmIds.size > 0) {
@@ -304,7 +407,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       meta_bm_id: bid,
       name: extraBmNames.get(bid) || bid,
       status: "active",
-      meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+      meta_app_id: ownAppId,
       last_synced_at: new Date().toISOString(),
     }));
     await supabase.from("meta_business_managers").upsert(extraRows, { onConflict: "meta_bm_id" });
@@ -314,37 +417,36 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
       .in("meta_bm_id", Array.from(extraBmIds));
     for (const b of refreshed || []) bmIdMap.set(b.meta_bm_id, b.id);
 
-    // Second discovery pass: for BMs surfaced via /me/adaccounts (SU only had
-    // asset-level access), also scan owned_ad_accounts + client_ad_accounts so
-    // sibling accounts under that BM don't get missed.
-    const extraTasks: { bmId: string; edge: string }[] = [];
-    for (const bid of extraBmIds) {
-      for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
-        extraTasks.push({ bmId: bid, edge });
-      }
+    // Second discovery pass: for BMs surfaced via direct account edges, scan
+    // owned_ad_accounts + client_ad_accounts with the token that found that BM.
+    const extraTasks = Array.from(extraBmIds)
+      .map((bid) => ({ id: bid, name: extraBmNames.get(bid) || bid, verification_status: null, _token: extraBmToken.get(bid) }))
+      .filter((bm) => !!bm._token);
+    for (const bm of extraTasks) {
+      await pullBmAccounts(bm._token as string, "Fallback", [bm], false);
+      await pullSystemUserAssignedAccounts(bm._token as string, "Fallback", [bm], false);
     }
-    let ec = 0;
-    const extraWorker = async () => {
-      while (true) {
-        const i = ec++;
-        if (i >= extraTasks.length) return;
-        const t = extraTasks[i];
-        try {
-          const items = await paginateMeta(
-            `${META_API}/${t.bmId}/${t.edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
-          );
-          for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: t.bmId });
-        } catch (e) {
-          // Expected when SU lacks BM-level permission; asset-level pull above
-          // already caught the individual account.
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(4, extraTasks.length) }, extraWorker));
   }
 
-  const seen = new Set<string>();
-  const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
+  const accountCompleteness = (acc: any) => {
+    let score = 0;
+    if (acc._bm_meta_id) score += 10;
+    if (acc.business?.id) score += 10;
+    if (acc.business?.name) score += 10;
+    if (Array.isArray(acc.agencies?.data) && acc.agencies.data.length) score += 5;
+    if (acc.account_status != null) score += 3;
+    if (acc.amount_spent != null) score += 2;
+    return score;
+  };
+  const byAccountId = new Map<string, any>();
+  for (const acc of allAccounts) {
+    if (!acc?.id) continue;
+    const current = byAccountId.get(acc.id);
+    if (!current || accountCompleteness(acc) > accountCompleteness(current)) {
+      byAccountId.set(acc.id, acc);
+    }
+  }
+  const unique = Array.from(byAccountId.values());
 
   const computeScore = (acc: any) => {
     let s = 100;
@@ -363,7 +465,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     return {
       meta_account_id: acc.id,
       bm_id: bmIdMap.get(acc._bm_meta_id) || null,
-      meta_app_id: app.id.startsWith("00000000") ? null : app.id,
+      meta_app_id: ownAppId,
       name: acc.name,
       account_status: acc.account_status,
       status: acc.account_status === 1 ? "active" : "blocked",
@@ -397,7 +499,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     if (error) throw error;
   }
 
-  return { app: app.label, bms: bms.length, accounts: accRows.length, erros: errors };
+  return { app: app.label, bms: bms.length + extraBmIds.size, accounts: accRows.length, erros: errors };
 }
 
 async function syncPagesForApp(supabase: any, app: AppRow) {
