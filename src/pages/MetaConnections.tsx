@@ -50,7 +50,7 @@ export default function MetaConnections() {
   const [syncing, setSyncing] = useState(false);
   const [job, setJob] = useState<{
     id: string; status: string; progress_current: number; progress_total: number;
-    synced_count: number; message: string | null; errors: any[];
+    synced_count: number; message: string | null; errors: any[]; created_at?: string | null; updated_at?: string | null;
   } | null>(null);
 
   const [selectedBm, setSelectedBm] = useState<string>("all"); // bmId | "all" | "none"
@@ -87,10 +87,30 @@ export default function MetaConnections() {
 
     const applyJob = (j: any) => {
       if (!j || finished) return;
+      const lastUpdateMs = new Date(j.updated_at || j.started_at || j.created_at || Date.now()).getTime();
+      const stale = ["pending", "running"].includes(j.status) && Date.now() - lastUpdateMs > 2 * 60 * 1000;
+      if (stale) {
+        finished = true;
+        setSyncing(false);
+        setJob({
+          id: j.id,
+          status: "failed",
+          progress_current: j.progress_current || 0,
+          progress_total: j.progress_total || 1,
+          synced_count: j.synced_count || 0,
+          message: "Sincronização expirada. Clique em sincronizar novamente.",
+          errors: j.errors || [],
+          created_at: j.created_at,
+          updated_at: j.updated_at,
+        });
+        toast.error("Sincronização expirada. Tente novamente.");
+        setTimeout(() => setJob(null), 5000);
+        return;
+      }
       setJob({
         id: j.id, status: j.status, progress_current: j.progress_current,
         progress_total: j.progress_total, synced_count: j.synced_count,
-        message: j.message, errors: j.errors || [],
+        message: j.message, errors: j.errors || [], created_at: j.created_at, updated_at: j.updated_at,
       });
       if (j.status === "completed" || j.status === "failed") {
         finished = true;
@@ -142,7 +162,7 @@ export default function MetaConnections() {
         setJob({
           id: j.id, status: j.status, progress_current: j.progress_current,
           progress_total: j.progress_total, synced_count: j.synced_count,
-          message: j.message, errors: (j.errors as any) || [],
+          message: j.message, errors: (j.errors as any) || [], created_at: j.created_at, updated_at: j.updated_at,
         });
       }
       toast.info("Sincronização iniciada em segundo plano");

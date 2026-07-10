@@ -20,10 +20,10 @@ const corsHeaders = {
 };
 
 const META_API = "https://graph.facebook.com/v21.0";
-const FETCH_TIMEOUT_MS = 25000;
-const RETRY_ATTEMPTS = 3;
-const JOB_TIMEOUT_MS = 110000;
-const MAX_PAGINATION_PAGES = 80;
+const FETCH_TIMEOUT_MS = 12000;
+const RETRY_ATTEMPTS = 2;
+const JOB_TIMEOUT_MS = 45000;
+const MAX_PAGINATION_PAGES = 30;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
