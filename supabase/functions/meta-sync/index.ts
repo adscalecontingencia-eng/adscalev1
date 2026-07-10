@@ -885,11 +885,15 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
     if (error) throw error;
   }
 
-  const { data: bmsDb, error: bmErr } = await supabase
-    .from("meta_business_managers")
-    .select("id, meta_bm_id, verification_status")
-    .in("meta_bm_id", Array.from(metaBmIds));
-  if (bmErr) throw bmErr;
+  let bmsDb: any[] = [];
+  if (metaBmIds.size > 0) {
+    const { data, error: bmErr } = await supabase
+      .from("meta_business_managers")
+      .select("id, meta_bm_id, verification_status")
+      .in("meta_bm_id", Array.from(metaBmIds));
+    if (bmErr) throw bmErr;
+    bmsDb = data || [];
+  }
   const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b]));
   const bmStatusMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.verification_status || null]));
   const rows = normalizeAccountRows(app, accounts, bmIdMap, bmStatusMap);
@@ -916,11 +920,12 @@ async function invokeNextAccountsSlice(jobId: string, appIds?: string[]) {
   const internalSecret = Deno.env.get("N8N_SECRET_KEY") || "";
   if (internalSecret) headers["x-internal-secret"] = internalSecret;
   else headers.Authorization = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`;
-  await fetch(`${baseUrl}/functions/v1/meta-sync`, {
+  const response = await fetch(`${baseUrl}/functions/v1/meta-sync`, {
     method: "POST",
     headers,
     body: JSON.stringify({ action: "continue_sync_accounts", job_id: jobId, app_ids: appIds }),
   }).catch(() => null);
+  if (response) await response.text().catch(() => null);
 }
 
 async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?: string[]) {
