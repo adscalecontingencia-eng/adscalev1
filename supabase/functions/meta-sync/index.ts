@@ -1124,9 +1124,10 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         }
       }
     } catch (e) {
-      actualErrors.push({ app: currentApp.label, token: choice.label, edge: phaseLabel(state.phase), erro: (e as Error).message });
+      const failedPhase = phaseLabel(state.phase);
+      actualErrors.push({ app: currentApp.label, token: choice.label, edge: failedPhase, erro: (e as Error).message });
       nextPhase(state);
-      await persist({ app: currentApp.label, endpoint: phaseLabel(state.phase), status: "error", token: choice.label, detail: (e as Error).message });
+      await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: (e as Error).message });
     }
   }
 
