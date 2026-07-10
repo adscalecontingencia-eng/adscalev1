@@ -20,7 +20,7 @@ const corsHeaders = {
 };
 
 const META_API = "https://graph.facebook.com/v21.0";
-const FETCH_TIMEOUT_MS = 12000;
+const FETCH_TIMEOUT_MS = 8000;
 const RETRY_ATTEMPTS = 2;
 const JOB_TIMEOUT_MS = 45000;
 const MAX_PAGINATION_PAGES = 30;
@@ -1068,10 +1068,9 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         let savedTotal = 0;
         try {
           const users = await paginateMeta(`${META_API}/${bm.meta_bm_id}/system_users?access_token=${encodeURIComponent(choice.token)}&fields=id,name,role&limit=200`);
-          for (const su of users.slice(0, 12)) {
+          for (const su of users) {
             const items = await paginateMeta(`${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
             savedTotal += await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || bm.meta_bm_id, _source_token: choice.token })));
-            if (Date.now() > deadline) break;
           }
         } catch (e) {
           actualErrors.push({ app: currentApp.label, token: choice.label, bm: bm.name || bm.meta_bm_id, edge: "system_users", erro: (e as Error).message });
