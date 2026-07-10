@@ -718,9 +718,11 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
   const stageStarted = new Set<string>();
   const stageFinished = new Set<string>();
   let estimatedStageTotal = 1;
+  let acceptingStageUpdates = true;
   const stageKey = (event: SyncStageEvent) => `${event.app}|${event.token || "-"}|${event.endpoint}`;
 
   const publishStage = async (event: SyncStageEvent, actualErrors: any[] = []) => {
+    if (!acceptingStageUpdates) return;
     const key = stageKey(event);
     stageStarted.add(key);
     if (["done", "error", "skipped"].includes(event.status)) stageFinished.add(key);
@@ -804,6 +806,7 @@ async function runAccountsSyncJob(supabase: any, jobId: string, appIds?: string[
     const fatalCount = allErrors.filter((e) => e?.fatal).length;
     const finalStatus = fatalCount >= apps.length && totalAccounts === 0 ? "failed" : "completed";
     const finalProgressTotal = Math.max(estimatedStageTotal, stageFinished.size, apps.length);
+    acceptingStageUpdates = false;
     await update({
       status: finalStatus,
       finished_at: new Date().toISOString(),
