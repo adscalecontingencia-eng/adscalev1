@@ -370,8 +370,25 @@ async function syncAccountsForApp(supabase: any, app: AppRow) {
     }
   }
 
-  const seen = new Set<string>();
-  const unique = allAccounts.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
+  const accountCompleteness = (acc: any) => {
+    let score = 0;
+    if (acc._bm_meta_id) score += 10;
+    if (acc.business?.id) score += 10;
+    if (acc.business?.name) score += 10;
+    if (Array.isArray(acc.agencies?.data) && acc.agencies.data.length) score += 5;
+    if (acc.account_status != null) score += 3;
+    if (acc.amount_spent != null) score += 2;
+    return score;
+  };
+  const byAccountId = new Map<string, any>();
+  for (const acc of allAccounts) {
+    if (!acc?.id) continue;
+    const current = byAccountId.get(acc.id);
+    if (!current || accountCompleteness(acc) > accountCompleteness(current)) {
+      byAccountId.set(acc.id, acc);
+    }
+  }
+  const unique = Array.from(byAccountId.values());
 
   const computeScore = (acc: any) => {
     let s = 100;
