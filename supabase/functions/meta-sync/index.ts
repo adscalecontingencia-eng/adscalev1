@@ -26,6 +26,88 @@ const JOB_TIMEOUT_MS = 45000;
 const MAX_PAGINATION_PAGES = 30;
 const META_RATE_LIMIT_CODES = new Set([4, 17, 32, 613]);
 
+// Pacing global — evita bursts que estouram o quota da Meta.
+// Meta permite ~200 chamadas/hora/usuário no app-level; espaçar chamadas
+// mantém o consumo bem abaixo do limite mesmo com múltiplos apps.
+const MIN_REQUEST_INTERVAL_MS = 350;
+let lastRequestAt = 0;
+async function paceRequest() {
+  const now = Date.now();
+  const wait = lastRequestAt + MIN_REQUEST_INTERVAL_MS - now;
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastRequestAt = Date.now();
+}
+
+// Erro sintético lançado quando a Meta indica que o app/conta está muito
+// próximo do limite. Tratado como rate-limit no motor de sync.
+class MetaQuotaExceeded extends Error {
+  code = 4;
+  constructor(msg: string) { super(`Meta API error: {"code":4,"message":"${msg}"}`); this.name = "MetaQuotaExceeded"; }
+}
+
+function parseUsageHeader(raw: string | null): number {
+  if (!raw) return 0;
+  try {
+    const data = JSON.parse(raw);
+    let max = 0;
+    const walk = (v: any) => {
+      if (v == null) return;
+      if (typeof v === "number") { if (v > max) max = v; return; }
+      if (Array.isArray(v)) { v.forEach(walk); return; }
+      if (typeof v === "object") {
+        for (const k of ["call_count", "total_cputime", "total_time", "acc_id_util_pct", "estimated_time_to_regain_access"]) {
+          if (typeof v[k] === "number" && k !== "estimated_time_to_regain_access" && v[k] > max) max = v[k];
+        }
+        Object.values(v).forEach(walk);
+      }
+    };
+    walk(data);
+    return max;
+  } catch { return 0; }
+}
+
+function parseRegainSeconds(raw: string | null): number {
+  if (!raw) return 0;
+  try {
+    const data = JSON.parse(raw);
+    let max = 0;
+    const walk = (v: any) => {
+      if (v == null) return;
+      if (Array.isArray(v)) { v.forEach(walk); return; }
+      if (typeof v === "object") {
+        if (typeof v.estimated_time_to_regain_access === "number" && v.estimated_time_to_regain_access > max) {
+          max = v.estimated_time_to_regain_access;
+        }
+        Object.values(v).forEach(walk);
+      }
+    };
+    walk(data);
+    return max;
+  } catch { return 0; }
+}
+
+async function honorMetaUsageHeaders(res: Response) {
+  const app = parseUsageHeader(res.headers.get("x-app-usage"));
+  const buc = parseUsageHeader(res.headers.get("x-business-use-case-usage"));
+  const acc = parseUsageHeader(res.headers.get("x-ad-account-usage"));
+  const usage = Math.max(app, buc, acc);
+  const regain = Math.max(
+    parseRegainSeconds(res.headers.get("x-app-usage")),
+    parseRegainSeconds(res.headers.get("x-business-use-case-usage")),
+    parseRegainSeconds(res.headers.get("x-ad-account-usage")),
+  );
+  if (usage >= 95 || regain > 0) {
+    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`);
+  }
+  if (usage >= 75) {
+    // desacelera exponencialmente ao se aproximar do teto
+    const extra = Math.min(5000, Math.round((usage - 70) * 200));
+    await new Promise((r) => setTimeout(r, extra));
+  } else if (usage >= 50) {
+    await new Promise((r) => setTimeout(r, 400));
+  }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${label} excedeu ${Math.round(ms / 1000)}s`)), ms);
@@ -66,6 +148,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
     try {
+      await paceRequest();
       const res = await fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (res.status === 429 || res.status >= 500) {
         const wait = Math.min(10000, 1500 * Math.pow(2, i));
@@ -73,13 +156,16 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
         await new Promise((r) => setTimeout(r, wait));
         continue;
       }
+      // Se a Meta indicar consumo crítico via headers, aborta com rate-limit
+      // sintético — assim o motor de sync coloca o app em cooldown em vez de
+      // continuar drenando a cota.
+      try { await honorMetaUsageHeaders(res); } catch (quotaErr) { throw quotaErr; }
       const clone = res.clone();
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
       const subcode = data?.error?.error_subcode;
-      // Code #4 is the app-level Marketing API quota. Retrying immediately only
-      // burns more quota and was keeping account sync jobs alive without making
-      // progress. Other transient/rate errors may still recover after a short wait.
+      // Code #4 é quota global do app — retry só piora. Outros erros
+      // transitórios podem se recuperar após uma espera curta.
       const transient = code !== 4 && (data?.error?.is_transient
         || [17, 32, 613].includes(code)
         || [2446079, 1487390, 1487742].includes(subcode));
@@ -91,6 +177,9 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
       }
       return res;
     } catch (e) {
+      // Não faz retry para quota sinalizada por header — devolve imediatamente
+      // ao motor para aplicar cooldown.
+      if (e instanceof MetaQuotaExceeded) throw e;
       lastErr = e;
       const wait = Math.min(8000, 1000 * Math.pow(2, i));
       const reason = (e as Error)?.name === "TimeoutError" ? "timeout Meta API" : "network error";
@@ -99,6 +188,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
     }
   }
   if (lastErr) throw lastErr;
+  await paceRequest();
   return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }
 
@@ -733,6 +823,8 @@ type AccountsSyncState = {
   systemUsers?: { id: string; name: string; bmId: string; bmName: string }[];
   systemUsersBmId?: string;
   systemUserIndex?: number;
+  /** Timestamp (ms) até quando cada app está em cooldown por rate-limit. */
+  appCooldownUntil?: Record<string, number>;
 };
 
 const RESUMABLE_SLICE_MS = 26000;
@@ -842,6 +934,21 @@ function nextChoiceOrApp(state: AccountsSyncState, choicesLength: number) {
     state.choiceIndex = 0;
     state.appIndex += 1;
   }
+}
+
+/** Coloca o app atual em cooldown por N minutos e avança para o próximo,
+ *  evitando esgotar as demais chamadas quando a Meta já sinalizou rate-limit. */
+function cooldownCurrentApp(state: AccountsSyncState, appLabel: string, minutes = 5) {
+  state.appCooldownUntil = state.appCooldownUntil || {};
+  state.appCooldownUntil[appLabel] = Date.now() + minutes * 60_000;
+  state.phase = ACCOUNT_PHASES[0];
+  state.bmIndex = 0;
+  state.edgeIndex = 0;
+  state.choiceIndex = 0;
+  state.systemUsers = undefined;
+  state.systemUsersBmId = undefined;
+  state.systemUserIndex = 0;
+  state.appIndex += 1;
 }
 
 function nextPhase(state: AccountsSyncState) {
@@ -1049,6 +1156,17 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     }
 
     const app = apps[state.appIndex];
+    // Se este app está em cooldown (quota estourada em fatia anterior), pula
+    // sem gastar novas chamadas — o job segue completando os outros apps.
+    const cooldownTs = state.appCooldownUntil?.[app.label] || 0;
+    if (cooldownTs && Date.now() < cooldownTs) {
+      const remainingMin = Math.ceil((cooldownTs - Date.now()) / 60000);
+      await persist({ app: app.label, endpoint: "rate-limit", status: "skipped", detail: `Em cooldown por ${remainingMin} min (quota Meta atingida)` });
+      state.appIndex += 1;
+      state.choiceIndex = 0;
+      state.phase = ACCOUNT_PHASES[0];
+      continue;
+    }
     const choices = tokenChoicesForApp(app);
     if (choices.length === 0) {
       actualErrors.push({ app: app.label, erro: "Sem token configurado" });
@@ -1161,7 +1279,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           const msg = (e as Error).message;
           actualErrors.push({ app: currentApp.label, token: choice.label, bm: bm.name || bm.meta_bm_id, edge: "system_users", erro: msg, code: metaErrorCode(e) });
           if (isMetaRateLimit(e)) {
-            nextChoiceOrApp(state, choices.length);
+            cooldownCurrentApp(state, currentApp.label);
             await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
             continue;
           }
@@ -1200,7 +1318,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         } catch (e) {
           if (isMetaRateLimit(e)) {
             actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/me/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
-            nextChoiceOrApp(state, choices.length);
+            cooldownCurrentApp(state, currentApp.label);
             await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
           } else {
             nextPhase(state);
@@ -1222,7 +1340,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         } catch (e) {
           if (isMetaRateLimit(e)) {
             actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/{me.id}/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
-            nextChoiceOrApp(state, choices.length);
+            cooldownCurrentApp(state, currentApp.label);
             await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
           } else {
             nextPhase(state);
@@ -1235,7 +1353,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       const msg = (e as Error).message;
       actualErrors.push({ app: currentApp.label, token: choice.label, edge: failedPhase, erro: msg, code: metaErrorCode(e) });
       if (isMetaRateLimit(e)) {
-        nextChoiceOrApp(state, choices.length);
+        cooldownCurrentApp(state, currentApp.label);
         await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
       } else {
         nextPhase(state);
