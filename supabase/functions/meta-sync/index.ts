@@ -807,10 +807,14 @@ function extractMetaErrorPayload(message: string): any | null {
   try { return JSON.parse(message.slice(idx)); } catch { return null; }
 }
 
-function metaErrorCode(error: unknown): number | null {
-  const payload = extractMetaErrorPayload((error as Error)?.message || String(error || ""));
+function metaErrorCodeFromText(message: string): number | null {
+  const payload = extractMetaErrorPayload(message);
   const code = Number(payload?.code ?? payload?.error?.code);
   return Number.isFinite(code) ? code : null;
+}
+
+function metaErrorCode(error: unknown): number | null {
+  return metaErrorCodeFromText((error as Error)?.message || String(error || ""));
 }
 
 function isMetaRateLimit(error: unknown) {
