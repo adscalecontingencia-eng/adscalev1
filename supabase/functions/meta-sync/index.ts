@@ -26,6 +26,88 @@ const JOB_TIMEOUT_MS = 45000;
 const MAX_PAGINATION_PAGES = 30;
 const META_RATE_LIMIT_CODES = new Set([4, 17, 32, 613]);
 
+// Pacing global — evita bursts que estouram o quota da Meta.
+// Meta permite ~200 chamadas/hora/usuário no app-level; espaçar chamadas
+// mantém o consumo bem abaixo do limite mesmo com múltiplos apps.
+const MIN_REQUEST_INTERVAL_MS = 350;
+let lastRequestAt = 0;
+async function paceRequest() {
+  const now = Date.now();
+  const wait = lastRequestAt + MIN_REQUEST_INTERVAL_MS - now;
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastRequestAt = Date.now();
+}
+
+// Erro sintético lançado quando a Meta indica que o app/conta está muito
+// próximo do limite. Tratado como rate-limit no motor de sync.
+class MetaQuotaExceeded extends Error {
+  code = 4;
+  constructor(msg: string) { super(`Meta API error: {"code":4,"message":"${msg}"}`); this.name = "MetaQuotaExceeded"; }
+}
+
+function parseUsageHeader(raw: string | null): number {
+  if (!raw) return 0;
+  try {
+    const data = JSON.parse(raw);
+    let max = 0;
+    const walk = (v: any) => {
+      if (v == null) return;
+      if (typeof v === "number") { if (v > max) max = v; return; }
+      if (Array.isArray(v)) { v.forEach(walk); return; }
+      if (typeof v === "object") {
+        for (const k of ["call_count", "total_cputime", "total_time", "acc_id_util_pct", "estimated_time_to_regain_access"]) {
+          if (typeof v[k] === "number" && k !== "estimated_time_to_regain_access" && v[k] > max) max = v[k];
+        }
+        Object.values(v).forEach(walk);
+      }
+    };
+    walk(data);
+    return max;
+  } catch { return 0; }
+}
+
+function parseRegainSeconds(raw: string | null): number {
+  if (!raw) return 0;
+  try {
+    const data = JSON.parse(raw);
+    let max = 0;
+    const walk = (v: any) => {
+      if (v == null) return;
+      if (Array.isArray(v)) { v.forEach(walk); return; }
+      if (typeof v === "object") {
+        if (typeof v.estimated_time_to_regain_access === "number" && v.estimated_time_to_regain_access > max) {
+          max = v.estimated_time_to_regain_access;
+        }
+        Object.values(v).forEach(walk);
+      }
+    };
+    walk(data);
+    return max;
+  } catch { return 0; }
+}
+
+async function honorMetaUsageHeaders(res: Response) {
+  const app = parseUsageHeader(res.headers.get("x-app-usage"));
+  const buc = parseUsageHeader(res.headers.get("x-business-use-case-usage"));
+  const acc = parseUsageHeader(res.headers.get("x-ad-account-usage"));
+  const usage = Math.max(app, buc, acc);
+  const regain = Math.max(
+    parseRegainSeconds(res.headers.get("x-app-usage")),
+    parseRegainSeconds(res.headers.get("x-business-use-case-usage")),
+    parseRegainSeconds(res.headers.get("x-ad-account-usage")),
+  );
+  if (usage >= 95 || regain > 0) {
+    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`);
+  }
+  if (usage >= 75) {
+    // desacelera exponencialmente ao se aproximar do teto
+    const extra = Math.min(5000, Math.round((usage - 70) * 200));
+    await new Promise((r) => setTimeout(r, extra));
+  } else if (usage >= 50) {
+    await new Promise((r) => setTimeout(r, 400));
+  }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${label} excedeu ${Math.round(ms / 1000)}s`)), ms);
