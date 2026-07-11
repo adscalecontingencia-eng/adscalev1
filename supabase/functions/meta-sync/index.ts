@@ -42,7 +42,23 @@ async function paceRequest() {
 // próximo do limite. Tratado como rate-limit no motor de sync.
 class MetaQuotaExceeded extends Error {
   code = 4;
-  constructor(msg: string) { super(`Meta API error: {"code":4,"message":"${msg}"}`); this.name = "MetaQuotaExceeded"; }
+  usage: number;
+  regainSeconds: number;
+  constructor(msg: string, usage = 0, regainSeconds = 0) {
+    super(`Meta API error: {"code":4,"message":"${msg}"}`);
+    this.name = "MetaQuotaExceeded";
+    this.usage = usage;
+    this.regainSeconds = regainSeconds;
+  }
+}
+
+/** Extrai segundos de regain de uma mensagem de erro que pode vir da Meta
+ *  ("(regain in 900s)") — usado para dimensionar cooldown por app. */
+function extractRegainSeconds(err: unknown): number {
+  if (err instanceof MetaQuotaExceeded && err.regainSeconds > 0) return err.regainSeconds;
+  const msg = (err as Error)?.message || "";
+  const m = msg.match(/regain in (\d+)s/i);
+  return m ? parseInt(m[1], 10) : 0;
 }
 
 function parseUsageHeader(raw: string | null): number {
