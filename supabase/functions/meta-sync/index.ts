@@ -1279,7 +1279,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           const msg = (e as Error).message;
           actualErrors.push({ app: currentApp.label, token: choice.label, bm: bm.name || bm.meta_bm_id, edge: "system_users", erro: msg, code: metaErrorCode(e) });
           if (isMetaRateLimit(e)) {
-            nextChoiceOrApp(state, choices.length);
+            cooldownCurrentApp(state, currentApp.label);
             await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
             continue;
           }
@@ -1318,7 +1318,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         } catch (e) {
           if (isMetaRateLimit(e)) {
             actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/me/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
-            nextChoiceOrApp(state, choices.length);
+            cooldownCurrentApp(state, currentApp.label);
             await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
           } else {
             nextPhase(state);
@@ -1340,7 +1340,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         } catch (e) {
           if (isMetaRateLimit(e)) {
             actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/{me.id}/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
-            nextChoiceOrApp(state, choices.length);
+            cooldownCurrentApp(state, currentApp.label);
             await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
           } else {
             nextPhase(state);
@@ -1353,7 +1353,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       const msg = (e as Error).message;
       actualErrors.push({ app: currentApp.label, token: choice.label, edge: failedPhase, erro: msg, code: metaErrorCode(e) });
       if (isMetaRateLimit(e)) {
-        nextChoiceOrApp(state, choices.length);
+        cooldownCurrentApp(state, currentApp.label);
         await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
       } else {
         nextPhase(state);
