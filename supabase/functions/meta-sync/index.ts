@@ -113,7 +113,7 @@ async function honorMetaUsageHeaders(res: Response) {
     parseRegainSeconds(res.headers.get("x-ad-account-usage")),
   );
   if (usage >= 95 || regain > 0) {
-    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`);
+    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`, usage, regain);
   }
   if (usage >= 75) {
     // desacelera exponencialmente ao se aproximar do teto
