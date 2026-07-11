@@ -736,12 +736,12 @@ const RESUMABLE_SLICE_MS = 26000;
 const MAX_STAGE_EVENTS = 140;
 const BM_ACCOUNT_EDGES = ["owned_ad_accounts", "client_ad_accounts"];
 const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
-  "me_businesses",
-  "bm_edges",
-  "bm_system_users",
   "me_adaccounts",
   "me_assigned",
   "me_id_assigned",
+  "me_businesses",
+  "bm_edges",
+  "bm_system_users",
 ];
 
 function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
@@ -751,7 +751,7 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     version: 2,
     appIndex: 0,
     choiceIndex: 0,
-    phase: "me_businesses",
+    phase: "me_adaccounts",
     bmIndex: 0,
     edgeIndex: 0,
     syncedCount: 0,
