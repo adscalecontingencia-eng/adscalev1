@@ -846,13 +846,17 @@ type AccountsSyncState = {
 const RESUMABLE_SLICE_MS = 26000;
 const MAX_STAGE_EVENTS = 140;
 const BM_ACCOUNT_EDGES = ["owned_ad_accounts", "client_ad_accounts"];
+// Ordem otimizada para detectar RAPIDAMENTE contas novas atribuídas em BMs:
+// 1) descobre BMs, 2) varre owned/client ad accounts de cada BM (onde contas
+// novas aparecem primeiro), 3) system users, e por último os endpoints /me/*
+// que raramente trazem novidades para tokens de System User.
 const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
-  "me_adaccounts",
-  "me_assigned",
-  "me_id_assigned",
   "me_businesses",
   "bm_edges",
   "bm_system_users",
+  "me_adaccounts",
+  "me_assigned",
+  "me_id_assigned",
 ];
 
 function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
@@ -862,7 +866,7 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     version: 2,
     appIndex: 0,
     choiceIndex: 0,
-    phase: "me_adaccounts",
+    phase: "me_businesses",
     bmIndex: 0,
     edgeIndex: 0,
     syncedCount: 0,
