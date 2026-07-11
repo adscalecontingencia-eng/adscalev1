@@ -1120,10 +1120,42 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "running", token: choice.label, detail: bm.name || bm.meta_bm_id });
         let savedTotal = 0;
         try {
-          const users = await paginateMeta(`${META_API}/${bm.meta_bm_id}/system_users?access_token=${encodeURIComponent(choice.token)}&fields=id,name,role&limit=200`);
-          for (const su of users) {
-            const items = await paginateMeta(`${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
-            savedTotal += await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || bm.meta_bm_id, _source_token: choice.token })));
+          if (state.systemUsersBmId !== bm.meta_bm_id) {
+            const users = await paginateMeta(`${META_API}/${bm.meta_bm_id}/system_users?access_token=${encodeURIComponent(choice.token)}&fields=id,name,role&limit=200`);
+            state.systemUsers = (users || [])
+              .filter((su: any) => !!su?.id)
+              .map((su: any) => ({ id: su.id, name: su.name || su.id, bmId: bm.meta_bm_id, bmName: bm.name || bm.meta_bm_id }));
+            state.systemUsersBmId = bm.meta_bm_id;
+            state.systemUserIndex = 0;
+            if (!state.systemUsers.length) {
+              state.completedStages += 1;
+              state.bmIndex += 1;
+              state.systemUsers = undefined;
+              state.systemUsersBmId = undefined;
+              state.systemUserIndex = 0;
+              await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "done", token: choice.label, detail: `${bm.name || bm.meta_bm_id}: 0 system users`, found: 0 });
+              continue;
+            }
+          }
+          const su = state.systemUsers?.[state.systemUserIndex || 0];
+          if (!su) {
+            state.completedStages += 1;
+            state.bmIndex += 1;
+            state.systemUsers = undefined;
+            state.systemUsersBmId = undefined;
+            state.systemUserIndex = 0;
+            await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "done", token: choice.label, detail: `${bm.name || bm.meta_bm_id}: ${savedTotal} conta(s)`, found: savedTotal });
+            continue;
+          }
+          const items = await paginateMeta(`${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+          savedTotal += await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || bm.meta_bm_id, _source_token: choice.token })));
+          state.systemUserIndex = (state.systemUserIndex || 0) + 1;
+          if (state.systemUserIndex >= (state.systemUsers?.length || 0)) {
+            state.completedStages += 1;
+            state.bmIndex += 1;
+            state.systemUsers = undefined;
+            state.systemUsersBmId = undefined;
+            state.systemUserIndex = 0;
           }
         } catch (e) {
           const msg = (e as Error).message;
@@ -1133,10 +1165,15 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
             continue;
           }
+          if (isMetaPermissionDenied(e)) {
+            state.completedStages += 1;
+            state.bmIndex += 1;
+            state.systemUsers = undefined;
+            state.systemUsersBmId = undefined;
+            state.systemUserIndex = 0;
+          }
         }
         state.syncedCount += savedTotal;
-        state.completedStages += 1;
-        state.bmIndex += 1;
         state.totalStages = Math.max(state.totalStages, state.completedStages + (bms.length - state.bmIndex));
         await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "done", token: choice.label, detail: `${bm.name || bm.meta_bm_id}: ${savedTotal} conta(s)`, found: savedTotal });
         continue;
