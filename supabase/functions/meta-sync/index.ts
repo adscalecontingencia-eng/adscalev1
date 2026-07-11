@@ -80,9 +80,9 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
       // Code #4 is the app-level Marketing API quota. Retrying immediately only
       // burns more quota and was keeping account sync jobs alive without making
       // progress. Other transient/rate errors may still recover after a short wait.
-      const transient = data?.error?.is_transient
+      const transient = code !== 4 && (data?.error?.is_transient
         || [17, 32, 613].includes(code)
-        || [2446079, 1487390, 1487742].includes(subcode);
+        || [2446079, 1487390, 1487742].includes(subcode));
       if (transient && i < attempts - 1) {
         const wait = Math.min(10000, 2000 * Math.pow(2, i));
         onBackoff?.({ attempt: i + 1, waitMs: wait, reason: `Meta code ${code} (rate limit)` });
@@ -799,6 +799,39 @@ function phaseLabel(phase: AccountsSyncState["phase"]) {
   if (phase === "me_adaccounts") return "/me/adaccounts";
   if (phase === "me_assigned") return "/me/assigned_ad_accounts";
   return "/{me.id}/assigned_ad_accounts";
+}
+
+function extractMetaErrorPayload(message: string): any | null {
+  const idx = message.indexOf("{");
+  if (idx < 0) return null;
+  try { return JSON.parse(message.slice(idx)); } catch { return null; }
+}
+
+function metaErrorCode(error: unknown): number | null {
+  const payload = extractMetaErrorPayload((error as Error)?.message || String(error || ""));
+  const code = Number(payload?.code ?? payload?.error?.code);
+  return Number.isFinite(code) ? code : null;
+}
+
+function isMetaRateLimit(error: unknown) {
+  const code = metaErrorCode(error);
+  return code != null && META_RATE_LIMIT_CODES.has(code);
+}
+
+function isMetaPermissionDenied(error: unknown) {
+  const code = metaErrorCode(error);
+  return code === 10 || code === 100 || code === 190 || code === 200;
+}
+
+function nextChoiceOrApp(state: AccountsSyncState, choicesLength: number) {
+  state.phase = "me_businesses";
+  state.bmIndex = 0;
+  state.edgeIndex = 0;
+  state.choiceIndex += 1;
+  if (state.choiceIndex >= choicesLength) {
+    state.choiceIndex = 0;
+    state.appIndex += 1;
+  }
 }
 
 function nextPhase(state: AccountsSyncState) {
