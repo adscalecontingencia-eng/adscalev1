@@ -148,6 +148,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
     try {
+      await paceRequest();
       const res = await fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (res.status === 429 || res.status >= 500) {
         const wait = Math.min(10000, 1500 * Math.pow(2, i));
@@ -155,13 +156,16 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
         await new Promise((r) => setTimeout(r, wait));
         continue;
       }
+      // Se a Meta indicar consumo crítico via headers, aborta com rate-limit
+      // sintético — assim o motor de sync coloca o app em cooldown em vez de
+      // continuar drenando a cota.
+      try { await honorMetaUsageHeaders(res); } catch (quotaErr) { throw quotaErr; }
       const clone = res.clone();
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
       const subcode = data?.error?.error_subcode;
-      // Code #4 is the app-level Marketing API quota. Retrying immediately only
-      // burns more quota and was keeping account sync jobs alive without making
-      // progress. Other transient/rate errors may still recover after a short wait.
+      // Code #4 é quota global do app — retry só piora. Outros erros
+      // transitórios podem se recuperar após uma espera curta.
       const transient = code !== 4 && (data?.error?.is_transient
         || [17, 32, 613].includes(code)
         || [2446079, 1487390, 1487742].includes(subcode));
@@ -173,6 +177,9 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
       }
       return res;
     } catch (e) {
+      // Não faz retry para quota sinalizada por header — devolve imediatamente
+      // ao motor para aplicar cooldown.
+      if (e instanceof MetaQuotaExceeded) throw e;
       lastErr = e;
       const wait = Math.min(8000, 1000 * Math.pow(2, i));
       const reason = (e as Error)?.name === "TimeoutError" ? "timeout Meta API" : "network error";
@@ -181,6 +188,7 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
     }
   }
   if (lastErr) throw lastErr;
+  await paceRequest();
   return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }
 
