@@ -24,6 +24,7 @@ const FETCH_TIMEOUT_MS = 8000;
 const RETRY_ATTEMPTS = 2;
 const JOB_TIMEOUT_MS = 45000;
 const MAX_PAGINATION_PAGES = 30;
+const META_RATE_LIMIT_CODES = new Set([4, 17, 32, 613]);
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -76,8 +77,11 @@ async function fetchWithRetry(url: string, init?: RequestInit, attempts = RETRY_
       const data = await clone.json().catch(() => null);
       const code = data?.error?.code;
       const subcode = data?.error?.error_subcode;
+      // Code #4 is the app-level Marketing API quota. Retrying immediately only
+      // burns more quota and was keeping account sync jobs alive without making
+      // progress. Other transient/rate errors may still recover after a short wait.
       const transient = data?.error?.is_transient
-        || [4, 17, 32, 613].includes(code)
+        || [17, 32, 613].includes(code)
         || [2446079, 1487390, 1487742].includes(subcode);
       if (transient && i < attempts - 1) {
         const wait = Math.min(10000, 2000 * Math.pow(2, i));
