@@ -1160,6 +1160,16 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     if (state.appIndex >= apps.length) {
       state.completedStages = Math.max(state.completedStages, state.totalStages);
       const failedWithoutAccounts = state.syncedCount === 0 && actualErrors.length > 0;
+      // Detecta caso específico: TODOS os erros foram rate-limit da Meta (code 4).
+      // Nesse cenário a falha é 100% do lado do Facebook — não adianta reprocessar
+      // agora; o admin precisa esperar o regain time. Mostra mensagem clara.
+      const onlyQuotaErrors = actualErrors.length > 0
+        && actualErrors.every((er: any) => er?.code === 4 || /usage \d+%/i.test(er?.erro || ""));
+      const maxRegain = actualErrors.reduce(
+        (m: number, er: any) => Math.max(m, extractRegainSeconds({ message: er?.erro || "" } as any)),
+        0,
+      );
+      const waitMin = maxRegain > 0 ? Math.ceil(maxRegain / 60) : Math.ceil((Math.max(...Object.values(state.appCooldownUntil || { x: 0 })) - Date.now()) / 60000);
       await updateJob({
         status: failedWithoutAccounts ? "failed" : "completed",
         finished_at: new Date().toISOString(),
@@ -1167,7 +1177,9 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         progress_total: state.completedStages,
         synced_count: state.syncedCount,
         message: failedWithoutAccounts
-          ? `Falhou: nenhuma conta sincronizada. Último erro: ${(actualErrors.at(-1)?.erro || actualErrors.at(-1)?.fatal || "ver diagnóstico").slice(0, 240)}`
+          ? (onlyQuotaErrors
+              ? `Limite de uso da API do Facebook atingido em todos os apps (100%+ da cota). Aguarde ~${Math.max(1, waitMin)} min e tente novamente — não é falha do sistema, é o Facebook pausando as requisições.`
+              : `Falhou: nenhuma conta sincronizada. Último erro: ${(actualErrors.at(-1)?.erro || actualErrors.at(-1)?.fatal || "ver diagnóstico").slice(0, 240)}`)
           : `Concluído: ${state.syncedCount} contas sincronizadas`,
         errors: [state, ...stageEvents.slice(-MAX_STAGE_EVENTS), ...actualErrors.slice(-40)],
       });
