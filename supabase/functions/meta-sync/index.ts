@@ -1024,13 +1024,16 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
   while (Date.now() < deadline) {
     if (state.appIndex >= apps.length) {
       state.completedStages = Math.max(state.completedStages, state.totalStages);
+      const failedWithoutAccounts = state.syncedCount === 0 && actualErrors.length > 0;
       await updateJob({
-        status: "completed",
+        status: failedWithoutAccounts ? "failed" : "completed",
         finished_at: new Date().toISOString(),
         progress_current: state.completedStages,
         progress_total: state.completedStages,
         synced_count: state.syncedCount,
-        message: `Concluído: ${state.syncedCount} contas sincronizadas`,
+        message: failedWithoutAccounts
+          ? `Falhou: nenhuma conta sincronizada. Último erro: ${(actualErrors.at(-1)?.erro || actualErrors.at(-1)?.fatal || "ver diagnóstico").slice(0, 240)}`
+          : `Concluído: ${state.syncedCount} contas sincronizadas`,
         errors: [state, ...stageEvents.slice(-MAX_STAGE_EVENTS), ...actualErrors.slice(-40)],
       });
       return;
@@ -1114,7 +1117,13 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             savedTotal += await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || bm.meta_bm_id, _source_token: choice.token })));
           }
         } catch (e) {
-          actualErrors.push({ app: currentApp.label, token: choice.label, bm: bm.name || bm.meta_bm_id, edge: "system_users", erro: (e as Error).message });
+          const msg = (e as Error).message;
+          actualErrors.push({ app: currentApp.label, token: choice.label, bm: bm.name || bm.meta_bm_id, edge: "system_users", erro: msg, code: metaErrorCode(e) });
+          if (isMetaRateLimit(e)) {
+            nextChoiceOrApp(state, choices.length);
+            await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
+            continue;
+          }
         }
         state.syncedCount += savedTotal;
         state.completedStages += 1;
@@ -1143,8 +1152,14 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           nextPhase(state);
           await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
         } catch (e) {
-          nextPhase(state);
-          await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "skipped", token: choice.label, detail: (e as Error).message });
+          if (isMetaRateLimit(e)) {
+            actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/me/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
+            nextChoiceOrApp(state, choices.length);
+            await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
+          } else {
+            nextPhase(state);
+            await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "skipped", token: choice.label, detail: (e as Error).message });
+          }
         }
         continue;
       }
@@ -1159,15 +1174,27 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           nextPhase(state);
           await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
         } catch (e) {
-          nextPhase(state);
-          await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "skipped", token: choice.label, detail: (e as Error).message });
+          if (isMetaRateLimit(e)) {
+            actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/{me.id}/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
+            nextChoiceOrApp(state, choices.length);
+            await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
+          } else {
+            nextPhase(state);
+            await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "skipped", token: choice.label, detail: (e as Error).message });
+          }
         }
       }
     } catch (e) {
       const failedPhase = phaseLabel(state.phase);
-      actualErrors.push({ app: currentApp.label, token: choice.label, edge: failedPhase, erro: (e as Error).message });
-      nextPhase(state);
-      await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: (e as Error).message });
+      const msg = (e as Error).message;
+      actualErrors.push({ app: currentApp.label, token: choice.label, edge: failedPhase, erro: msg, code: metaErrorCode(e) });
+      if (isMetaRateLimit(e)) {
+        nextChoiceOrApp(state, choices.length);
+        await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
+      } else {
+        nextPhase(state);
+        await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: msg });
+      }
     }
   }
 
