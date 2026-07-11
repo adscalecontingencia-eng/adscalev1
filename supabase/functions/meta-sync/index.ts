@@ -936,6 +936,21 @@ function nextChoiceOrApp(state: AccountsSyncState, choicesLength: number) {
   }
 }
 
+/** Coloca o app atual em cooldown por N minutos e avança para o próximo,
+ *  evitando esgotar as demais chamadas quando a Meta já sinalizou rate-limit. */
+function cooldownCurrentApp(state: AccountsSyncState, appLabel: string, minutes = 5) {
+  state.appCooldownUntil = state.appCooldownUntil || {};
+  state.appCooldownUntil[appLabel] = Date.now() + minutes * 60_000;
+  state.phase = ACCOUNT_PHASES[0];
+  state.bmIndex = 0;
+  state.edgeIndex = 0;
+  state.choiceIndex = 0;
+  state.systemUsers = undefined;
+  state.systemUsersBmId = undefined;
+  state.systemUserIndex = 0;
+  state.appIndex += 1;
+}
+
 function nextPhase(state: AccountsSyncState) {
   const idx = ACCOUNT_PHASES.indexOf(state.phase);
   state.completedStages += 1;
