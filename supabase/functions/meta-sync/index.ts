@@ -1156,6 +1156,17 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     }
 
     const app = apps[state.appIndex];
+    // Se este app está em cooldown (quota estourada em fatia anterior), pula
+    // sem gastar novas chamadas — o job segue completando os outros apps.
+    const cooldownTs = state.appCooldownUntil?.[app.label] || 0;
+    if (cooldownTs && Date.now() < cooldownTs) {
+      const remainingMin = Math.ceil((cooldownTs - Date.now()) / 60000);
+      await persist({ app: app.label, endpoint: "rate-limit", status: "skipped", detail: `Em cooldown por ${remainingMin} min (quota Meta atingida)` });
+      state.appIndex += 1;
+      state.choiceIndex = 0;
+      state.phase = ACCOUNT_PHASES[0];
+      continue;
+    }
     const choices = tokenChoicesForApp(app);
     if (choices.length === 0) {
       actualErrors.push({ app: app.label, erro: "Sem token configurado" });
