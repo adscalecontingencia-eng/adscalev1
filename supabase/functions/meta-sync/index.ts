@@ -828,7 +828,7 @@ function isMetaPermissionDenied(error: unknown) {
 }
 
 function nextChoiceOrApp(state: AccountsSyncState, choicesLength: number) {
-  state.phase = "me_businesses";
+  state.phase = ACCOUNT_PHASES[0];
   state.bmIndex = 0;
   state.edgeIndex = 0;
   state.choiceIndex += 1;
@@ -847,7 +847,7 @@ function nextPhase(state: AccountsSyncState) {
     state.phase = ACCOUNT_PHASES[idx + 1];
     return;
   }
-  state.phase = "me_businesses";
+  state.phase = ACCOUNT_PHASES[0];
   state.choiceIndex += 1;
 }
 
