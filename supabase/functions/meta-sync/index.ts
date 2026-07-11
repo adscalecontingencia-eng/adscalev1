@@ -42,7 +42,23 @@ async function paceRequest() {
 // próximo do limite. Tratado como rate-limit no motor de sync.
 class MetaQuotaExceeded extends Error {
   code = 4;
-  constructor(msg: string) { super(`Meta API error: {"code":4,"message":"${msg}"}`); this.name = "MetaQuotaExceeded"; }
+  usage: number;
+  regainSeconds: number;
+  constructor(msg: string, usage = 0, regainSeconds = 0) {
+    super(`Meta API error: {"code":4,"message":"${msg}"}`);
+    this.name = "MetaQuotaExceeded";
+    this.usage = usage;
+    this.regainSeconds = regainSeconds;
+  }
+}
+
+/** Extrai segundos de regain de uma mensagem de erro que pode vir da Meta
+ *  ("(regain in 900s)") — usado para dimensionar cooldown por app. */
+function extractRegainSeconds(err: unknown): number {
+  if (err instanceof MetaQuotaExceeded && err.regainSeconds > 0) return err.regainSeconds;
+  const msg = (err as Error)?.message || "";
+  const m = msg.match(/regain in (\d+)s/i);
+  return m ? parseInt(m[1], 10) : 0;
 }
 
 function parseUsageHeader(raw: string | null): number {
@@ -97,7 +113,7 @@ async function honorMetaUsageHeaders(res: Response) {
     parseRegainSeconds(res.headers.get("x-ad-account-usage")),
   );
   if (usage >= 95 || regain > 0) {
-    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`);
+    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`, usage, regain);
   }
   if (usage >= 75) {
     // desacelera exponencialmente ao se aproximar do teto
@@ -938,9 +954,12 @@ function nextChoiceOrApp(state: AccountsSyncState, choicesLength: number) {
 
 /** Coloca o app atual em cooldown por N minutos e avança para o próximo,
  *  evitando esgotar as demais chamadas quando a Meta já sinalizou rate-limit. */
-function cooldownCurrentApp(state: AccountsSyncState, appLabel: string, minutes = 5) {
+function cooldownCurrentApp(state: AccountsSyncState, appLabel: string, seconds?: number) {
   state.appCooldownUntil = state.appCooldownUntil || {};
-  state.appCooldownUntil[appLabel] = Date.now() + minutes * 60_000;
+  // Respeita o `estimated_time_to_regain_access` da Meta quando disponível
+  // (limita entre 60s e 60min para não ficar cooldown eterno nem curto demais).
+  const secs = Math.min(3600, Math.max(60, seconds || 300));
+  state.appCooldownUntil[appLabel] = Date.now() + secs * 1000;
   state.phase = ACCOUNT_PHASES[0];
   state.bmIndex = 0;
   state.edgeIndex = 0;
@@ -1141,6 +1160,16 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     if (state.appIndex >= apps.length) {
       state.completedStages = Math.max(state.completedStages, state.totalStages);
       const failedWithoutAccounts = state.syncedCount === 0 && actualErrors.length > 0;
+      // Detecta caso específico: TODOS os erros foram rate-limit da Meta (code 4).
+      // Nesse cenário a falha é 100% do lado do Facebook — não adianta reprocessar
+      // agora; o admin precisa esperar o regain time. Mostra mensagem clara.
+      const onlyQuotaErrors = actualErrors.length > 0
+        && actualErrors.every((er: any) => er?.code === 4 || /usage \d+%/i.test(er?.erro || ""));
+      const maxRegain = actualErrors.reduce(
+        (m: number, er: any) => Math.max(m, extractRegainSeconds({ message: er?.erro || "" } as any)),
+        0,
+      );
+      const waitMin = maxRegain > 0 ? Math.ceil(maxRegain / 60) : Math.ceil((Math.max(...Object.values(state.appCooldownUntil || { x: 0 })) - Date.now()) / 60000);
       await updateJob({
         status: failedWithoutAccounts ? "failed" : "completed",
         finished_at: new Date().toISOString(),
@@ -1148,7 +1177,9 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         progress_total: state.completedStages,
         synced_count: state.syncedCount,
         message: failedWithoutAccounts
-          ? `Falhou: nenhuma conta sincronizada. Último erro: ${(actualErrors.at(-1)?.erro || actualErrors.at(-1)?.fatal || "ver diagnóstico").slice(0, 240)}`
+          ? (onlyQuotaErrors
+              ? `Limite de uso da API do Facebook atingido em todos os apps (100%+ da cota). Aguarde ~${Math.max(1, waitMin)} min e tente novamente — não é falha do sistema, é o Facebook pausando as requisições.`
+              : `Falhou: nenhuma conta sincronizada. Último erro: ${(actualErrors.at(-1)?.erro || actualErrors.at(-1)?.fatal || "ver diagnóstico").slice(0, 240)}`)
           : `Concluído: ${state.syncedCount} contas sincronizadas`,
         errors: [state, ...stageEvents.slice(-MAX_STAGE_EVENTS), ...actualErrors.slice(-40)],
       });
@@ -1279,7 +1310,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           const msg = (e as Error).message;
           actualErrors.push({ app: currentApp.label, token: choice.label, bm: bm.name || bm.meta_bm_id, edge: "system_users", erro: msg, code: metaErrorCode(e) });
           if (isMetaRateLimit(e)) {
-            cooldownCurrentApp(state, currentApp.label);
+            cooldownCurrentApp(state, currentApp.label, extractRegainSeconds(e));
             await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
             continue;
           }
@@ -1318,7 +1349,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         } catch (e) {
           if (isMetaRateLimit(e)) {
             actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/me/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
-            cooldownCurrentApp(state, currentApp.label);
+            cooldownCurrentApp(state, currentApp.label, extractRegainSeconds(e));
             await persist({ app: currentApp.label, endpoint: "/me/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
           } else {
             nextPhase(state);
@@ -1340,7 +1371,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         } catch (e) {
           if (isMetaRateLimit(e)) {
             actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/{me.id}/assigned_ad_accounts", erro: (e as Error).message, code: metaErrorCode(e) });
-            cooldownCurrentApp(state, currentApp.label);
+            cooldownCurrentApp(state, currentApp.label, extractRegainSeconds(e));
             await persist({ app: currentApp.label, endpoint: "/{me.id}/assigned_ad_accounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
           } else {
             nextPhase(state);
@@ -1353,7 +1384,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       const msg = (e as Error).message;
       actualErrors.push({ app: currentApp.label, token: choice.label, edge: failedPhase, erro: msg, code: metaErrorCode(e) });
       if (isMetaRateLimit(e)) {
-        cooldownCurrentApp(state, currentApp.label);
+        cooldownCurrentApp(state, currentApp.label, extractRegainSeconds(e));
         await persist({ app: currentApp.label, endpoint: failedPhase, status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
       } else {
         nextPhase(state);
