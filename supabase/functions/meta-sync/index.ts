@@ -866,7 +866,7 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     version: 2,
     appIndex: 0,
     choiceIndex: 0,
-    phase: "me_adaccounts",
+    phase: "me_businesses",
     bmIndex: 0,
     edgeIndex: 0,
     syncedCount: 0,
