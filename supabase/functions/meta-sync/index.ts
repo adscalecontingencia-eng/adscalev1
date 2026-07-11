@@ -823,6 +823,8 @@ type AccountsSyncState = {
   systemUsers?: { id: string; name: string; bmId: string; bmName: string }[];
   systemUsersBmId?: string;
   systemUserIndex?: number;
+  /** Timestamp (ms) até quando cada app está em cooldown por rate-limit. */
+  appCooldownUntil?: Record<string, number>;
 };
 
 const RESUMABLE_SLICE_MS = 26000;
