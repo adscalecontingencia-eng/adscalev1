@@ -730,6 +730,9 @@ type AccountsSyncState = {
   completedStages: number;
   totalStages: number;
   loops: number;
+  systemUsers?: { id: string; name: string; bmId: string; bmName: string }[];
+  systemUsersBmId?: string;
+  systemUserIndex?: number;
 };
 
 const RESUMABLE_SLICE_MS = 26000;
@@ -831,6 +834,9 @@ function nextChoiceOrApp(state: AccountsSyncState, choicesLength: number) {
   state.phase = ACCOUNT_PHASES[0];
   state.bmIndex = 0;
   state.edgeIndex = 0;
+  state.systemUsers = undefined;
+  state.systemUsersBmId = undefined;
+  state.systemUserIndex = 0;
   state.choiceIndex += 1;
   if (state.choiceIndex >= choicesLength) {
     state.choiceIndex = 0;
@@ -843,6 +849,9 @@ function nextPhase(state: AccountsSyncState) {
   state.completedStages += 1;
   state.bmIndex = 0;
   state.edgeIndex = 0;
+  state.systemUsers = undefined;
+  state.systemUsersBmId = undefined;
+  state.systemUserIndex = 0;
   if (idx < ACCOUNT_PHASES.length - 1) {
     state.phase = ACCOUNT_PHASES[idx + 1];
     return;
