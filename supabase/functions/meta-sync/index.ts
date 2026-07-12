@@ -1008,6 +1008,12 @@ function cooldownCurrentApp(state: AccountsSyncState, appLabel: string, seconds?
   state.appIndex += 1;
 }
 
+function markAppCooldown(state: AccountsSyncState, appLabel: string, seconds?: number) {
+  state.appCooldownUntil = state.appCooldownUntil || {};
+  const secs = Math.min(3600, Math.max(60, seconds || 300));
+  state.appCooldownUntil[appLabel] = Date.now() + secs * 1000;
+}
+
 function nextPhase(state: AccountsSyncState) {
   const idx = ACCOUNT_PHASES.indexOf(state.phase);
   state.completedStages += 1;
@@ -1183,6 +1189,101 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
   };
 
   await persist();
+
+  while (!state.fastPassDone && Date.now() < deadline) {
+    const fastAppIndex = state.fastAppIndex || 0;
+    if (fastAppIndex >= apps.length) {
+      state.fastPassDone = true;
+      await persist({ app: "Meta", endpoint: "descoberta rápida", status: "done", detail: "Contas diretas verificadas; iniciando varredura estrutural das BMs" });
+      break;
+    }
+
+    const currentApp = apps[fastAppIndex];
+    const cooldownTs = state.appCooldownUntil?.[currentApp.label] || 0;
+    if (cooldownTs && Date.now() < cooldownTs) {
+      const remainingMin = Math.ceil((cooldownTs - Date.now()) / 60000);
+      await persist({ app: currentApp.label, endpoint: "descoberta rápida", status: "skipped", detail: `Em cooldown por ${remainingMin} min (quota Meta atingida)` });
+      state.fastAppIndex = fastAppIndex + 1;
+      state.fastChoiceIndex = 0;
+      state.fastEndpointIndex = 0;
+      continue;
+    }
+
+    const choices = directTokenChoicesForApp(currentApp);
+    if (choices.length === 0) {
+      actualErrors.push({ app: currentApp.label, erro: "Sem token configurado" });
+      state.completedStages += 1;
+      state.fastAppIndex = fastAppIndex + 1;
+      await persist({ app: currentApp.label, endpoint: "tokens", status: "error", detail: "Sem token configurado" });
+      continue;
+    }
+
+    const choiceIndex = state.fastChoiceIndex || 0;
+    const endpointIndex = state.fastEndpointIndex || 0;
+    const choice = choices[choiceIndex] || choices[0];
+    const phase = DIRECT_ACCOUNT_PHASES[endpointIndex] || DIRECT_ACCOUNT_PHASES[0];
+    const endpoint = phaseLabel(phase);
+
+    const advanceFastPass = () => {
+      state.fastEndpointIndex = (state.fastEndpointIndex || 0) + 1;
+      if (state.fastEndpointIndex >= DIRECT_ACCOUNT_PHASES.length) {
+        state.fastEndpointIndex = 0;
+        state.fastChoiceIndex = (state.fastChoiceIndex || 0) + 1;
+        if (state.fastChoiceIndex >= choices.length) {
+          state.fastChoiceIndex = 0;
+          state.fastAppIndex = (state.fastAppIndex || 0) + 1;
+        }
+      }
+    };
+
+    try {
+      await persist({ app: currentApp.label, endpoint, status: "running", token: choice.label, detail: "Descoberta rápida de contas novas" });
+      let items: any[] = [];
+      if (phase === "me_adaccounts") {
+        items = await paginateMeta(`${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+      } else if (phase === "me_assigned") {
+        items = await paginateMeta(`${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+      } else {
+        const me = await metaFetch("/me", choice.token, { fields: "id,name" });
+        items = me?.id
+          ? await paginateMeta(`${META_API}/${me.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`)
+          : [];
+      }
+      const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })));
+      state.syncedCount += saved;
+      state.completedStages += 1;
+      advanceFastPass();
+      await persist({ app: currentApp.label, endpoint, status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (isMetaRateLimit(e)) {
+        actualErrors.push({ app: currentApp.label, token: choice.label, edge: endpoint, erro: msg, code: metaErrorCode(e) });
+        markAppCooldown(state, currentApp.label, extractRegainSeconds(e));
+        state.fastAppIndex = fastAppIndex + 1;
+        state.fastChoiceIndex = 0;
+        state.fastEndpointIndex = 0;
+        await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Limite da API Meta atingido; descoberta rápida pausada." });
+      } else {
+        state.completedStages += 1;
+        advanceFastPass();
+        await persist({ app: currentApp.label, endpoint, status: "skipped", token: choice.label, detail: msg });
+      }
+    }
+  }
+
+  if (!state.fastPassDone) {
+    const fastApp = apps[state.fastAppIndex || 0] || apps[0];
+    const endpoint = phaseLabel(DIRECT_ACCOUNT_PHASES[state.fastEndpointIndex || 0] || "me_adaccounts");
+    await persist({
+      app: fastApp?.label || "Meta",
+      endpoint,
+      status: "running",
+      token: directTokenChoicesForApp(fastApp || apps[0])[state.fastChoiceIndex || 0]?.label,
+      detail: "Continuando descoberta rápida em nova fatia para evitar timeout",
+    });
+    await invokeNextAccountsSlice(jobId, appIds);
+    return;
+  }
 
   const finishCurrentChoiceIfNeeded = (choicesLength: number) => {
     if (state.choiceIndex >= choicesLength) {
