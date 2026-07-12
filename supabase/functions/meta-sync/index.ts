@@ -432,7 +432,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(4, tasks.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(1, tasks.length) }, worker));
   };
 
   const pullSystemUserAssignedAccounts = async (
@@ -461,7 +461,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(3, bms.length) }, bmWorker));
+    await Promise.all(Array.from({ length: Math.min(1, bms.length) }, bmWorker));
 
     const seenSystemUsers = new Set<string>();
     const uniqueSystemUsers = systemUsers.filter((su) => {
@@ -488,7 +488,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(3, uniqueSystemUsers.length) }, suWorker));
+    await Promise.all(Array.from({ length: Math.min(1, uniqueSystemUsers.length) }, suWorker));
   };
 
   for (const choice of choices) {
