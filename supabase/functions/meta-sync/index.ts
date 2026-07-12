@@ -1868,10 +1868,14 @@ Deno.serve(async (req) => {
         .select("id", { head: true, count: "exact" })
         .eq("status", "active")
         .or(`last_synced_at.is.null,last_synced_at.lt.${staleCutoff}`);
-      const skipRefresh = body.skip_refresh === true;
+      // Sync de métricas não deve disparar redescoberta estrutural de contas.
+      // Essa chamada roda com frequência no dashboard; a redescoberta anterior
+      // chamava syncAccountsForApp para todos os apps em paralelo e drenava a
+      // cota da Meta antes mesmo de buscar insights.
+      const skipRefresh = body.refresh_accounts !== true;
       if (!skipRefresh && (staleCount || 0) > 0) {
         try {
-          await Promise.all(apps.map((app) => syncAccountsForApp(supabase, app).catch(() => null)));
+          for (const app of apps) await syncAccountsForApp(supabase, app).catch(() => null);
         } catch { /* discovery best-effort — insights still runs */ }
       }
 
@@ -1953,7 +1957,10 @@ Deno.serve(async (req) => {
           const i = idx++;
           if (i >= list.length) return;
           const acc: any = list[i];
-          const tokens = tokenCandidates(apps, acc.meta_app_id);
+          // Evita testar todos os tokens em todas as contas. Em uso normal a
+          // conta pertence ao app que a descobriu; tokens extras só multiplicam
+          // requisições e aceleram o estouro de quota.
+          const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 1);
           if (tokens.length === 0) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
           let lastError: unknown = null;
           try {
@@ -2012,7 +2019,7 @@ Deno.serve(async (req) => {
           }
         }
       };
-      await Promise.all(Array.from({ length: Math.min(8, list.length) }, worker));
+      await Promise.all(Array.from({ length: Math.min(2, list.length) }, worker));
 
       let totalRows = 0;
       const CHUNK = 500;
