@@ -27,15 +27,20 @@ const MAX_PAGINATION_PAGES = 30;
 const META_RATE_LIMIT_CODES = new Set([4, 17, 32, 613]);
 
 // Pacing global — evita bursts que estouram o quota da Meta.
-// Meta permite ~200 chamadas/hora/usuário no app-level; espaçar chamadas
-// mantém o consumo bem abaixo do limite mesmo com múltiplos apps.
-const MIN_REQUEST_INTERVAL_MS = 350;
+// Importante: precisa ser serializado. A versão anterior tinha corrida quando
+// havia Promise.all/worker e várias chamadas passavam pelo mesmo lastRequestAt,
+// gerando rajadas que consumiam 100% da cota do app em uma única sincronização.
+const MIN_REQUEST_INTERVAL_MS = 1200;
 let lastRequestAt = 0;
+let requestPaceQueue = Promise.resolve();
 async function paceRequest() {
-  const now = Date.now();
-  const wait = lastRequestAt + MIN_REQUEST_INTERVAL_MS - now;
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastRequestAt = Date.now();
+  requestPaceQueue = requestPaceQueue.then(async () => {
+    const now = Date.now();
+    const wait = lastRequestAt + MIN_REQUEST_INTERVAL_MS - now;
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastRequestAt = Date.now();
+  });
+  await requestPaceQueue;
 }
 
 // Erro sintético lançado quando a Meta indica que o app/conta está muito
@@ -112,17 +117,15 @@ async function honorMetaUsageHeaders(res: Response) {
     parseRegainSeconds(res.headers.get("x-business-use-case-usage")),
     parseRegainSeconds(res.headers.get("x-ad-account-usage")),
   );
-  if (usage >= 100 || regain > 0) {
+  if (usage >= 90 || regain > 0) {
     throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`, usage, regain);
   }
-  if (usage >= 90) {
-    await new Promise((r) => setTimeout(r, 10000));
-  } else if (usage >= 75) {
+  if (usage >= 75) {
     // desacelera exponencialmente ao se aproximar do teto
-    const extra = Math.min(5000, Math.round((usage - 70) * 200));
+    const extra = Math.min(15000, Math.round((usage - 70) * 500));
     await new Promise((r) => setTimeout(r, extra));
   } else if (usage >= 50) {
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 1500));
   }
 }
 
@@ -256,6 +259,17 @@ const ACCOUNT_FIELDS = [
   "balance","business_country_code","age","business",
   "agencies{id,name,verification_status}",
 ].join(",");
+
+// Campos mínimos para descoberta rápida/leve. Evita puxar payment/funding,
+// agencies e outros dados pesados quando a meta é apenas detectar contas novas.
+const LIGHT_ACCOUNT_FIELDS = [
+  "id","account_id","name","account_status","currency","amount_spent",
+  "timezone_name","created_time","disable_reason","business",
+].join(",");
+
+const accountFieldsForMode = (mode?: SyncMode) => mode === "deep" ? ACCOUNT_FIELDS : LIGHT_ACCOUNT_FIELDS;
+
+type SyncMode = "light" | "deep";
 
 const maskFunding = (acc: any): string | null => {
   const fsd = acc.funding_source_details;
@@ -418,7 +432,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(4, tasks.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(1, tasks.length) }, worker));
   };
 
   const pullSystemUserAssignedAccounts = async (
@@ -447,7 +461,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(3, bms.length) }, bmWorker));
+    await Promise.all(Array.from({ length: Math.min(1, bms.length) }, bmWorker));
 
     const seenSystemUsers = new Set<string>();
     const uniqueSystemUsers = systemUsers.filter((su) => {
@@ -474,7 +488,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(3, uniqueSystemUsers.length) }, suWorker));
+    await Promise.all(Array.from({ length: Math.min(1, uniqueSystemUsers.length) }, suWorker));
   };
 
   for (const choice of choices) {
@@ -692,6 +706,21 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
   return { app: app.label, bms: bms.length + extraBmIds.size, accounts: accRows.length, erros: errors };
 }
 
+async function syncLightAccountsForApp(supabase: any, app: AppRow) {
+  const choice = directTokenChoicesForApp(app)[0];
+  if (!choice) return { app: app.label, bms: 0, accounts: 0, erros: [{ erro: "Sem token configurado" }] };
+  const items = await paginateMeta(
+    `${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`,
+  );
+  const saved = await saveDiscoveredAccounts(
+    supabase,
+    app,
+    items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })),
+    "light",
+  );
+  return { app: app.label, bms: 0, accounts: saved, erros: [] };
+}
+
 async function syncPagesForApp(supabase: any, app: AppRow) {
   const token = pickToken(app, "sync_pages");
   if (!token) return { app: app.label, erro: "Sem token configurado" };
@@ -829,6 +858,7 @@ async function syncPagesForApp(supabase: any, app: AppRow) {
 type AccountsSyncState = {
   kind: "state";
   version: 2;
+  mode?: SyncMode;
   appIndex: number;
   choiceIndex: number;
   phase: "me_businesses" | "bm_edges" | "bm_system_users" | "me_adaccounts" | "me_assigned" | "me_id_assigned";
@@ -848,11 +878,18 @@ type AccountsSyncState = {
   fastAppIndex?: number;
   fastChoiceIndex?: number;
   fastEndpointIndex?: number;
+  /** Cursores de varredura profunda: só algumas BMs antigas por execução. */
+  deepBmAppIndex?: number;
+  deepBmChoiceIndex?: number;
+  deepBmIndex?: number;
+  deepBmEdgeIndex?: number;
+  lightBmScanned?: number;
 };
 
-const RESUMABLE_SLICE_MS = 26000;
+const RESUMABLE_SLICE_MS = 18000;
 const MAX_STAGE_EVENTS = 140;
 const BM_ACCOUNT_EDGES = ["owned_ad_accounts", "client_ad_accounts"];
+const LIGHT_BM_SCAN_LIMIT_PER_JOB = 3;
 // A descoberta rápida de /me/adaccounts e /me/assigned_ad_accounts roda antes
 // da varredura pesada. Depois daqui ficam só etapas caras/estruturais.
 const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
@@ -860,11 +897,15 @@ const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
   "bm_edges",
   "bm_system_users",
 ];
-const DIRECT_ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
+const DIRECT_ACCOUNT_PHASES_LIGHT: AccountsSyncState["phase"][] = [
+  "me_adaccounts",
+];
+const DIRECT_ACCOUNT_PHASES_DEEP: AccountsSyncState["phase"][] = [
   "me_adaccounts",
   "me_assigned",
   "me_id_assigned",
 ];
+const directAccountPhasesForMode = (mode?: SyncMode) => mode === "deep" ? DIRECT_ACCOUNT_PHASES_DEEP : DIRECT_ACCOUNT_PHASES_LIGHT;
 
 function directTokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
   const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
@@ -887,13 +928,13 @@ function directTokenChoicesForApp(app: AppRow): { token: string; label: string }
 
 function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
   const baseStages = apps.reduce((sum, app) => {
-    const heavyStages = Math.max(1, tokenChoicesForApp(app).length) * ACCOUNT_PHASES.length;
-    const fastStages = Math.max(1, directTokenChoicesForApp(app).length) * 3;
-    return sum + heavyStages + fastStages;
+    const fastStages = Math.max(1, directTokenChoicesForApp(app).length) * DIRECT_ACCOUNT_PHASES_LIGHT.length;
+    return sum + fastStages;
   }, 0);
   return {
     kind: "state",
     version: 2,
+    mode: "light",
     appIndex: 0,
     choiceIndex: 0,
     phase: "me_businesses",
@@ -907,6 +948,10 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     fastAppIndex: 0,
     fastChoiceIndex: 0,
     fastEndpointIndex: 0,
+    deepBmAppIndex: 0,
+    deepBmChoiceIndex: 0,
+    deepBmIndex: 0,
+    deepBmEdgeIndex: 0,
   };
 }
 
@@ -1080,7 +1125,7 @@ function normalizeAccountRows(app: AppRow, accounts: any[], bmIdMap: Map<string,
     });
 }
 
-async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[]) {
+async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[], mode: SyncMode = "deep") {
   if (!accounts.length) return 0;
   const ownAppId = app.id.startsWith("00000000") ? null : app.id;
   const metaBmIds = new Set<string>();
@@ -1116,8 +1161,29 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
   const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b]));
   const bmStatusMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.verification_status || null]));
   const rows = normalizeAccountRows(app, accounts, bmIdMap, bmStatusMap);
-  for (let i = 0; i < rows.length; i += 200) {
-    const { error } = await supabase.from("meta_ad_accounts").upsert(rows.slice(i, i + 200), { onConflict: "meta_account_id" });
+  const upsertRows = mode === "light"
+    ? rows.map((row: any) => ({
+        meta_account_id: row.meta_account_id,
+        bm_id: row.bm_id,
+        meta_app_id: row.meta_app_id,
+        name: row.name,
+        account_status: row.account_status,
+        status: row.status,
+        currency: row.currency,
+        amount_spent: row.amount_spent,
+        timezone_name: row.timezone_name,
+        account_created_time: row.account_created_time,
+        disable_reason: row.disable_reason,
+        disable_reason_label: row.disable_reason_label,
+        owner_business_name: row.owner_business_name,
+        owner_business_id: row.owner_business_id,
+        score: row.score,
+        score_label: row.score_label,
+        last_synced_at: row.last_synced_at,
+      }))
+    : rows;
+  for (let i = 0; i < upsertRows.length; i += 200) {
+    const { error } = await supabase.from("meta_ad_accounts").upsert(upsertRows.slice(i, i + 200), { onConflict: "meta_account_id" });
     if (error) throw error;
   }
   return rows.length;
@@ -1165,7 +1231,7 @@ async function invokeNextAccountsSlice(jobId: string, appIds?: string[]) {
   if (response) await response.text().catch(() => null);
 }
 
-async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?: string[]) {
+async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?: string[], mode?: SyncMode) {
   const updateJob = async (patch: Record<string, any>) => {
     await supabase.from("meta_sync_jobs").update(patch).eq("id", jobId);
   };
@@ -1185,6 +1251,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
   }
 
   const { state, stageEvents, actualErrors } = splitJobErrors(job.errors || [], apps);
+  if (mode && state.loops === 0) state.mode = mode;
   state.loops += 1;
   const deadline = Date.now() + RESUMABLE_SLICE_MS;
 
@@ -1226,7 +1293,9 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       continue;
     }
 
-    const choices = directTokenChoicesForApp(currentApp);
+    const choices = (state.mode || "light") === "deep"
+      ? directTokenChoicesForApp(currentApp)
+      : directTokenChoicesForApp(currentApp).slice(0, 1);
     if (choices.length === 0) {
       actualErrors.push({ app: currentApp.label, erro: "Sem token configurado" });
       state.completedStages += 1;
@@ -1238,12 +1307,13 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     const choiceIndex = state.fastChoiceIndex || 0;
     const endpointIndex = state.fastEndpointIndex || 0;
     const choice = choices[choiceIndex] || choices[0];
-    const phase = DIRECT_ACCOUNT_PHASES[endpointIndex] || DIRECT_ACCOUNT_PHASES[0];
+    const directPhases = directAccountPhasesForMode(state.mode);
+    const phase = directPhases[endpointIndex] || directPhases[0];
     const endpoint = phaseLabel(phase);
 
     const advanceFastPass = () => {
       state.fastEndpointIndex = (state.fastEndpointIndex || 0) + 1;
-      if (state.fastEndpointIndex >= DIRECT_ACCOUNT_PHASES.length) {
+      if (state.fastEndpointIndex >= directPhases.length) {
         state.fastEndpointIndex = 0;
         state.fastChoiceIndex = (state.fastChoiceIndex || 0) + 1;
         if (state.fastChoiceIndex >= choices.length) {
@@ -1257,16 +1327,16 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       await persist({ app: currentApp.label, endpoint, status: "running", token: choice.label, detail: "Descoberta rápida de contas novas" });
       let items: any[] = [];
       if (phase === "me_adaccounts") {
-        items = await paginateMeta(`${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+        items = await paginateMeta(`${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`);
       } else if (phase === "me_assigned") {
-        items = await paginateMeta(`${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+        items = await paginateMeta(`${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`);
       } else {
         const me = await metaFetch("/me", choice.token, { fields: "id,name" });
         items = me?.id
-          ? await paginateMeta(`${META_API}/${me.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`)
+          ? await paginateMeta(`${META_API}/${me.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`)
           : [];
       }
-      const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })));
+      const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })), "light");
       state.syncedCount += saved;
       state.completedStages += 1;
       advanceFastPass();
@@ -1290,7 +1360,8 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
 
   if (!state.fastPassDone) {
     const fastApp = apps[state.fastAppIndex || 0] || apps[0];
-    const endpoint = phaseLabel(DIRECT_ACCOUNT_PHASES[state.fastEndpointIndex || 0] || "me_adaccounts");
+    const directPhases = directAccountPhasesForMode(state.mode);
+    const endpoint = phaseLabel(directPhases[state.fastEndpointIndex || 0] || "me_adaccounts");
     await persist({
       app: fastApp?.label || "Meta",
       endpoint,
@@ -1299,6 +1370,24 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       detail: "Continuando descoberta rápida em nova fatia para evitar timeout",
     });
     await invokeNextAccountsSlice(jobId, appIds);
+    return;
+  }
+
+  // Modo padrão: para aqui. A descoberta rápida já identifica contas novas
+  // (caso BKP 2: /me/adaccounts) com poucas chamadas. A varredura estrutural
+  // completa de BMs/system users é cara e deve ser acionada só em modo deep,
+  // evitando consumir 100% da API em uma sincronização comum.
+  if ((state.mode || "light") !== "deep") {
+    state.completedStages = Math.max(state.completedStages, state.totalStages);
+    await updateJob({
+      status: "completed",
+      finished_at: new Date().toISOString(),
+      progress_current: state.completedStages,
+      progress_total: state.completedStages,
+      synced_count: state.syncedCount,
+      message: `Concluído: ${state.syncedCount} contas verificadas com sincronização leve`,
+      errors: [state, ...stageEvents.slice(-MAX_STAGE_EVENTS), ...actualErrors.slice(-40)],
+    });
     return;
   }
 
@@ -1399,7 +1488,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         const bm = bms[state.bmIndex];
         const edge = BM_ACCOUNT_EDGES[state.edgeIndex] || BM_ACCOUNT_EDGES[0];
         await persist({ app: currentApp.label, endpoint: `${edge}`, status: "running", token: choice.label, detail: bm.name || bm.meta_bm_id });
-        const items = await paginateMeta(`${META_API}/${bm.meta_bm_id}/${edge}?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+        const items = await paginateMeta(`${META_API}/${bm.meta_bm_id}/${edge}?access_token=${encodeURIComponent(choice.token)}&fields=${accountFieldsForMode(state.mode)}&limit=${state.mode === "deep" ? 200 : 100}`);
         const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: bm.meta_bm_id, _source_token: choice.token })));
         state.syncedCount += saved;
         state.completedStages += 1;
@@ -1426,7 +1515,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         let savedTotal = 0;
         try {
           if (state.systemUsersBmId !== bm.meta_bm_id) {
-            const users = await paginateMeta(`${META_API}/${bm.meta_bm_id}/system_users?access_token=${encodeURIComponent(choice.token)}&fields=id,name,role&limit=200`);
+            const users = await paginateMeta(`${META_API}/${bm.meta_bm_id}/system_users?access_token=${encodeURIComponent(choice.token)}&fields=id,name,role&limit=100`);
             state.systemUsers = (users || [])
               .filter((su: any) => !!su?.id)
               .map((su: any) => ({ id: su.id, name: su.name || su.id, bmId: bm.meta_bm_id, bmName: bm.name || bm.meta_bm_id }));
@@ -1452,7 +1541,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             await persist({ app: currentApp.label, endpoint: "/system_users/assigned_ad_accounts", status: "done", token: choice.label, detail: `${bm.name || bm.meta_bm_id}: ${savedTotal} conta(s)`, found: savedTotal });
             continue;
           }
-          const items = await paginateMeta(`${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+          const items = await paginateMeta(`${META_API}/${su.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${accountFieldsForMode(state.mode)}&limit=${state.mode === "deep" ? 200 : 100}`);
           savedTotal += await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || bm.meta_bm_id, _source_token: choice.token })));
           state.systemUserIndex = (state.systemUserIndex || 0) + 1;
           if (state.systemUserIndex >= (state.systemUsers?.length || 0)) {
@@ -1471,6 +1560,14 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             continue;
           }
           if (isMetaPermissionDenied(e)) {
+            state.completedStages += 1;
+            state.bmIndex += 1;
+            state.systemUsers = undefined;
+            state.systemUsersBmId = undefined;
+            state.systemUserIndex = 0;
+          } else {
+            // Timeout/erro transitório em system_users não pode deixar o job
+            // preso na mesma BM por várias fatias (foi o travamento em 5%).
             state.completedStages += 1;
             state.bmIndex += 1;
             state.systemUsers = undefined;
@@ -1718,6 +1815,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
     const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
+    const syncMode: SyncMode = body.mode === "deep" ? "deep" : "light";
 
     // ===== Background job =====
     if (action === "start_sync_accounts") {
@@ -1739,7 +1837,7 @@ Deno.serve(async (req) => {
         .single();
       if (jobErr) throw jobErr;
       // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, job.id, appIds));
+      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, job.id, appIds, syncMode));
       return json({ sucesso: true, job_id: job.id });
     }
 
@@ -1747,7 +1845,7 @@ Deno.serve(async (req) => {
       const jobId = body.job_id;
       if (!jobId) return json({ erro: "job_id obrigatório" }, 400);
       // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, jobId, appIds));
+      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, jobId, appIds, syncMode));
       return json({ sucesso: true, job_id: jobId });
     }
 
@@ -1756,13 +1854,16 @@ Deno.serve(async (req) => {
       const apps = await loadActiveApps(supabase, appIds);
       if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
 
-      const results = await Promise.all(apps.map(async (app) => {
+      const results: any[] = [];
+      for (const app of apps) {
         try {
-          return await syncAccountsForApp(supabase, app);
+          results.push(syncMode === "deep"
+            ? await syncAccountsForApp(supabase, app)
+            : await syncLightAccountsForApp(supabase, app));
         } catch (e) {
-          return { app: app.label, erro: (e as Error).message };
+          results.push({ app: app.label, erro: (e as Error).message });
         }
-      }));
+      }
 
       const totalBms = results.reduce((s, r: any) => s + (r.bms || 0), 0);
       const totalAccounts = results.reduce((s, r: any) => s + (r.accounts || 0), 0);
@@ -1816,10 +1917,14 @@ Deno.serve(async (req) => {
         .select("id", { head: true, count: "exact" })
         .eq("status", "active")
         .or(`last_synced_at.is.null,last_synced_at.lt.${staleCutoff}`);
-      const skipRefresh = body.skip_refresh === true;
+      // Sync de métricas não deve disparar redescoberta estrutural de contas.
+      // Essa chamada roda com frequência no dashboard; a redescoberta anterior
+      // chamava syncAccountsForApp para todos os apps em paralelo e drenava a
+      // cota da Meta antes mesmo de buscar insights.
+      const skipRefresh = body.refresh_accounts !== true;
       if (!skipRefresh && (staleCount || 0) > 0) {
         try {
-          await Promise.all(apps.map((app) => syncAccountsForApp(supabase, app).catch(() => null)));
+          for (const app of apps) await syncAccountsForApp(supabase, app).catch(() => null);
         } catch { /* discovery best-effort — insights still runs */ }
       }
 
@@ -1901,7 +2006,10 @@ Deno.serve(async (req) => {
           const i = idx++;
           if (i >= list.length) return;
           const acc: any = list[i];
-          const tokens = tokenCandidates(apps, acc.meta_app_id);
+          // Evita testar todos os tokens em todas as contas. Em uso normal a
+          // conta pertence ao app que a descobriu; tokens extras só multiplicam
+          // requisições e aceleram o estouro de quota.
+          const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 1);
           if (tokens.length === 0) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
           let lastError: unknown = null;
           try {
@@ -1960,7 +2068,7 @@ Deno.serve(async (req) => {
           }
         }
       };
-      await Promise.all(Array.from({ length: Math.min(8, list.length) }, worker));
+      await Promise.all(Array.from({ length: Math.min(2, list.length) }, worker));
 
       let totalRows = 0;
       const CHUNK = 500;
