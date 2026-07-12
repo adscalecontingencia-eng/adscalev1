@@ -882,11 +882,15 @@ const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
   "bm_edges",
   "bm_system_users",
 ];
-const DIRECT_ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
+const DIRECT_ACCOUNT_PHASES_LIGHT: AccountsSyncState["phase"][] = [
+  "me_adaccounts",
+];
+const DIRECT_ACCOUNT_PHASES_DEEP: AccountsSyncState["phase"][] = [
   "me_adaccounts",
   "me_assigned",
   "me_id_assigned",
 ];
+const directAccountPhasesForMode = (mode?: SyncMode) => mode === "deep" ? DIRECT_ACCOUNT_PHASES_DEEP : DIRECT_ACCOUNT_PHASES_LIGHT;
 
 function directTokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
   const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
@@ -909,7 +913,7 @@ function directTokenChoicesForApp(app: AppRow): { token: string; label: string }
 
 function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
   const baseStages = apps.reduce((sum, app) => {
-    const fastStages = Math.max(1, directTokenChoicesForApp(app).length) * 3;
+    const fastStages = Math.max(1, directTokenChoicesForApp(app).length) * DIRECT_ACCOUNT_PHASES_LIGHT.length;
     return sum + fastStages;
   }, 0);
   return {
