@@ -1854,13 +1854,16 @@ Deno.serve(async (req) => {
       const apps = await loadActiveApps(supabase, appIds);
       if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
 
-      const results = await Promise.all(apps.map(async (app) => {
+      const results: any[] = [];
+      for (const app of apps) {
         try {
-          return await syncAccountsForApp(supabase, app);
+          results.push(syncMode === "deep"
+            ? await syncAccountsForApp(supabase, app)
+            : await syncLightAccountsForApp(supabase, app));
         } catch (e) {
-          return { app: app.label, erro: (e as Error).message };
+          results.push({ app: app.label, erro: (e as Error).message });
         }
-      }));
+      }
 
       const totalBms = results.reduce((s, r: any) => s + (r.bms || 0), 0);
       const totalAccounts = results.reduce((s, r: any) => s + (r.accounts || 0), 0);
