@@ -1126,11 +1126,29 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
 
 async function activeBmsForApp(supabase: any, app: AppRow) {
   const ownAppId = app.id.startsWith("00000000") ? null : app.id;
-  let q = supabase.from("meta_business_managers").select("id, meta_bm_id, name, verification_status").order("name");
+  let q = supabase
+    .from("meta_business_managers")
+    .select("id, meta_bm_id, name, verification_status, last_synced_at")
+    .order("last_synced_at", { ascending: true, nullsFirst: true })
+    .order("name");
   q = ownAppId ? q.eq("meta_app_id", ownAppId) : q;
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
+}
+
+async function markBmAccountsScanned(supabase: any, bmDbId: string) {
+  const { count } = await supabase
+    .from("meta_ad_accounts")
+    .select("id", { head: true, count: "exact" })
+    .eq("bm_id", bmDbId);
+  await supabase
+    .from("meta_business_managers")
+    .update({
+      last_synced_at: new Date().toISOString(),
+      account_count: count ?? 0,
+    })
+    .eq("id", bmDbId);
 }
 
 async function invokeNextAccountsSlice(jobId: string, appIds?: string[]) {
