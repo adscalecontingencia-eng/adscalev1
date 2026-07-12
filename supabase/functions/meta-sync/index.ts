@@ -1290,12 +1290,13 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     const choiceIndex = state.fastChoiceIndex || 0;
     const endpointIndex = state.fastEndpointIndex || 0;
     const choice = choices[choiceIndex] || choices[0];
-    const phase = DIRECT_ACCOUNT_PHASES[endpointIndex] || DIRECT_ACCOUNT_PHASES[0];
+    const directPhases = directAccountPhasesForMode(state.mode);
+    const phase = directPhases[endpointIndex] || directPhases[0];
     const endpoint = phaseLabel(phase);
 
     const advanceFastPass = () => {
       state.fastEndpointIndex = (state.fastEndpointIndex || 0) + 1;
-      if (state.fastEndpointIndex >= DIRECT_ACCOUNT_PHASES.length) {
+      if (state.fastEndpointIndex >= directPhases.length) {
         state.fastEndpointIndex = 0;
         state.fastChoiceIndex = (state.fastChoiceIndex || 0) + 1;
         if (state.fastChoiceIndex >= choices.length) {
@@ -1342,7 +1343,8 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
 
   if (!state.fastPassDone) {
     const fastApp = apps[state.fastAppIndex || 0] || apps[0];
-    const endpoint = phaseLabel(DIRECT_ACCOUNT_PHASES[state.fastEndpointIndex || 0] || "me_adaccounts");
+    const directPhases = directAccountPhasesForMode(state.mode);
+    const endpoint = phaseLabel(directPhases[state.fastEndpointIndex || 0] || "me_adaccounts");
     await persist({
       app: fastApp?.label || "Meta",
       endpoint,
