@@ -1792,6 +1792,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
     const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
+    const syncMode: SyncMode = body.mode === "deep" ? "deep" : "light";
 
     // ===== Background job =====
     if (action === "start_sync_accounts") {
@@ -1813,7 +1814,7 @@ Deno.serve(async (req) => {
         .single();
       if (jobErr) throw jobErr;
       // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, job.id, appIds));
+      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, job.id, appIds, syncMode));
       return json({ sucesso: true, job_id: job.id });
     }
 
@@ -1821,7 +1822,7 @@ Deno.serve(async (req) => {
       const jobId = body.job_id;
       if (!jobId) return json({ erro: "job_id obrigatório" }, 400);
       // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, jobId, appIds));
+      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, jobId, appIds, syncMode));
       return json({ sucesso: true, job_id: jobId });
     }
 
