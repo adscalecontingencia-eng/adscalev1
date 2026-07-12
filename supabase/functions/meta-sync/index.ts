@@ -845,6 +845,9 @@ type AccountsSyncState = {
   appCooldownUntil?: Record<string, number>;
   /** Passo leve executado no início para contas novas aparecerem antes da varredura pesada de BMs. */
   fastPassDone?: boolean;
+  fastAppIndex?: number;
+  fastChoiceIndex?: number;
+  fastEndpointIndex?: number;
 };
 
 const RESUMABLE_SLICE_MS = 26000;
@@ -856,6 +859,11 @@ const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
   "me_businesses",
   "bm_edges",
   "bm_system_users",
+];
+const DIRECT_ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
+  "me_adaccounts",
+  "me_assigned",
+  "me_id_assigned",
 ];
 
 function directTokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
@@ -896,6 +904,9 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     totalStages: Math.max(baseStages, 1),
     loops: 0,
     fastPassDone: false,
+    fastAppIndex: 0,
+    fastChoiceIndex: 0,
+    fastEndpointIndex: 0,
   };
 }
 
