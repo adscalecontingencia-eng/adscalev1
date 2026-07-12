@@ -1313,7 +1313,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           ? await paginateMeta(`${META_API}/${me.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`)
           : [];
       }
-      const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })));
+      const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })), "light");
       state.syncedCount += saved;
       state.completedStages += 1;
       advanceFastPass();
