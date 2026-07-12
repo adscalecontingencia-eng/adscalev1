@@ -571,7 +571,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
   await reportStage("Salvar BMs", "done", undefined, `${bms.length} BM(s) salvas`, bms.length);
 
   const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
-  const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+  const bmIdMap = new Map<string, string>((bmsDb || []).map((b: any) => [String(b.meta_bm_id), String(b.id)]));
 
   // Auto-upsert any BM referenced by direct account edges that we didn't get
   // from /me/businesses — otherwise bmIdMap lookup fails and bm_id ends up null.
