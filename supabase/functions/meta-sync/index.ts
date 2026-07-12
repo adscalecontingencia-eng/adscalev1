@@ -1099,7 +1099,6 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
       name: bmNames.get(bid) || bid,
       status: "active",
       meta_app_id: ownAppId,
-      last_synced_at: new Date().toISOString(),
     }));
     const { error } = await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
     if (error) throw error;
