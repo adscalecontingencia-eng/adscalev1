@@ -1278,7 +1278,9 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       continue;
     }
 
-    const choices = directTokenChoicesForApp(currentApp);
+    const choices = (state.mode || "light") === "deep"
+      ? directTokenChoicesForApp(currentApp)
+      : directTokenChoicesForApp(currentApp).slice(0, 1);
     if (choices.length === 0) {
       actualErrors.push({ app: currentApp.label, erro: "Sem token configurado" });
       state.completedStages += 1;
