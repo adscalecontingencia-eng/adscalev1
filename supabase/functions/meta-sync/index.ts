@@ -706,6 +706,21 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
   return { app: app.label, bms: bms.length + extraBmIds.size, accounts: accRows.length, erros: errors };
 }
 
+async function syncLightAccountsForApp(supabase: any, app: AppRow) {
+  const choice = directTokenChoicesForApp(app)[0];
+  if (!choice) return { app: app.label, bms: 0, accounts: 0, erros: [{ erro: "Sem token configurado" }] };
+  const items = await paginateMeta(
+    `${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`,
+  );
+  const saved = await saveDiscoveredAccounts(
+    supabase,
+    app,
+    items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })),
+    "light",
+  );
+  return { app: app.label, bms: 0, accounts: saved, erros: [] };
+}
+
 async function syncPagesForApp(supabase: any, app: AppRow) {
   const token = pickToken(app, "sync_pages");
   if (!token) return { app: app.label, erro: "Sem token configurado" };
