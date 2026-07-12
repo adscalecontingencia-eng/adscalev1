@@ -1106,7 +1106,7 @@ function normalizeAccountRows(app: AppRow, accounts: any[], bmIdMap: Map<string,
     });
 }
 
-async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[]) {
+async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[], mode: SyncMode = "deep") {
   if (!accounts.length) return 0;
   const ownAppId = app.id.startsWith("00000000") ? null : app.id;
   const metaBmIds = new Set<string>();
@@ -1142,8 +1142,29 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
   const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b]));
   const bmStatusMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.verification_status || null]));
   const rows = normalizeAccountRows(app, accounts, bmIdMap, bmStatusMap);
-  for (let i = 0; i < rows.length; i += 200) {
-    const { error } = await supabase.from("meta_ad_accounts").upsert(rows.slice(i, i + 200), { onConflict: "meta_account_id" });
+  const upsertRows = mode === "light"
+    ? rows.map((row: any) => ({
+        meta_account_id: row.meta_account_id,
+        bm_id: row.bm_id,
+        meta_app_id: row.meta_app_id,
+        name: row.name,
+        account_status: row.account_status,
+        status: row.status,
+        currency: row.currency,
+        amount_spent: row.amount_spent,
+        timezone_name: row.timezone_name,
+        account_created_time: row.account_created_time,
+        disable_reason: row.disable_reason,
+        disable_reason_label: row.disable_reason_label,
+        owner_business_name: row.owner_business_name,
+        owner_business_id: row.owner_business_id,
+        score: row.score,
+        score_label: row.score_label,
+        last_synced_at: row.last_synced_at,
+      }))
+    : rows;
+  for (let i = 0; i < upsertRows.length; i += 200) {
+    const { error } = await supabase.from("meta_ad_accounts").upsert(upsertRows.slice(i, i + 200), { onConflict: "meta_account_id" });
     if (error) throw error;
   }
   return rows.length;
