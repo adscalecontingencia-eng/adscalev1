@@ -112,10 +112,12 @@ async function honorMetaUsageHeaders(res: Response) {
     parseRegainSeconds(res.headers.get("x-business-use-case-usage")),
     parseRegainSeconds(res.headers.get("x-ad-account-usage")),
   );
-  if (usage >= 95 || regain > 0) {
+  if (usage >= 100 || regain > 0) {
     throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`, usage, regain);
   }
-  if (usage >= 75) {
+  if (usage >= 90) {
+    await new Promise((r) => setTimeout(r, 10000));
+  } else if (usage >= 75) {
     // desacelera exponencialmente ao se aproximar do teto
     const extra = Math.min(5000, Math.round((usage - 70) * 200));
     await new Promise((r) => setTimeout(r, extra));
@@ -569,7 +571,7 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
   await reportStage("Salvar BMs", "done", undefined, `${bms.length} BM(s) salvas`, bms.length);
 
   const { data: bmsDb } = await supabase.from("meta_business_managers").select("id, meta_bm_id");
-  const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+  const bmIdMap = new Map<string, string>((bmsDb || []).map((b: any) => [String(b.meta_bm_id), String(b.id)]));
 
   // Auto-upsert any BM referenced by direct account edges that we didn't get
   // from /me/businesses — otherwise bmIdMap lookup fails and bm_id ends up null.
@@ -745,7 +747,7 @@ async function syncPagesForApp(supabase: any, app: AppRow) {
   const { data: bmsDb } = await supabase
     .from("meta_business_managers")
     .select("id, meta_bm_id");
-  const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+  const bmIdMap = new Map<string, string>((bmsDb || []).map((b: any) => [String(b.meta_bm_id), String(b.id)]));
 
   const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
   for (const bm of profileBms) {
@@ -841,26 +843,54 @@ type AccountsSyncState = {
   systemUserIndex?: number;
   /** Timestamp (ms) até quando cada app está em cooldown por rate-limit. */
   appCooldownUntil?: Record<string, number>;
+  /** Passo leve executado no início para contas novas aparecerem antes da varredura pesada de BMs. */
+  fastPassDone?: boolean;
+  fastAppIndex?: number;
+  fastChoiceIndex?: number;
+  fastEndpointIndex?: number;
 };
 
 const RESUMABLE_SLICE_MS = 26000;
 const MAX_STAGE_EVENTS = 140;
 const BM_ACCOUNT_EDGES = ["owned_ad_accounts", "client_ad_accounts"];
-// Ordem otimizada para detectar RAPIDAMENTE contas novas atribuídas em BMs:
-// 1) descobre BMs, 2) varre owned/client ad accounts de cada BM (onde contas
-// novas aparecem primeiro), 3) system users, e por último os endpoints /me/*
-// que raramente trazem novidades para tokens de System User.
+// A descoberta rápida de /me/adaccounts e /me/assigned_ad_accounts roda antes
+// da varredura pesada. Depois daqui ficam só etapas caras/estruturais.
 const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
   "me_businesses",
   "bm_edges",
   "bm_system_users",
+];
+const DIRECT_ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
   "me_adaccounts",
   "me_assigned",
   "me_id_assigned",
 ];
 
+function directTokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
+  const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
+  const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
+  const seen = new Set<string>();
+  const out: { token: string; label: string }[] = [];
+  // Para contas adicionadas no perfil, o token de usuário costuma enxergar a
+  // novidade primeiro. System User continua como fallback sem duplicar token.
+  for (const item of [
+    { token: usr, label: "Usuário" },
+    { token: sys, label: "System User" },
+  ]) {
+    if (item.token && !seen.has(item.token)) {
+      seen.add(item.token);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
 function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
-  const baseStages = apps.reduce((sum, app) => sum + Math.max(1, tokenChoicesForApp(app).length) * 6, 0);
+  const baseStages = apps.reduce((sum, app) => {
+    const heavyStages = Math.max(1, tokenChoicesForApp(app).length) * ACCOUNT_PHASES.length;
+    const fastStages = Math.max(1, directTokenChoicesForApp(app).length) * 3;
+    return sum + heavyStages + fastStages;
+  }, 0);
   return {
     kind: "state",
     version: 2,
@@ -873,6 +903,10 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     completedStages: 0,
     totalStages: Math.max(baseStages, 1),
     loops: 0,
+    fastPassDone: false,
+    fastAppIndex: 0,
+    fastChoiceIndex: 0,
+    fastEndpointIndex: 0,
   };
 }
 
@@ -974,6 +1008,12 @@ function cooldownCurrentApp(state: AccountsSyncState, appLabel: string, seconds?
   state.appIndex += 1;
 }
 
+function markAppCooldown(state: AccountsSyncState, appLabel: string, seconds?: number) {
+  state.appCooldownUntil = state.appCooldownUntil || {};
+  const secs = Math.min(3600, Math.max(60, seconds || 300));
+  state.appCooldownUntil[appLabel] = Date.now() + secs * 1000;
+}
+
 function nextPhase(state: AccountsSyncState) {
   const idx = ACCOUNT_PHASES.indexOf(state.phase);
   state.completedStages += 1;
@@ -1059,7 +1099,6 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
       name: bmNames.get(bid) || bid,
       status: "active",
       meta_app_id: ownAppId,
-      last_synced_at: new Date().toISOString(),
     }));
     const { error } = await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
     if (error) throw error;
@@ -1086,11 +1125,29 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
 
 async function activeBmsForApp(supabase: any, app: AppRow) {
   const ownAppId = app.id.startsWith("00000000") ? null : app.id;
-  let q = supabase.from("meta_business_managers").select("id, meta_bm_id, name, verification_status").order("name");
+  let q = supabase
+    .from("meta_business_managers")
+    .select("id, meta_bm_id, name, verification_status, last_synced_at")
+    .order("last_synced_at", { ascending: true, nullsFirst: true })
+    .order("name");
   q = ownAppId ? q.eq("meta_app_id", ownAppId) : q;
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
+}
+
+async function markBmAccountsScanned(supabase: any, bmDbId: string) {
+  const { count } = await supabase
+    .from("meta_ad_accounts")
+    .select("id", { head: true, count: "exact" })
+    .eq("bm_id", bmDbId);
+  await supabase
+    .from("meta_business_managers")
+    .update({
+      last_synced_at: new Date().toISOString(),
+      account_count: count ?? 0,
+    })
+    .eq("id", bmDbId);
 }
 
 async function invokeNextAccountsSlice(jobId: string, appIds?: string[]) {
@@ -1149,6 +1206,101 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
   };
 
   await persist();
+
+  while (!state.fastPassDone && Date.now() < deadline) {
+    const fastAppIndex = state.fastAppIndex || 0;
+    if (fastAppIndex >= apps.length) {
+      state.fastPassDone = true;
+      await persist({ app: "Meta", endpoint: "descoberta rápida", status: "done", detail: "Contas diretas verificadas; iniciando varredura estrutural das BMs" });
+      break;
+    }
+
+    const currentApp = apps[fastAppIndex];
+    const cooldownTs = state.appCooldownUntil?.[currentApp.label] || 0;
+    if (cooldownTs && Date.now() < cooldownTs) {
+      const remainingMin = Math.ceil((cooldownTs - Date.now()) / 60000);
+      await persist({ app: currentApp.label, endpoint: "descoberta rápida", status: "skipped", detail: `Em cooldown por ${remainingMin} min (quota Meta atingida)` });
+      state.fastAppIndex = fastAppIndex + 1;
+      state.fastChoiceIndex = 0;
+      state.fastEndpointIndex = 0;
+      continue;
+    }
+
+    const choices = directTokenChoicesForApp(currentApp);
+    if (choices.length === 0) {
+      actualErrors.push({ app: currentApp.label, erro: "Sem token configurado" });
+      state.completedStages += 1;
+      state.fastAppIndex = fastAppIndex + 1;
+      await persist({ app: currentApp.label, endpoint: "tokens", status: "error", detail: "Sem token configurado" });
+      continue;
+    }
+
+    const choiceIndex = state.fastChoiceIndex || 0;
+    const endpointIndex = state.fastEndpointIndex || 0;
+    const choice = choices[choiceIndex] || choices[0];
+    const phase = DIRECT_ACCOUNT_PHASES[endpointIndex] || DIRECT_ACCOUNT_PHASES[0];
+    const endpoint = phaseLabel(phase);
+
+    const advanceFastPass = () => {
+      state.fastEndpointIndex = (state.fastEndpointIndex || 0) + 1;
+      if (state.fastEndpointIndex >= DIRECT_ACCOUNT_PHASES.length) {
+        state.fastEndpointIndex = 0;
+        state.fastChoiceIndex = (state.fastChoiceIndex || 0) + 1;
+        if (state.fastChoiceIndex >= choices.length) {
+          state.fastChoiceIndex = 0;
+          state.fastAppIndex = (state.fastAppIndex || 0) + 1;
+        }
+      }
+    };
+
+    try {
+      await persist({ app: currentApp.label, endpoint, status: "running", token: choice.label, detail: "Descoberta rápida de contas novas" });
+      let items: any[] = [];
+      if (phase === "me_adaccounts") {
+        items = await paginateMeta(`${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+      } else if (phase === "me_assigned") {
+        items = await paginateMeta(`${META_API}/me/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
+      } else {
+        const me = await metaFetch("/me", choice.token, { fields: "id,name" });
+        items = me?.id
+          ? await paginateMeta(`${META_API}/${me.id}/assigned_ad_accounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`)
+          : [];
+      }
+      const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })));
+      state.syncedCount += saved;
+      state.completedStages += 1;
+      advanceFastPass();
+      await persist({ app: currentApp.label, endpoint, status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (isMetaRateLimit(e)) {
+        actualErrors.push({ app: currentApp.label, token: choice.label, edge: endpoint, erro: msg, code: metaErrorCode(e) });
+        markAppCooldown(state, currentApp.label, extractRegainSeconds(e));
+        state.fastAppIndex = fastAppIndex + 1;
+        state.fastChoiceIndex = 0;
+        state.fastEndpointIndex = 0;
+        await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Limite da API Meta atingido; descoberta rápida pausada." });
+      } else {
+        state.completedStages += 1;
+        advanceFastPass();
+        await persist({ app: currentApp.label, endpoint, status: "skipped", token: choice.label, detail: msg });
+      }
+    }
+  }
+
+  if (!state.fastPassDone) {
+    const fastApp = apps[state.fastAppIndex || 0] || apps[0];
+    const endpoint = phaseLabel(DIRECT_ACCOUNT_PHASES[state.fastEndpointIndex || 0] || "me_adaccounts");
+    await persist({
+      app: fastApp?.label || "Meta",
+      endpoint,
+      status: "running",
+      token: directTokenChoicesForApp(fastApp || apps[0])[state.fastChoiceIndex || 0]?.label,
+      detail: "Continuando descoberta rápida em nova fatia para evitar timeout",
+    });
+    await invokeNextAccountsSlice(jobId, appIds);
+    return;
+  }
 
   const finishCurrentChoiceIfNeeded = (choicesLength: number) => {
     if (state.choiceIndex >= choicesLength) {
@@ -1229,7 +1381,6 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             status: bm.verification_status || "active",
             verification_status: bm.verification_status || null,
             meta_app_id: ownAppId,
-            last_synced_at: new Date().toISOString(),
           })), { onConflict: "meta_bm_id" });
           if (error) throw error;
         }
@@ -1256,6 +1407,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         if (state.edgeIndex >= BM_ACCOUNT_EDGES.length) {
           state.edgeIndex = 0;
           state.bmIndex += 1;
+          await markBmAccountsScanned(supabase, bm.id);
         }
         state.totalStages = Math.max(state.totalStages, state.completedStages + ((bms.length - state.bmIndex) * BM_ACCOUNT_EDGES.length));
         await persist({ app: currentApp.label, endpoint: `${edge}`, status: "done", token: choice.label, detail: `${bm.name || bm.meta_bm_id}: ${saved} conta(s) salvas`, found: saved });
