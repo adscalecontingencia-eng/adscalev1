@@ -112,10 +112,12 @@ async function honorMetaUsageHeaders(res: Response) {
     parseRegainSeconds(res.headers.get("x-business-use-case-usage")),
     parseRegainSeconds(res.headers.get("x-ad-account-usage")),
   );
-  if (usage >= 95 || regain > 0) {
+  if (usage >= 100 || regain > 0) {
     throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`, usage, regain);
   }
-  if (usage >= 75) {
+  if (usage >= 90) {
+    await new Promise((r) => setTimeout(r, 10000));
+  } else if (usage >= 75) {
     // desacelera exponencialmente ao se aproximar do teto
     const extra = Math.min(5000, Math.round((usage - 70) * 200));
     await new Promise((r) => setTimeout(r, extra));
