@@ -747,7 +747,7 @@ async function syncPagesForApp(supabase: any, app: AppRow) {
   const { data: bmsDb } = await supabase
     .from("meta_business_managers")
     .select("id, meta_bm_id");
-  const bmIdMap = new Map((bmsDb || []).map((b: any) => [b.meta_bm_id, b.id]));
+  const bmIdMap = new Map<string, string>((bmsDb || []).map((b: any) => [String(b.meta_bm_id), String(b.id)]));
 
   const tasks: { bmDbId: string | null; ownerId: string; edge: string; label: string }[] = [];
   for (const bm of profileBms) {
