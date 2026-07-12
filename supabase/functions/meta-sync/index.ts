@@ -841,26 +841,46 @@ type AccountsSyncState = {
   systemUserIndex?: number;
   /** Timestamp (ms) até quando cada app está em cooldown por rate-limit. */
   appCooldownUntil?: Record<string, number>;
+  /** Passo leve executado no início para contas novas aparecerem antes da varredura pesada de BMs. */
+  fastPassDone?: boolean;
 };
 
 const RESUMABLE_SLICE_MS = 26000;
 const MAX_STAGE_EVENTS = 140;
 const BM_ACCOUNT_EDGES = ["owned_ad_accounts", "client_ad_accounts"];
-// Ordem otimizada para detectar RAPIDAMENTE contas novas atribuídas em BMs:
-// 1) descobre BMs, 2) varre owned/client ad accounts de cada BM (onde contas
-// novas aparecem primeiro), 3) system users, e por último os endpoints /me/*
-// que raramente trazem novidades para tokens de System User.
+// A descoberta rápida de /me/adaccounts e /me/assigned_ad_accounts roda antes
+// da varredura pesada. Depois daqui ficam só etapas caras/estruturais.
 const ACCOUNT_PHASES: AccountsSyncState["phase"][] = [
   "me_businesses",
   "bm_edges",
   "bm_system_users",
-  "me_adaccounts",
-  "me_assigned",
-  "me_id_assigned",
 ];
 
+function directTokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
+  const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
+  const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
+  const seen = new Set<string>();
+  const out: { token: string; label: string }[] = [];
+  // Para contas adicionadas no perfil, o token de usuário costuma enxergar a
+  // novidade primeiro. System User continua como fallback sem duplicar token.
+  for (const item of [
+    { token: usr, label: "Usuário" },
+    { token: sys, label: "System User" },
+  ]) {
+    if (item.token && !seen.has(item.token)) {
+      seen.add(item.token);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
 function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
-  const baseStages = apps.reduce((sum, app) => sum + Math.max(1, tokenChoicesForApp(app).length) * 6, 0);
+  const baseStages = apps.reduce((sum, app) => {
+    const heavyStages = Math.max(1, tokenChoicesForApp(app).length) * ACCOUNT_PHASES.length;
+    const fastStages = Math.max(1, directTokenChoicesForApp(app).length) * 3;
+    return sum + heavyStages + fastStages;
+  }, 0);
   return {
     kind: "state",
     version: 2,
@@ -873,6 +893,7 @@ function initialAccountsSyncState(apps: AppRow[]): AccountsSyncState {
     completedStages: 0,
     totalStages: Math.max(baseStages, 1),
     loops: 0,
+    fastPassDone: false,
   };
 }
 
