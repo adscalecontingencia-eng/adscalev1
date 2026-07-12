@@ -1212,7 +1212,7 @@ async function invokeNextAccountsSlice(jobId: string, appIds?: string[]) {
   if (response) await response.text().catch(() => null);
 }
 
-async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?: string[]) {
+async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?: string[], mode?: SyncMode) {
   const updateJob = async (patch: Record<string, any>) => {
     await supabase.from("meta_sync_jobs").update(patch).eq("id", jobId);
   };
@@ -1232,6 +1232,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
   }
 
   const { state, stageEvents, actualErrors } = splitJobErrors(job.errors || [], apps);
+  if (mode && state.loops === 0) state.mode = mode;
   state.loops += 1;
   const deadline = Date.now() + RESUMABLE_SLICE_MS;
 
