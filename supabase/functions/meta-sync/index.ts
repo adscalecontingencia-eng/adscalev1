@@ -1382,7 +1382,6 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             status: bm.verification_status || "active",
             verification_status: bm.verification_status || null,
             meta_app_id: ownAppId,
-            last_synced_at: new Date().toISOString(),
           })), { onConflict: "meta_bm_id" });
           if (error) throw error;
         }
@@ -1409,6 +1408,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         if (state.edgeIndex >= BM_ACCOUNT_EDGES.length) {
           state.edgeIndex = 0;
           state.bmIndex += 1;
+          await markBmAccountsScanned(supabase, bm.id);
         }
         state.totalStages = Math.max(state.totalStages, state.completedStages + ((bms.length - state.bmIndex) * BM_ACCOUNT_EDGES.length));
         await persist({ app: currentApp.label, endpoint: `${edge}`, status: "done", token: choice.label, detail: `${bm.name || bm.meta_bm_id}: ${saved} conta(s) salvas`, found: saved });
