@@ -15,7 +15,7 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { syncAutoCommissions } from '@/lib/auto-commissions';
 import { toast } from 'sonner';
-import AdsPermissionErrorsPanel from '@/components/ads/AdsPermissionErrorsPanel';
+
 
 type DateFilter = 'today' | '7days' | 'month' | 'custom' | 'range';
 type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
