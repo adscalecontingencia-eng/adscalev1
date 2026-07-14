@@ -2006,10 +2006,10 @@ Deno.serve(async (req) => {
           const i = idx++;
           if (i >= list.length) return;
           const acc: any = list[i];
-          // Evita testar todos os tokens em todas as contas. Em uso normal a
-          // conta pertence ao app que a descobriu; tokens extras só multiplicam
-          // requisições e aceleram o estouro de quota.
-          const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 1);
+          // Tenta system-user token primeiro; se falhar por permissão (#200),
+          // tenta o user access token do mesmo app. Só a partir do 3º candidato
+          // (tokens de outros apps) é que evitamos, para não estourar a cota.
+          const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 2);
           if (tokens.length === 0) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
           let lastError: unknown = null;
           try {
@@ -2030,8 +2030,9 @@ Deno.serve(async (req) => {
               }
             }
             if (!data) throw lastError || new Error("Nenhum token conseguiu ler insights");
+            const perAccount: any[] = [];
             for (const row of data.data || []) {
-              allRows.push({
+              const rowObj = {
                 ad_account_id: acc.id,
                 date: row.date_start,
                 spend: Number(row.spend || 0),
@@ -2044,7 +2045,19 @@ Deno.serve(async (req) => {
                 actions: row.actions || null,
                 purchases: pickByPriority(row.actions),
                 revenue: pickByPriority(row.action_values),
-              });
+              };
+              allRows.push(rowObj);
+              perAccount.push(rowObj);
+            }
+            // Flush incremental: se o edge function estourar timeout no meio
+            // do sync, pelo menos as contas já processadas ficam persistidas
+            // no banco e aparecem no "Saldo Acumulado" do cliente.
+            if (perAccount.length > 0) {
+              try {
+                await supabase
+                  .from("meta_ad_insights")
+                  .upsert(perAccount, { onConflict: "ad_account_id,date" });
+              } catch (_) { /* upsert final abaixo cobre o retry */ }
             }
             // sucesso: limpa último erro de sync e marca sincronizada
             await supabase.from("meta_ad_accounts").update({
