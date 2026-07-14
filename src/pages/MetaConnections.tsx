@@ -250,10 +250,13 @@ export default function MetaConnections() {
   }), [accounts, assignments]);
 
   const lastSyncAt = useMemo(() => {
-    const dates = bms.map((b) => b.last_synced_at).filter(Boolean) as string[];
+    const dates = [
+      ...bms.map((b) => b.last_synced_at),
+      ...accounts.map((a: any) => a.last_synced_at),
+    ].filter(Boolean) as string[];
     if (!dates.length) return null;
     return new Date(Math.max(...dates.map((d) => new Date(d).getTime())));
-  }, [bms]);
+  }, [bms, accounts]);
 
   const hasFilters = filterStatus !== "all" || filterClient !== "all" || filterScore !== "all" || !!search || !!filterOwnerBmId.trim();
   const clearFilters = () => { setFilterStatus("all"); setFilterClient("all"); setFilterScore("all"); setSearch(""); setFilterOwnerBmId(""); };
