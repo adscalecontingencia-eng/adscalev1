@@ -48,11 +48,12 @@ Deno.serve(async (req) => {
     // Buscar cliente por nome parcial
     const { data: clients, error: searchError } = await supabaseAdmin
       .from("clients")
-      .select("*")
+      .select("id, name, email, ad_accounts, used_accounts, blocked_accounts, percentage_value, fixed_value")
       .ilike("name", `%${nome}%`);
 
     if (searchError) {
-      return new Response(JSON.stringify({ erro: searchError.message }), {
+      console.error("[atualizar-cliente] search error:", searchError.message);
+      return new Response(JSON.stringify({ erro: "Falha ao buscar cliente" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -95,7 +96,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (updateError) {
-      return new Response(JSON.stringify({ erro: updateError.message }), {
+      console.error("[atualizar-cliente] update error:", updateError.message);
+      return new Response(JSON.stringify({ erro: "Falha ao atualizar cliente" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -104,7 +106,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ erro: err.message }), {
+    console.error("[atualizar-cliente] handler error:", (err as Error).message);
+    return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

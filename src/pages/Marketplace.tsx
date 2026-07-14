@@ -172,7 +172,7 @@ const Marketplace: React.FC = () => {
       setLoading(true);
       const { data: prods } = await supabase
         .from("products")
-        .select("*")
+        .select("id,name,slug,category,subcategory,country,description,warranty_terms,tags,sale_price,discount_price,is_featured,is_new,active,image_url,sort_order,created_at,updated_at")
         .eq("active", true)
         .order("is_featured", { ascending: false })
         .order("sort_order", { ascending: true })

@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       });
 
       if (createError) {
-        return new Response(JSON.stringify({ error: createError.message }), {
+        return new Response(JSON.stringify({ error: "Falha ao criar usuário" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -87,7 +87,6 @@ Deno.serve(async (req) => {
           auth_user_id: userId,
           name,
           email,
-          password: "managed-by-auth",
           permissions: permissions || ["support"],
         });
       } else if (role === "client") {
@@ -98,7 +97,6 @@ Deno.serve(async (req) => {
           auth_user_id: userId,
           name,
           email,
-          password: "managed-by-auth",
           number: cd.number || "",
           company_name: cd.companyName || "",
           observations: cd.observations || "",
@@ -150,7 +148,7 @@ Deno.serve(async (req) => {
         password: new_password,
       });
       if (updErr) {
-        return new Response(JSON.stringify({ error: updErr.message }), {
+        return new Response(JSON.stringify({ error: "Falha ao atualizar usuário" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -216,7 +214,7 @@ Deno.serve(async (req) => {
 
       const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, updates as any);
       if (updErr) {
-        return new Response(JSON.stringify({ error: updErr.message }), {
+        return new Response(JSON.stringify({ error: "Falha ao atualizar usuário" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -254,7 +252,7 @@ Deno.serve(async (req) => {
       }
       const { error } = await supabaseAdmin.from("support_users").update(upd).eq("id", support_user_id);
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({ error: "Falha na operação" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -275,7 +273,7 @@ Deno.serve(async (req) => {
       // Delete from auth (cascades to user_roles)
       const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
       if (delError) {
-        return new Response(JSON.stringify({ error: delError.message }), {
+        return new Response(JSON.stringify({ error: "Falha ao remover usuário" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -323,7 +321,7 @@ Deno.serve(async (req) => {
       // Delete client row
       const { error: clientDelErr } = await supabaseAdmin.from("clients").delete().eq("id", client_id);
       if (clientDelErr) {
-        return new Response(JSON.stringify({ error: clientDelErr.message }), {
+        return new Response(JSON.stringify({ error: "Falha ao remover cliente" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -344,7 +342,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: "Erro interno. Tente novamente." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

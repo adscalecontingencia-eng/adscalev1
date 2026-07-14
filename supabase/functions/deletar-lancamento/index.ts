@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
     if (deletar_tudo === true) {
       const { data: allRecords, error: fetchErr } = await supabaseAdmin.from(tipo_tabela).select("id");
       if (fetchErr) {
-        return new Response(JSON.stringify({ erro: fetchErr.message }), {
+        console.error("[deletar-lancamento] fetch error:", fetchErr.message);
+        return new Response(JSON.stringify({ erro: "Falha ao buscar registros" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -56,7 +57,8 @@ Deno.serve(async (req) => {
       const ids = allRecords.map((r: any) => r.id);
       const { error: delErr } = await supabaseAdmin.from(tipo_tabela).delete().in("id", ids);
       if (delErr) {
-        return new Response(JSON.stringify({ erro: delErr.message }), {
+        console.error("[deletar-lancamento] delete-all error:", delErr.message);
+        return new Response(JSON.stringify({ erro: "Falha ao apagar registros" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -108,7 +110,8 @@ Deno.serve(async (req) => {
     const { data: records, error: searchError } = await query;
 
     if (searchError) {
-      return new Response(JSON.stringify({ erro: searchError.message }), {
+      console.error("[deletar-lancamento] search error:", searchError.message);
+      return new Response(JSON.stringify({ erro: "Falha ao buscar lançamentos" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -138,7 +141,8 @@ Deno.serve(async (req) => {
       .eq("id", record.id);
 
     if (deleteError) {
-      return new Response(JSON.stringify({ erro: deleteError.message }), {
+      console.error("[deletar-lancamento] delete error:", deleteError.message);
+      return new Response(JSON.stringify({ erro: "Falha ao apagar lançamento" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -147,7 +151,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ erro: err.message }), {
+    console.error("[deletar-lancamento] handler error:", (err as Error).message);
+    return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

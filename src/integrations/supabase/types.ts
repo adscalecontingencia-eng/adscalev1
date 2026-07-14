@@ -449,7 +449,6 @@ export type Database = {
           number: string | null
           observations: string | null
           partner_id: string | null
-          password: string
           payment_type: string
           percentage_value: number | null
           phone: string | null
@@ -477,7 +476,6 @@ export type Database = {
           number?: string | null
           observations?: string | null
           partner_id?: string | null
-          password: string
           payment_type?: string
           percentage_value?: number | null
           phone?: string | null
@@ -505,7 +503,6 @@ export type Database = {
           number?: string | null
           observations?: string | null
           partner_id?: string | null
-          password?: string
           payment_type?: string
           percentage_value?: number | null
           phone?: string | null
@@ -2667,7 +2664,6 @@ export type Database = {
           email: string
           id: string
           name: string
-          password: string
           permissions: string[] | null
           updated_at: string
         }
@@ -2677,7 +2673,6 @@ export type Database = {
           email: string
           id?: string
           name: string
-          password: string
           permissions?: string[] | null
           updated_at?: string
         }
@@ -2687,7 +2682,6 @@ export type Database = {
           email?: string
           id?: string
           name?: string
-          password?: string
           permissions?: string[] | null
           updated_at?: string
         }
@@ -3068,6 +3062,13 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_product_costs: {
+        Args: never
+        Returns: {
+          cost_price: number
+          id: string
+        }[]
       }
       has_role: {
         Args: {

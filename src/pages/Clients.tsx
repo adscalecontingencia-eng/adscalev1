@@ -162,7 +162,7 @@ const Clients: React.FC = () => {
     if (error) { toast.error('Erro ao carregar clientes'); return; }
     setClients((data || []).map(c => ({
       id: c.id, number: c.number || '', name: c.name, companyName: c.company_name || '',
-      email: c.email, password: c.password, observations: c.observations || '',
+      email: c.email, password: '', observations: c.observations || '',
       clientType: ((c as any).client_type as 'aluguel' | 'venda') || 'aluguel',
       paymentType: (c.payment_type as 'fixed' | 'percentage' | 'both') || 'fixed',
       fixedValue: Number(c.fixed_value) || 0, percentageValue: Number(c.percentage_value) || 0,
@@ -453,7 +453,7 @@ const Clients: React.FC = () => {
       const { error } = await supabase.from('clients').insert({
         number: form.number || '', name: form.name || '',
         company_name: form.companyName || '',
-        email: effectiveEmail, password: '',
+        email: effectiveEmail,
         observations: form.observations || '',
         client_type: 'venda',
         payment_type: 'fixed', fixed_value: fixedValue, percentage_value: 0,
