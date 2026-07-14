@@ -99,6 +99,6 @@
     "minimatch": "^9.0.5",
     "brace-expansion": "^2.0.2",
     "uuid": "^11.0.3",
-    "lodash": "^4.17.21"
+    "lodash": "4.17.21"
   }
 }
