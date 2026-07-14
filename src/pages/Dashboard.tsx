@@ -371,7 +371,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <AdsPermissionErrorsPanel />
+      
       {/* HERO */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
