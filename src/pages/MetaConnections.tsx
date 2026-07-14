@@ -308,6 +308,8 @@ export default function MetaConnections() {
       </div>
 
       <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
+      <AdsPermissionErrorsPanel refreshKey={bms.length} />
+
 
       {/* Sync job progress */}
       {job && (
