@@ -21,6 +21,7 @@ import AccountCard, { type AccountCardData } from "@/components/meta/AccountCard
 import AccountDetailSheet from "@/components/meta/AccountDetailSheet";
 import SystemUserHelp from "@/components/meta/SystemUserHelp";
 import AreaResponsibles from "@/components/support/AreaResponsibles";
+import AdsPermissionErrorsPanel from "@/components/ads/AdsPermissionErrorsPanel";
 
 type BM = {
   id: string; meta_bm_id: string; name: string; status: string | null;
@@ -307,6 +308,8 @@ export default function MetaConnections() {
       </div>
 
       <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
+      <AdsPermissionErrorsPanel refreshKey={bms.length} />
+
 
       {/* Sync job progress */}
       {job && (

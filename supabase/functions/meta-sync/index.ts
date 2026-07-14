@@ -293,14 +293,15 @@ type AppRow = {
   user_access_token: string | null;
 };
 
-// Picks the best token for a given action. System User must win for account
-// discovery/insights because ad accounts are granted to the connected profile's
-// System User; falling back to the personal user token was keeping Quantum
-// accounts on Meta error #200 even after the SU permissions were fixed.
-function pickToken(app: AppRow, action: string): string {
+// Policy: use the personal profile User Token as the primary token for BM +
+// account discovery/insights. The System User token is only tried as a fallback
+// when the user token is missing/empty — user tokens reflect the exact set of
+// ad accounts assigned to the connected profile and avoid System User role
+// gaps in BMs that don't own the account.
+function pickToken(app: AppRow, _action: string): string {
   const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
   const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
-  return sys || usr;
+  return usr || sys;
 }
 
 function tokenCandidates(apps: AppRow[], preferredAppId?: string | null): string[] {
@@ -312,7 +313,7 @@ function tokenCandidates(apps: AppRow[], preferredAppId?: string | null): string
   for (const app of ordered) {
     const sys = (app.system_user_token || "").replace(/\s+/g, "").trim();
     const usr = (app.user_access_token || "").replace(/\s+/g, "").trim();
-    for (const tok of [sys, usr]) {
+    for (const tok of [usr, sys]) {
       if (tok && !seen.has(tok)) {
         seen.add(tok);
         out.push(tok);
@@ -328,8 +329,8 @@ function tokenChoicesForApp(app: AppRow): { token: string; label: string }[] {
   const seen = new Set<string>();
   const out: { token: string; label: string }[] = [];
   for (const item of [
-    { token: sys, label: "System User" },
     { token: usr, label: "Usuário" },
+    { token: sys, label: "System User" },
   ]) {
     if (item.token && !seen.has(item.token)) {
       seen.add(item.token);

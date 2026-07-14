@@ -15,7 +15,7 @@ import AdScaleLogo from '@/components/AdScaleLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { syncAutoCommissions } from '@/lib/auto-commissions';
 import { toast } from 'sonner';
-import AdsPermissionErrorsPanel from '@/components/ads/AdsPermissionErrorsPanel';
+
 
 type DateFilter = 'today' | '7days' | 'month' | 'custom' | 'range';
 type ClientTypeFilter = 'geral' | 'aluguel' | 'venda';
@@ -371,7 +371,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <AdsPermissionErrorsPanel />
+      
       {/* HERO */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
