@@ -2006,10 +2006,10 @@ Deno.serve(async (req) => {
           const i = idx++;
           if (i >= list.length) return;
           const acc: any = list[i];
-          // Evita testar todos os tokens em todas as contas. Em uso normal a
-          // conta pertence ao app que a descobriu; tokens extras só multiplicam
-          // requisições e aceleram o estouro de quota.
-          const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 1);
+          // Tenta system-user token primeiro; se falhar por permissão (#200),
+          // tenta o user access token do mesmo app. Só a partir do 3º candidato
+          // (tokens de outros apps) é que evitamos, para não estourar a cota.
+          const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 2);
           if (tokens.length === 0) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
           let lastError: unknown = null;
           try {
