@@ -1816,7 +1816,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
     const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
-    const syncMode: SyncMode = body.mode === "deep" ? "deep" : "light";
+    // Padrão agora é "deep": além de descobrir contas novas, revarre BMs e
+    // atualiza gasto, status (ativa/banida) e score de cada conta. O modo "light"
+    // continua disponível via body.mode === "light" para atalhos rápidos.
+    const syncMode: SyncMode = body.mode === "light" ? "light" : "deep";
 
     // ===== Background job =====
     if (action === "start_sync_accounts") {
