@@ -48,7 +48,11 @@ const MyOrders: React.FC = () => {
       setCreating(true);
       const { data: client } = await supabase.from("clients").select("id").eq("auth_user_id", user.id).maybeSingle();
       if (!client) { setCreating(false); return; }
-      const { data: prod } = await supabase.from("products").select("*").eq("id", requestId).maybeSingle();
+      const { data: prod } = await supabase
+        .from("products")
+        .select("id,name,sale_price,discount_price")
+        .eq("id", requestId)
+        .maybeSingle();
       if (!prod) { toast.error("Produto não encontrado"); setCreating(false); return; }
 
       const unit = (prod as any).discount_price ?? (prod as any).sale_price;
@@ -66,12 +70,13 @@ const MyOrders: React.FC = () => {
         .single();
       if (error || !order) { toast.error(error?.message || "Erro ao criar pedido"); setCreating(false); return; }
 
+      // cost_snapshot is intentionally omitted client-side (internal margin data);
+      // admins can backfill from products.cost_price via secure helpers.
       await supabase.from("order_items").insert({
         order_id: order.id,
         product_id: prod.id,
         quantity: qty,
         unit_price: unit,
-        cost_snapshot: (prod as any).cost_price,
         product_name_snapshot: (prod as any).name,
       });
 

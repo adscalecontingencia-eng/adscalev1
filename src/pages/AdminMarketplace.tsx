@@ -84,8 +84,18 @@ const AdminMarketplace: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const refreshProducts = async () => {
-    const { data } = await supabase.from("products").select("*").order("sort_order").order("created_at", { ascending: false });
-    setProducts((data as Product[]) || []);
+    const { data } = await supabase
+      .from("products")
+      .select("id,name,slug,category,subcategory,country,description,warranty_terms,tags,sale_price,discount_price,is_featured,is_new,active,image_url,sort_order,created_at,updated_at")
+      .order("sort_order").order("created_at", { ascending: false });
+    const base = ((data as any[]) || []).map((p) => ({ ...p, cost_price: 0 })) as Product[];
+
+    // Admin/support-only helper returns cost_price separately
+    const { data: costs } = await supabase.rpc("get_product_costs");
+    const costMap = new Map<string, number>();
+    ((costs as any[]) || []).forEach((c) => costMap.set(c.id, Number(c.cost_price) || 0));
+    base.forEach((p) => { p.cost_price = costMap.get(p.id) ?? 0; });
+    setProducts(base);
 
     const { data: stocks } = await supabase.from("product_stock").select("product_id, status");
     const m: Record<string, { disp: number; res: number; ent: number }> = {};
