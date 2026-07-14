@@ -2010,11 +2010,25 @@ Deno.serve(async (req) => {
           // tenta o user access token do mesmo app. Só a partir do 3º candidato
           // (tokens de outros apps) é que evitamos, para não estourar a cota.
           const tokens = tokenCandidates(apps, acc.meta_app_id).slice(0, 2);
-          if (tokens.length === 0) { errors.push({ account: acc.name, erro: "Sem token disponível" }); continue; }
-          let lastError: unknown = null;
+          if (tokens.length === 0) {
+            errors.push({ account: acc.name, erro: "Sem token disponível" });
+            await supabase.from("meta_ad_accounts").update({
+              last_sync_error_code: null,
+              last_sync_error_message: "Nenhum token (system/user) disponível para este app",
+              last_sync_error_source: "no_token",
+              last_sync_error_attempts: [],
+              last_sync_error_at: new Date().toISOString(),
+            }).eq("id", acc.id);
+            continue;
+          }
+          const attempts: Array<{ source: string; code: number | null; message: string }> = [];
           try {
             let data: any = null;
-            for (const tok of tokens) {
+            let lastError: unknown = null;
+            for (let ti = 0; ti < tokens.length; ti++) {
+              const tok = tokens[ti];
+              // 0 = system-user token, 1 = user access token (fallback)
+              const source = ti === 0 ? "system" : "user";
               try {
                 data = await metaFetch(`/${acc.meta_account_id}/insights`, tok, {
                   fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
@@ -2027,6 +2041,13 @@ Deno.serve(async (req) => {
                 break;
               } catch (e) {
                 lastError = e;
+                const em = (e as Error).message || "";
+                const mm = em.match(/"code"\s*:\s*(\d+)/);
+                attempts.push({
+                  source,
+                  code: mm ? Number(mm[1]) : null,
+                  message: em.slice(0, 300),
+                });
               }
             }
             if (!data) throw lastError || new Error("Nenhum token conseguiu ler insights");
@@ -2049,9 +2070,6 @@ Deno.serve(async (req) => {
               allRows.push(rowObj);
               perAccount.push(rowObj);
             }
-            // Flush incremental: se o edge function estourar timeout no meio
-            // do sync, pelo menos as contas já processadas ficam persistidas
-            // no banco e aparecem no "Saldo Acumulado" do cliente.
             if (perAccount.length > 0) {
               try {
                 await supabase
@@ -2059,28 +2077,36 @@ Deno.serve(async (req) => {
                   .upsert(perAccount, { onConflict: "ad_account_id,date" });
               } catch (_) { /* upsert final abaixo cobre o retry */ }
             }
-            // sucesso: limpa último erro de sync e marca sincronizada
             await supabase.from("meta_ad_accounts").update({
               last_sync_error_code: null,
               last_sync_error_message: null,
+              last_sync_error_source: null,
+              last_sync_error_attempts: null,
               last_sync_error_at: null,
               last_synced_at: new Date().toISOString(),
             }).eq("id", acc.id);
           } catch (e) {
             const msg = (e as Error).message || "";
             errors.push({ account: acc.name, erro: msg });
-            // extrai o code do payload da Meta (ex: {"code":200,...})
             let code: number | null = null;
             const m = msg.match(/"code"\s*:\s*(\d+)/);
             if (m) code = Number(m[1]);
+            // Determina qual token(s) falhou. Se tentou 2, ambos falharam.
+            const triedSources = attempts.map(a => a.source);
+            let source: string = triedSources[0] || "system";
+            if (triedSources.includes("system") && triedSources.includes("user")) source = "both";
+            else if (triedSources.length === 1) source = triedSources[0];
             await supabase.from("meta_ad_accounts").update({
               last_sync_error_code: code,
               last_sync_error_message: msg.slice(0, 500),
+              last_sync_error_source: source,
+              last_sync_error_attempts: attempts,
               last_sync_error_at: new Date().toISOString(),
             }).eq("id", acc.id);
           }
         }
       };
+
       await Promise.all(Array.from({ length: Math.min(2, list.length) }, worker));
 
       let totalRows = 0;
