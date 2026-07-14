@@ -87,7 +87,6 @@ Deno.serve(async (req) => {
           auth_user_id: userId,
           name,
           email,
-          password: "managed-by-auth",
           permissions: permissions || ["support"],
         });
       } else if (role === "client") {
@@ -98,7 +97,6 @@ Deno.serve(async (req) => {
           auth_user_id: userId,
           name,
           email,
-          password: "managed-by-auth",
           number: cd.number || "",
           company_name: cd.companyName || "",
           observations: cd.observations || "",
