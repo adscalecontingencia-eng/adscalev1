@@ -55,7 +55,6 @@ Deno.serve(async (req) => {
         .insert({
           name: defaultName,
           email: normEmail,
-          password: "",
           payment_type: "fixed",
           fixed_value: 0,
           percentage_value: 0,
