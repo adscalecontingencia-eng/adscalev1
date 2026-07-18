@@ -2169,7 +2169,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_pages | sync_insights | start_sync_accounts" }, 400);
+    return json({ erro: "action inválida. Use: sync_bms | sync_accounts | sync_pages | sync_insights | start_sync_accounts | retry_failed_accounts" }, 400);
   } catch (err) {
     return json({ erro: (err as Error).message }, 500);
   }
