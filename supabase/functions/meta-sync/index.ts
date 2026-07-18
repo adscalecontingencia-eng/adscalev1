@@ -1795,26 +1795,59 @@ Deno.serve(async (req) => {
     const sharedSecret = Deno.env.get("N8N_SECRET_KEY") || "";
     const providedSecret = req.headers.get("x-internal-secret") || "";
     let authorized = false;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
     if (sharedSecret && providedSecret && providedSecret === sharedSecret) {
       authorized = true;
     } else if (authHeader.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) {
-        const { data: roleRow } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .in("role", ["admin", "support"])
-          .maybeSingle();
-        if (roleRow) authorized = true;
+      if (serviceKey && token === serviceKey) {
+        authorized = true;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) {
+          const { data: roleRow } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .in("role", ["admin", "support"])
+            .maybeSingle();
+          if (roleRow) authorized = true;
+        }
       }
     }
     if (!authorized) return json({ erro: "Unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const action = body.action;
+    let action = body.action;
+
+    // ===== Retry automático de contas com erro recuperável =====
+    // Busca contas ativas com erro recente (ads_read/token) e reexecuta
+    // sync_insights para os últimos N dias. Se a permissão foi corrigida,
+    // last_sync_error_* é limpo e last_synced_at / gastos atualizam sozinhos.
+    if (action === "retry_failed_accounts") {
+      const RETRYABLE_CODES = [200, 190, 10, 100, 17, 4, 1, 2];
+      const { data: failed, error: failedErr } = await supabase
+        .from("meta_ad_accounts")
+        .select("id, last_sync_error_code")
+        .eq("status", "active")
+        .eq("account_status", 1)
+        .not("last_sync_error_at", "is", null);
+      if (failedErr) throw failedErr;
+      const ids = (failed || [])
+        .filter((f: any) => f.last_sync_error_code == null || RETRYABLE_CODES.includes(Number(f.last_sync_error_code)))
+        .map((f: any) => f.id);
+      if (ids.length === 0) {
+        return json({ sucesso: true, contas: 0, mensagem: "Nenhuma conta com erro recuperável para retry" });
+      }
+      const days = Number(body.days ?? 7);
+      const until = new Date().toISOString().slice(0, 10);
+      const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+      body.account_ids = ids;
+      body.since = body.since || since;
+      body.until = body.until || until;
+      action = "sync_insights";
+    }
     const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
     // Padrão agora é "deep": além de descobrir contas novas, revarre BMs e
     // atualiza gasto, status (ativa/banida) e score de cada conta. O modo "light"
