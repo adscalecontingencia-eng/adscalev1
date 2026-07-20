@@ -47,6 +47,8 @@ const ClientDashboard: React.FC = () => {
   const [reqPageNames, setReqPageNames] = useState<string[]>([]);
   const [submittingReq, setSubmittingReq] = useState(false);
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
+  const [adAccountRequestLimit, setAdAccountRequestLimit] = useState<number>(5);
+  const [adAccountRequestNotice, setAdAccountRequestNotice] = useState<string>('');
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
