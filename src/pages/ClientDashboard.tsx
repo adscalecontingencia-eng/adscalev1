@@ -333,6 +333,32 @@ const ClientDashboard: React.FC = () => {
     setReqDesc(''); setReqQty(1); setReqBmId(''); setReqPageNames([]); setEditingReqId(null);
   };
 
+  // Carrega configurações públicas de pedidos (limite + aviso)
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('support_settings')
+        .select('key, value')
+        .in('key', ['ad_account_request_limit', 'ad_account_request_notice']);
+      if (!data) return;
+      for (const row of data) {
+        if (row.key === 'ad_account_request_limit') {
+          const n = typeof row.value === 'number' ? row.value : Number(row.value);
+          if (Number.isFinite(n) && n > 0) setAdAccountRequestLimit(Math.floor(n));
+        } else if (row.key === 'ad_account_request_notice') {
+          setAdAccountRequestNotice(typeof row.value === 'string' ? row.value : String(row.value ?? ''));
+        }
+      }
+    })();
+  }, []);
+
+  // Se o tipo é "adicionar conta", garante que a quantidade respeita o limite
+  useEffect(() => {
+    if (reqType === 'add_ad_account' && reqQty > adAccountRequestLimit) {
+      setReqQty(adAccountRequestLimit);
+    }
+  }, [reqType, adAccountRequestLimit, reqQty]);
+
   // Mantém a lista de nomes de páginas com o mesmo tamanho da quantidade
   useEffect(() => {
     if (reqType !== 'add_page') return;
