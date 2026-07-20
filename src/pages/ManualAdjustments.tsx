@@ -76,10 +76,10 @@ export default function ManualAdjustments() {
   return (
     <div className="space-y-6">
       <PageHero
-        icon={History}
         title="Ajustes Manuais"
-        subtitle="Histórico de todas as correções feitas manualmente pela equipe (gastos, comissões, saldos)."
+        description="Histórico de todas as correções feitas manualmente pela equipe (gastos, comissões, saldos)."
       />
+
 
       <Card className="p-4">
         <div className="flex flex-wrap gap-3 items-center">
