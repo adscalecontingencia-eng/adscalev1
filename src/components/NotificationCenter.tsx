@@ -202,7 +202,9 @@ export const NotificationCenter: React.FC = () => {
 
 
       const req = (reqRes.data || []).map<Notification>((r: any) => {
-        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
+        const hasQty = r.request_type === 'add_ad_account' || r.request_type === 'add_page';
+
         return {
           id: `req-${r.id}`,
           severity: r.status === 'em_andamento' ? 'warning' : 'critical',
