@@ -40,7 +40,7 @@ const ClientDashboard: React.FC = () => {
   const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
   const [pages, setPages] = useState<any[]>([]);
   const [supportRequests, setSupportRequests] = useState<any[]>([]);
-  const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
+  const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'add_bm'>('add_ad_account');
   const [reqQty, setReqQty] = useState<number>(1);
   const [reqDesc, setReqDesc] = useState<string>('');
   const [reqBmId, setReqBmId] = useState<string>('');
@@ -379,6 +379,17 @@ const ClientDashboard: React.FC = () => {
       return;
     }
     if (!client) return;
+    // Bloqueia abrir novo ticket da MESMA categoria se já houver um em aberto
+    if (!editingReqId) {
+      const openSame = supportRequests.find((r: any) =>
+        r.request_type === reqType && (r.status === 'pendente' || r.status === 'em_andamento')
+      );
+      if (openSame) {
+        const lbl = reqType === 'add_ad_account' ? 'Adicionar conta' : reqType === 'add_page' ? 'Adicionar página' : 'Adicionar BM';
+        toast.error(`Você já possui um pedido de "${lbl}" em aberto. Aguarde a conclusão para abrir outro dessa mesma categoria.`);
+        return;
+      }
+    }
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
       return;
@@ -398,7 +409,7 @@ const ClientDashboard: React.FC = () => {
     const payload: any = {
       client_id: client.id,
       request_type: reqType,
-      quantity: reqQty,
+      quantity: reqType === 'add_bm' ? 1 : reqQty,
       description: reqDesc || null,
       bm_meta_id: reqType === 'add_ad_account' ? reqBmId.trim() : null,
       page_names: reqType === 'add_page' ? reqPageNames.slice(0, reqQty).map(n => n.trim()) : null,
@@ -1706,7 +1717,7 @@ const ClientDashboard: React.FC = () => {
                   {([
                     { v: 'add_ad_account', label: 'Adicionar conta', Icon: CreditCard },
                     { v: 'add_page', label: 'Adicionar página', Icon: ImageIcon },
-                    { v: 'other', label: 'Outro', Icon: LifeBuoy },
+                    { v: 'add_bm', label: 'Adicionar BM', Icon: Building2 },
                   ] as const).map(({ v, label, Icon }) => (
                     <button
                       key={v}
@@ -1730,7 +1741,16 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {reqType !== 'other' && (() => {
+                {reqType === 'add_bm' && (
+                  <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-[12px] text-primary flex items-start gap-2">
+                    <Building2 size={14} className="shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">
+                      Solicite uma <strong>BM Mãe</strong> para receber suas contas de anúncio. Nossa equipe criará e compartilhará com você. Use o campo de observações abaixo para detalhes (nicho, país, etc.).
+                    </span>
+                  </div>
+                )}
+
+                {(reqType === 'add_ad_account' || reqType === 'add_page') && (() => {
                   const maxAllowed = reqType === 'add_ad_account' ? adAccountRequestLimit : 50;
                   return (
                     <div>
@@ -1808,7 +1828,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={submitRequest}
-                    disabled={submittingReq || (reqType === 'other' && !reqDesc.trim()) || (!isAdminView && supportBlockedByOverdue)}
+                    disabled={submittingReq || (!isAdminView && supportBlockedByOverdue)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   >
                     <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
@@ -1835,7 +1855,7 @@ const ClientDashboard: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {supportRequests.map((r: any) => {
-                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
                     const statusColor =
                       r.status === 'concluida' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                       r.status === 'em_andamento' ? 'text-warning bg-warning/10 border-warning/30' :
@@ -1847,7 +1867,7 @@ const ClientDashboard: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-sm font-semibold">{typeLabel}</p>
-                            {r.request_type !== 'other' && (
+                            {(r.request_type === 'add_ad_account' || r.request_type === 'add_page') && (
                               <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                             )}
                           </div>

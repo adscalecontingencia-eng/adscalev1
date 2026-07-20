@@ -202,7 +202,9 @@ export const NotificationCenter: React.FC = () => {
 
 
       const req = (reqRes.data || []).map<Notification>((r: any) => {
-        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
+        const hasQty = r.request_type === 'add_ad_account' || r.request_type === 'add_page';
+
         return {
           id: `req-${r.id}`,
           severity: r.status === 'em_andamento' ? 'warning' : 'critical',
@@ -210,7 +212,7 @@ export const NotificationCenter: React.FC = () => {
           assetName: r.client?.name || 'Cliente',
           assetId: r.id,
           eventType: 'client_request',
-          title: `🔔 Solicitação de cliente: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
+          title: `🔔 Solicitação de cliente: ${typeLabel}${hasQty ? ` (x${r.quantity})` : ''}`,
           description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
           meta: [
             { label: 'Cliente', value: r.client?.name || '—' },
