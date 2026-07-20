@@ -1730,7 +1730,7 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {reqType !== 'other' && (() => {
+                {(reqType === 'add_ad_account' || reqType === 'add_page') && (() => {
                   const maxAllowed = reqType === 'add_ad_account' ? adAccountRequestLimit : 50;
                   return (
                     <div>
