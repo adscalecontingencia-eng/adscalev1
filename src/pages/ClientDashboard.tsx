@@ -379,6 +379,17 @@ const ClientDashboard: React.FC = () => {
       return;
     }
     if (!client) return;
+    // Bloqueia abrir novo ticket da MESMA categoria se já houver um em aberto
+    if (!editingReqId) {
+      const openSame = supportRequests.find((r: any) =>
+        r.request_type === reqType && (r.status === 'pendente' || r.status === 'em_andamento')
+      );
+      if (openSame) {
+        const lbl = reqType === 'add_ad_account' ? 'Adicionar conta' : reqType === 'add_page' ? 'Adicionar página' : 'Adicionar BM';
+        toast.error(`Você já possui um pedido de "${lbl}" em aberto. Aguarde a conclusão para abrir outro dessa mesma categoria.`);
+        return;
+      }
+    }
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
       return;
