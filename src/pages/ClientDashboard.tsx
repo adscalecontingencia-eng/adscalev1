@@ -1723,17 +1723,33 @@ const ClientDashboard: React.FC = () => {
                   ))}
                 </div>
 
-                {reqType !== 'other' && (
-                  <div>
-                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Quantidade</label>
-                    <input
-                      type="number" min={1} max={50}
-                      value={reqQty}
-                      onChange={e => setReqQty(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-32 bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
-                    />
+                {reqType === 'add_ad_account' && adAccountRequestNotice && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-[12px] text-amber-200 flex items-start gap-2">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span className="whitespace-pre-wrap leading-relaxed">{adAccountRequestNotice}</span>
                   </div>
                 )}
+
+                {reqType !== 'other' && (() => {
+                  const maxAllowed = reqType === 'add_ad_account' ? adAccountRequestLimit : 50;
+                  return (
+                    <div>
+                      <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                        Quantidade {reqType === 'add_ad_account' && <span className="text-muted-foreground/70 normal-case">(máx. {maxAllowed} por pedido)</span>}
+                      </label>
+                      <input
+                        type="number" min={1} max={maxAllowed}
+                        value={reqQty}
+                        onChange={e => {
+                          const n = Math.max(1, Number(e.target.value) || 1);
+                          setReqQty(Math.min(n, maxAllowed));
+                        }}
+                        className="w-32 bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  );
+                })()}
+
 
                 {reqType === 'add_ad_account' && (
                   <div>
