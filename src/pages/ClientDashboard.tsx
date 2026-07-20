@@ -1846,7 +1846,7 @@ const ClientDashboard: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {supportRequests.map((r: any) => {
-                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
                     const statusColor =
                       r.status === 'concluida' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                       r.status === 'em_andamento' ? 'text-warning bg-warning/10 border-warning/30' :
@@ -1858,7 +1858,7 @@ const ClientDashboard: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-sm font-semibold">{typeLabel}</p>
-                            {r.request_type !== 'other' && (
+                            {(r.request_type === 'add_ad_account' || r.request_type === 'add_page') && (
                               <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                             )}
                           </div>
