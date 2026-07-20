@@ -1706,7 +1706,7 @@ const ClientDashboard: React.FC = () => {
                   {([
                     { v: 'add_ad_account', label: 'Adicionar conta', Icon: CreditCard },
                     { v: 'add_page', label: 'Adicionar página', Icon: ImageIcon },
-                    { v: 'other', label: 'Outro', Icon: LifeBuoy },
+                    { v: 'add_bm', label: 'Adicionar BM', Icon: Building2 },
                   ] as const).map(({ v, label, Icon }) => (
                     <button
                       key={v}
