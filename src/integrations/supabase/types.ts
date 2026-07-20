@@ -849,6 +849,71 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_adjustments: {
+        Row: {
+          ad_account_ids: string[] | null
+          ad_account_names: string[] | null
+          adjustment_type: string
+          client_id: string | null
+          client_name: string | null
+          created_at: string
+          delta: number | null
+          id: string
+          metadata: Json | null
+          new_value: number | null
+          performed_by: string | null
+          performed_by_email: string | null
+          period_end: string | null
+          period_start: string | null
+          previous_value: number | null
+          reason: string | null
+        }
+        Insert: {
+          ad_account_ids?: string[] | null
+          ad_account_names?: string[] | null
+          adjustment_type: string
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          delta?: number | null
+          id?: string
+          metadata?: Json | null
+          new_value?: number | null
+          performed_by?: string | null
+          performed_by_email?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          previous_value?: number | null
+          reason?: string | null
+        }
+        Update: {
+          ad_account_ids?: string[] | null
+          ad_account_names?: string[] | null
+          adjustment_type?: string
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          delta?: number | null
+          id?: string
+          metadata?: Json | null
+          new_value?: number | null
+          performed_by?: string | null
+          performed_by_email?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          previous_value?: number | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_adjustments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_asset_accounts: {
         Row: {
           account_number: number
