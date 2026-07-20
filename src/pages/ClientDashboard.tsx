@@ -383,6 +383,10 @@ const ClientDashboard: React.FC = () => {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
       return;
     }
+    if (reqType === 'add_ad_account' && reqQty > adAccountRequestLimit) {
+      toast.error(`Limite de ${adAccountRequestLimit} contas por pedido. Reduza a quantidade e envie novamente.`);
+      return;
+    }
     if (reqType === 'add_page') {
       const names = reqPageNames.slice(0, reqQty).map(n => (n || '').trim());
       if (names.some(n => !n)) {
