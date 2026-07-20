@@ -212,7 +212,7 @@ export const NotificationCenter: React.FC = () => {
           assetName: r.client?.name || 'Cliente',
           assetId: r.id,
           eventType: 'client_request',
-          title: `🔔 Solicitação de cliente: ${typeLabel}${r.request_type !== 'other' ? ` (x${r.quantity})` : ''}`,
+          title: `🔔 Solicitação de cliente: ${typeLabel}${hasQty ? ` (x${r.quantity})` : ''}`,
           description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
           meta: [
             { label: 'Cliente', value: r.client?.name || '—' },
