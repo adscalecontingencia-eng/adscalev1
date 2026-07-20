@@ -47,6 +47,8 @@ const ClientDashboard: React.FC = () => {
   const [reqPageNames, setReqPageNames] = useState<string[]>([]);
   const [submittingReq, setSubmittingReq] = useState(false);
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
+  const [adAccountRequestLimit, setAdAccountRequestLimit] = useState<number>(5);
+  const [adAccountRequestNotice, setAdAccountRequestNotice] = useState<string>('');
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
@@ -331,6 +333,32 @@ const ClientDashboard: React.FC = () => {
     setReqDesc(''); setReqQty(1); setReqBmId(''); setReqPageNames([]); setEditingReqId(null);
   };
 
+  // Carrega configurações públicas de pedidos (limite + aviso)
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('support_settings')
+        .select('key, value')
+        .in('key', ['ad_account_request_limit', 'ad_account_request_notice']);
+      if (!data) return;
+      for (const row of data) {
+        if (row.key === 'ad_account_request_limit') {
+          const n = typeof row.value === 'number' ? row.value : Number(row.value);
+          if (Number.isFinite(n) && n > 0) setAdAccountRequestLimit(Math.floor(n));
+        } else if (row.key === 'ad_account_request_notice') {
+          setAdAccountRequestNotice(typeof row.value === 'string' ? row.value : String(row.value ?? ''));
+        }
+      }
+    })();
+  }, []);
+
+  // Se o tipo é "adicionar conta", garante que a quantidade respeita o limite
+  useEffect(() => {
+    if (reqType === 'add_ad_account' && reqQty > adAccountRequestLimit) {
+      setReqQty(adAccountRequestLimit);
+    }
+  }, [reqType, adAccountRequestLimit, reqQty]);
+
   // Mantém a lista de nomes de páginas com o mesmo tamanho da quantidade
   useEffect(() => {
     if (reqType !== 'add_page') return;
@@ -353,6 +381,10 @@ const ClientDashboard: React.FC = () => {
     if (!client) return;
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
       toast.error('Informe o ID da BM onde deseja receber as contas.');
+      return;
+    }
+    if (reqType === 'add_ad_account' && reqQty > adAccountRequestLimit) {
+      toast.error(`Limite de ${adAccountRequestLimit} contas por pedido. Reduza a quantidade e envie novamente.`);
       return;
     }
     if (reqType === 'add_page') {
@@ -1691,17 +1723,33 @@ const ClientDashboard: React.FC = () => {
                   ))}
                 </div>
 
-                {reqType !== 'other' && (
-                  <div>
-                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Quantidade</label>
-                    <input
-                      type="number" min={1} max={50}
-                      value={reqQty}
-                      onChange={e => setReqQty(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-32 bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
-                    />
+                {reqType === 'add_ad_account' && adAccountRequestNotice && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-[12px] text-amber-200 flex items-start gap-2">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span className="whitespace-pre-wrap leading-relaxed">{adAccountRequestNotice}</span>
                   </div>
                 )}
+
+                {reqType !== 'other' && (() => {
+                  const maxAllowed = reqType === 'add_ad_account' ? adAccountRequestLimit : 50;
+                  return (
+                    <div>
+                      <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                        Quantidade {reqType === 'add_ad_account' && <span className="text-muted-foreground/70 normal-case">(máx. {maxAllowed} por pedido)</span>}
+                      </label>
+                      <input
+                        type="number" min={1} max={maxAllowed}
+                        value={reqQty}
+                        onChange={e => {
+                          const n = Math.max(1, Number(e.target.value) || 1);
+                          setReqQty(Math.min(n, maxAllowed));
+                        }}
+                        className="w-32 bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  );
+                })()}
+
 
                 {reqType === 'add_ad_account' && (
                   <div>

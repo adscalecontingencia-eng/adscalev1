@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import BMActivityTab from '@/components/support/BMActivityTab';
 import AgencyTasksTab from '@/components/support/AgencyTasksTab';
 import BMPanelTab from '@/components/support/BMPanelTab';
+import RequestLimitSettings from '@/components/support/RequestLimitSettings';
 
 interface Task {
   id: string;
@@ -173,6 +174,7 @@ const Support: React.FC = () => {
         </TabsList>
 
         <TabsContent value="tarefas" className="space-y-6 mt-0">
+          <RequestLimitSettings />
           {(() => {
 
         const allItems = [
@@ -188,6 +190,7 @@ const Support: React.FC = () => {
           </div>
         );
       })()}
+
 
       {/* Client service requests */}
       <div className="bg-card border border-border rounded-xl p-5 border-glow">
