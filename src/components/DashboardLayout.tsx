@@ -50,6 +50,7 @@ const groups: Group[] = [
     id: 'sistema', label: 'Sistema', icon: Settings2, defaultOpen: false, links: [
       { path: '/access-logs', label: 'Acessos', icon: Activity },
       { path: '/audit-log', label: 'Auditoria', icon: Shield, adminOnly: true },
+      { path: '/manual-adjustments', label: 'Ajustes Manuais', icon: Shield },
       { path: '/users', label: 'Usuários', icon: UserCog, adminOnly: true },
     ]
   },
