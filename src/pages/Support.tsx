@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import BMActivityTab from '@/components/support/BMActivityTab';
 import AgencyTasksTab from '@/components/support/AgencyTasksTab';
 import BMPanelTab from '@/components/support/BMPanelTab';
+import RequestLimitSettings from '@/components/support/RequestLimitSettings';
 
 interface Task {
   id: string;
