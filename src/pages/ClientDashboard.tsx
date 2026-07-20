@@ -409,7 +409,7 @@ const ClientDashboard: React.FC = () => {
     const payload: any = {
       client_id: client.id,
       request_type: reqType,
-      quantity: reqQty,
+      quantity: reqType === 'add_bm' ? 1 : reqQty,
       description: reqDesc || null,
       bm_meta_id: reqType === 'add_ad_account' ? reqBmId.trim() : null,
       page_names: reqType === 'add_page' ? reqPageNames.slice(0, reqQty).map(n => n.trim()) : null,
