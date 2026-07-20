@@ -294,8 +294,8 @@ const Support: React.FC = () => {
                             </div>
                           );
                         }
-                        const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : LifeBuoy;
-                        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : 'Outro';
+                        const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : r.request_type === 'add_bm' ? Building2 : LifeBuoy;
+                        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
                         return (
                 <div key={r.id} className={cn("border rounded-lg p-3 flex flex-col gap-2", overdueCard)}>
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -306,7 +306,7 @@ const Support: React.FC = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold">{typeLabel}</p>
                         {overdueBadge}
-                        {r.request_type !== 'other' && (
+                        {(r.request_type === 'add_ad_account' || r.request_type === 'add_page') && (
                           <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                         )}
                         <span className="text-[11px] text-primary">{r.client?.name || '—'}</span>
