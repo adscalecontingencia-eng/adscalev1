@@ -40,7 +40,7 @@ const ClientDashboard: React.FC = () => {
   const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
   const [pages, setPages] = useState<any[]>([]);
   const [supportRequests, setSupportRequests] = useState<any[]>([]);
-  const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'other'>('add_ad_account');
+  const [reqType, setReqType] = useState<'add_ad_account' | 'add_page' | 'add_bm'>('add_ad_account');
   const [reqQty, setReqQty] = useState<number>(1);
   const [reqDesc, setReqDesc] = useState<string>('');
   const [reqBmId, setReqBmId] = useState<string>('');
