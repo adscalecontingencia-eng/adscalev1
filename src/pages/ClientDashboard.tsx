@@ -1741,6 +1741,15 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {reqType === 'add_bm' && (
+                  <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-[12px] text-primary flex items-start gap-2">
+                    <Building2 size={14} className="shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">
+                      Solicite uma <strong>BM Mãe</strong> para receber suas contas de anúncio. Nossa equipe criará e compartilhará com você. Use o campo de observações abaixo para detalhes (nicho, país, etc.).
+                    </span>
+                  </div>
+                )}
+
                 {(reqType === 'add_ad_account' || reqType === 'add_page') && (() => {
                   const maxAllowed = reqType === 'add_ad_account' ? adAccountRequestLimit : 50;
                   return (
