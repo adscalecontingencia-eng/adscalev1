@@ -9,6 +9,57 @@ const PAGE_URL = "https://adscalev1.lovable.app/#/estrutura-ads";
 const SITE_NAME = "AD SCALE";
 const WHATSAPP_URL = "https://wa.me/553198416336?text=Ol%C3%A1!%20Vim%20do%20site%20da%20AD%20Scale%20e%20tenho%20interesse%20nos%20ativos%20de%20conting%C3%AAncia";
 
+const GADS_ID = "AW-18226021110";
+const GADS_CONVERSION_LABEL = "AW-18226021110/U42jCK374rwcEPaF7PJD";
+
+declare global {
+  interface Window {
+    dataLayer?: any[];
+    gtag?: (...args: any[]) => void;
+    gtag_report_conversion?: (url?: string) => boolean;
+  }
+}
+
+function loadGoogleAdsPixel() {
+  if (typeof window === "undefined") return;
+  window.dataLayer = window.dataLayer || [];
+  if (!window.gtag) {
+    window.gtag = function () { window.dataLayer!.push(arguments); };
+  }
+  const scriptId = `gtag-${GADS_ID}`;
+  if (!document.getElementById(scriptId)) {
+    const s = document.createElement("script");
+    s.id = scriptId;
+    s.async = true;
+    s.src = `https://www.googletagmanager.com/gtag/js?id=${GADS_ID}`;
+    document.head.appendChild(s);
+    window.gtag("js", new Date());
+    window.gtag("config", GADS_ID);
+  }
+  window.gtag_report_conversion = function (url?: string) {
+    const callback = function () {
+      if (typeof url !== "undefined") {
+        window.location.href = url;
+      }
+    };
+    window.gtag!("event", "conversion", {
+      send_to: GADS_CONVERSION_LABEL,
+      value: 1.0,
+      currency: "BRL",
+      event_callback: callback,
+    });
+    return false;
+  };
+}
+
+function handleWhatsAppClick(e: React.MouseEvent<HTMLAnchorElement>) {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+  if (typeof window !== "undefined" && typeof window.gtag_report_conversion === "function") {
+    e.preventDefault();
+    window.gtag_report_conversion(WHATSAPP_URL);
+  }
+}
+
 function upsertMeta(selector: string, attrs: Record<string, string>) {
   let el = document.head.querySelector(selector) as HTMLMetaElement | null;
   if (!el) {
