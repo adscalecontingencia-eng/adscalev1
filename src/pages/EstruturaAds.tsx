@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import { ArrowRight, MessageCircle, CheckCircle2, Shield, Building2, FileText, Users, Globe, Lock, ClipboardCheck } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 
-const PAGE_TITLE = "Soluções Meta Ads — Estrutura e organização para operações profissionais | AD SCALE";
-const PAGE_DESC = "A AD SCALE apresenta soluções para anunciantes, agências e operações que precisam organizar melhor seus ativos, contas, páginas, domínios e processos antes de escalar campanhas.";
+const PAGE_TITLE = "Estrutura Ads — Organização profissional para operações Meta Ads | AD SCALE";
+const PAGE_DESC = "Estruture sua operação de Meta Ads com a AD SCALE: avaliação de Business Manager, contas de anúncio, páginas, domínios, permissões e fluxo comercial antes de escalar investimento.";
 const PAGE_URL = "https://adscalev1.lovable.app/#/estrutura-ads";
+const SITE_NAME = "AD SCALE";
 const WHATSAPP_URL = "https://wa.me/553198416336?text=Ol%C3%A1!%20Vim%20do%20site%20da%20AD%20Scale%20e%20tenho%20interesse%20nos%20ativos%20de%20conting%C3%AAncia";
 
 function upsertMeta(selector: string, attrs: Record<string, string>) {
@@ -15,13 +16,26 @@ function upsertMeta(selector: string, attrs: Record<string, string>) {
     Object.entries(attrs).forEach(([k, v]) => { if (k !== "content") el!.setAttribute(k, v); });
     document.head.appendChild(el);
   }
-  el.setAttribute("content", attrs.content);
+  if (attrs.content) el.setAttribute("content", attrs.content);
 }
 function upsertLink(rel: string, href: string) {
   let el = document.head.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
   if (!el) { el = document.createElement("link"); el.setAttribute("rel", rel); document.head.appendChild(el); }
   el.setAttribute("href", href);
 }
+function upsertJsonLd(payload: Record<string, unknown>) {
+  const selector = 'script[type="application/ld+json"]';
+  let el = document.head.querySelector(selector) as HTMLScriptElement | null;
+  if (!el) {
+    el = document.createElement("script");
+    el.setAttribute("type", "application/ld+json");
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(payload);
+}
+
+const DEFAULT_TITLE = "AD SCALE";
+const DEFAULT_DESC = "Elevamos o nível da sua operação";
 
 const fadeUp = {
   initial: { opacity: 0, y: 18 },
@@ -63,14 +77,46 @@ const avaliacoes = [
 
 const EstruturaAds: React.FC = () => {
   useEffect(() => {
+    const previousTitle = document.title;
+
     document.title = PAGE_TITLE;
     upsertMeta('meta[name="description"]', { name: "description", content: PAGE_DESC });
+
     upsertMeta('meta[property="og:title"]', { property: "og:title", content: PAGE_TITLE });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: PAGE_DESC });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "website" });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: PAGE_URL });
+    upsertMeta('meta[property="og:site_name"]', { property: "og:site_name", content: SITE_NAME });
+    upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: "pt_BR" });
+
     upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
+    upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: PAGE_TITLE });
+    upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: PAGE_DESC });
+    upsertMeta('meta[name="twitter:url"]', { name: "twitter:url", content: PAGE_URL });
+
     upsertLink("canonical", PAGE_URL);
+
+    upsertJsonLd({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: "https://adscalev1.lovable.app/",
+      description: PAGE_DESC,
+      sameAs: [WHATSAPP_URL],
+    });
+
+    return () => {
+      document.title = previousTitle || DEFAULT_TITLE;
+      upsertMeta('meta[name="description"]', { name: "description", content: DEFAULT_DESC });
+      upsertMeta('meta[property="og:title"]', { property: "og:title", content: DEFAULT_TITLE });
+      upsertMeta('meta[property="og:description"]', { property: "og:description", content: DEFAULT_DESC });
+      upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://adscalev1.lovable.app/" });
+      upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: "pt_BR" });
+      upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: DEFAULT_TITLE });
+      upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: DEFAULT_DESC });
+      upsertMeta('meta[name="twitter:url"]', { name: "twitter:url", content: "https://adscalev1.lovable.app/" });
+      upsertLink("canonical", "https://adscalev1.lovable.app/");
+    };
   }, []);
 
   return (
