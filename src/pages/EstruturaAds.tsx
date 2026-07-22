@@ -15,7 +15,7 @@ const GADS_CONVERSION_LABEL = "AW-18226021110/U42jCK374rwcEPaF7PJD";
 declare global {
   interface Window {
     dataLayer?: any[];
-    gtag?: (...args: any[]) => void;
+    gtag?: any;
     gtag_report_conversion?: (url?: string) => boolean;
   }
 }
