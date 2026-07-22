@@ -185,7 +185,7 @@ const EstruturaAds: React.FC = () => {
       <header className="relative z-20 border-b border-border/60 backdrop-blur-xl bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="text-primary notranslate" translate="no"><AdScaleLogo size={26} /></div>
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-lg hover:brightness-110 transition">
+          <a href={WHATSAPP_URL} onClick={handleWhatsAppClick} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-lg hover:brightness-110 transition">
             Falar no WhatsApp <ArrowRight size={14} />
           </a>
         </div>
@@ -217,7 +217,7 @@ const EstruturaAds: React.FC = () => {
             <a href="/#/inicio" className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:brightness-110 shadow-[0_0_30px_-8px_hsl(var(--primary))] transition">
               Conhecer a <span className="notranslate" translate="no">AD SCALE</span> <ArrowRight size={16} />
             </a>
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 font-semibold px-6 py-3 rounded-xl transition">
+            <a href={WHATSAPP_URL} onClick={handleWhatsAppClick} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 font-semibold px-6 py-3 rounded-xl transition">
               <MessageCircle size={16} /> Falar no WhatsApp
             </a>
           </div>
@@ -304,7 +304,7 @@ const EstruturaAds: React.FC = () => {
           <a href="/#/inicio" className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:brightness-110 shadow-[0_0_30px_-8px_hsl(var(--primary))] transition">
             Acessar site oficial <ArrowRight size={16} />
           </a>
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 font-semibold px-6 py-3 rounded-xl transition">
+          <a href={WHATSAPP_URL} onClick={handleWhatsAppClick} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 font-semibold px-6 py-3 rounded-xl transition">
             <MessageCircle size={16} /> Falar com a <span className="notranslate" translate="no">AD SCALE</span> no WhatsApp
           </a>
         </motion.div>
