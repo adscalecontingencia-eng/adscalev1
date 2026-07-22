@@ -130,6 +130,7 @@ const App = () => (
               <Route path="/inicio" element={<EscolhaSeuModelo />} />
               <Route path="/escolha-seu-modelo" element={<Navigate to="/inicio" replace />} />
               <Route path="/obrigado" element={<Obrigado />} />
+              <Route path="/solucoes-meta-ads" element={<SolucoesMetaAds />} />
               <Route path="/marketplace/ativos" element={<MarketplaceGate><MarketplaceAssets /></MarketplaceGate>} />
               <Route path="/marketplace/produtos" element={<MarketplaceGate><MarketplaceProducts /></MarketplaceGate>} />
               <Route path="/checkout-pix-test" element={<CheckoutPixTest />} />
