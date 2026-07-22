@@ -28,7 +28,21 @@
   </head>
 
   <body>
+    <script>
+      // HashRouter fallback: converte /caminho em /#/caminho para permitir
+      // links diretos (ex.: /estrutura-ads) em domínios sem rewrite de SPA.
+      (function () {
+        try {
+          var p = window.location.pathname;
+          if (p && p !== "/" && !p.startsWith("/assets") && !/\.[a-zA-Z0-9]+$/.test(p)) {
+            var target = "/#" + p + window.location.search + window.location.hash;
+            window.history.replaceState(null, "", target);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
+
 </html>
