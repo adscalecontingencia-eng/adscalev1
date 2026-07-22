@@ -168,6 +168,8 @@ const EstruturaAds: React.FC = () => {
       upsertMeta('meta[name="twitter:url"]', { name: "twitter:url", content: "https://adscalev1.lovable.app/" });
       upsertLink("canonical", "https://adscalev1.lovable.app/");
     };
+  }, []);
+
   useEffect(() => {
     loadGoogleAdsPixel();
   }, []);
