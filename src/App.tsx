@@ -53,6 +53,7 @@ import AdminTracking from "./pages/AdminTracking";
 import AluguelDeContas from "./pages/AluguelDeContas";
 import EscolhaSeuModelo from "./pages/EscolhaSeuModelo";
 import Obrigado from "./pages/Obrigado";
+import SolucoesMetaAds from "./pages/SolucoesMetaAds";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 
