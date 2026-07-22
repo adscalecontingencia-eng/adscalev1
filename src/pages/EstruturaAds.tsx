@@ -77,14 +77,46 @@ const avaliacoes = [
 
 const EstruturaAds: React.FC = () => {
   useEffect(() => {
+    const previousTitle = document.title;
+
     document.title = PAGE_TITLE;
     upsertMeta('meta[name="description"]', { name: "description", content: PAGE_DESC });
+
     upsertMeta('meta[property="og:title"]', { property: "og:title", content: PAGE_TITLE });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: PAGE_DESC });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "website" });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: PAGE_URL });
+    upsertMeta('meta[property="og:site_name"]', { property: "og:site_name", content: SITE_NAME });
+    upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: "pt_BR" });
+
     upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
+    upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: PAGE_TITLE });
+    upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: PAGE_DESC });
+    upsertMeta('meta[name="twitter:url"]', { name: "twitter:url", content: PAGE_URL });
+
     upsertLink("canonical", PAGE_URL);
+
+    upsertJsonLd({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: "https://adscalev1.lovable.app/",
+      description: PAGE_DESC,
+      sameAs: [WHATSAPP_URL],
+    });
+
+    return () => {
+      document.title = previousTitle || DEFAULT_TITLE;
+      upsertMeta('meta[name="description"]', { name: "description", content: DEFAULT_DESC });
+      upsertMeta('meta[property="og:title"]', { property: "og:title", content: DEFAULT_TITLE });
+      upsertMeta('meta[property="og:description"]', { property: "og:description", content: DEFAULT_DESC });
+      upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://adscalev1.lovable.app/" });
+      upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: "pt_BR" });
+      upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: DEFAULT_TITLE });
+      upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: DEFAULT_DESC });
+      upsertMeta('meta[name="twitter:url"]', { name: "twitter:url", content: "https://adscalev1.lovable.app/" });
+      upsertLink("canonical", "https://adscalev1.lovable.app/");
+    };
   }, []);
 
   return (
