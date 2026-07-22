@@ -5,7 +5,7 @@ import AdScaleLogo from "@/components/AdScaleLogo";
 
 const PAGE_TITLE = "Soluções Meta Ads — Estrutura e organização para operações profissionais | AD SCALE";
 const PAGE_DESC = "A AD SCALE apresenta soluções para anunciantes, agências e operações que precisam organizar melhor seus ativos, contas, páginas, domínios e processos antes de escalar campanhas.";
-const PAGE_URL = "https://adscalev1.lovable.app/#/solucoes-meta-ads";
+const PAGE_URL = "https://adscalev1.lovable.app/#/estrutura-ads";
 const WHATSAPP_URL = "https://wa.me/553198416336?text=Ol%C3%A1!%20Vim%20do%20site%20da%20AD%20Scale%20e%20tenho%20interesse%20nos%20ativos%20de%20conting%C3%AAncia";
 
 function upsertMeta(selector: string, attrs: Record<string, string>) {
