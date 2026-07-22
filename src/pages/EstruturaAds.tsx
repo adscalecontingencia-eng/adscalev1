@@ -61,7 +61,7 @@ const avaliacoes = [
   { icon: ClipboardCheck, label: "Fluxo comercial antes de escalar investimento" },
 ];
 
-const SolucoesMetaAds: React.FC = () => {
+const EstruturaAds: React.FC = () => {
   useEffect(() => {
     document.title = PAGE_TITLE;
     upsertMeta('meta[name="description"]', { name: "description", content: PAGE_DESC });
@@ -226,4 +226,4 @@ const SolucoesMetaAds: React.FC = () => {
   );
 };
 
-export default SolucoesMetaAds;
+export default EstruturaAds;
