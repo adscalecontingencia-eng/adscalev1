@@ -504,6 +504,16 @@ export const ClientCard: React.FC<Props> = (props) => {
           />
         </div>
 
+        {/* Comparativo semanal (semana atual parcial vs mesma janela da semana anterior) */}
+        <div className="mt-3">
+          <WeekComparisonCard
+            data={weekCompare}
+            compact
+            showCommission={c.clientType === 'aluguel'}
+            subtitle="Semana atual (parcial) vs mesmo intervalo da semana anterior"
+          />
+        </div>
+
         {/* Ações */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {isAdmin && c.clientType === 'aluguel' && (
