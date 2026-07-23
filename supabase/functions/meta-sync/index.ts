@@ -697,12 +697,28 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
 
   const CHUNK = 200;
   await reportStage("Salvar contas", "running", undefined, `${accRows.length} conta(s) únicas para salvar`);
-  for (let i = 0; i < accRows.length; i += CHUNK) {
-    const { error } = await supabase.from("meta_ad_accounts")
-      .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
-    if (error) throw error;
-  }
+  // Split para preservar amount_spent quando a API do Meta devolve 0.
+  // Contas pré-pagas recém-criadas tipicamente retornam amount_spent=0 no
+  // /me/adaccounts mesmo com gasto real; nesses casos preferimos manter o
+  // valor já calculado (soma de meta_ad_insights) em vez de sobrescrever
+  // com zero. Rows onde a API devolveu valor > 0 continuam autoritativas.
+  const rowsWithSpend = accRows.filter((r: any) => Number(r.amount_spent) > 0);
+  const rowsWithoutSpend = accRows.map((r: any) => {
+    if (Number(r.amount_spent) > 0) return r;
+    const { amount_spent: _drop, ...rest } = r;
+    return rest;
+  }).filter((r: any) => !("amount_spent" in r));
+  const upsertBatch = async (rows: any[]) => {
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const { error } = await supabase.from("meta_ad_accounts")
+        .upsert(rows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+      if (error) throw error;
+    }
+  };
+  await upsertBatch(rowsWithSpend);
+  await upsertBatch(rowsWithoutSpend);
   await reportStage("Salvar contas", "done", undefined, `${accRows.length} conta(s) salvas`, accRows.length);
+
 
   return { app: app.label, bms: bms.length + extraBmIds.size, accounts: accRows.length, erros: errors };
 }
