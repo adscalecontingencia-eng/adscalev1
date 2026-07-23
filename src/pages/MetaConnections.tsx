@@ -11,7 +11,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
-  RefreshCw, Search, AlertTriangle, X, Building2, Inbox, ShieldCheck,
+  RefreshCw, Search, AlertTriangle, X, Building2, Inbox, ShieldCheck, Download,
 } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,6 +23,7 @@ import SystemUserHelp from "@/components/meta/SystemUserHelp";
 import AreaResponsibles from "@/components/support/AreaResponsibles";
 import AdsPermissionErrorsPanel from "@/components/ads/AdsPermissionErrorsPanel";
 import ArchivedAccountsPanel from "@/components/ads/ArchivedAccountsPanel";
+import { exportActiveAccountsCsv, exportArchivedAccountsCsv } from "@/lib/meta-export";
 
 type BM = {
   id: string; meta_bm_id: string; name: string; status: string | null;
@@ -312,12 +313,34 @@ export default function MetaConnections() {
             )}
           </p>
         </div>
-        <Button size="sm" disabled={syncing} onClick={sync}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing && job
-            ? `Sincronizando ${job.progress_total ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
-            : "Sincronizar BMs + Contas"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              exportActiveAccountsCsv().catch((e) => toast.error("Falha ao exportar ativas: " + (e?.message || e)));
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar ativas
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              exportArchivedAccountsCsv().catch((e) => toast.error("Falha ao exportar arquivadas: " + (e?.message || e)));
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar arquivadas
+          </Button>
+          <Button size="sm" disabled={syncing} onClick={sync}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing && job
+              ? `Sincronizando ${job.progress_total ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
+              : "Sincronizar BMs + Contas"}
+          </Button>
+        </div>
       </div>
 
       <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
