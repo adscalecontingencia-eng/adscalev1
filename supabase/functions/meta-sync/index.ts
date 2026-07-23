@@ -1849,6 +1849,45 @@ Deno.serve(async (req) => {
       body.until = body.until || until;
       action = "sync_insights";
     }
+
+    // ===== Arquivamento automático de contas sem permissão =====
+    // Marca archived_at para contas cuja última sync falhou em AMBOS os tokens
+    // (ou nenhum token) com erros de permissão, há pelo menos N dias.
+    if (action === "auto_archive_no_permission") {
+      const PERM_CODES = [200, 190, 10, 100];
+      const minDays = Number(body.min_days ?? 3);
+      const cutoff = new Date(Date.now() - minDays * 86400000).toISOString();
+      const { data: candidates, error: candErr } = await supabase
+        .from("meta_ad_accounts")
+        .select("id, name, meta_account_id, last_sync_error_code, last_sync_error_source, last_sync_error_at")
+        .in("last_sync_error_code", PERM_CODES)
+        .in("last_sync_error_source", ["both", "no_token"])
+        .lte("last_sync_error_at", cutoff)
+        .is("archived_at", null);
+      if (candErr) throw candErr;
+      const ids = (candidates || []).map((c: any) => c.id);
+      if (ids.length === 0) {
+        return json({ sucesso: true, arquivadas: 0, mensagem: "Nenhuma conta elegível para arquivamento automático" });
+      }
+      const { error: upErr } = await supabase
+        .from("meta_ad_accounts")
+        .update({ archived_at: new Date().toISOString() })
+        .in("id", ids);
+      if (upErr) throw upErr;
+      return json({ sucesso: true, arquivadas: ids.length, min_days: minDays, contas: candidates });
+    }
+
+    // ===== Restaurar conta arquivada =====
+    if (action === "unarchive_account") {
+      const id = String(body.account_id || "");
+      if (!id) return json({ erro: "account_id obrigatório" }, 400);
+      const { error } = await supabase
+        .from("meta_ad_accounts")
+        .update({ archived_at: null, last_sync_error_code: null, last_sync_error_message: null, last_sync_error_at: null, last_sync_error_source: null, last_sync_error_attempts: null })
+        .eq("id", id);
+      if (error) throw error;
+      return json({ sucesso: true });
+    }
     const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
     // Padrão agora é "deep": além de descobrir contas novas, revarre BMs e
     // atualiza gasto, status (ativa/banida) e score de cada conta. O modo "light"
