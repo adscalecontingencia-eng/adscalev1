@@ -11,7 +11,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
-  RefreshCw, Search, AlertTriangle, X, Building2, Inbox, ShieldCheck,
+  RefreshCw, Search, AlertTriangle, X, Building2, Inbox, ShieldCheck, Download,
 } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
