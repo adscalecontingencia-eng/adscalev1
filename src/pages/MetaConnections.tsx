@@ -321,6 +321,7 @@ export default function MetaConnections() {
 
       <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
       <AdsPermissionErrorsPanel refreshKey={bms.length} />
+      <ArchivedAccountsPanel refreshKey={bms.length} />
 
 
       {/* Sync job progress */}
