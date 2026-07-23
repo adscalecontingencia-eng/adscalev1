@@ -20,6 +20,8 @@ import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
 import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit, getLastClosedBillingWeekRange } from '@/lib/billing-status';
+import WeekComparisonCard from '@/components/clients/WeekComparisonCard';
+import { computeAggregateWeekCompare } from '@/lib/week-compare';
 
 interface Client {
   id: string;
@@ -1134,6 +1136,19 @@ const Clients: React.FC = () => {
   // Mapa de gasto diário por cliente (usado na sparkline do card)
   const spendByClient = insightsByClient;
 
+  // Comparativo agregado semana atual (parcial) vs mesmo intervalo da semana anterior
+  const weekCompareAgg = useMemo(
+    () =>
+      computeAggregateWeekCompare(
+        clients.map(c => ({
+          spendByDay: spendByClient[c.id] || [],
+          accounts: accountsByClient[c.id] || [],
+          percentage: c.clientType === 'aluguel' ? (c.percentageValue || 0) : 0,
+        })),
+      ),
+    [clients, spendByClient, accountsByClient],
+  );
+
   const historyClient = historyClientId ? clients.find(c => c.id === historyClientId) : null;
 
   return (
@@ -1164,6 +1179,12 @@ const Clients: React.FC = () => {
 
 
       <ClientKPIBar kpi={kpi} />
+
+      <WeekComparisonCard
+        data={weekCompareAgg}
+        title="Comparativo semanal — carteira"
+        subtitle="Somatório de todos os clientes: semana atual (parcial) vs mesmo intervalo da semana anterior"
+      />
 
       <ClientFiltersBar
         search={search}

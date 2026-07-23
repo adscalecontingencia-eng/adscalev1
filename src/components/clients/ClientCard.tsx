@@ -31,6 +31,8 @@ import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfWeek, e
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
 import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
+import { computeClientWeekCompare } from '@/lib/week-compare';
+import WeekComparisonCard from './WeekComparisonCard';
 import { toast } from 'sonner';
 
 export interface ClientLite {
@@ -268,6 +270,16 @@ export const ClientCard: React.FC<Props> = (props) => {
   // Structure summary
   const activeAccts = accounts.filter(a => a.status === 'active');
   const blockedAccts = accounts.filter(a => a.status !== 'active');
+
+  const weekCompare = useMemo(
+    () =>
+      computeClientWeekCompare({
+        spendByDay,
+        accounts,
+        percentage: c.clientType === 'aluguel' ? basePct : 0,
+      }),
+    [spendByDay, accounts, c.clientType, basePct],
+  );
   const accountsWithPeriodSpend = useMemo(() => {
     return accounts
       .map(a => ({
@@ -489,6 +501,16 @@ export const ClientCard: React.FC<Props> = (props) => {
             value={fmt(saldoAtrasado)}
             tone={saldoAtrasado > 0 ? 'destructive' : 'success'}
             highlight={saldoAtrasado > 0}
+          />
+        </div>
+
+        {/* Comparativo semanal (semana atual parcial vs mesma janela da semana anterior) */}
+        <div className="mt-3">
+          <WeekComparisonCard
+            data={weekCompare}
+            compact
+            showCommission={c.clientType === 'aluguel'}
+            subtitle="Semana atual (parcial) vs mesmo intervalo da semana anterior"
           />
         </div>
 
