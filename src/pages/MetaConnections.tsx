@@ -167,6 +167,15 @@ export default function MetaConnections() {
         });
       }
       toast.info("Sincronização iniciada em segundo plano");
+
+      // Após iniciar a descoberta de contas/BMs, dispara também o refresh de
+      // gastos (insights) dos últimos 3 dias em paralelo — assim o botão
+      // "Sincronizar" atualiza tanto a estrutura quanto o gasto de cada conta.
+      supabase.functions
+        .invoke("meta-sync", { body: { action: "sync_insights" } })
+        .catch(() => {
+          /* best-effort — o job principal continua rodando mesmo se insights falhar */
+        });
     } catch (e: any) {
       toast.error(`Erro na sincronização: ${e.message}`);
       setSyncing(false);
