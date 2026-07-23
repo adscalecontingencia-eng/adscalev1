@@ -270,6 +270,16 @@ export const ClientCard: React.FC<Props> = (props) => {
   // Structure summary
   const activeAccts = accounts.filter(a => a.status === 'active');
   const blockedAccts = accounts.filter(a => a.status !== 'active');
+
+  const weekCompare = useMemo(
+    () =>
+      computeClientWeekCompare({
+        spendByDay,
+        accounts,
+        percentage: c.clientType === 'aluguel' ? basePct : 0,
+      }),
+    [spendByDay, accounts, c.clientType, basePct],
+  );
   const accountsWithPeriodSpend = useMemo(() => {
     return accounts
       .map(a => ({
