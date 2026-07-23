@@ -2069,8 +2069,10 @@ Deno.serve(async (req) => {
             let lastError: unknown = null;
             for (let ti = 0; ti < tokens.length; ti++) {
               const tok = tokens[ti];
-              // 0 = system-user token, 1 = user access token (fallback)
-              const source = ti === 0 ? "system" : "user";
+              // Ordem atual de tokenCandidates: 0 = User Access Token (perfil),
+              // 1 = System User Token (fallback). Rotular corretamente a origem
+              // é essencial para o painel de erros distinguir falhas dos dois.
+              const source = ti === 0 ? "user" : "system";
               try {
                 data = await metaFetch(`/${acc.meta_account_id}/insights`, tok, {
                   fields: "spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values",
