@@ -1855,8 +1855,11 @@ Deno.serve(async (req) => {
     const syncMode: SyncMode = body.mode === "light" ? "light" : "deep";
 
     // ===== Background job =====
-    if (action === "start_sync_accounts") {
-      const staleCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Marca como failed jobs travados. O intervalo (90s) precisa cobrir uma
+    // fatia (18s) + margem de continuação, mas ser curto o bastante para que
+    // uma morte silenciosa do slice (raro) não bloqueie o usuário por muito tempo.
+    const failStale = async () => {
+      const staleCutoff = new Date(Date.now() - 90 * 1000).toISOString();
       await supabase
         .from("meta_sync_jobs")
         .update({
@@ -1865,7 +1868,29 @@ Deno.serve(async (req) => {
           message: "Sincronização anterior expirou antes de finalizar. Iniciando nova tentativa...",
         })
         .in("status", ["pending", "running"])
-        .lt("created_at", staleCutoff);
+        .lt("updated_at", staleCutoff);
+    };
+    // Marca o job como failed com mensagem clara se a Promise do slice rejeitar
+    // (antes qualquer exceção fora do try interno virava rejeição silenciosa e
+    // o job ficava "running" para sempre até o failStale).
+    const safeRun = (jobId: string) => {
+      const p = runAccountsSyncJobResumable(supabase, jobId, appIds, syncMode).catch(async (e) => {
+        const msg = (e as Error)?.message || String(e);
+        console.error("[meta-sync] slice crash", jobId, msg);
+        try {
+          await supabase.from("meta_sync_jobs").update({
+            status: "failed",
+            finished_at: new Date().toISOString(),
+            message: `Falha inesperada no slice: ${msg.slice(0, 240)}`,
+          }).eq("id", jobId).in("status", ["pending", "running"]);
+        } catch (_) { /* noop */ }
+      });
+      // @ts-ignore EdgeRuntime is provided by Supabase runtime
+      EdgeRuntime.waitUntil(p);
+    };
+
+    if (action === "start_sync_accounts") {
+      await failStale();
 
       const { data: job, error: jobErr } = await supabase
         .from("meta_sync_jobs")
@@ -1873,16 +1898,14 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
       if (jobErr) throw jobErr;
-      // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, job.id, appIds, syncMode));
+      safeRun(job.id);
       return json({ sucesso: true, job_id: job.id });
     }
 
     if (action === "continue_sync_accounts") {
       const jobId = body.job_id;
       if (!jobId) return json({ erro: "job_id obrigatório" }, 400);
-      // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      EdgeRuntime.waitUntil(runAccountsSyncJobResumable(supabase, jobId, appIds, syncMode));
+      safeRun(jobId);
       return json({ sucesso: true, job_id: jobId });
     }
 
