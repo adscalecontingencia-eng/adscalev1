@@ -49,6 +49,7 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKe
         .from("meta_ad_accounts")
         .select("id,name,meta_account_id,last_sync_error_code,last_sync_error_message,last_sync_error_at,last_synced_at,last_sync_error_source,last_sync_error_attempts")
         .in("last_sync_error_code", PERMISSION_CODES)
+        .is("archived_at", null)
         .order("last_sync_error_at", { ascending: false })
         .limit(200);
       if (!cancelled && !error) setRows((data as any) || []);
