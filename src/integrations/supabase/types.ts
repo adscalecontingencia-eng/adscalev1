@@ -1284,6 +1284,7 @@ export type Database = {
           account_status: number | null
           age: number | null
           amount_spent: number | null
+          archived_at: string | null
           balance: number | null
           billing_cycle: string | null
           bm_id: string | null
@@ -1323,6 +1324,7 @@ export type Database = {
           account_status?: number | null
           age?: number | null
           amount_spent?: number | null
+          archived_at?: string | null
           balance?: number | null
           billing_cycle?: string | null
           bm_id?: string | null
@@ -1362,6 +1364,7 @@ export type Database = {
           account_status?: number | null
           age?: number | null
           amount_spent?: number | null
+          archived_at?: string | null
           balance?: number | null
           billing_cycle?: string | null
           bm_id?: string | null
