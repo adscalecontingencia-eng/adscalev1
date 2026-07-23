@@ -1939,9 +1939,14 @@ Deno.serve(async (req) => {
       const apps = await loadActiveApps(supabase, appIds);
       if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
 
-      const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const since: string = body.since || body.date || yday;
-      const until: string = body.until || body.date || yday;
+      // Default: puxa os últimos 3 dias INCLUINDO hoje. O default anterior
+      // (só ontem) fazia com que o gasto do dia corrente nunca fosse capturado
+      // e qualquer dia perdido nunca fosse recuperado — clientes ficavam com
+      // gastos zerados nos últimos 2–3 dias mesmo após clicar em "Sincronizar".
+      const today = new Date().toISOString().slice(0, 10);
+      const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+      const since: string = body.since || body.date || threeDaysAgo;
+      const until: string = body.until || body.date || today;
 
       // Freshness check: if any active account hasn't been re-discovered in
       // the last 6h, run sync_accounts first. Meta occasionally drops accounts
