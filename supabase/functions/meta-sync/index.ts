@@ -697,12 +697,28 @@ async function syncAccountsForApp(supabase: any, app: AppRow, report?: SyncRepor
 
   const CHUNK = 200;
   await reportStage("Salvar contas", "running", undefined, `${accRows.length} conta(s) únicas para salvar`);
-  for (let i = 0; i < accRows.length; i += CHUNK) {
-    const { error } = await supabase.from("meta_ad_accounts")
-      .upsert(accRows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
-    if (error) throw error;
-  }
+  // Split para preservar amount_spent quando a API do Meta devolve 0.
+  // Contas pré-pagas recém-criadas tipicamente retornam amount_spent=0 no
+  // /me/adaccounts mesmo com gasto real; nesses casos preferimos manter o
+  // valor já calculado (soma de meta_ad_insights) em vez de sobrescrever
+  // com zero. Rows onde a API devolveu valor > 0 continuam autoritativas.
+  const rowsWithSpend = accRows.filter((r: any) => Number(r.amount_spent) > 0);
+  const rowsWithoutSpend = accRows.map((r: any) => {
+    if (Number(r.amount_spent) > 0) return r;
+    const { amount_spent: _drop, ...rest } = r;
+    return rest;
+  }).filter((r: any) => !("amount_spent" in r));
+  const upsertBatch = async (rows: any[]) => {
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const { error } = await supabase.from("meta_ad_accounts")
+        .upsert(rows.slice(i, i + CHUNK), { onConflict: "meta_account_id" });
+      if (error) throw error;
+    }
+  };
+  await upsertBatch(rowsWithSpend);
+  await upsertBatch(rowsWithoutSpend);
   await reportStage("Salvar contas", "done", undefined, `${accRows.length} conta(s) salvas`, accRows.length);
+
 
   return { app: app.label, bms: bms.length + extraBmIds.size, accounts: accRows.length, erros: errors };
 }
@@ -1183,10 +1199,21 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
         last_synced_at: row.last_synced_at,
       }))
     : rows;
-  for (let i = 0; i < upsertRows.length; i += 200) {
-    const { error } = await supabase.from("meta_ad_accounts").upsert(upsertRows.slice(i, i + 200), { onConflict: "meta_account_id" });
-    if (error) throw error;
-  }
+  // Preserva amount_spent quando a API do Meta devolve 0 — mesma lógica do
+  // saveAccountsForApp: contas pré-pagas novas retornam 0 mesmo com gasto.
+  const rowsWithSpend = upsertRows.filter((r: any) => Number(r.amount_spent) > 0);
+  const rowsWithoutSpend = upsertRows
+    .map((r: any) => Number(r.amount_spent) > 0 ? r : (() => { const { amount_spent: _d, ...rest } = r; return rest; })())
+    .filter((r: any) => !("amount_spent" in r));
+  const doUpsert = async (chunkRows: any[]) => {
+    for (let i = 0; i < chunkRows.length; i += 200) {
+      const { error } = await supabase.from("meta_ad_accounts").upsert(chunkRows.slice(i, i + 200), { onConflict: "meta_account_id" });
+      if (error) throw error;
+    }
+  };
+  await doUpsert(rowsWithSpend);
+  await doUpsert(rowsWithoutSpend);
+
   return rows.length;
 }
 
@@ -2184,14 +2211,33 @@ Deno.serve(async (req) => {
                   .upsert(perAccount, { onConflict: "ad_account_id,date" });
               } catch (_) { /* upsert final abaixo cobre o retry */ }
             }
-            await supabase.from("meta_ad_accounts").update({
+            // Recalcula amount_spent a partir da soma dos insights.
+            // A API do Meta retorna amount_spent = 0 para contas pré-pagas
+            // recém-criadas mesmo quando já rodaram anúncios; a fonte
+            // confiável de gasto agregado é o próprio meta_ad_insights.
+            let lifetimeSpend: number | null = null;
+            try {
+              const { data: sumRows } = await supabase
+                .from("meta_ad_insights")
+                .select("spend")
+                .eq("ad_account_id", acc.id);
+              if (Array.isArray(sumRows)) {
+                lifetimeSpend = sumRows.reduce((t: number, r: any) => t + Number(r.spend || 0), 0);
+              }
+            } catch { /* opcional */ }
+            const updatePayload: Record<string, unknown> = {
               last_sync_error_code: null,
               last_sync_error_message: null,
               last_sync_error_source: null,
               last_sync_error_attempts: null,
               last_sync_error_at: null,
               last_synced_at: new Date().toISOString(),
-            }).eq("id", acc.id);
+            };
+            if (lifetimeSpend != null && lifetimeSpend > 0) {
+              updatePayload.amount_spent = lifetimeSpend;
+            }
+            await supabase.from("meta_ad_accounts").update(updatePayload).eq("id", acc.id);
+
           } catch (e) {
             const msg = (e as Error).message || "";
             errors.push({ account: acc.name, erro: msg });
