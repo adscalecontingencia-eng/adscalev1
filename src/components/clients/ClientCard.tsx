@@ -180,6 +180,12 @@ const sumInRange = (rows: { date: string; spend: number }[], start: Date, end: D
 const getRangeFor = (period: PeriodKey, custom: { start?: Date; end?: Date }): { start: Date; end: Date } | null => {
   const now = new Date();
   if (period === 'today') return { start: startOfDay(now), end: endOfDay(now) };
+  if (period === 'current_billing_week') {
+    return {
+      start: startOfDay(startOfWeek(now, { weekStartsOn: 5 })),
+      end: endOfDay(endOfWeek(now, { weekStartsOn: 5 })),
+    };
+  }
   // Semana de cobrança do projeto: última semana fechada sexta → quinta.
   if (period === 'billing_week') {
     return getLastClosedBillingWeekRange(now);
