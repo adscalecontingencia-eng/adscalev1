@@ -1180,6 +1180,12 @@ const Clients: React.FC = () => {
 
       <ClientKPIBar kpi={kpi} />
 
+      <WeekComparisonCard
+        data={weekCompareAgg}
+        title="Comparativo semanal — carteira"
+        subtitle="Somatório de todos os clientes: semana atual (parcial) vs mesmo intervalo da semana anterior"
+      />
+
       <ClientFiltersBar
         search={search}
         setSearch={setSearch}
