@@ -1199,10 +1199,21 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
         last_synced_at: row.last_synced_at,
       }))
     : rows;
-  for (let i = 0; i < upsertRows.length; i += 200) {
-    const { error } = await supabase.from("meta_ad_accounts").upsert(upsertRows.slice(i, i + 200), { onConflict: "meta_account_id" });
-    if (error) throw error;
-  }
+  // Preserva amount_spent quando a API do Meta devolve 0 — mesma lógica do
+  // saveAccountsForApp: contas pré-pagas novas retornam 0 mesmo com gasto.
+  const rowsWithSpend = upsertRows.filter((r: any) => Number(r.amount_spent) > 0);
+  const rowsWithoutSpend = upsertRows
+    .map((r: any) => Number(r.amount_spent) > 0 ? r : (() => { const { amount_spent: _d, ...rest } = r; return rest; })())
+    .filter((r: any) => !("amount_spent" in r));
+  const doUpsert = async (chunkRows: any[]) => {
+    for (let i = 0; i < chunkRows.length; i += 200) {
+      const { error } = await supabase.from("meta_ad_accounts").upsert(chunkRows.slice(i, i + 200), { onConflict: "meta_account_id" });
+      if (error) throw error;
+    }
+  };
+  await doUpsert(rowsWithSpend);
+  await doUpsert(rowsWithoutSpend);
+
   return rows.length;
 }
 
