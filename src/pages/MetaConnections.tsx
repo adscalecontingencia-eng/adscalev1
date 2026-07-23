@@ -68,7 +68,7 @@ export default function MetaConnections() {
     setLoading(true);
     const [b, a, asn, cl] = await Promise.all([
       supabase.from("meta_business_managers").select("*").order("name"),
-      supabase.from("meta_ad_accounts").select("*").order("score", { ascending: true }),
+      supabase.from("meta_ad_accounts").select("*").is("archived_at", null).order("score", { ascending: true }),
       supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true),
       supabase.from("clients").select("id, name, email, company_name").order("name"),
     ]);
