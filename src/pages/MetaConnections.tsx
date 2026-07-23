@@ -313,12 +313,34 @@ export default function MetaConnections() {
             )}
           </p>
         </div>
-        <Button size="sm" disabled={syncing} onClick={sync}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing && job
-            ? `Sincronizando ${job.progress_total ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
-            : "Sincronizar BMs + Contas"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              exportActiveAccountsCsv().catch((e) => toast.error("Falha ao exportar ativas: " + (e?.message || e)));
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar ativas
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              exportArchivedAccountsCsv().catch((e) => toast.error("Falha ao exportar arquivadas: " + (e?.message || e)));
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar arquivadas
+          </Button>
+          <Button size="sm" disabled={syncing} onClick={sync}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing && job
+              ? `Sincronizando ${job.progress_total ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
+              : "Sincronizar BMs + Contas"}
+          </Button>
+        </div>
       </div>
 
       <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
