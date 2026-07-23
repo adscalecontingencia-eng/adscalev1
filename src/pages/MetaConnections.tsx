@@ -23,6 +23,7 @@ import SystemUserHelp from "@/components/meta/SystemUserHelp";
 import AreaResponsibles from "@/components/support/AreaResponsibles";
 import AdsPermissionErrorsPanel from "@/components/ads/AdsPermissionErrorsPanel";
 import ArchivedAccountsPanel from "@/components/ads/ArchivedAccountsPanel";
+import { exportActiveAccountsCsv, exportArchivedAccountsCsv } from "@/lib/meta-export";
 
 type BM = {
   id: string; meta_bm_id: string; name: string; status: string | null;
