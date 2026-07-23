@@ -1136,6 +1136,19 @@ const Clients: React.FC = () => {
   // Mapa de gasto diário por cliente (usado na sparkline do card)
   const spendByClient = insightsByClient;
 
+  // Comparativo agregado semana atual (parcial) vs mesmo intervalo da semana anterior
+  const weekCompareAgg = useMemo(
+    () =>
+      computeAggregateWeekCompare(
+        clients.map(c => ({
+          spendByDay: spendByClient[c.id] || [],
+          accounts: accountsByClient[c.id] || [],
+          percentage: c.clientType === 'aluguel' ? (c.percentageValue || 0) : 0,
+        })),
+      ),
+    [clients, spendByClient, accountsByClient],
+  );
+
   const historyClient = historyClientId ? clients.find(c => c.id === historyClientId) : null;
 
   return (
