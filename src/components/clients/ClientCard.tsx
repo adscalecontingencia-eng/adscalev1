@@ -59,7 +59,7 @@ export interface AccountBreakdown {
   spendByDay: { date: string; spend: number }[];
 }
 
-type PeriodKey = 'today' | 'billing_week' | 'last_billing_week' | '7d' | '30d' | 'custom';
+type PeriodKey = 'today' | 'current_billing_week' | 'billing_week' | 'last_billing_week' | '7d' | '30d' | 'custom';
 
 interface Props {
   client: ClientLite;
