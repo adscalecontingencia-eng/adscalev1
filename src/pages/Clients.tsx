@@ -20,6 +20,8 @@ import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
 import ClientHistoryDrawer from '@/components/clients/ClientHistoryDrawer';
 import { splitOverdueVsCurrent, computeBillingAudit, WeeklyRow, BillingAudit, getLastClosedBillingWeekRange } from '@/lib/billing-status';
+import WeekComparisonCard from '@/components/clients/WeekComparisonCard';
+import { computeAggregateWeekCompare } from '@/lib/week-compare';
 
 interface Client {
   id: string;
