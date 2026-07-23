@@ -27,7 +27,7 @@ import { BillingAuditDialog } from './BillingAuditDialog';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
 import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
@@ -59,7 +59,7 @@ export interface AccountBreakdown {
   spendByDay: { date: string; spend: number }[];
 }
 
-type PeriodKey = 'today' | 'billing_week' | 'last_billing_week' | '7d' | '30d' | 'custom';
+type PeriodKey = 'today' | 'current_billing_week' | 'billing_week' | 'last_billing_week' | '7d' | '30d' | 'custom';
 
 interface Props {
   client: ClientLite;
@@ -180,6 +180,12 @@ const sumInRange = (rows: { date: string; spend: number }[], start: Date, end: D
 const getRangeFor = (period: PeriodKey, custom: { start?: Date; end?: Date }): { start: Date; end: Date } | null => {
   const now = new Date();
   if (period === 'today') return { start: startOfDay(now), end: endOfDay(now) };
+  if (period === 'current_billing_week') {
+    return {
+      start: startOfDay(startOfWeek(now, { weekStartsOn: 5 })),
+      end: endOfDay(endOfWeek(now, { weekStartsOn: 5 })),
+    };
+  }
   // Semana de cobrança do projeto: última semana fechada sexta → quinta.
   if (period === 'billing_week') {
     return getLastClosedBillingWeekRange(now);
@@ -400,6 +406,7 @@ export const ClientCard: React.FC<Props> = (props) => {
         <div className="mt-4 flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Detalhar por período:</span>
           <PeriodPill id="today" label="Hoje" />
+          <PeriodPill id="current_billing_week" label="Semana atual" />
           <PeriodPill id="billing_week" label="Última semana fechada" />
           <PeriodPill id="last_billing_week" label="Semana fechada anterior" />
           <PeriodPill id="7d" label="7 dias corridos" />
@@ -448,6 +455,7 @@ export const ClientCard: React.FC<Props> = (props) => {
             icon={<DollarSign size={11} />}
             label={
               period === 'today' ? 'Gasto hoje' :
+              period === 'current_billing_week' ? 'Gasto semana atual' :
               period === 'billing_week' ? 'Gasto última semana fechada' :
               period === 'last_billing_week' ? 'Gasto semana fechada anterior' :
               period === '7d' ? 'Gasto 7d corridos' :
