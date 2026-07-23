@@ -2184,14 +2184,33 @@ Deno.serve(async (req) => {
                   .upsert(perAccount, { onConflict: "ad_account_id,date" });
               } catch (_) { /* upsert final abaixo cobre o retry */ }
             }
-            await supabase.from("meta_ad_accounts").update({
+            // Recalcula amount_spent a partir da soma dos insights.
+            // A API do Meta retorna amount_spent = 0 para contas pré-pagas
+            // recém-criadas mesmo quando já rodaram anúncios; a fonte
+            // confiável de gasto agregado é o próprio meta_ad_insights.
+            let lifetimeSpend: number | null = null;
+            try {
+              const { data: sumRows } = await supabase
+                .from("meta_ad_insights")
+                .select("spend")
+                .eq("ad_account_id", acc.id);
+              if (Array.isArray(sumRows)) {
+                lifetimeSpend = sumRows.reduce((t: number, r: any) => t + Number(r.spend || 0), 0);
+              }
+            } catch { /* opcional */ }
+            const updatePayload: Record<string, unknown> = {
               last_sync_error_code: null,
               last_sync_error_message: null,
               last_sync_error_source: null,
               last_sync_error_attempts: null,
               last_sync_error_at: null,
               last_synced_at: new Date().toISOString(),
-            }).eq("id", acc.id);
+            };
+            if (lifetimeSpend != null && lifetimeSpend > 0) {
+              updatePayload.amount_spent = lifetimeSpend;
+            }
+            await supabase.from("meta_ad_accounts").update(updatePayload).eq("id", acc.id);
+
           } catch (e) {
             const msg = (e as Error).message || "";
             errors.push({ account: acc.name, erro: msg });
