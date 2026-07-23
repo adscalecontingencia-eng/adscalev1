@@ -1832,6 +1832,7 @@ Deno.serve(async (req) => {
         .select("id, last_sync_error_code")
         .eq("status", "active")
         .eq("account_status", 1)
+        .is("archived_at", null)
         .not("last_sync_error_at", "is", null);
       if (failedErr) throw failedErr;
       const ids = (failed || [])
