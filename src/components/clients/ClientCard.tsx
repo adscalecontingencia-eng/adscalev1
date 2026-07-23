@@ -31,6 +31,8 @@ import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfWeek, e
 import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
 import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
+import { computeClientWeekCompare } from '@/lib/week-compare';
+import WeekComparisonCard from './WeekComparisonCard';
 import { toast } from 'sonner';
 
 export interface ClientLite {
