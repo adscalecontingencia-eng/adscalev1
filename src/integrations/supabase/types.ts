@@ -3111,7 +3111,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      marketplace_asset_accounts_public: {
+        Row: {
+          account_number: number | null
+          asset_id: string | null
+          created_at: string | null
+          id: string | null
+          is_prepaid: boolean | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_asset_accounts_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       credit_wallet_from_deposit: {
