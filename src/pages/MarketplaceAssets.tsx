@@ -59,7 +59,7 @@ const MarketplaceAssets: React.FC = () => {
       if (aRows && aRows.length > 0) {
         const ids = aRows.map((a: any) => a.id);
         const { data: accRows } = await supabase
-          .from("marketplace_asset_accounts")
+          .from("marketplace_asset_accounts_public" as any)
           .select("*")
           .in("asset_id", ids)
           .order("account_number", { ascending: true });
