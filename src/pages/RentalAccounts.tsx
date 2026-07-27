@@ -48,15 +48,15 @@ const RentalAccounts: React.FC = () => {
 
       {/* NAV */}
       <header className="relative z-20 border-b border-border/60 backdrop-blur-xl bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="text-primary notranslate" translate="no">
-            <AdScaleLogo size={26} />
+            <AdScaleLogo size={24} />
           </div>
           <Link
             to={SIGNUP}
-            className="hidden sm:inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-lg hover:brightness-110 transition"
+            className="inline-flex items-center gap-1.5 sm:gap-2 bg-primary text-primary-foreground text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:brightness-110 transition"
           >
-            Get started <ArrowRight size={14} />
+            Get started <ArrowRight size={12} className="sm:hidden" /><ArrowRight size={14} className="hidden sm:inline" />
           </Link>
         </div>
       </header>
