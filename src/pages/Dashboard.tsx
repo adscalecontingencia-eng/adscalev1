@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw, Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS, es as esLocale } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { parseDateLocal } from '@/lib/date-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,6 +25,7 @@ const CHART_COLORS = ['hsl(212,100%,55%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
   const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('geral');
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -68,6 +70,7 @@ const Dashboard: React.FC = () => {
   const [syncHistory, setSyncHistory] = useState<any[]>([]);
   const [showSyncHistory, setShowSyncHistory] = useState(false);
   const isAdmin = user?.role === 'admin';
+  const dateLocale = i18n.language?.startsWith('en') ? enUS : i18n.language?.startsWith('es') ? esLocale : ptBR;
 
   const loadSyncHistory = async () => {
     const { data } = await supabase
@@ -79,14 +82,14 @@ const Dashboard: React.FC = () => {
   };
 
   const handleManualSync = async () => {
-    if (!isAdmin) { toast.error('Apenas administradores podem sincronizar comissões'); return; }
+    if (!isAdmin) { toast.error(t('adminDashboard.toasts.adminOnly')); return; }
     setSyncing(true);
     const r = await syncAutoCommissions({ logAudit: true, source: 'manual' });
     setSyncing(false);
     await loadSyncHistory();
-    if (r.errors > 0) toast.error('Erro ao sincronizar comissões');
-    else if (r.inserted > 0 || r.updated > 0) toast.success(`${r.inserted} comissão(ões) gerada(s) · ${r.updated} atualizada(s) pela Meta`);
-    else toast.info('Comissões já estão sincronizadas');
+    if (r.errors > 0) toast.error(t('adminDashboard.toasts.syncError'));
+    else if (r.inserted > 0 || r.updated > 0) toast.success(t('adminDashboard.toasts.syncSuccess', { inserted: r.inserted, updated: r.updated }));
+    else toast.info(t('adminDashboard.toasts.alreadySynced'));
   };
 
   // Mapa client_id → client_type para filtrar transações por tipo de cliente
@@ -175,15 +178,15 @@ const Dashboard: React.FC = () => {
   const paginaNet = netByCategory('Pagina');
 
   const pieData = [
-    { name: 'Perfil', value: perfilCosts },
-    { name: 'BM Comum', value: bmComumCosts },
-    { name: 'BM Verificada', value: bmVerifCosts },
-    { name: 'BM API', value: bmApiCosts },
-    { name: 'BM Disparo', value: bmDisparoCosts },
-    { name: 'Pagina', value: paginaCosts },
-    { name: 'Fornecedores', value: fornecedorCosts },
-    { name: 'Marketing', value: marketingCosts },
-    { name: 'Operacional', value: operacionalCosts },
+    { name: t('adminDashboard.structures.profile'), value: perfilCosts },
+    { name: t('adminDashboard.structures.commonBm'), value: bmComumCosts },
+    { name: t('adminDashboard.structures.verifiedBm'), value: bmVerifCosts },
+    { name: t('adminDashboard.structures.apiBm'), value: bmApiCosts },
+    { name: t('adminDashboard.structures.broadcastBm'), value: bmDisparoCosts },
+    { name: t('adminDashboard.structures.page'), value: paginaCosts },
+    { name: t('adminDashboard.structures.suppliers'), value: fornecedorCosts },
+    { name: t('adminDashboard.structures.marketing'), value: marketingCosts },
+    { name: t('adminDashboard.structures.operational'), value: operacionalCosts },
   ].filter(d => d.value > 0);
 
   const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
@@ -218,10 +221,10 @@ const Dashboard: React.FC = () => {
       const dayStructure = dayTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       const dayProductCost = dayTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
       const dayExpenses = dayStructure + dayProductCost;
-      days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
+      days.push({ date: format(d, 'dd/MM', { locale: dateLocale }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
     }
     return days;
-  }, [baseTimeTransactions]);
+  }, [baseTimeTransactions, dateLocale]);
 
   const monthlyData = useMemo(() => {
     const months: any[] = [];
@@ -235,10 +238,10 @@ const Dashboard: React.FC = () => {
       const monthStructure = monthTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       const monthProductCost = monthTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
       const monthExpenses = monthStructure + monthProductCost;
-      months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
+      months.push({ date: format(d, 'MMM/yy', { locale: dateLocale }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;
-  }, [baseTimeTransactions]);
+  }, [baseTimeTransactions, dateLocale]);
 
   // Conversão de moeda — todas as somas no banco são em USD
   const conv = (v: number) => currency === 'BRL' ? v * usdToBrl : v;
@@ -273,7 +276,7 @@ const Dashboard: React.FC = () => {
   const handleExportExcel = async () => {
     const sym = currency;
     const v = (n: number) => Number(conv(n).toFixed(2));
-    const tipoLabel = clientTypeFilter === 'geral' ? 'Geral' : clientTypeFilter === 'aluguel' ? 'Aluguel' : 'Vendas';
+    const tipoLabel = clientTypeFilter === 'geral' ? t('adminDashboard.filters.general') : clientTypeFilter === 'aluguel' ? t('adminDashboard.filters.rental') : t('adminDashboard.filters.sales');
 
     const wb = new ExcelJS.Workbook();
     wb.creator = 'AD SCALE';
@@ -290,63 +293,63 @@ const Dashboard: React.FC = () => {
     };
 
     // 1) Resumo / KPIs
-    const wsResumo = wb.addWorksheet('Resumo');
+    const wsResumo = wb.addWorksheet(t('adminDashboard.export.summary'));
     wsResumo.columns = [{ width: 28 }, { width: 26 }];
     [
       ['AD SCALE — Dashboard'],
-      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })],
-      ['Período', dateLabel],
-      ['Tipo de cliente', tipoLabel],
-      ['Moeda', sym + (sym === 'BRL' ? ` (cotação R$ ${usdToBrl.toFixed(4)})` : '')],
+      [t('adminDashboard.export.generatedAt'), format(new Date(), 'dd/MM/yyyy HH:mm', { locale: dateLocale })],
+      [t('adminDashboard.export.period'), dateLabel],
+      [t('adminDashboard.export.clientType'), tipoLabel],
+      [t('adminDashboard.export.currency'), sym + (sym === 'BRL' ? ` (${t('adminDashboard.export.rate', { rate: usdToBrl.toFixed(4) })})` : '')],
       [],
-      ['Indicador', `Valor (${sym})`],
-      ['Faturamento', v(revenue)],
-      ['Gastos Estrutura', v(expenses)],
-      ['Custo de Produtos', v(productCost)],
-      ['Lucro', v(profit)],
-      ['Margem (%)', Number(margin.toFixed(2))],
-      ['Ticket Médio', v(avgTicket)],
-      ['Vendas (qtd)', salesCount],
-      ['Clientes Ativos', activeClients],
-      ['Clientes Totais', clients.length],
+      [t('adminDashboard.export.indicator'), t('adminDashboard.export.value', { currency: sym })],
+      [t('adminDashboard.kpis.revenue'), v(revenue)],
+      [t('adminDashboard.kpis.structureCosts'), v(expenses)],
+      [t('adminDashboard.kpis.productCost'), v(productCost)],
+      [t('adminDashboard.kpis.profit'), v(profit)],
+      [t('adminDashboard.export.margin'), Number(margin.toFixed(2))],
+      [t('adminDashboard.kpis.avgTicket'), v(avgTicket)],
+      [t('adminDashboard.export.salesQty'), salesCount],
+      [t('adminDashboard.kpis.activeClients'), activeClients],
+      [t('adminDashboard.export.total'), clients.length],
     ].forEach(r => wsResumo.addRow(r));
     wsResumo.getRow(1).font = { bold: true, size: 14 };
     wsResumo.getRow(7).font = { bold: true, color: { argb: 'FF0F0F0F' } };
     wsResumo.getRow(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF39FF14' } };
 
     // 2) Diário
-    addSheet('Diario', [
-      ['Data', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.daily'), [
+      [t('common.date'), `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...dailyData.map(d => [d.date, v(d.faturamento), v(d.gastos), v(d.lucro)]),
     ], [12, 18, 18, 18]);
 
     // 3) Mensal
-    addSheet('Mensal', [
-      ['Mês', `Receitas (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.monthly'), [
+      [t('adminDashboard.export.month'), `${t('adminDashboard.charts.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...monthlyData.map(m => [m.date, v(m.receitas), v(m.gastos), v(m.lucro)]),
     ], [12, 18, 18, 18]);
 
     // 4) Custos por Estrutura
     const totalEstrutura = pieData.reduce((s, p) => s + p.value, 0);
-    addSheet('Custos Estrutura', [
-      ['Estrutura', `Custo (${sym})`, '% do total'],
+    addSheet(t('adminDashboard.export.structureCosts'), [
+      [t('adminDashboard.export.structure'), `${t('adminDashboard.charts.cost')} (${sym})`, t('adminDashboard.export.pctTotal')],
       ...pieData.map(p => [
         p.name,
         v(p.value),
         totalEstrutura > 0 ? Number(((p.value / totalEstrutura) * 100).toFixed(2)) : 0,
       ]),
-      ['Total', v(totalEstrutura), 100],
+      [t('adminDashboard.export.total'), v(totalEstrutura), 100],
     ], [22, 18, 14]);
 
     // 5) Clientes Aluguel
-    addSheet('Clientes Aluguel', [
-      ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.rentalClients'), [
+      [t('adminDashboard.export.client'), `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...clientProfitsAluguel.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
     ], [30, 18, 18, 18]);
 
     // 6) Clientes Vendas
-    addSheet('Clientes Vendas', [
-      ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.salesClients'), [
+      [t('adminDashboard.export.client'), `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...clientProfitsVenda.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
     ], [30, 18, 18, 18]);
 
@@ -363,11 +366,11 @@ const Dashboard: React.FC = () => {
   };
 
   const dateLabel =
-    dateFilter === 'today' ? 'Hoje'
-    : dateFilter === '7days' ? 'Últimos 7 dias'
-    : dateFilter === 'month' ? 'Esse Mês'
-    : dateFilter === 'custom' ? 'Data específica'
-    : 'Período personalizado';
+    dateFilter === 'today' ? t('adminDashboard.periods.today')
+    : dateFilter === '7days' ? t('adminDashboard.periods.last7')
+    : dateFilter === 'month' ? t('adminDashboard.periods.month')
+    : dateFilter === 'custom' ? t('adminDashboard.periods.specificDate')
+    : t('adminDashboard.periods.custom');
 
   return (
     <div className="space-y-6">
@@ -392,11 +395,11 @@ const Dashboard: React.FC = () => {
               Command Center
             </div>
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-              Bem-vindo de volta
+              {t('adminDashboard.welcomeBack')}
               {user?.email ? <span className="text-primary glow-text">.</span> : null}
             </h1>
             <p className="text-sm text-muted-foreground mt-2 max-w-lg">
-              Visão consolidada da operação · {dateLabel.toLowerCase()}
+              {t('adminDashboard.consolidatedView', { period: dateLabel.toLowerCase() })}
             </p>
           </div>
 
@@ -407,22 +410,22 @@ const Dashboard: React.FC = () => {
                   onClick={handleManualSync}
                   disabled={syncing}
                   className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium bg-card/40 backdrop-blur border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
-                  title="Gerar comissões pendentes a partir dos gastos sincronizados"
+                  title={t('adminDashboard.syncTitle')}
                 >
                   <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-                  {syncing ? 'Sincronizando...' : 'Sincronizar Comissões'}
+                  {syncing ? t('adminDashboard.syncing') : t('adminDashboard.syncCommissions')}
                 </button>
                 <button
                   onClick={() => { setShowSyncHistory(true); loadSyncHistory(); }}
                   className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium bg-card/40 backdrop-blur border border-border text-muted-foreground hover:text-foreground transition-colors"
-                  title="Ver histórico de sincronizações"
+                  title={t('adminDashboard.historyTitle')}
                 >
-                  <Clock size={13} /> Histórico
+                  <Clock size={13} /> {t('adminDashboard.history')}
                 </button>
               </>
             )}
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Margem operacional</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t('adminDashboard.operationalMargin')}</div>
               <div className={`font-display text-2xl font-bold ${margin >= 0 ? 'text-primary glow-text' : 'text-destructive'}`}>
                 {margin.toFixed(1)}%
               </div>
@@ -447,7 +450,7 @@ const Dashboard: React.FC = () => {
                 : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
             )}
           >
-            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'month' ? 'Esse Mês' : f === 'custom' ? 'Data específica' : 'Período'}
+            {f === 'today' ? t('adminDashboard.periods.today') : f === '7days' ? t('adminDashboard.periods.last7') : f === 'month' ? t('adminDashboard.periods.month') : f === 'custom' ? t('adminDashboard.periods.specificDate') : t('adminDashboard.periods.period')}
           </button>
         ))}
         {dateFilter === 'custom' && (
@@ -455,7 +458,7 @@ const Dashboard: React.FC = () => {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs bg-card/40 backdrop-blur border border-border/60 text-foreground hover:border-primary/50 transition-colors">
                 <CalendarIcon size={13} />
-                {customDate ? format(customDate, "dd 'de' MMM, yyyy", { locale: ptBR }) : 'Selecionar data'}
+                {customDate ? format(customDate, 'dd MMM, yyyy', { locale: dateLocale }) : t('adminDashboard.periods.selectDate')}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -469,7 +472,7 @@ const Dashboard: React.FC = () => {
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs bg-card/40 backdrop-blur border border-border/60 text-foreground hover:border-primary/50 transition-colors">
                   <CalendarIcon size={13} />
-                  {rangeFrom ? format(rangeFrom, 'dd/MM/yyyy', { locale: ptBR }) : 'De'}
+                  {rangeFrom ? format(rangeFrom, 'dd/MM/yyyy', { locale: dateLocale }) : t('adminDashboard.periods.from')}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -481,7 +484,7 @@ const Dashboard: React.FC = () => {
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs bg-card/40 backdrop-blur border border-border/60 text-foreground hover:border-primary/50 transition-colors">
                   <CalendarIcon size={13} />
-                  {rangeTo ? format(rangeTo, 'dd/MM/yyyy', { locale: ptBR }) : 'Até'}
+                  {rangeTo ? format(rangeTo, 'dd/MM/yyyy', { locale: dateLocale }) : t('adminDashboard.periods.to')}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -495,24 +498,24 @@ const Dashboard: React.FC = () => {
       {/* CLIENT TYPE + CURRENCY TOGGLES */}
       <div className="flex flex-wrap gap-2 items-center justify-between">
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">Tipo:</span>
-          {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(t => (
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">{t('adminDashboard.filters.type')}</span>
+          {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(filterType => (
             <button
-              key={t}
-              onClick={() => setClientTypeFilter(t)}
+              key={filterType}
+              onClick={() => setClientTypeFilter(filterType)}
               className={cn(
                 'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border',
-                clientTypeFilter === t
+                clientTypeFilter === filterType
                   ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_16px_hsl(var(--primary)/0.35)]'
                   : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
               )}
             >
-              {t === 'geral' ? 'Geral' : t === 'aluguel' ? 'Aluguel' : 'Vendas'}
+              {filterType === 'geral' ? t('adminDashboard.filters.general') : filterType === 'aluguel' ? t('adminDashboard.filters.rental') : t('adminDashboard.filters.sales')}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Moeda:</span>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{t('adminDashboard.filters.currency')}</span>
           <div className="flex rounded-full border border-border/60 bg-card/40 backdrop-blur p-0.5">
             {(['USD', 'BRL'] as Currency[]).map(c => (
               <button
@@ -534,28 +537,28 @@ const Dashboard: React.FC = () => {
             onClick={handleExportExcel}
             translate="no"
             className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-[0_0_16px_hsl(var(--primary)/0.25)]"
-            title="Exportar gráficos para Excel"
+            title={t('adminDashboard.exportTitle')}
           >
             <Download className="w-3.5 h-3.5" />
-            Exportar Excel
+            {t('adminDashboard.exportExcel')}
           </button>
         </div>
       </div>
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
-        <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
-        <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta={fornecedorCosts > 0 ? `inclui ${fmt(fornecedorCosts)} fornec.` : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Marketing" value={fmt(marketingCosts)} delta="anúncios + social" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
-        <KpiCard label="Custo Operacional" value={fmt(operacionalCosts)} delta="ferramentas + equipe" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
-        <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
-        <KpiCard label="Clientes Ativos" value={String(activeClients)} delta={`${clients.length} total`} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
+        <KpiCard label={t('adminDashboard.kpis.revenue')} value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
+        <KpiCard label={t('adminDashboard.kpis.profit')} value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
+        <KpiCard label={t('adminDashboard.kpis.structureCosts')} value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label={t('adminDashboard.kpis.productCost')} value={fmt(productCost)} delta={fornecedorCosts > 0 ? t('adminDashboard.kpis.includesSuppliers', { amount: fmt(fornecedorCosts) }) : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label={t('adminDashboard.structures.marketing')} value={fmt(marketingCosts)} delta={t('adminDashboard.kpis.marketingDelta')} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
+        <KpiCard label={t('adminDashboard.kpis.operationalCost')} value={fmt(operacionalCosts)} delta={t('adminDashboard.kpis.operationalDelta')} deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
+        <KpiCard label={t('adminDashboard.kpis.avgTicket')} value={fmt(avgTicket)} delta={t('adminDashboard.kpis.salesCount', { count: salesCount })} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
+        <KpiCard label={t('adminDashboard.kpis.activeClients')} value={String(activeClients)} delta={t('adminDashboard.kpis.totalClients', { count: clients.length })} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
       </div>
 
       {/* MAIN CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <PanelCard className="lg:col-span-2" title="Faturamento vs Gastos" subtitle="Últimos 7 dias" icon={BarChart3}>
+        <PanelCard className="lg:col-span-2" title={t('adminDashboard.charts.revenueVsCosts')} subtitle={t('adminDashboard.periods.last7')} icon={BarChart3}>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -573,14 +576,14 @@ const Dashboard: React.FC = () => {
                 <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} />
-                <Area type="monotone" dataKey="faturamento" stroke="hsl(212,100%,55%)" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-                <Area type="monotone" dataKey="gastos" stroke="hsl(0,84%,60%)" strokeWidth={2} fill="url(#colorExpenses)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="faturamento" name={t('adminDashboard.kpis.revenue')} stroke="hsl(212,100%,55%)" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="gastos" name={t('adminDashboard.charts.expenses')} stroke="hsl(0,84%,60%)" strokeWidth={2} fill="url(#colorExpenses)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </PanelCard>
 
-        <PanelCard title="Custos por Estrutura" subtitle={dateLabel} icon={Server}>
+        <PanelCard title={t('adminDashboard.charts.costsByStructure')} subtitle={dateLabel} icon={Server}>
           {pieData.length > 0 ? (
             <>
               <div className="h-44">
@@ -606,13 +609,13 @@ const Dashboard: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">Nenhum gasto no período.</div>
+            <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">{t('adminDashboard.charts.noCosts')}</div>
           )}
         </PanelCard>
       </div>
 
       {/* MONTHLY */}
-      <PanelCard title="Receitas vs Gastos" subtitle="Últimos 6 meses" icon={DollarSign}>
+      <PanelCard title={t('adminDashboard.charts.revenueVsExpenses')} subtitle={t('adminDashboard.charts.last6Months')} icon={DollarSign}>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -620,8 +623,8 @@ const Dashboard: React.FC = () => {
               <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-              <Bar dataKey="receitas" name="Receitas" fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="gastos" name="Gastos" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="receitas" name={t('adminDashboard.charts.revenue')} fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="gastos" name={t('adminDashboard.charts.expenses')} fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -629,16 +632,16 @@ const Dashboard: React.FC = () => {
 
       {/* STRUCTURE BREAKDOWN MINI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {[
-          { label: 'Perfil', value: perfilNet, color: 'hsl(160,80%,45%)' },
-          { label: 'BM Comum', value: bmComumNet, color: 'hsl(212,100%,55%)' },
-          { label: 'BM Verificada', value: bmVerifNet, color: 'hsl(180,100%,50%)' },
-          { label: 'BM API', value: bmApiNet, color: 'hsl(280,80%,60%)' },
-          { label: 'BM Disparo', value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
-          { label: 'Pagina', value: paginaNet, color: 'hsl(200,100%,55%)' },
-          { label: 'Fornecedores', value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
-          { label: 'Marketing', value: -marketingCosts, color: 'hsl(330,80%,60%)' },
-          { label: 'Custo Operacional', value: -operacionalCosts, color: 'hsl(50,90%,55%)' },
+          {[
+          { label: t('adminDashboard.structures.profile'), value: perfilNet, color: 'hsl(160,80%,45%)' },
+          { label: t('adminDashboard.structures.commonBm'), value: bmComumNet, color: 'hsl(212,100%,55%)' },
+          { label: t('adminDashboard.structures.verifiedBm'), value: bmVerifNet, color: 'hsl(180,100%,50%)' },
+          { label: t('adminDashboard.structures.apiBm'), value: bmApiNet, color: 'hsl(280,80%,60%)' },
+          { label: t('adminDashboard.structures.broadcastBm'), value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
+          { label: t('adminDashboard.structures.page'), value: paginaNet, color: 'hsl(200,100%,55%)' },
+          { label: t('adminDashboard.structures.suppliers'), value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
+          { label: t('adminDashboard.structures.marketing'), value: -marketingCosts, color: 'hsl(330,80%,60%)' },
+          { label: t('adminDashboard.kpis.operationalCost'), value: -operacionalCosts, color: 'hsl(50,90%,55%)' },
         ].map(item => (
           <motion.div
             key={item.label}
@@ -653,11 +656,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* CLIENT PROFITS — split by client_type */}
-      <PanelCard title="Lucro por Cliente" subtitle={`${clientProfitsAluguel.length} aluguel · ${clientProfitsVenda.length} vendas`} icon={Users}>
+      <PanelCard title={t('adminDashboard.charts.profitByClient')} subtitle={t('adminDashboard.charts.clientProfitSubtitle', { rental: clientProfitsAluguel.length, sales: clientProfitsVenda.length })} icon={Users}>
         <Tabs defaultValue="aluguel" className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="aluguel">Clientes Aluguel ({clientProfitsAluguel.length})</TabsTrigger>
-            <TabsTrigger value="venda">Clientes Vendas ({clientProfitsVenda.length})</TabsTrigger>
+            <TabsTrigger value="aluguel">{t('adminDashboard.charts.rentalClients', { count: clientProfitsAluguel.length })}</TabsTrigger>
+            <TabsTrigger value="venda">{t('adminDashboard.charts.salesClients', { count: clientProfitsVenda.length })}</TabsTrigger>
           </TabsList>
 
           {(['aluguel', 'venda'] as const).map(tab => {
@@ -669,21 +672,21 @@ const Dashboard: React.FC = () => {
               <TabsContent key={tab} value={tab} className="mt-0">
                 {data.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">
-                    Nenhuma transação encontrada para clientes de {tab === 'aluguel' ? 'aluguel' : 'venda'} no período.
+                    {t('adminDashboard.charts.noClientTx', { type: tab === 'aluguel' ? t('adminDashboard.filters.rental').toLowerCase() : t('adminDashboard.filters.sales').toLowerCase() })}
                   </p>
                 ) : (
                   <>
                     <div className="grid grid-cols-3 gap-2 mb-4">
                       <div className="bg-secondary/40 rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Faturamento</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('adminDashboard.kpis.revenue')}</p>
                         <p className="text-sm font-mono font-bold text-primary">{fmt(totalRevenue)}</p>
                       </div>
                       <div className="bg-secondary/40 rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('adminDashboard.charts.cost')}</p>
                         <p className="text-sm font-mono font-bold text-destructive">{fmt(totalExpenses)}</p>
                       </div>
                       <div className="bg-secondary/40 rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Lucro</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('adminDashboard.kpis.profit')}</p>
                         <p className={`text-sm font-mono font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(totalProfit)}</p>
                       </div>
                     </div>
@@ -694,8 +697,8 @@ const Dashboard: React.FC = () => {
                           <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                           <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-                          <Bar dataKey="revenue" name="Faturamento" fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                          <Bar dataKey="expenses" name="Custo" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          <Bar dataKey="revenue" name={t('adminDashboard.kpis.revenue')} fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          <Bar dataKey="expenses" name={t('adminDashboard.charts.cost')} fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -733,12 +736,12 @@ const Dashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                <Clock size={16} className="text-primary" /> Histórico de Sincronização de Comissões
+                <Clock size={16} className="text-primary" /> {t('adminDashboard.syncHistory.title')}
               </h3>
               <button onClick={() => setShowSyncHistory(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             {syncHistory.length === 0 ? (
-              <p className="text-center text-muted-foreground text-xs py-8">Nenhuma sincronização registrada ainda.</p>
+              <p className="text-center text-muted-foreground text-xs py-8">{t('adminDashboard.syncHistory.empty')}</p>
             ) : (
               <div className="space-y-2">
                 {syncHistory.map((h: any) => (
@@ -749,7 +752,7 @@ const Dashboard: React.FC = () => {
                           ? <AlertTriangle size={14} className="text-destructive" />
                           : <CheckCircle2 size={14} className="text-primary" />}
                         <span className="font-semibold">
-                          {new Date(h.created_at).toLocaleString('pt-BR')}
+                          {new Date(h.created_at).toLocaleString(i18n.language?.startsWith('en') ? 'en-US' : i18n.language?.startsWith('es') ? 'es-ES' : 'pt-BR')}
                         </span>
                         <span className="text-[10px] uppercase bg-secondary px-2 py-0.5 rounded text-muted-foreground">{h.source}</span>
                       </div>
@@ -759,20 +762,20 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-[11px]">
                       <div className="bg-primary/10 rounded p-2 text-center">
-                        <p className="text-muted-foreground/70 uppercase text-[9px]">Inseridas</p>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">{t('adminDashboard.syncHistory.inserted')}</p>
                         <p className="font-bold text-primary text-base mt-0.5">{h.inserted_count}</p>
                       </div>
                       <div className="bg-background/40 rounded p-2 text-center">
-                        <p className="text-muted-foreground/70 uppercase text-[9px]">Ignoradas</p>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">{t('adminDashboard.syncHistory.skipped')}</p>
                         <p className="font-bold text-muted-foreground text-base mt-0.5">{h.skipped_count}</p>
                       </div>
                       <div className={cn("rounded p-2 text-center", h.error_count > 0 ? "bg-destructive/10" : "bg-background/40")}>
-                        <p className="text-muted-foreground/70 uppercase text-[9px]">Erros</p>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">{t('adminDashboard.syncHistory.errors')}</p>
                         <p className={cn("font-bold text-base mt-0.5", h.error_count > 0 ? "text-destructive" : "text-muted-foreground")}>{h.error_count}</p>
                       </div>
                     </div>
                     {h.triggered_by_email && (
-                      <p className="text-[10px] text-muted-foreground/70 mt-2">Disparado por: {h.triggered_by_email}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-2">{t('adminDashboard.syncHistory.triggeredBy', { email: h.triggered_by_email })}</p>
                     )}
                     {h.error_message && (
                       <p className="text-[10px] text-destructive mt-1">{h.error_message}</p>

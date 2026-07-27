@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS, es as esLocale } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,7 +24,7 @@ import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
   const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
@@ -52,6 +52,8 @@ const ClientDashboard: React.FC = () => {
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
   const [adAccountRequestLimit, setAdAccountRequestLimit] = useState<number>(5);
   const [adAccountRequestNotice, setAdAccountRequestNotice] = useState<string>('');
+  const dateLocale = i18n.language?.startsWith('en') ? enUS : i18n.language?.startsWith('es') ? esLocale : ptBR;
+  const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : i18n.language?.startsWith('es') ? 'es-ES' : 'pt-BR';
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
@@ -328,13 +330,19 @@ const ClientDashboard: React.FC = () => {
     await syncClosedBillingWeek(accountIds);
     await fetchAccounts(client.id);
     setRefreshingAccounts(false);
-    toast.success('Contas atualizadas');
+    toast.success(t('clientDash.messages.accountsUpdated'));
   };
 
 
   const resetReqForm = () => {
     setReqDesc(''); setReqQty(1); setReqBmId(''); setReqPageNames([]); setEditingReqId(null);
   };
+
+  const supportRequestTypeLabel = (type: string) =>
+    type === 'add_ad_account' ? t('clientDash.support.addAccount') :
+    type === 'add_page' ? t('clientDash.support.addPage') :
+    type === 'add_bm' ? t('clientDash.support.addBm') :
+    t('clientDash.support.other');
 
   // Carrega configurações públicas de pedidos (limite + aviso)
   useEffect(() => {
@@ -378,7 +386,7 @@ const ClientDashboard: React.FC = () => {
 
   const submitRequest = async () => {
     if (!isAdminView && !/emerson/i.test(client?.name || '') && billingSplit.overdue > 25) {
-      toast.error(`Pagamento pendente: você possui $${billingSplit.overdue.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
+      toast.error(t('clientDash.messages.paymentPending', { amount: billingSplit.overdue.toFixed(2) }));
       return;
     }
     if (!client) return;
@@ -388,23 +396,22 @@ const ClientDashboard: React.FC = () => {
         r.request_type === reqType && (r.status === 'pendente' || r.status === 'em_andamento')
       );
       if (openSame) {
-        const lbl = reqType === 'add_ad_account' ? 'Adicionar conta' : reqType === 'add_page' ? 'Adicionar página' : 'Adicionar BM';
-        toast.error(`Você já possui um pedido de "${lbl}" em aberto. Aguarde a conclusão para abrir outro dessa mesma categoria.`);
+        toast.error(t('clientDash.messages.duplicateRequest', { label: supportRequestTypeLabel(reqType) }));
         return;
       }
     }
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
-      toast.error('Informe o ID da BM onde deseja receber as contas.');
+      toast.error(t('clientDash.messages.bmRequired'));
       return;
     }
     if (reqType === 'add_ad_account' && reqQty > adAccountRequestLimit) {
-      toast.error(`Limite de ${adAccountRequestLimit} contas por pedido. Reduza a quantidade e envie novamente.`);
+      toast.error(t('clientDash.messages.limitExceeded', { limit: adAccountRequestLimit }));
       return;
     }
     if (reqType === 'add_page') {
       const names = reqPageNames.slice(0, reqQty).map(n => (n || '').trim());
       if (names.some(n => !n)) {
-        toast.error(`Informe o nome de todas as ${reqQty} páginas solicitadas.`);
+        toast.error(t('clientDash.messages.pageNamesRequired', { count: reqQty }));
         return;
       }
     }
@@ -421,18 +428,18 @@ const ClientDashboard: React.FC = () => {
       const { data, error } = await supabase.from('support_requests')
         .update(payload).eq('id', editingReqId).select().single();
       setSubmittingReq(false);
-      if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
+      if (error) { toast.error(t('clientDash.messages.updateError', { message: error.message })); return; }
       setSupportRequests(prev => prev.map(r => r.id === editingReqId ? data : r));
       resetReqForm();
-      toast.success('Solicitação atualizada!');
+      toast.success(t('clientDash.messages.requestUpdated'));
       return;
     }
     const { data, error } = await supabase.from('support_requests').insert(payload).select().single();
     setSubmittingReq(false);
-    if (error) { toast.error('Erro ao enviar solicitação: ' + error.message); return; }
+    if (error) { toast.error(t('clientDash.messages.sendError', { message: error.message })); return; }
     setSupportRequests(prev => [data, ...prev]);
     resetReqForm();
-    toast.success('Solicitação enviada! Nossa equipe foi notificada.');
+    toast.success(t('clientDash.messages.requestSent'));
   };
 
   const startEditRequest = (r: any) => {
@@ -447,12 +454,12 @@ const ClientDashboard: React.FC = () => {
   };
 
   const deleteRequest = async (id: string) => {
-    if (!confirm('Excluir esta solicitação?')) return;
+    if (!confirm(t('clientDash.messages.confirmDelete'))) return;
     const { error } = await supabase.from('support_requests').delete().eq('id', id);
-    if (error) { toast.error('Erro ao excluir: ' + error.message); return; }
+    if (error) { toast.error(t('clientDash.messages.deleteError', { message: error.message })); return; }
     setSupportRequests(prev => prev.filter(r => r.id !== id));
     if (editingReqId === id) resetReqForm();
-    toast.success('Solicitação excluída.');
+    toast.success(t('clientDash.messages.requestDeleted'));
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -689,7 +696,7 @@ const ClientDashboard: React.FC = () => {
         .eq('id', client.id);
       if (!error) {
         setClient((c: any) => c ? { ...c, percentage_value: targetPct } : c);
-        toast.success(`🎉 Nível ${loyalty.current.label} desbloqueado! Sua comissão base agora é ${targetPct}%.`, { duration: 8000 });
+        toast.success(t('clientDash.messages.levelUnlocked', { level: loyalty.current.label, pct: targetPct }), { duration: 8000 });
       }
     })();
   }, [client, loyalty.current.basePct, loyalty.current.label]);
@@ -711,13 +718,13 @@ const ClientDashboard: React.FC = () => {
     }
   }, [loading, isAdminView, client, loyalty.current.id, loyalty.nearNext]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">{t('common.loading')}</p></div>;
 
 
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Cadastro de cliente não encontrado.</p>
+        <p className="text-muted-foreground">{t('clientDash.messages.clientNotFound')}</p>
       </div>
     );
   }
@@ -735,10 +742,10 @@ const ClientDashboard: React.FC = () => {
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
   const paymentMsg = (method: string) =>
-    `Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *${method}*.`;
+    t('clientDash.whatsapp.payment', { name: client.name, amount: fmt(pendingTotal), method });
 
   const overdueMsg = (method: string) =>
-    `Olá! Sou o cliente ${client.name}. Estou regularizando o *saldo atrasado* de ${fmt(overdueTotal)} via *${method}*.`;
+    t('clientDash.whatsapp.overdue', { name: client.name, amount: fmt(overdueTotal), method });
 
 
   return (
@@ -747,11 +754,11 @@ const ClientDashboard: React.FC = () => {
         <div className="sticky top-0 z-50 bg-primary text-primary-foreground border-b border-primary/60 px-4 lg:px-8 py-2.5 flex items-center justify-between text-xs shadow-lg">
           <div className="flex items-center gap-2">
             <Shield size={14} />
-            <span className="font-semibold uppercase tracking-wider">Modo Administrador</span>
-            <span className="opacity-90 hidden sm:inline">— visualizando como <strong>{client.name}</strong></span>
+            <span className="font-semibold uppercase tracking-wider">{t('clientDash.adminView.mode')}</span>
+            <span className="opacity-90 hidden sm:inline">— {t('clientDash.adminView.viewingAs', { name: client.name })}</span>
           </div>
           <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 text-primary-foreground font-medium border border-background/30">
-            <X size={13} /> Sair da visualização
+            <X size={13} /> {t('clientDash.adminView.exit')}
           </button>
         </div>
       )}
@@ -935,7 +942,7 @@ const ClientDashboard: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border hover:border-primary">
-                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.from')} {format(customStart, 'dd/MM/yyyy', { locale: ptBR })}
+                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.from')} {format(customStart, 'dd/MM/yyyy', { locale: dateLocale })}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -945,7 +952,7 @@ const ClientDashboard: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border hover:border-primary">
-                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.to')} {format(customEnd, 'dd/MM/yyyy', { locale: ptBR })}
+                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.to')} {format(customEnd, 'dd/MM/yyyy', { locale: dateLocale })}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -975,7 +982,7 @@ const ClientDashboard: React.FC = () => {
             <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3">
               <Info size={16} className="text-amber-300 mt-0.5 shrink-0" />
               <div className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-amber-300">Ciclo de cobrança: sexta a quinta.</strong> A semana fecha na quinta-feira e o pagamento é gerado na sexta seguinte. Isso garante que todo o gasto do período já esteja consolidado nas contas de anúncio antes do faturamento.
+                <strong className="text-amber-300">{t('clientDash.billingCycle.title')}</strong> {t('clientDash.billingCycle.desc')}
               </div>
             </div>
 
@@ -986,15 +993,15 @@ const ClientDashboard: React.FC = () => {
                 <div className="relative">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                     <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — histórico semana a semana
+                      <CreditCard size={16} className="text-primary" /> {t('clientDash.creditHistory.title')}
                     </h3>
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> Crédito abatido</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> A pagar</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> {t('clientDash.creditHistory.credited')}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> {t('clientDash.creditHistory.payable')}</span>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · saldo em aberto real <strong className="text-amber-300">{fmt(creditPlan.totalStillOwed)}</strong>.
+                    {t('clientDash.creditHistory.desc', { total: fmt(creditPlan.totalCredit), applied: fmt(creditPlan.totalApplied), remaining: fmt(creditPlan.remaining), owed: fmt(creditPlan.totalStillOwed) })}
                   </p>
 
                   {(() => {
@@ -1018,12 +1025,12 @@ const ClientDashboard: React.FC = () => {
                     return (
                       <>
                         <div className="flex flex-wrap items-center gap-2 mb-3">
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filtrar:</span>
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.creditHistory.filter')}</span>
                           {([
-                            { k: 'recent', l: 'Mais recentes' },
-                            { k: 'paying', l: 'Em aberto' },
-                            { k: 'covered', l: 'Cobertas pelo crédito' },
-                            { k: 'all', l: `Todas (${creditPlan.rows.length})` },
+                            { k: 'recent', l: t('clientDash.creditHistory.recent') },
+                            { k: 'paying', l: t('clientDash.creditHistory.open') },
+                            { k: 'covered', l: t('clientDash.creditHistory.covered') },
+                            { k: 'all', l: t('clientDash.creditHistory.all', { count: creditPlan.rows.length }) },
                           ] as const).map(opt => (
                             <button
                               key={opt.k}
@@ -1054,18 +1061,18 @@ const ClientDashboard: React.FC = () => {
                               )}>
                                 <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-mono text-muted-foreground">Semana {absoluteIdx + 1}</span>
+                                    <span className="text-[10px] font-mono text-muted-foreground">{t('clientDash.creditHistory.week', { number: absoluteIdx + 1 })}</span>
                                     <span className="text-xs font-medium text-foreground">
-                                      {format(r.weekStart, "dd 'de' MMM yyyy", { locale: ptBR })}
+                                      {format(r.weekStart, "dd MMM yyyy", { locale: dateLocale })}
                                     </span>
                                     {isFirstPaying && (
                                       <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
-                                        Primeiro saldo em aberto
+                                        {t('clientDash.creditHistory.firstOpen')}
                                       </span>
                                     )}
                                   </div>
                                   <div className="text-[10px] text-muted-foreground">
-                                    Saldo: <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
+                                    {t('clientDash.creditHistory.balance')} <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
                                   </div>
                                 </div>
                                 <div className="relative h-6 rounded-md bg-background overflow-hidden border border-border">
@@ -1091,18 +1098,18 @@ const ClientDashboard: React.FC = () => {
                                   )}
                                 </div>
                                 <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                                  <span>Gasto: <span className="text-foreground font-medium">{fmt(r.spend)}</span> · Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
+                                  <span>{t('clientDash.creditHistory.spend')} <span className="text-foreground font-medium">{fmt(r.spend)}</span> · {t('clientDash.creditHistory.commission')} <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
                                   <span>
-                                    {r.creditApplied >= r.commission && r.commission > 0 && '100% coberto pelo crédito'}
-                                    {r.creditApplied > 0 && r.creditApplied < r.commission && 'Crédito esgotado nesta semana'}
-                                    {r.creditApplied === 0 && r.commission > 0 && 'Pagamento integral via Pix/Cripto'}
+                                    {r.creditApplied >= r.commission && r.commission > 0 && t('clientDash.creditHistory.fullyCovered')}
+                                    {r.creditApplied > 0 && r.creditApplied < r.commission && t('clientDash.creditHistory.creditEnded')}
+                                    {r.creditApplied === 0 && r.commission > 0 && t('clientDash.creditHistory.fullPayment')}
                                   </span>
                                 </div>
                               </div>
                             );
                           })}
                           {pageRows.length === 0 && (
-                            <p className="text-xs text-muted-foreground/60 text-center py-6">Nenhuma semana neste filtro.</p>
+                            <p className="text-xs text-muted-foreground/60 text-center py-6">{t('clientDash.creditHistory.noWeeks')}</p>
                           )}
                         </div>
 
@@ -1113,17 +1120,17 @@ const ClientDashboard: React.FC = () => {
                               disabled={pageIdx === 0}
                               className="text-[11px] inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border bg-secondary/40 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              <ChevronLeft size={12} /> Mais recentes
+                              <ChevronLeft size={12} /> {t('clientDash.creditHistory.newer')}
                             </button>
                             <span className="text-[10px] text-muted-foreground">
-                              Página {pageIdx + 1} de {totalPages} · {ordered.length} semanas
+                              {t('clientDash.creditHistory.page', { page: pageIdx + 1, total: totalPages, count: ordered.length })}
                             </span>
                             <button
                               onClick={() => setHistoryPage(p => Math.min(totalPages - 1, p + 1))}
                               disabled={pageIdx >= totalPages - 1}
                               className="text-[11px] inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border bg-secondary/40 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              Mais antigas <ChevronRight size={12} />
+                              {t('clientDash.creditHistory.older')} <ChevronRight size={12} />
                             </button>
                           </div>
                         )}
@@ -1139,12 +1146,12 @@ const ClientDashboard: React.FC = () => {
             {savedAccounts.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-primary" /> Contas Salvas pela Agência
+                  <ShieldCheck size={16} className="text-primary" /> {t('clientDash.accounts.savedByAgency')}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {savedAccounts.slice(0, 12).map(s => (
                     <span key={s.id} className="text-[10px] px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-primary/90 font-mono">
-                      {s.ad_account?.name || s.ad_account?.meta_account_id || 'Conta'}
+                      {s.ad_account?.name || s.ad_account?.meta_account_id || t('clientDash.accounts.accountFallback')}
                     </span>
                   ))}
                 </div>
@@ -1154,7 +1161,7 @@ const ClientDashboard: React.FC = () => {
             {/* Ad Accounts */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                <Shield size={16} className="text-primary" /> Contas de Anúncio
+                <Shield size={16} className="text-primary" /> {t('clientDash.accounts.adAccounts')}
               </h3>
               {(() => {
                 const total = client.ad_accounts || 0;
@@ -1166,15 +1173,15 @@ const ClientDashboard: React.FC = () => {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-secondary rounded-lg p-4 text-center">
                       <p className="text-2xl font-bold text-primary">{available}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Disponíveis</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('clientDash.accounts.available')}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-4 text-center">
                       <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Em uso</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('clientDash.accounts.inUse')}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-4 text-center">
                       <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Bloqueadas</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('clientDash.accounts.blocked')}</p>
                     </div>
                   </div>
                 );
@@ -1186,32 +1193,32 @@ const ClientDashboard: React.FC = () => {
           <TabsContent value="contrato" className="space-y-5 mt-0">
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                <CreditCard size={16} className="text-primary" /> Detalhes do Contrato
+                <CreditCard size={16} className="text-primary" /> {t('clientDash.contract.details')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div className="bg-secondary/60 rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de Cliente</p>
-                  <p className="font-medium mt-1">{client.client_type === 'venda' ? 'Venda (Valor Fixo)' : 'Aluguel (% sobre Gasto)'}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.clientType')}</p>
+                  <p className="font-medium mt-1">{client.client_type === 'venda' ? t('clientDash.contract.fixedSale') : t('clientDash.contract.rentalSpend')}</p>
                 </div>
                 {client.client_type === 'venda' ? (
                   <div className="bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Fixo</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.fixedValue')}</p>
                     <p className="font-medium text-primary mt-1">{fmt(Number(client.fixed_value) || 0)}</p>
                   </div>
                 ) : (
                   <div className="bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual base</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.basePct')}</p>
                     <p className="font-medium text-primary mt-1">{Number(client.percentage_value) || 0}%</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">Percentual definido no contrato. Conforme as metas de gasto semanal forem atingidas, a taxa diminui progressivamente.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{t('clientDash.contract.basePctDesc')}</p>
                   </div>
                 )}
                 <div className="bg-secondary/60 rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Cobrança</p>
-                  <p className="font-medium mt-1">Semanal — toda sexta-feira</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.billing')}</p>
+                  <p className="font-medium mt-1">{t('clientDash.contract.weeklyFriday')}</p>
                 </div>
                 {client.observations && (
                   <div className="sm:col-span-2 bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Observações</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.observations')}</p>
                     <p className="text-sm mt-1 whitespace-pre-wrap">{client.observations}</p>
                   </div>
                 )}
@@ -1236,18 +1243,18 @@ const ClientDashboard: React.FC = () => {
               return (
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
                   <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-primary" /> Metas semanais de desconto
+                    <TrendingUp size={16} className="text-primary" /> {t('clientDash.contract.weeklyGoals')}
                   </h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Quanto mais sua conta gastar na semana, menor o percentual cobrado pela agência.
+                    {t('clientDash.contract.weeklyGoalsDesc')}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div className="bg-secondary/60 rounded-lg p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto última semana fechada</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.lastClosedSpend')}</p>
                       <p className="font-bold text-lg text-foreground mt-1">{fmt(weekSpend)}</p>
                     </div>
                     <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual atual</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.currentPct')}</p>
                       <p className="font-bold text-lg text-primary mt-1">{currentRate}%</p>
                     </div>
                   </div>
@@ -1257,19 +1264,19 @@ const ClientDashboard: React.FC = () => {
                     </div>
                     {nextTier ? (
                       <p className="text-[11px] text-muted-foreground mt-2">
-                        Faltam <strong className="text-primary">{fmt(remaining)}</strong> para atingir <strong className="text-primary">{nextTier.pct}%</strong> (acima de {fmt(nextTier.min)}).
+                        {t('clientDash.contract.remainingToReach', { amount: fmt(remaining), pct: nextTier.pct, min: fmt(nextTier.min) })}
                       </p>
                     ) : (
-                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — {topTier?.pct ?? 1}% sobre o gasto.</p>
+                      <p className="text-[11px] text-success mt-2">{t('clientDash.contract.topGoalReached', { pct: topTier?.pct ?? 1 })}</p>
                     )}
                   </div>
                   <ul className="space-y-2">
-                    {tiers.map(t => {
-                      const reached = weekSpend > t.min;
-                      const active = currentRate === t.pct;
+                    {tiers.map(tier => {
+                      const reached = weekSpend > tier.min;
+                      const active = currentRate === tier.pct;
                       return (
                         <li
-                          key={t.min}
+                          key={tier.min}
                           className={cn(
                             "flex items-center justify-between rounded-lg px-3 py-2 border text-sm",
                             active ? "bg-primary/10 border-primary/40" :
@@ -1282,11 +1289,11 @@ const ClientDashboard: React.FC = () => {
                               "w-2 h-2 rounded-full",
                               active ? "bg-primary animate-pulse" : reached ? "bg-success" : "bg-muted-foreground/40"
                             )} />
-                            Acima de {fmt(t.min)}
+                            {t('clientDash.contract.above', { amount: fmt(tier.min) })}
                           </span>
                           <span className={cn("font-semibold",
                             active ? "text-primary" : reached ? "text-success" : "text-muted-foreground"
-                          )}>{t.pct}%</span>
+                          )}>{tier.pct}%</span>
                         </li>
                       );
                     })}
@@ -1297,19 +1304,19 @@ const ClientDashboard: React.FC = () => {
 
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                <DollarSign size={16} className="text-primary" /> Histórico Acumulado
+                <DollarSign size={16} className="text-primary" /> {t('clientDash.contract.accumulatedHistory')}
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto Total Ads</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.totalAdSpend')}</p>
                   <p className="text-sm font-bold text-foreground mt-1">{fmt(allTimeTotals.adSpend)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Comissão Total</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.totalCommission')}</p>
                   <p className="text-sm font-bold text-primary mt-1">{fmt(allTimeTotals.commission)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Pago</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.totalPaid')}</p>
                   <p className="text-sm font-bold text-success mt-1">{fmt(allTimeTotals.paid)}</p>
                 </div>
               </div>
@@ -1329,22 +1336,22 @@ const ClientDashboard: React.FC = () => {
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                     <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                      <CreditCard size={16} className="text-primary" /> Contas de Anúncio
+                      <CreditCard size={16} className="text-primary" /> {t('clientDash.accounts.adAccounts')}
                     </h3>
                     <div className="flex items-center gap-2">
                       {lastAccountsSync && (
                         <span className="text-[10px] text-muted-foreground">
-                          Sincronizado {formatDistanceToNow(lastAccountsSync, { addSuffix: true, locale: ptBR })}
+                          {t('clientDash.structure.synced', { time: formatDistanceToNow(lastAccountsSync, { addSuffix: true, locale: dateLocale }) })}
                         </span>
                       )}
                       <button
                         onClick={refreshAccounts}
                         disabled={refreshingAccounts}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] bg-secondary border border-border hover:border-primary hover:text-primary disabled:opacity-50 transition-colors"
-                        title="Atualizar"
+                        title={t('clientDash.structure.refresh')}
                       >
                         <RefreshCw size={11} className={refreshingAccounts ? 'animate-spin' : ''} />
-                        Atualizar
+                        {t('clientDash.structure.refresh')}
                       </button>
                     </div>
                   </div>
@@ -1352,26 +1359,26 @@ const ClientDashboard: React.FC = () => {
                     <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-center">
                       <ShieldCheck size={16} className="text-emerald-400 mx-auto mb-1" />
                       <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Ativas</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{t('clientDash.structure.active')}</p>
                     </div>
                     <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-center">
                       <Ban size={16} className="text-destructive mx-auto mb-1" />
                       <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Banidas</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{t('clientDash.structure.banned')}</p>
                     </div>
                   </div>
 
                   {/* Filtro global de período da aba Estrutura */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-4 border-b border-border/60">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Período das métricas</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.structure.metricsPeriod')}</span>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {([
-                        { v: 'today', l: 'Hoje' },
-                        { v: 'billing_week', l: 'Última semana fechada' },
-                        { v: '7d', l: '7 dias corridos' },
-                        { v: '30d', l: '30 dias' },
-                        { v: 'all', l: 'Tudo' },
-                        { v: 'custom', l: 'Personalizado' },
+                        { v: 'today', l: t('clientDash.structure.today') },
+                        { v: 'billing_week', l: t('clientDash.structure.lastClosedWeek') },
+                        { v: '7d', l: t('clientDash.structure.rolling7') },
+                        { v: '30d', l: t('clientDash.structure.rolling30') },
+                        { v: 'all', l: t('clientDash.structure.allTime') },
+                        { v: 'custom', l: t('clientDash.structure.custom') },
                       ] as const).map(o => (
                         <button
                           key={o.v}
@@ -1391,18 +1398,18 @@ const ClientDashboard: React.FC = () => {
                           <Popover>
                             <PopoverTrigger asChild>
                               <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] bg-secondary border border-border hover:border-primary">
-                                <CalendarIcon size={10} /> {format(estruturaCustomStart, 'dd/MM/yyyy', { locale: ptBR })}
+                                <CalendarIcon size={10} /> {format(estruturaCustomStart, 'dd/MM/yyyy', { locale: dateLocale })}
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="end">
                               <Calendar mode="single" selected={estruturaCustomStart} onSelect={d => d && setEstruturaCustomStart(d)} className="p-3 pointer-events-auto" />
                             </PopoverContent>
                           </Popover>
-                          <span className="text-[10px] text-muted-foreground">até</span>
+                          <span className="text-[10px] text-muted-foreground">{t('clientDash.structure.until')}</span>
                           <Popover>
                             <PopoverTrigger asChild>
                               <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] bg-secondary border border-border hover:border-primary">
-                                <CalendarIcon size={10} /> {format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: ptBR })}
+                                <CalendarIcon size={10} /> {format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: dateLocale })}
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="end">
@@ -1417,7 +1424,7 @@ const ClientDashboard: React.FC = () => {
                   {activeAccounts.length === 0 ? (
                     <div className="text-center py-6 border border-dashed border-border rounded-lg">
                       <CreditCard size={24} className="mx-auto text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">Nenhuma conta atribuída ainda.</p>
+                      <p className="text-sm text-muted-foreground">{t('clientDash.structure.noAccounts')}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1465,10 +1472,10 @@ const ClientDashboard: React.FC = () => {
                                   <p className="text-sm font-semibold truncate">{acc.name}</p>
                                   <p className="text-[11px] text-muted-foreground font-mono truncate">ID: {acc.meta_account_id}</p>
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
-                                    <span>Saldo: <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
-                                    {acc.currency && <span>Moeda: <span className="text-foreground/80">{acc.currency}</span></span>}
+                                    <span>{t('clientDash.structure.balance')} <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
+                                    {acc.currency && <span>{t('clientDash.structure.currency')} <span className="text-foreground/80">{acc.currency}</span></span>}
                                     {acc.last_synced_at && (
-                                      <span>Atualizado: <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: ptBR })}</span></span>
+                                      <span>{t('clientDash.structure.updated')} <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: dateLocale })}</span></span>
                                     )}
                                   </div>
                                 </div>
@@ -1477,24 +1484,24 @@ const ClientDashboard: React.FC = () => {
                                 isBlocked ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                               )}>
                                 {isBlocked ? <Ban size={10} /> : <ShieldCheck size={10} />}
-                                {isBlocked ? (acc.disable_reason_label || 'Banida') : 'Ativa'}
+                                {isBlocked ? (acc.disable_reason_label || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
                               </span>
                             </div>
 
                             {/* Real metrics from insights (período controlado no topo da aba) */}
                             <div className="border-t border-border/60 pt-3 space-y-2">
-                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Métricas reais</span>
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.structure.realMetrics')}</span>
                               {accInsights.length === 0 ? (
-                                <p className="text-[11px] text-muted-foreground italic">Sem dados de anúncios neste período.</p>
+                                <p className="text-[11px] text-muted-foreground italic">{t('clientDash.structure.noAdData')}</p>
                               ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                   {[
-                                    { l: 'Gasto', v: fmt(m.spend), c: 'text-foreground' },
-                                    { l: 'Receita', v: fmt(m.revenue), c: 'text-emerald-400' },
+                                    { l: t('clientDash.structure.spend'), v: fmt(m.spend), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.revenue'), v: fmt(m.revenue), c: 'text-emerald-400' },
                                     { l: 'ROAS', v: `${roas.toFixed(2)}x`, c: roas >= 1 ? 'text-emerald-400' : 'text-destructive' },
-                                    { l: 'Compras', v: m.purchases.toLocaleString('pt-BR'), c: 'text-foreground' },
-                                    { l: 'Impressões', v: m.impressions.toLocaleString('pt-BR'), c: 'text-foreground' },
-                                    { l: 'Cliques', v: m.clicks.toLocaleString('pt-BR'), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.purchases'), v: m.purchases.toLocaleString(numberLocale), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.impressions'), v: m.impressions.toLocaleString(numberLocale), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.clicks'), v: m.clicks.toLocaleString(numberLocale), c: 'text-foreground' },
                                     { l: 'CTR', v: `${ctr.toFixed(2)}%`, c: 'text-foreground' },
                                     { l: 'CPC', v: fmt(cpc), c: 'text-foreground' },
                                   ].map(k => (
@@ -1532,12 +1539,12 @@ const ClientDashboard: React.FC = () => {
                 estruturaPeriod === 'custom' ? endOfDay(estruturaCustomEnd) :
                 endOfDay(now);
               const periodLabel =
-                estruturaPeriod === 'today' ? 'Hoje' :
-                estruturaPeriod === 'billing_week' ? `${format(closedBillingWeek.start, 'dd/MM', { locale: ptBR })} → ${format(closedBillingWeek.end, 'dd/MM', { locale: ptBR })}` :
-                estruturaPeriod === '7d' ? 'Últimos 7 dias' :
-                estruturaPeriod === '30d' ? 'Últimos 30 dias' :
-                estruturaPeriod === 'custom' ? `${format(estruturaCustomStart, 'dd/MM/yyyy', { locale: ptBR })} → ${format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: ptBR })}` :
-                'Todo o período';
+                estruturaPeriod === 'today' ? t('clientDash.structure.today') :
+                estruturaPeriod === 'billing_week' ? `${format(closedBillingWeek.start, 'dd/MM', { locale: dateLocale })} → ${format(closedBillingWeek.end, 'dd/MM', { locale: dateLocale })}` :
+                estruturaPeriod === '7d' ? t('clientDash.structure.last7Days') :
+                estruturaPeriod === '30d' ? t('clientDash.structure.last30Days') :
+                estruturaPeriod === 'custom' ? `${format(estruturaCustomStart, 'dd/MM/yyyy', { locale: dateLocale })} → ${format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: dateLocale })}` :
+                t('clientDash.structure.wholePeriod');
 
               const rows = activeAccounts.map((a: any) => {
                 const acc = a.ad_account;
@@ -1573,31 +1580,31 @@ const ClientDashboard: React.FC = () => {
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                     <div>
                       <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                        <Layers size={16} className="text-primary" /> Estrutura de contas de anúncio
+                        <Layers size={16} className="text-primary" /> {t('clientDash.structure.accountsStructure')}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Gasto e comissão estimada por conta — {periodLabel}
+                        {t('clientDash.structure.spendCommissionByAccount', { period: periodLabel })}
                       </p>
                     </div>
                     <span className="text-[10px] px-2 py-1 rounded-md bg-primary/10 border border-primary/30 text-primary font-medium">
-                      Tier atual: {effectivePct.toFixed(2)}%
+                      {t('clientDash.structure.currentTier', { pct: effectivePct.toFixed(2) })}
                     </span>
                   </div>
 
                   {withCommission.length === 0 ? (
                     <div className="text-center py-6 border border-dashed border-border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Sem dados no período selecionado.</p>
+                      <p className="text-sm text-muted-foreground">{t('clientDash.structure.noData')}</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto rounded-lg border border-border/60">
                       <table className="w-full text-xs">
                         <thead className="bg-secondary/60 text-muted-foreground">
                           <tr>
-                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Conta</th>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.account')}</th>
                             <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">ID Meta</th>
-                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Status</th>
-                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Gasto período</th>
-                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Comissão est.</th>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.status')}</th>
+                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.periodSpend')}</th>
+                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.estCommission')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1613,7 +1620,7 @@ const ClientDashboard: React.FC = () => {
                                     : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                                 )}>
                                   {r.isBlocked ? <Ban size={9} /> : <ShieldCheck size={9} />}
-                                  {r.isBlocked ? (r.disableLabel || 'Bloqueada') : 'Ativa'}
+                                  {r.isBlocked ? (r.disableLabel || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-right font-semibold text-foreground">{fmt(r.spend)}</td>
@@ -1624,7 +1631,7 @@ const ClientDashboard: React.FC = () => {
                         <tfoot className="bg-secondary/80 border-t-2 border-primary/40">
                           <tr>
                             <td colSpan={3} className="px-3 py-2.5 text-right text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                              Total ({withCommission.length} {withCommission.length === 1 ? 'conta' : 'contas'})
+                              Total ({withCommission.length})
                             </td>
                             <td className="px-3 py-2.5 text-right font-display text-sm font-bold text-foreground">{fmt(totalSpend)}</td>
                             <td className="px-3 py-2.5 text-right font-display text-sm font-bold text-primary">{fmt(totalCommission)}</td>
@@ -1635,8 +1642,7 @@ const ClientDashboard: React.FC = () => {
                   )}
 
                   <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
-                    * A comissão é calculada sobre o gasto total do período aplicando o tier vigente ({effectivePct.toFixed(2)}%).
-                    O valor por conta é uma estimativa proporcional para facilitar a conferência.
+                    * {t('clientDash.structure.commissionNote', { pct: effectivePct.toFixed(2) })}
                   </p>
                 </div>
               );
@@ -1646,22 +1652,22 @@ const ClientDashboard: React.FC = () => {
             {/* Pages */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                <ImageIcon size={16} className="text-primary" /> Suas páginas Meta
+                <ImageIcon size={16} className="text-primary" /> {t('clientDash.structure.metaPages')}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Páginas atribuídas ao seu contrato e status atual.
+                {t('clientDash.structure.metaPagesDesc')}
               </p>
               {pages.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-border rounded-lg">
                   <ImageIcon size={28} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma página atribuída ainda.</p>
+                  <p className="text-sm text-muted-foreground">{t('clientDash.structure.noPages')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pages.map((p: any) => {
                     const restricted = p.is_restricted;
                     const unpublished = p.is_published === false;
-                    const statusLabel = restricted ? 'Restrita' : unpublished ? 'Despublicada' : 'Ativa';
+                    const statusLabel = restricted ? t('clientDash.structure.restricted') : unpublished ? t('clientDash.structure.unpublished') : t('clientDash.structure.activeStatus');
                     const statusClass = restricted ? 'text-destructive' : unpublished ? 'text-warning' : 'text-emerald-400';
                     const StatusIcon = restricted || unpublished ? ShieldAlert : ShieldCheck;
                     return (
@@ -1673,7 +1679,7 @@ const ClientDashboard: React.FC = () => {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{p.name}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">{p.category || 'Sem categoria'}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{p.category || t('clientDash.structure.noCategory')}</p>
                           <div className="flex items-center gap-3 mt-1.5 text-[11px]">
                             <span className="flex items-center gap-1 text-primary">
                               <UsersIcon size={11} />
@@ -1697,19 +1703,19 @@ const ClientDashboard: React.FC = () => {
           <TabsContent value="suporte" className="space-y-5 mt-0">
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                <LifeBuoy size={16} className="text-primary" /> Solicitar serviço
+                <LifeBuoy size={16} className="text-primary" /> {t('clientDash.support.requestService')}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
+                {t('clientDash.support.requestDesc')}
               </p>
 
               {!isAdminView && supportBlockedByOverdue && (
                 <div className="mb-4 rounded-xl border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
                   <AlertTriangle size={18} className="text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-destructive">Solicitações bloqueadas — pagamento pendente</p>
+                    <p className="text-sm font-semibold text-destructive">{t('clientDash.support.blockedTitle')}</p>
                     <p className="text-xs text-foreground/80 mt-1">
-                      Você possui <strong>${overdueTotal.toFixed(2)}</strong> em saldo atrasado (acima do limite de $25). Para liberar novas solicitações de suporte, regularize o pagamento na aba <strong>Cobranças</strong>.
+                      {t('clientDash.support.blockedDesc', { amount: overdueTotal.toFixed(2) })}
                     </p>
                   </div>
                 </div>
@@ -1719,9 +1725,9 @@ const ClientDashboard: React.FC = () => {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {([
-                    { v: 'add_ad_account', label: 'Adicionar conta', Icon: CreditCard },
-                    { v: 'add_page', label: 'Adicionar página', Icon: ImageIcon },
-                    { v: 'add_bm', label: 'Adicionar BM', Icon: Building2 },
+                    { v: 'add_ad_account', label: t('clientDash.support.addAccount'), Icon: CreditCard },
+                    { v: 'add_page', label: t('clientDash.support.addPage'), Icon: ImageIcon },
+                    { v: 'add_bm', label: t('clientDash.support.addBm'), Icon: Building2 },
                   ] as const).map(({ v, label, Icon }) => (
                     <button
                       key={v}
@@ -1749,7 +1755,7 @@ const ClientDashboard: React.FC = () => {
                   <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-[12px] text-primary flex items-start gap-2">
                     <Building2 size={14} className="shrink-0 mt-0.5" />
                     <span className="leading-relaxed">
-                      Solicite uma <strong>BM Mãe</strong> para receber suas contas de anúncio. Nossa equipe criará e compartilhará com você. Use o campo de observações abaixo para detalhes (nicho, país, etc.).
+                      {t('clientDash.support.addBmDesc')}
                     </span>
                   </div>
                 )}
@@ -1759,7 +1765,7 @@ const ClientDashboard: React.FC = () => {
                   return (
                     <div>
                       <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-                        Quantidade {reqType === 'add_ad_account' && <span className="text-muted-foreground/70 normal-case">(máx. {maxAllowed} por pedido)</span>}
+                        {t('clientDash.support.quantity')} {reqType === 'add_ad_account' && <span className="text-muted-foreground/70 normal-case">{t('clientDash.support.maxPerRequest', { max: maxAllowed })}</span>}
                       </label>
                       <input
                         type="number" min={1} max={maxAllowed}
@@ -1778,7 +1784,7 @@ const ClientDashboard: React.FC = () => {
                 {reqType === 'add_ad_account' && (
                   <div>
                     <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                      <Building2 size={11} /> ID da BM (onde receber as contas) *
+                      <Building2 size={11} /> {t('clientDash.support.bmId')}
                     </label>
                     <input
                       type="text"
@@ -1789,7 +1795,7 @@ const ClientDashboard: React.FC = () => {
                     />
                     <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
                       <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                      <span>Por segurança, envie os dados do cartão <strong>somente no grupo do WhatsApp</strong>. Nunca compartilhe aqui na plataforma.</span>
+                      <span>{t('clientDash.support.cardSecurity')}</span>
                     </div>
                   </div>
                 )}
@@ -1797,7 +1803,7 @@ const ClientDashboard: React.FC = () => {
                 {reqType === 'add_page' && reqQty > 0 && (
                   <div className="space-y-2">
                     <label className="block text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                      <ImageIcon size={11} /> Nomes das páginas ({reqQty}) *
+                      <ImageIcon size={11} /> {t('clientDash.support.pageNames', { count: reqQty })}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {Array.from({ length: reqQty }).map((_, i) => (
@@ -1811,7 +1817,7 @@ const ClientDashboard: React.FC = () => {
                             next[i] = e.target.value;
                             return next;
                           })}
-                          placeholder={`Página ${i + 1}`}
+                          placeholder={t('clientDash.support.pagePlaceholder', { number: i + 1 })}
                           className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                         />
                       ))}
@@ -1820,11 +1826,11 @@ const ClientDashboard: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
+                  <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">{t('clientDash.support.notes')}</label>
                   <textarea
                     value={reqDesc}
                     onChange={e => setReqDesc(e.target.value)}
-                    placeholder="Detalhes adicionais sobre o pedido..."
+                    placeholder={t('clientDash.support.notesPlaceholder')}
                     className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary h-24 resize-none"
                   />
                 </div>
@@ -1835,11 +1841,11 @@ const ClientDashboard: React.FC = () => {
                     disabled={submittingReq || (!isAdminView && supportBlockedByOverdue)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   >
-                    <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
+                    <Send size={14} /> {submittingReq ? t('clientDash.support.saving') : editingReqId ? t('clientDash.support.saveChanges') : t('clientDash.support.sendRequest')}
                   </button>
                   {editingReqId && (
                     <button onClick={resetReqForm} className="px-4 py-2.5 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:text-foreground">
-                      Cancelar edição
+                      {t('clientDash.support.cancelEdit')}
                     </button>
                   )}
                 </div>
@@ -1849,17 +1855,17 @@ const ClientDashboard: React.FC = () => {
             {/* Histórico de solicitações */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                <Clock size={16} className="text-primary" /> Minhas solicitações
+                <Clock size={16} className="text-primary" /> {t('clientDash.support.myRequests')}
               </h3>
               {supportRequests.length === 0 ? (
                 <div className="text-center py-6 border border-dashed border-border rounded-lg">
                   <LifeBuoy size={24} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma solicitação enviada ainda.</p>
+                  <p className="text-sm text-muted-foreground">{t('clientDash.support.noRequests')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {supportRequests.map((r: any) => {
-                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
+                    const typeLabel = supportRequestTypeLabel(r.request_type);
                     const statusColor =
                       r.status === 'concluida' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                       r.status === 'em_andamento' ? 'text-warning bg-warning/10 border-warning/30' :
@@ -1891,13 +1897,13 @@ const ClientDashboard: React.FC = () => {
                           )}
                           {r.description && <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground/70 mt-1">
-                            {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
                             <StatusIcon size={11} />
-                            {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
+                            {r.status === 'pendente' ? t('clientDash.support.pending') : r.status === 'em_andamento' ? t('clientDash.support.inProgress') : r.status === 'concluida' ? t('clientDash.support.completed') : t('clientDash.support.canceled')}
                           </span>
                           {r.status === 'pendente' && (
                             <div className="flex gap-1">
@@ -1924,17 +1930,17 @@ const ClientDashboard: React.FC = () => {
               <div className="rounded-2xl p-5 border bg-gradient-to-br from-destructive/15 via-card to-card border-destructive/50 shadow-[0_0_30px_-10px_hsl(var(--destructive)/0.5)]">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/80 mb-1">Saldo Atrasado</p>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/80 mb-1">{t('clientDash.billing.overdueBalance')}</p>
                     <p className="font-display text-3xl font-bold text-destructive">{fmt(overdueTotal)}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Vencido após a sexta-feira de cobrança. Regularize para evitar bloqueios.
+                      {t('clientDash.billing.overdueDesc')}
                     </p>
                   </div>
                   <button
                     onClick={() => setOverdueDialogOpen(true)}
                     className="bg-destructive text-destructive-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 flex items-center gap-2"
                   >
-                    <AlertTriangle size={16} /> Regularizar agora
+                    <AlertTriangle size={16} /> {t('clientDash.billing.settleNow')}
                   </button>
                 </div>
               </div>
@@ -1947,12 +1953,12 @@ const ClientDashboard: React.FC = () => {
             )}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Saldo Pendente (semana corrente)</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">{t('clientDash.billing.pendingBalance')}</p>
                   <p className={cn("font-display text-3xl font-bold", currentPendingTotal > 0 ? "text-warning" : "text-success")}>
                     {fmt(Math.max(0, currentPendingTotal))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {currentPendingTotal > 0 ? 'Cobrança realizada na próxima sexta-feira' : (overdueTotal > 0 ? 'Apenas saldo atrasado em aberto.' : 'Tudo em dia! Obrigado.')}
+                    {currentPendingTotal > 0 ? t('clientDash.billing.nextFriday') : (overdueTotal > 0 ? t('clientDash.billing.onlyOverdueOpen') : t('clientDash.billing.allGood'))}
                   </p>
                 </div>
                 {currentPendingTotal > 0 && <AlertTriangle size={36} className="text-warning" />}
@@ -1963,10 +1969,10 @@ const ClientDashboard: React.FC = () => {
             {creditPlan && creditPlan.rows.some(r => r.stillOwed > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                  <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
+                  <CalendarIcon size={16} className="text-primary" /> {t('clientDash.billing.weeklyPending')}
                 </h3>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já validados na semana correspondente.
+                  {t('clientDash.billing.pendingCommissionsDesc')}
                 </p>
                 <div className="space-y-2">
                   {creditPlan.rows.filter(r => r.stillOwed > 0).map((r, idx) => {
@@ -1985,15 +1991,15 @@ const ClientDashboard: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <CalendarIcon size={12} className={isPaid ? "text-success" : isOverdue ? "text-destructive" : "text-primary"} />
                             <span className="text-xs font-semibold">
-                              {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
+                              {format(r.weekStart, "dd/MM", { locale: dateLocale })} — {format(weekEnd, "dd/MM/yyyy", { locale: dateLocale })}
                             </span>
                             {isPaid ? (
                               <span className="text-[9px] uppercase tracking-wider bg-success/20 text-success border border-success/40 px-1.5 py-0.5 rounded">
-                                Pago
+                                {t('clientDash.billing.paid')}
                               </span>
                             ) : isOverdue && (
                               <span className="text-[9px] uppercase tracking-wider bg-destructive/20 text-destructive border border-destructive/40 px-1.5 py-0.5 rounded">
-                                Vencido
+                                {t('clientDash.billing.overdue')}
                               </span>
                             )}
                           </div>
@@ -2005,28 +2011,28 @@ const ClientDashboard: React.FC = () => {
                               ? "bg-destructive/15 text-destructive border-destructive/40"
                               : "bg-warning/15 text-warning border-warning/30"
                           )}>
-                            {isPaid ? `Pago: ${fmt(r.paidApplied)}` : `A pagar: ${fmt(r.stillOwed)}`}
+                            {isPaid ? `${t('clientDash.billing.paid')}: ${fmt(r.paidApplied)}` : `${t('clientDash.creditHistory.payable')}: ${fmt(r.stillOwed)}`}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Gasto sincronizado</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.syncedSpend')}</p>
                             <p className="font-bold text-foreground mt-0.5">{fmt(r.spend)}</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Taxa</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.rate')}</p>
                             <p className="font-bold text-primary mt-0.5">{rate.toFixed(2)}%</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Comissão calc.</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.calcCommission')}</p>
                             <p className="font-bold text-amber-400 mt-0.5">{fmt(r.commission)}</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Crédito aplicado</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.creditApplied')}</p>
                             <p className="font-bold text-emerald-400 mt-0.5">−{fmt(r.creditApplied)}</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Pago</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.paid')}</p>
                             <p className="font-bold text-success mt-0.5">−{fmt(r.paidApplied)}</p>
                           </div>
                         </div>
@@ -2051,16 +2057,16 @@ const ClientDashboard: React.FC = () => {
                     <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs">
                       {overdueSum > 0 && (
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Atrasado (vencido)</span>
+                          <span className="text-muted-foreground">{t('clientDash.billing.overdueShort')}</span>
                           <span className="font-bold text-destructive">{fmt(overdueSum)}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Pendente (semana corrente)</span>
+                        <span className="text-muted-foreground">{t('clientDash.billing.currentPending')}</span>
                         <span className="font-bold text-warning">{fmt(currentSum)}</span>
                       </div>
                       <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
-                        <span className="text-muted-foreground">Total a pagar</span>
+                        <span className="text-muted-foreground">{t('clientDash.billing.totalPayable')}</span>
                         <span className="font-bold text-warning text-base">{fmt(creditPlan.totalStillOwed)}</span>
                       </div>
                     </div>
@@ -2073,20 +2079,20 @@ const ClientDashboard: React.FC = () => {
             {pendingBillings.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Receipt size={16} className="text-warning" /> Cobranças Semanais Pendentes
+                  <Receipt size={16} className="text-warning" /> {t('clientDash.billing.weeklyPending')}
                 </h3>
                 <div className="space-y-2">
                   {pendingBillings.map((b: any) => (
                     <div key={b.id} className="bg-warning/10 border border-warning/30 rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
                       <div>
-                        <p className="text-xs font-semibold text-warning">{b.note || 'Cobrança Semanal'}</p>
+                        <p className="text-xs font-semibold text-warning">{b.note || t('clientDash.billing.weeklyBilling')}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Período: {b.billing_week_start ? formatDateShortBR(b.billing_week_start) : ''} — {b.billing_week_end ? formatDateShortBR(b.billing_week_end) : ''}
+                          {t('clientDash.billing.period')} {b.billing_week_start ? formatDateShortBR(b.billing_week_start) : ''} — {b.billing_week_end ? formatDateShortBR(b.billing_week_end) : ''}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-base font-bold text-warning">{fmt(Number(b.amount))}</p>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{b.status === 'parcial' ? 'Parcial' : 'Pendente'}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{b.status === 'parcial' ? t('clientDash.billing.partial') : t('clientDash.billing.pending')}</p>
                       </div>
                     </div>
                   ))}
@@ -2098,24 +2104,24 @@ const ClientDashboard: React.FC = () => {
             {pendingTotal > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-2 flex items-center gap-2">
-                  <DollarSign size={16} className="text-primary" /> Opções de Pagamento
+                  <DollarSign size={16} className="text-primary" /> {t('clientDash.billing.paymentOptions')}
                 </h3>
-                <p className="text-xs text-muted-foreground mb-4">Escolha a forma de pagamento e você será redirecionado para o WhatsApp:</p>
+                <p className="text-xs text-muted-foreground mb-4">{t('clientDash.billing.paymentOptionsDesc')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('PIX'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all group">
                     <Smartphone size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-emerald-500">PIX</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Transferência instantânea</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.instantTransfer')}</span>
                   </a>
                   <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('Payoneer'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all group">
                     <Globe size={24} className="text-sky-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-sky-500">PAYONEER</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Internacional</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.international')}</span>
                   </a>
                   <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('Crypto'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all group">
                     <Bitcoin size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-amber-500">CRYPTO</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Criptomoedas</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.crypto')}</span>
                   </a>
                 </div>
               </div>
@@ -2125,7 +2131,7 @@ const ClientDashboard: React.FC = () => {
             {commissions.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                  <DollarSign size={16} className="text-primary" /> Histórico de Lançamentos
+                  <DollarSign size={16} className="text-primary" /> {t('clientDash.billing.launchHistory')}
                 </h3>
                 <div className="space-y-1.5 max-h-80 overflow-y-auto">
                   {commissions.map((comm: any) => (
@@ -2137,7 +2143,7 @@ const ClientDashboard: React.FC = () => {
                         <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
                         <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
                         <span className="text-muted-foreground">
-                          {comm.type === 'daily' ? 'Comissão' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança'}
+                          {comm.type === 'daily' ? t('clientDash.billing.commission') : comm.type === 'paid' ? t('clientDash.billing.payment') : t('clientDash.billing.billingEntry')}
                         </span>
                         {comm.type === 'daily' && Number(comm.ad_spend || 0) > 0 && (
                           <span className="text-muted-foreground">(Ads: {fmt(Number(comm.ad_spend))})</span>
@@ -2164,14 +2170,14 @@ const ClientDashboard: React.FC = () => {
               <div className="p-2 rounded-lg bg-destructive/15 text-destructive">
                 <AlertTriangle size={20} />
               </div>
-              <DialogTitle className="text-destructive">Saldo atrasado em aberto</DialogTitle>
+              <DialogTitle className="text-destructive">{t('clientDash.billing.overdueDialogTitle')}</DialogTitle>
             </div>
             <DialogDescription>
-              Você possui <strong className="text-destructive">{fmt(overdueTotal)}</strong> em comissões que venceram na sexta-feira de cobrança. Para evitar bloqueios nas contas, regularize o pagamento agora.
+              {t('clientDash.billing.overdueDialogDesc', { amount: fmt(overdueTotal) })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
-            <p className="text-xs text-muted-foreground">Escolha a forma de pagamento — você será redirecionado para o WhatsApp:</p>
+            <p className="text-xs text-muted-foreground">{t('clientDash.billing.paymentOptionsDesc')}</p>
             <div className="grid grid-cols-3 gap-2">
               <a
                 href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('PIX'))}`}
@@ -2205,7 +2211,7 @@ const ClientDashboard: React.FC = () => {
               onClick={() => setOverdueDialogOpen(false)}
               className="w-full text-xs text-muted-foreground hover:text-foreground py-2"
             >
-              Lembrar mais tarde
+              {t('clientDash.billing.remindLater')}
             </button>
           </div>
         </DialogContent>
@@ -2226,16 +2232,16 @@ const ClientDashboard: React.FC = () => {
               <DialogHeader className="mb-3">
                 <DialogTitle className={cn('font-display text-2xl', loyalty.current.accent)}>
                   {loyalty.current.id === 'standard'
-                    ? `🚀 Você está a ${Math.round(loyalty.progressPct)}% do nível ${loyalty.next?.label}!`
+                    ? t('clientDash.loyalty.standardNear', { pct: Math.round(loyalty.progressPct), level: loyalty.next?.label })
                     : loyalty.nearNext
-                      ? `🔥 Falta pouco para o nível ${loyalty.next?.label}!`
-                      : `🎉 Nível ${loyalty.current.label} desbloqueado!`}
+                      ? t('clientDash.loyalty.nearNext', { level: loyalty.next?.label })
+                      : t('clientDash.loyalty.unlocked', { level: loyalty.current.label })}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
                   {loyalty.achievedTop
-                    ? 'Você atingiu o topo — comissão base no menor patamar da agência.'
+                    ? t('clientDash.loyalty.topReached')
                     : loyalty.nearNext
-                      ? `Continue pagando sua comissão em dia — faltam apenas ${fmt(loyalty.remainingToNext)} para reduzir seu percentual base para ${loyalty.next?.basePct}%.`
+                      ? t('clientDash.loyalty.continueToReduce', { amount: fmt(loyalty.remainingToNext), pct: loyalty.next?.basePct })
                       : loyalty.current.tagline}
                 </DialogDescription>
               </DialogHeader>
@@ -2246,7 +2252,7 @@ const ClientDashboard: React.FC = () => {
                 onClick={() => setLoyaltyDialogOpen(false)}
                 className="mt-4 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
               >
-                {loyalty.nearNext ? 'Vamos lá!' : 'Continuar'}
+                {loyalty.nearNext ? t('clientDash.loyalty.letsGo') : t('clientDash.loyalty.continue')}
               </button>
             </div>
           </div>
