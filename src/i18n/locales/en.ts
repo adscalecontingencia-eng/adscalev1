@@ -195,6 +195,7 @@ const en: Translations = {
     billing: {
       overdueBalance: 'Overdue Balance', overdueDesc: 'Overdue after the Friday billing day. Settle it to avoid blocks.', settleNow: 'Settle now', pendingBalance: 'Pending Balance (current week)', nextFriday: 'Billing will happen next Friday', onlyOverdueOpen: 'Only overdue balance is open.', allGood: 'Everything is up to date! Thank you.',
       totalCredit: 'Total credit', usedCredit: 'Credit used', openBalance: 'Open balance', totalPayable: 'Total payable', weeklyPending: 'Pending Weekly Billings', weeklyBilling: 'Weekly Billing', period: 'Period:', partial: 'Partial', pending: 'Pending',
+      overdue: 'Overdue', paid: 'Paid', overdueShort: 'Overdue', currentPending: 'Pending (current week)', pendingCommissionsDesc: 'Values calculated from synced Meta spend after applying credit and payments already validated for the corresponding week.', syncedSpend: 'Synced spend', rate: 'Rate', calcCommission: 'Calc. commission', creditApplied: 'Credit applied',
       paymentOptions: 'Payment Options', paymentOptionsDesc: 'Choose the payment method and you will be redirected to WhatsApp:', instantTransfer: 'Instant transfer', international: 'International', crypto: 'Cryptocurrency', launchHistory: 'Entry History', commission: 'Commission', payment: 'Payment', billingEntry: '📋 Billing', overdueDialogTitle: 'Open overdue balance',
       overdueDialogDesc: 'You have {{amount}} in commissions that expired on the Friday billing day. To avoid account blocks, settle payment now.', remindLater: 'Remind me later',
     },
