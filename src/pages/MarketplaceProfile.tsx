@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import WalletDepositModal from "@/components/marketplace/WalletDepositModal";
 import { ArrowLeft, ShoppingBag, Wallet, BadgeDollarSign, Crown, User as UserIcon, Calendar, Settings, KeyRound, Receipt, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -124,6 +125,7 @@ export default function MarketplaceProfile() {
           <Button variant="ghost" size="sm" onClick={() => navigate("/marketplace")}>
             <ArrowLeft size={14} className="mr-1.5" /> Voltar ao marketplace
           </Button>
+          <div className="ml-auto"><LanguageSwitcher /></div>
         </div>
       </header>
 

@@ -34,6 +34,7 @@ import {
 import { Music2, MessageSquare, Facebook, Hexagon } from "lucide-react";
 
 import AdScaleLogo from "@/components/AdScaleLogo";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ProductCard from "@/components/marketplace/ProductCard";
 import AssetCard, { MarketplaceAsset } from "@/components/marketplace/AssetCard";
@@ -453,6 +454,7 @@ const Marketplace: React.FC = () => {
                 </Button>
               </>
             )}
+            <LanguageSwitcher />
             {/* Hamburger — mobile only */}
             <Button
               variant="ghost"
