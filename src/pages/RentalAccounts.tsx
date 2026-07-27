@@ -4,11 +4,14 @@ import { motion } from "framer-motion";
 import {
   ArrowRight, CheckCircle2, Shield, Zap, RefreshCw, HeadphonesIcon, TrendingUp,
   Wallet, Bitcoin, Globe, Calendar, BarChart3, Layers, Sparkles, CreditCard,
+  MessageCircle, Users, Ticket, Clock, UserPlus, FileCheck,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import dashResumo from "@/assets/landing/dash-resumo.png";
 import dashContrato from "@/assets/landing/dash-contrato.png";
 import dashCobrancas from "@/assets/landing/dash-cobrancas.png";
+import dashSupport from "@/assets/landing/dash-support.jpg";
+import dashSupportGroup from "@/assets/landing/dash-support-group.jpg";
 
 const SIGNUP = "/cadastro-agencia";
 
