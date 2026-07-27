@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS, es as esLocale } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,7 +24,7 @@ import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
   const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
@@ -52,6 +52,7 @@ const ClientDashboard: React.FC = () => {
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
   const [adAccountRequestLimit, setAdAccountRequestLimit] = useState<number>(5);
   const [adAccountRequestNotice, setAdAccountRequestNotice] = useState<string>('');
+  const dateLocale = i18n.language?.startsWith('en') ? enUS : i18n.language?.startsWith('es') ? esLocale : ptBR;
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
@@ -328,13 +329,19 @@ const ClientDashboard: React.FC = () => {
     await syncClosedBillingWeek(accountIds);
     await fetchAccounts(client.id);
     setRefreshingAccounts(false);
-    toast.success('Contas atualizadas');
+    toast.success(t('clientDash.messages.accountsUpdated'));
   };
 
 
   const resetReqForm = () => {
     setReqDesc(''); setReqQty(1); setReqBmId(''); setReqPageNames([]); setEditingReqId(null);
   };
+
+  const supportRequestTypeLabel = (type: string) =>
+    type === 'add_ad_account' ? t('clientDash.support.addAccount') :
+    type === 'add_page' ? t('clientDash.support.addPage') :
+    type === 'add_bm' ? t('clientDash.support.addBm') :
+    t('clientDash.support.other');
 
   // Carrega configurações públicas de pedidos (limite + aviso)
   useEffect(() => {
@@ -378,7 +385,7 @@ const ClientDashboard: React.FC = () => {
 
   const submitRequest = async () => {
     if (!isAdminView && !/emerson/i.test(client?.name || '') && billingSplit.overdue > 25) {
-      toast.error(`Pagamento pendente: você possui $${billingSplit.overdue.toFixed(2)} em atraso. Regularize o pagamento na aba "Cobranças" para liberar novas solicitações.`);
+      toast.error(t('clientDash.messages.paymentPending', { amount: billingSplit.overdue.toFixed(2) }));
       return;
     }
     if (!client) return;
@@ -388,23 +395,22 @@ const ClientDashboard: React.FC = () => {
         r.request_type === reqType && (r.status === 'pendente' || r.status === 'em_andamento')
       );
       if (openSame) {
-        const lbl = reqType === 'add_ad_account' ? 'Adicionar conta' : reqType === 'add_page' ? 'Adicionar página' : 'Adicionar BM';
-        toast.error(`Você já possui um pedido de "${lbl}" em aberto. Aguarde a conclusão para abrir outro dessa mesma categoria.`);
+        toast.error(t('clientDash.messages.duplicateRequest', { label: supportRequestTypeLabel(reqType) }));
         return;
       }
     }
     if (reqType === 'add_ad_account' && !reqBmId.trim()) {
-      toast.error('Informe o ID da BM onde deseja receber as contas.');
+      toast.error(t('clientDash.messages.bmRequired'));
       return;
     }
     if (reqType === 'add_ad_account' && reqQty > adAccountRequestLimit) {
-      toast.error(`Limite de ${adAccountRequestLimit} contas por pedido. Reduza a quantidade e envie novamente.`);
+      toast.error(t('clientDash.messages.limitExceeded', { limit: adAccountRequestLimit }));
       return;
     }
     if (reqType === 'add_page') {
       const names = reqPageNames.slice(0, reqQty).map(n => (n || '').trim());
       if (names.some(n => !n)) {
-        toast.error(`Informe o nome de todas as ${reqQty} páginas solicitadas.`);
+        toast.error(t('clientDash.messages.pageNamesRequired', { count: reqQty }));
         return;
       }
     }
@@ -421,18 +427,18 @@ const ClientDashboard: React.FC = () => {
       const { data, error } = await supabase.from('support_requests')
         .update(payload).eq('id', editingReqId).select().single();
       setSubmittingReq(false);
-      if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
+      if (error) { toast.error(t('clientDash.messages.updateError', { message: error.message })); return; }
       setSupportRequests(prev => prev.map(r => r.id === editingReqId ? data : r));
       resetReqForm();
-      toast.success('Solicitação atualizada!');
+      toast.success(t('clientDash.messages.requestUpdated'));
       return;
     }
     const { data, error } = await supabase.from('support_requests').insert(payload).select().single();
     setSubmittingReq(false);
-    if (error) { toast.error('Erro ao enviar solicitação: ' + error.message); return; }
+    if (error) { toast.error(t('clientDash.messages.sendError', { message: error.message })); return; }
     setSupportRequests(prev => [data, ...prev]);
     resetReqForm();
-    toast.success('Solicitação enviada! Nossa equipe foi notificada.');
+    toast.success(t('clientDash.messages.requestSent'));
   };
 
   const startEditRequest = (r: any) => {
@@ -447,12 +453,12 @@ const ClientDashboard: React.FC = () => {
   };
 
   const deleteRequest = async (id: string) => {
-    if (!confirm('Excluir esta solicitação?')) return;
+    if (!confirm(t('clientDash.messages.confirmDelete'))) return;
     const { error } = await supabase.from('support_requests').delete().eq('id', id);
-    if (error) { toast.error('Erro ao excluir: ' + error.message); return; }
+    if (error) { toast.error(t('clientDash.messages.deleteError', { message: error.message })); return; }
     setSupportRequests(prev => prev.filter(r => r.id !== id));
     if (editingReqId === id) resetReqForm();
-    toast.success('Solicitação excluída.');
+    toast.success(t('clientDash.messages.requestDeleted'));
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
