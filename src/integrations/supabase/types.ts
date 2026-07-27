@@ -454,6 +454,7 @@ export type Database = {
           phone: string | null
           plan_credit: number
           plan_credit_start_date: string | null
+          preferred_language: string | null
           updated_at: string
           used_accounts: number | null
           whatsapp_group_link: string | null
@@ -481,6 +482,7 @@ export type Database = {
           phone?: string | null
           plan_credit?: number
           plan_credit_start_date?: string | null
+          preferred_language?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -508,6 +510,7 @@ export type Database = {
           phone?: string | null
           plan_credit?: number
           plan_credit_start_date?: string | null
+          preferred_language?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -2292,6 +2295,7 @@ export type Database = {
           name: string
           notes: string | null
           pix_key: string | null
+          preferred_language: string | null
           status: string
           updated_at: string
           whatsapp_phone: string | null
@@ -2305,6 +2309,7 @@ export type Database = {
           name: string
           notes?: string | null
           pix_key?: string | null
+          preferred_language?: string | null
           status?: string
           updated_at?: string
           whatsapp_phone?: string | null
@@ -2318,6 +2323,7 @@ export type Database = {
           name?: string
           notes?: string | null
           pix_key?: string | null
+          preferred_language?: string | null
           status?: string
           updated_at?: string
           whatsapp_phone?: string | null
@@ -2733,6 +2739,7 @@ export type Database = {
           id: string
           name: string
           permissions: string[] | null
+          preferred_language: string | null
           updated_at: string
         }
         Insert: {
@@ -2742,6 +2749,7 @@ export type Database = {
           id?: string
           name: string
           permissions?: string[] | null
+          preferred_language?: string | null
           updated_at?: string
         }
         Update: {
@@ -2751,6 +2759,7 @@ export type Database = {
           id?: string
           name?: string
           permissions?: string[] | null
+          preferred_language?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2880,6 +2889,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          preferred_language: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          preferred_language?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          preferred_language?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
