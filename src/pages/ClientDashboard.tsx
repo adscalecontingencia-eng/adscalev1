@@ -53,6 +53,7 @@ const ClientDashboard: React.FC = () => {
   const [adAccountRequestLimit, setAdAccountRequestLimit] = useState<number>(5);
   const [adAccountRequestNotice, setAdAccountRequestNotice] = useState<string>('');
   const dateLocale = i18n.language?.startsWith('en') ? enUS : i18n.language?.startsWith('es') ? esLocale : ptBR;
+  const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : i18n.language?.startsWith('es') ? 'es-ES' : 'pt-BR';
 
   const [lastAccountsSync, setLastAccountsSync] = useState<Date | null>(null);
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
@@ -1335,22 +1336,22 @@ const ClientDashboard: React.FC = () => {
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                     <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                      <CreditCard size={16} className="text-primary" /> Contas de Anúncio
+                      <CreditCard size={16} className="text-primary" /> {t('clientDash.accounts.adAccounts')}
                     </h3>
                     <div className="flex items-center gap-2">
                       {lastAccountsSync && (
                         <span className="text-[10px] text-muted-foreground">
-                          Sincronizado {formatDistanceToNow(lastAccountsSync, { addSuffix: true, locale: ptBR })}
+                          {t('clientDash.structure.synced', { time: formatDistanceToNow(lastAccountsSync, { addSuffix: true, locale: dateLocale }) })}
                         </span>
                       )}
                       <button
                         onClick={refreshAccounts}
                         disabled={refreshingAccounts}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] bg-secondary border border-border hover:border-primary hover:text-primary disabled:opacity-50 transition-colors"
-                        title="Atualizar"
+                        title={t('clientDash.structure.refresh')}
                       >
                         <RefreshCw size={11} className={refreshingAccounts ? 'animate-spin' : ''} />
-                        Atualizar
+                        {t('clientDash.structure.refresh')}
                       </button>
                     </div>
                   </div>
@@ -1358,26 +1359,26 @@ const ClientDashboard: React.FC = () => {
                     <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-center">
                       <ShieldCheck size={16} className="text-emerald-400 mx-auto mb-1" />
                       <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Ativas</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{t('clientDash.structure.active')}</p>
                     </div>
                     <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-center">
                       <Ban size={16} className="text-destructive mx-auto mb-1" />
                       <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Banidas</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{t('clientDash.structure.banned')}</p>
                     </div>
                   </div>
 
                   {/* Filtro global de período da aba Estrutura */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-4 border-b border-border/60">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Período das métricas</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.structure.metricsPeriod')}</span>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {([
-                        { v: 'today', l: 'Hoje' },
-                        { v: 'billing_week', l: 'Última semana fechada' },
-                        { v: '7d', l: '7 dias corridos' },
-                        { v: '30d', l: '30 dias' },
-                        { v: 'all', l: 'Tudo' },
-                        { v: 'custom', l: 'Personalizado' },
+                        { v: 'today', l: t('clientDash.structure.today') },
+                        { v: 'billing_week', l: t('clientDash.structure.lastClosedWeek') },
+                        { v: '7d', l: t('clientDash.structure.rolling7') },
+                        { v: '30d', l: t('clientDash.structure.rolling30') },
+                        { v: 'all', l: t('clientDash.structure.allTime') },
+                        { v: 'custom', l: t('clientDash.structure.custom') },
                       ] as const).map(o => (
                         <button
                           key={o.v}
@@ -1397,18 +1398,18 @@ const ClientDashboard: React.FC = () => {
                           <Popover>
                             <PopoverTrigger asChild>
                               <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] bg-secondary border border-border hover:border-primary">
-                                <CalendarIcon size={10} /> {format(estruturaCustomStart, 'dd/MM/yyyy', { locale: ptBR })}
+                                <CalendarIcon size={10} /> {format(estruturaCustomStart, 'dd/MM/yyyy', { locale: dateLocale })}
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="end">
                               <Calendar mode="single" selected={estruturaCustomStart} onSelect={d => d && setEstruturaCustomStart(d)} className="p-3 pointer-events-auto" />
                             </PopoverContent>
                           </Popover>
-                          <span className="text-[10px] text-muted-foreground">até</span>
+                          <span className="text-[10px] text-muted-foreground">{t('clientDash.structure.until')}</span>
                           <Popover>
                             <PopoverTrigger asChild>
                               <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] bg-secondary border border-border hover:border-primary">
-                                <CalendarIcon size={10} /> {format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: ptBR })}
+                                <CalendarIcon size={10} /> {format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: dateLocale })}
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="end">
@@ -1423,7 +1424,7 @@ const ClientDashboard: React.FC = () => {
                   {activeAccounts.length === 0 ? (
                     <div className="text-center py-6 border border-dashed border-border rounded-lg">
                       <CreditCard size={24} className="mx-auto text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">Nenhuma conta atribuída ainda.</p>
+                      <p className="text-sm text-muted-foreground">{t('clientDash.structure.noAccounts')}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1471,10 +1472,10 @@ const ClientDashboard: React.FC = () => {
                                   <p className="text-sm font-semibold truncate">{acc.name}</p>
                                   <p className="text-[11px] text-muted-foreground font-mono truncate">ID: {acc.meta_account_id}</p>
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
-                                    <span>Saldo: <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
-                                    {acc.currency && <span>Moeda: <span className="text-foreground/80">{acc.currency}</span></span>}
+                                    <span>{t('clientDash.structure.balance')} <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
+                                    {acc.currency && <span>{t('clientDash.structure.currency')} <span className="text-foreground/80">{acc.currency}</span></span>}
                                     {acc.last_synced_at && (
-                                      <span>Atualizado: <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: ptBR })}</span></span>
+                                      <span>{t('clientDash.structure.updated')} <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: dateLocale })}</span></span>
                                     )}
                                   </div>
                                 </div>
@@ -1483,24 +1484,24 @@ const ClientDashboard: React.FC = () => {
                                 isBlocked ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                               )}>
                                 {isBlocked ? <Ban size={10} /> : <ShieldCheck size={10} />}
-                                {isBlocked ? (acc.disable_reason_label || 'Banida') : 'Ativa'}
+                                {isBlocked ? (acc.disable_reason_label || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
                               </span>
                             </div>
 
                             {/* Real metrics from insights (período controlado no topo da aba) */}
                             <div className="border-t border-border/60 pt-3 space-y-2">
-                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Métricas reais</span>
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.structure.realMetrics')}</span>
                               {accInsights.length === 0 ? (
-                                <p className="text-[11px] text-muted-foreground italic">Sem dados de anúncios neste período.</p>
+                                <p className="text-[11px] text-muted-foreground italic">{t('clientDash.structure.noAdData')}</p>
                               ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                   {[
-                                    { l: 'Gasto', v: fmt(m.spend), c: 'text-foreground' },
-                                    { l: 'Receita', v: fmt(m.revenue), c: 'text-emerald-400' },
+                                    { l: t('clientDash.structure.spend'), v: fmt(m.spend), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.revenue'), v: fmt(m.revenue), c: 'text-emerald-400' },
                                     { l: 'ROAS', v: `${roas.toFixed(2)}x`, c: roas >= 1 ? 'text-emerald-400' : 'text-destructive' },
-                                    { l: 'Compras', v: m.purchases.toLocaleString('pt-BR'), c: 'text-foreground' },
-                                    { l: 'Impressões', v: m.impressions.toLocaleString('pt-BR'), c: 'text-foreground' },
-                                    { l: 'Cliques', v: m.clicks.toLocaleString('pt-BR'), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.purchases'), v: m.purchases.toLocaleString(numberLocale), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.impressions'), v: m.impressions.toLocaleString(numberLocale), c: 'text-foreground' },
+                                    { l: t('clientDash.structure.clicks'), v: m.clicks.toLocaleString(numberLocale), c: 'text-foreground' },
                                     { l: 'CTR', v: `${ctr.toFixed(2)}%`, c: 'text-foreground' },
                                     { l: 'CPC', v: fmt(cpc), c: 'text-foreground' },
                                   ].map(k => (
@@ -1538,12 +1539,12 @@ const ClientDashboard: React.FC = () => {
                 estruturaPeriod === 'custom' ? endOfDay(estruturaCustomEnd) :
                 endOfDay(now);
               const periodLabel =
-                estruturaPeriod === 'today' ? 'Hoje' :
-                estruturaPeriod === 'billing_week' ? `${format(closedBillingWeek.start, 'dd/MM', { locale: ptBR })} → ${format(closedBillingWeek.end, 'dd/MM', { locale: ptBR })}` :
-                estruturaPeriod === '7d' ? 'Últimos 7 dias' :
-                estruturaPeriod === '30d' ? 'Últimos 30 dias' :
-                estruturaPeriod === 'custom' ? `${format(estruturaCustomStart, 'dd/MM/yyyy', { locale: ptBR })} → ${format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: ptBR })}` :
-                'Todo o período';
+                estruturaPeriod === 'today' ? t('clientDash.structure.today') :
+                estruturaPeriod === 'billing_week' ? `${format(closedBillingWeek.start, 'dd/MM', { locale: dateLocale })} → ${format(closedBillingWeek.end, 'dd/MM', { locale: dateLocale })}` :
+                estruturaPeriod === '7d' ? t('clientDash.structure.last7Days') :
+                estruturaPeriod === '30d' ? t('clientDash.structure.last30Days') :
+                estruturaPeriod === 'custom' ? `${format(estruturaCustomStart, 'dd/MM/yyyy', { locale: dateLocale })} → ${format(estruturaCustomEnd, 'dd/MM/yyyy', { locale: dateLocale })}` :
+                t('clientDash.structure.wholePeriod');
 
               const rows = activeAccounts.map((a: any) => {
                 const acc = a.ad_account;
@@ -1579,31 +1580,31 @@ const ClientDashboard: React.FC = () => {
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                     <div>
                       <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                        <Layers size={16} className="text-primary" /> Estrutura de contas de anúncio
+                        <Layers size={16} className="text-primary" /> {t('clientDash.structure.accountsStructure')}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Gasto e comissão estimada por conta — {periodLabel}
+                        {t('clientDash.structure.spendCommissionByAccount', { period: periodLabel })}
                       </p>
                     </div>
                     <span className="text-[10px] px-2 py-1 rounded-md bg-primary/10 border border-primary/30 text-primary font-medium">
-                      Tier atual: {effectivePct.toFixed(2)}%
+                      {t('clientDash.structure.currentTier', { pct: effectivePct.toFixed(2) })}
                     </span>
                   </div>
 
                   {withCommission.length === 0 ? (
                     <div className="text-center py-6 border border-dashed border-border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Sem dados no período selecionado.</p>
+                      <p className="text-sm text-muted-foreground">{t('clientDash.structure.noData')}</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto rounded-lg border border-border/60">
                       <table className="w-full text-xs">
                         <thead className="bg-secondary/60 text-muted-foreground">
                           <tr>
-                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Conta</th>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.account')}</th>
                             <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">ID Meta</th>
-                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Status</th>
-                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Gasto período</th>
-                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">Comissão est.</th>
+                            <th className="text-left px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.status')}</th>
+                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.periodSpend')}</th>
+                            <th className="text-right px-3 py-2 font-medium uppercase tracking-wider text-[10px]">{t('clientDash.structure.estCommission')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1619,7 +1620,7 @@ const ClientDashboard: React.FC = () => {
                                     : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                                 )}>
                                   {r.isBlocked ? <Ban size={9} /> : <ShieldCheck size={9} />}
-                                  {r.isBlocked ? (r.disableLabel || 'Bloqueada') : 'Ativa'}
+                                  {r.isBlocked ? (r.disableLabel || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-right font-semibold text-foreground">{fmt(r.spend)}</td>
@@ -1641,8 +1642,7 @@ const ClientDashboard: React.FC = () => {
                   )}
 
                   <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
-                    * A comissão é calculada sobre o gasto total do período aplicando o tier vigente ({effectivePct.toFixed(2)}%).
-                    O valor por conta é uma estimativa proporcional para facilitar a conferência.
+                    * {t('clientDash.structure.commissionNote', { pct: effectivePct.toFixed(2) })}
                   </p>
                 </div>
               );
@@ -1652,22 +1652,22 @@ const ClientDashboard: React.FC = () => {
             {/* Pages */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                <ImageIcon size={16} className="text-primary" /> Suas páginas Meta
+                <ImageIcon size={16} className="text-primary" /> {t('clientDash.structure.metaPages')}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Páginas atribuídas ao seu contrato e status atual.
+                {t('clientDash.structure.metaPagesDesc')}
               </p>
               {pages.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-border rounded-lg">
                   <ImageIcon size={28} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma página atribuída ainda.</p>
+                  <p className="text-sm text-muted-foreground">{t('clientDash.structure.noPages')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pages.map((p: any) => {
                     const restricted = p.is_restricted;
                     const unpublished = p.is_published === false;
-                    const statusLabel = restricted ? 'Restrita' : unpublished ? 'Despublicada' : 'Ativa';
+                    const statusLabel = restricted ? t('clientDash.structure.restricted') : unpublished ? t('clientDash.structure.unpublished') : t('clientDash.structure.activeStatus');
                     const statusClass = restricted ? 'text-destructive' : unpublished ? 'text-warning' : 'text-emerald-400';
                     const StatusIcon = restricted || unpublished ? ShieldAlert : ShieldCheck;
                     return (
@@ -1679,7 +1679,7 @@ const ClientDashboard: React.FC = () => {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{p.name}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">{p.category || 'Sem categoria'}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{p.category || t('clientDash.structure.noCategory')}</p>
                           <div className="flex items-center gap-3 mt-1.5 text-[11px]">
                             <span className="flex items-center gap-1 text-primary">
                               <UsersIcon size={11} />
