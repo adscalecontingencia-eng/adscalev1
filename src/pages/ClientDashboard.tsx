@@ -24,6 +24,7 @@ import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
   const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
@@ -757,7 +758,7 @@ const ClientDashboard: React.FC = () => {
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur z-20">
         <div className="flex items-center gap-3 text-primary">
           <AdScaleLogo size={28} />
-          <p className="text-xs text-muted-foreground hidden sm:block border-l border-border pl-3">Painel do Cliente</p>
+          <p className="text-xs text-muted-foreground hidden sm:block border-l border-border pl-3">{t('clientDash.header')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right hidden sm:block">
@@ -801,21 +802,21 @@ const ClientDashboard: React.FC = () => {
             <div className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
             <div className="relative">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">
-                <Sparkles size={11} /> Bem-vindo, {client.name?.split(' ')[0]}
+                <Sparkles size={11} /> {t('clientDash.welcome')}, {client.name?.split(' ')[0]}
               </div>
               <h2 className="font-display text-2xl lg:text-3xl font-bold text-foreground mb-2 leading-tight">
-                Sua operação em <span className="text-primary glow-text">tempo real</span>
+                {t('clientDash.heroTitle1')} <span className="text-primary glow-text">{t('clientDash.heroTitle2')}</span>
               </h2>
               <p className="text-xs text-muted-foreground max-w-md">
-                Acompanhe investimento, contrato e cobranças em um só lugar. A agência protege seus ativos 24/7.
+                {t('clientDash.heroDesc')}
               </p>
             </div>
             <div className="relative mt-6 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2.5 py-1">
-                <ShieldCheck size={11} /> Estrutura protegida
+                <ShieldCheck size={11} /> {t('clientDash.tagProtected')}
               </span>
               <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary bg-primary/10 border border-primary/30 rounded-full px-2.5 py-1">
-                <Sparkles size={11} /> Sync automático
+                <Sparkles size={11} /> {t('clientDash.tagAutoSync')}
               </span>
             </div>
           </div>
@@ -832,19 +833,19 @@ const ClientDashboard: React.FC = () => {
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
           <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
-              <LayoutDashboard size={14} /> Resumo
+              <LayoutDashboard size={14} /> {t('clientDash.tabs.overview')}
             </TabsTrigger>
             <TabsTrigger value="contrato" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
-              <FileText size={14} /> Contrato
+              <FileText size={14} /> {t('clientDash.tabs.contract')}
             </TabsTrigger>
             <TabsTrigger value="estrutura" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
-              <Layers size={14} /> Estrutura
+              <Layers size={14} /> {t('clientDash.tabs.structure')}
               {(activeAccounts.length + pages.length) > 0 && (
                 <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{activeAccounts.length + pages.length}</span>
               )}
             </TabsTrigger>
             <TabsTrigger value="suporte" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
-              <LifeBuoy size={14} /> Suporte
+              <LifeBuoy size={14} /> {t('clientDash.tabs.support')}
               {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length > 0 && (
                 <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
                   {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length}
@@ -852,7 +853,7 @@ const ClientDashboard: React.FC = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
-              <Receipt size={14} /> Cobranças
+              <Receipt size={14} /> {t('clientDash.tabs.billing')}
               {cobrancasCount > 0 && (
                 <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-warning text-warning-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
                   {cobrancasCount}
@@ -876,37 +877,37 @@ const ClientDashboard: React.FC = () => {
                   <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
                     <ShieldCheck size={18} className="text-primary" />
                     <div className="text-2xl font-bold text-primary mt-2">{savedTotal}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Economizadas</div>
-                    <div className="text-[10px] text-muted-foreground/60 mt-1">Bloqueios absorvidos pela operação — você paga por performance, não por conta</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.savedAccounts')}</div>
+                    <div className="text-[10px] text-muted-foreground/60 mt-1">{t('clientDash.kpi.savedAccountsDesc')}</div>
                   </div>
                 );
               })()}
               <div className="rounded-xl bg-card border border-border p-4">
                 <Shield size={18} className="text-emerald-400" />
                 <div className="text-2xl font-bold text-emerald-400 mt-2">{activeAccounts.filter((a: any) => !(a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0)).length}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Contas Ativas</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">Operando para você</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.activeAccounts')}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{t('clientDash.kpi.activeAccountsDesc')}</div>
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <TrendingUp size={18} className="text-sky-400" />
                 <div className="text-2xl font-bold text-sky-400 mt-2">{fmt(periodTotals.adSpend)}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Investido em Ads</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Última semana fechada' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.adSpend')}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? t('clientDash.periods.today') : periodFilter === 'week' ? t('clientDash.periods.closedWeek') : periodFilter === 'month' ? t('clientDash.periods.thisMonth') : t('clientDash.periods.custom')}</div>
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <DollarSign size={18} className="text-amber-400" />
                 <div className="text-2xl font-bold text-amber-400 mt-2">{fmt(periodTotals.commission)}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Comissão Agência</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? 'Hoje' : periodFilter === 'week' ? 'Última semana fechada' : periodFilter === 'month' ? 'Este mês' : 'Período custom'}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.agencyCommission')}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? t('clientDash.periods.today') : periodFilter === 'week' ? t('clientDash.periods.closedWeek') : periodFilter === 'month' ? t('clientDash.periods.thisMonth') : t('clientDash.periods.custom')}</div>
               </div>
               <div className="rounded-xl bg-gradient-to-br from-primary/15 to-emerald-500/10 border border-primary/30 p-4">
                 <CreditCard size={18} className="text-primary" />
                 <div className="text-2xl font-bold text-primary mt-2">{fmt(availableCredit)}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">Crédito Disponível</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.creditAvailable')}</div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1">
                   {creditUsed > 0
-                    ? <>Usado <span className="text-primary/80 font-semibold">{fmt(creditUsed)}</span> de {fmt(originalCredit)}</>
-                    : 'Abatido automaticamente da comissão'}
+                    ? <>{t('clientDash.kpi.creditUsed')} <span className="text-primary/80 font-semibold">{fmt(creditUsed)}</span> {t('clientDash.kpi.creditOf')} {fmt(originalCredit)}</>
+                    : t('clientDash.kpi.creditAuto')}
                 </div>
               </div>
             </div>
@@ -915,7 +916,7 @@ const ClientDashboard: React.FC = () => {
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                  <TrendingUp size={16} className="text-primary" /> Resumo por Período
+                  <TrendingUp size={16} className="text-primary" /> {t('clientDash.periodPanel.title')}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {(['today', 'week', 'month', 'custom'] as const).map(p => (
@@ -923,7 +924,7 @@ const ClientDashboard: React.FC = () => {
                       className={cn("px-3 py-1 rounded-lg text-xs font-medium transition-colors",
                         periodFilter === p ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
                       )}>
-                      {p === 'today' ? 'Hoje' : p === 'week' ? 'Semana fechada' : p === 'month' ? 'Mês' : 'Personalizado'}
+                      {p === 'today' ? t('clientDash.periods.today') : p === 'week' ? t('clientDash.periods.weekClosed') : p === 'month' ? t('clientDash.periods.month') : t('clientDash.periods.customLabel')}
                     </button>
                   ))}
                 </div>
@@ -934,7 +935,7 @@ const ClientDashboard: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border hover:border-primary">
-                        <CalendarIcon size={12} /> De: {format(customStart, 'dd/MM/yyyy', { locale: ptBR })}
+                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.from')} {format(customStart, 'dd/MM/yyyy', { locale: ptBR })}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -944,7 +945,7 @@ const ClientDashboard: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border hover:border-primary">
-                        <CalendarIcon size={12} /> Até: {format(customEnd, 'dd/MM/yyyy', { locale: ptBR })}
+                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.to')} {format(customEnd, 'dd/MM/yyyy', { locale: ptBR })}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -956,15 +957,15 @@ const ClientDashboard: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto em Ads</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.periodPanel.spend')}</p>
                   <p className="text-base sm:text-lg font-bold text-foreground mt-1">{fmt(periodTotals.adSpend)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Comissão</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.periodPanel.commission')}</p>
                   <p className="text-base sm:text-lg font-bold text-primary mt-1">{fmt(periodTotals.commission)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pago</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.periodPanel.paid')}</p>
                   <p className="text-base sm:text-lg font-bold text-success mt-1">{fmt(periodTotals.paid)}</p>
                 </div>
               </div>
