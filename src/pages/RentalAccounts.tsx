@@ -62,12 +62,12 @@ const RentalAccounts: React.FC = () => {
       </header>
 
       {/* HERO */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-16 sm:pb-24">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 lg:pt-20 pb-12 sm:pb-20 lg:pb-24">
         <motion.div {...fadeUp} className="max-w-3xl">
-          <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
+          <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] sm:tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
             <Sparkles size={12} /> Ad Structure Rental · <span className="notranslate" translate="no">AD SCALE</span>
           </span>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.05] tracking-tight">
+          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.1] sm:leading-[1.05] tracking-tight">
             Scale your operation with{" "}
             <span className="text-primary">unlimited ad accounts</span>.
           </h1>
