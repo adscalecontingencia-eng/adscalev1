@@ -115,6 +115,7 @@ const App = () => (
       <Sonner />
       <ErrorBoundary>
         <AuthProvider>
+          <LanguageProvider>
           <HashRouter>
             <ScrollToTop />
             <Routes>
@@ -176,6 +177,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </HashRouter>
+          </LanguageProvider>
         </AuthProvider>
       </ErrorBoundary>
     </TooltipProvider>
