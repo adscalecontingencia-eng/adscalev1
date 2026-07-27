@@ -178,15 +178,15 @@ const Dashboard: React.FC = () => {
   const paginaNet = netByCategory('Pagina');
 
   const pieData = [
-    { name: 'Perfil', value: perfilCosts },
-    { name: 'BM Comum', value: bmComumCosts },
-    { name: 'BM Verificada', value: bmVerifCosts },
-    { name: 'BM API', value: bmApiCosts },
-    { name: 'BM Disparo', value: bmDisparoCosts },
-    { name: 'Pagina', value: paginaCosts },
-    { name: 'Fornecedores', value: fornecedorCosts },
-    { name: 'Marketing', value: marketingCosts },
-    { name: 'Operacional', value: operacionalCosts },
+    { name: t('adminDashboard.structures.profile'), value: perfilCosts },
+    { name: t('adminDashboard.structures.commonBm'), value: bmComumCosts },
+    { name: t('adminDashboard.structures.verifiedBm'), value: bmVerifCosts },
+    { name: t('adminDashboard.structures.apiBm'), value: bmApiCosts },
+    { name: t('adminDashboard.structures.broadcastBm'), value: bmDisparoCosts },
+    { name: t('adminDashboard.structures.page'), value: paginaCosts },
+    { name: t('adminDashboard.structures.suppliers'), value: fornecedorCosts },
+    { name: t('adminDashboard.structures.marketing'), value: marketingCosts },
+    { name: t('adminDashboard.structures.operational'), value: operacionalCosts },
   ].filter(d => d.value > 0);
 
   const buildClientProfits = (typeFilter: 'aluguel' | 'venda') => clients
@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
 
     // 2) Diário
     addSheet(t('adminDashboard.export.daily'), [
-      ['Data', `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
+      [t('common.date'), `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...dailyData.map(d => [d.date, v(d.faturamento), v(d.gastos), v(d.lucro)]),
     ], [12, 18, 18, 18]);
 
@@ -550,7 +550,7 @@ const Dashboard: React.FC = () => {
         <KpiCard label={t('adminDashboard.kpis.profit')} value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
         <KpiCard label={t('adminDashboard.kpis.structureCosts')} value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
         <KpiCard label={t('adminDashboard.kpis.productCost')} value={fmt(productCost)} delta={fornecedorCosts > 0 ? t('adminDashboard.kpis.includesSuppliers', { amount: fmt(fornecedorCosts) }) : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Marketing" value={fmt(marketingCosts)} delta={t('adminDashboard.kpis.marketingDelta')} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
+        <KpiCard label={t('adminDashboard.structures.marketing')} value={fmt(marketingCosts)} delta={t('adminDashboard.kpis.marketingDelta')} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
         <KpiCard label={t('adminDashboard.kpis.operationalCost')} value={fmt(operacionalCosts)} delta={t('adminDashboard.kpis.operationalDelta')} deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
         <KpiCard label={t('adminDashboard.kpis.avgTicket')} value={fmt(avgTicket)} delta={t('adminDashboard.kpis.salesCount', { count: salesCount })} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
         <KpiCard label={t('adminDashboard.kpis.activeClients')} value={String(activeClients)} delta={t('adminDashboard.kpis.totalClients', { count: clients.length })} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
@@ -632,16 +632,16 @@ const Dashboard: React.FC = () => {
 
       {/* STRUCTURE BREAKDOWN MINI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {[
-          { label: 'Perfil', value: perfilNet, color: 'hsl(160,80%,45%)' },
-          { label: 'BM Comum', value: bmComumNet, color: 'hsl(212,100%,55%)' },
-          { label: 'BM Verificada', value: bmVerifNet, color: 'hsl(180,100%,50%)' },
-          { label: 'BM API', value: bmApiNet, color: 'hsl(280,80%,60%)' },
-          { label: 'BM Disparo', value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
-          { label: 'Pagina', value: paginaNet, color: 'hsl(200,100%,55%)' },
-          { label: 'Fornecedores', value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
-          { label: 'Marketing', value: -marketingCosts, color: 'hsl(330,80%,60%)' },
-          { label: 'Custo Operacional', value: -operacionalCosts, color: 'hsl(50,90%,55%)' },
+          {[
+          { label: t('adminDashboard.structures.profile'), value: perfilNet, color: 'hsl(160,80%,45%)' },
+          { label: t('adminDashboard.structures.commonBm'), value: bmComumNet, color: 'hsl(212,100%,55%)' },
+          { label: t('adminDashboard.structures.verifiedBm'), value: bmVerifNet, color: 'hsl(180,100%,50%)' },
+          { label: t('adminDashboard.structures.apiBm'), value: bmApiNet, color: 'hsl(280,80%,60%)' },
+          { label: t('adminDashboard.structures.broadcastBm'), value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
+          { label: t('adminDashboard.structures.page'), value: paginaNet, color: 'hsl(200,100%,55%)' },
+          { label: t('adminDashboard.structures.suppliers'), value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
+          { label: t('adminDashboard.structures.marketing'), value: -marketingCosts, color: 'hsl(330,80%,60%)' },
+          { label: t('adminDashboard.kpis.operationalCost'), value: -operacionalCosts, color: 'hsl(50,90%,55%)' },
         ].map(item => (
           <motion.div
             key={item.label}
