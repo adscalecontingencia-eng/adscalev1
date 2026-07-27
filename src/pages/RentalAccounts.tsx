@@ -453,7 +453,7 @@ const RentalAccounts: React.FC = () => {
 };
 
 const PricingRow: React.FC<{ label: string; value: string; hint?: string; highlight?: boolean; last?: boolean }> = ({ label, value, hint, highlight, last }) => (
-  <div className={`flex items-center justify-between gap-4 px-6 py-5 ${last ? "" : "border-b border-border/60"} ${highlight ? "bg-primary/5" : ""}`}>
+  <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-5 sm:px-6 py-4 sm:py-5 ${last ? "" : "border-b border-border/60"} ${highlight ? "bg-primary/5" : ""}`}>
     <div>
       <p className="font-display font-semibold text-foreground text-sm sm:text-base">{label}</p>
       {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
