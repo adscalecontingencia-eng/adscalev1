@@ -1270,12 +1270,12 @@ const ClientDashboard: React.FC = () => {
                     )}
                   </div>
                   <ul className="space-y-2">
-                    {tiers.map(t => {
-                      const reached = weekSpend > t.min;
-                      const active = currentRate === t.pct;
+                    {tiers.map(tier => {
+                      const reached = weekSpend > tier.min;
+                      const active = currentRate === tier.pct;
                       return (
                         <li
-                          key={t.min}
+                          key={tier.min}
                           className={cn(
                             "flex items-center justify-between rounded-lg px-3 py-2 border text-sm",
                             active ? "bg-primary/10 border-primary/40" :
@@ -1288,11 +1288,11 @@ const ClientDashboard: React.FC = () => {
                               "w-2 h-2 rounded-full",
                               active ? "bg-primary animate-pulse" : reached ? "bg-success" : "bg-muted-foreground/40"
                             )} />
-                            {t('clientDash.contract.above', { amount: fmt(t.min) })}
+                            {t('clientDash.contract.above', { amount: fmt(tier.min) })}
                           </span>
                           <span className={cn("font-semibold",
                             active ? "text-primary" : reached ? "text-success" : "text-muted-foreground"
-                          )}>{t.pct}%</span>
+                          )}>{tier.pct}%</span>
                         </li>
                       );
                     })}
