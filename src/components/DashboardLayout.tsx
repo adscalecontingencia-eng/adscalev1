@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import {
   LayoutDashboard, Users, DollarSign, HeadphonesIcon, UserCog, LogOut, Menu, ChevronRight, ChevronDown,
@@ -9,49 +10,50 @@ import {
 } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
-type Link = { path: string; label: string; icon: any; adminOnly?: boolean };
-type Group = { id: string; label: string | null; icon?: any; defaultOpen: boolean; links: Link[] };
+type Link = { path: string; labelKey: string; icon: any; adminOnly?: boolean };
+type Group = { id: string; labelKey: string | null; icon?: any; defaultOpen: boolean; links: Link[] };
 
 const groups: Group[] = [
   {
-    id: 'geral', label: null, defaultOpen: true, links: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    id: 'geral', labelKey: null, defaultOpen: true, links: [
+      { path: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
     ]
   },
   {
-    id: 'aluguel', label: 'Aluguel', icon: Handshake, defaultOpen: true, links: [
-      { path: '/clients', label: 'Clientes', icon: Users },
-      { path: '/partners', label: 'Parceiros', icon: Handshake },
-      { path: '/financial', label: 'Financeiro', icon: DollarSign },
-      { path: '/ads-dashboard', label: 'Ads', icon: BarChart3 },
-      { path: '/support', label: 'Suporte', icon: HeadphonesIcon },
-      { path: '/meta-connections', label: 'Conexões Meta', icon: Plug },
-      { path: '/meta-apps', label: 'Aplicativos Meta', icon: AppWindow, adminOnly: true },
-      { path: '/pages', label: 'Páginas', icon: ImageIcon },
-      { path: '/asset-map', label: 'Mapa de Ativos', icon: Network },
-      { path: '/block-log', label: 'Log de Bloqueios', icon: Ban },
+    id: 'aluguel', labelKey: 'navGroups.rental', icon: Handshake, defaultOpen: true, links: [
+      { path: '/clients', labelKey: 'nav.clients', icon: Users },
+      { path: '/partners', labelKey: 'nav.partners', icon: Handshake },
+      { path: '/financial', labelKey: 'nav.financial', icon: DollarSign },
+      { path: '/ads-dashboard', labelKey: 'nav.ads', icon: BarChart3 },
+      { path: '/support', labelKey: 'nav.support', icon: HeadphonesIcon },
+      { path: '/meta-connections', labelKey: 'nav.metaConnections', icon: Plug },
+      { path: '/meta-apps', labelKey: 'nav.metaApps', icon: AppWindow, adminOnly: true },
+      { path: '/pages', labelKey: 'nav.pages', icon: ImageIcon },
+      { path: '/asset-map', labelKey: 'nav.assetMap', icon: Network },
+      { path: '/block-log', labelKey: 'nav.blockLog', icon: Ban },
     ]
   },
   {
-    id: 'venda', label: 'Venda', icon: ShoppingBag, defaultOpen: true, links: [
-      { path: '/admin-marketplace', label: 'Marketplace', icon: ShoppingBag },
-      { path: '/vendas-ads', label: 'Ads de Venda', icon: BarChart3 },
-      { path: '/estoque-vendas', label: 'Estoque de BMs', icon: Boxes },
-      { path: '/admin/marketplace-assets', label: 'Ativos c/ Gastos', icon: Boxes },
-      { path: '/marketplace-clients', label: 'Clientes Marketplace', icon: UsersRound },
-      { path: '/admin-payments', label: 'Pagamentos', icon: Wallet },
-      { path: '/admin-audit', label: 'Auditoria Pagamentos', icon: Shield, adminOnly: true },
-      { path: '/admin-webhook-logs', label: 'Logs Mercado Pago', icon: Activity, adminOnly: true },
-      { path: '/admin-tracking', label: 'Tracking & Pixels', icon: Activity },
+    id: 'venda', labelKey: 'navGroups.sales', icon: ShoppingBag, defaultOpen: true, links: [
+      { path: '/admin-marketplace', labelKey: 'nav.marketplace', icon: ShoppingBag },
+      { path: '/vendas-ads', labelKey: 'nav.salesAds', icon: BarChart3 },
+      { path: '/estoque-vendas', labelKey: 'nav.bmStock', icon: Boxes },
+      { path: '/admin/marketplace-assets', labelKey: 'nav.assetsWithSpend', icon: Boxes },
+      { path: '/marketplace-clients', labelKey: 'nav.marketplaceClients', icon: UsersRound },
+      { path: '/admin-payments', labelKey: 'nav.payments', icon: Wallet },
+      { path: '/admin-audit', labelKey: 'nav.paymentsAudit', icon: Shield, adminOnly: true },
+      { path: '/admin-webhook-logs', labelKey: 'nav.mpLogs', icon: Activity, adminOnly: true },
+      { path: '/admin-tracking', labelKey: 'nav.tracking', icon: Activity },
     ]
   },
   {
-    id: 'sistema', label: 'Sistema', icon: Settings2, defaultOpen: false, links: [
-      { path: '/access-logs', label: 'Acessos', icon: Activity },
-      { path: '/audit-log', label: 'Auditoria', icon: Shield, adminOnly: true },
-      { path: '/manual-adjustments', label: 'Ajustes Manuais', icon: Shield },
-      { path: '/users', label: 'Usuários', icon: UserCog, adminOnly: true },
+    id: 'sistema', labelKey: 'navGroups.system', icon: Settings2, defaultOpen: false, links: [
+      { path: '/access-logs', labelKey: 'nav.access', icon: Activity },
+      { path: '/audit-log', labelKey: 'nav.audit', icon: Shield, adminOnly: true },
+      { path: '/manual-adjustments', labelKey: 'nav.manualAdjustments', icon: Shield },
+      { path: '/users', labelKey: 'nav.users', icon: UserCog, adminOnly: true },
     ]
   },
 ];
