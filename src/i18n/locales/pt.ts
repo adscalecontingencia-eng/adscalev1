@@ -129,7 +129,7 @@ const pt = {
     invalidCredentials: 'E-mail ou senha incorretos',
     logoutSuccess: 'Você saiu da conta',
   },
-} as const;
+};
 
 export type Translations = typeof pt;
 export default pt;
