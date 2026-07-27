@@ -13,7 +13,7 @@ import dashCobrancas from "@/assets/landing/dash-cobrancas.png";
 import dashSupport from "@/assets/landing/dash-support.jpg";
 import dashSupportGroup from "@/assets/landing/dash-support-group.jpg";
 
-const SIGNUP = "/cadastro-agencia";
+const SIGNUP = "/cadastro-agencia?lang=en";
 
 const fadeUp = {
   initial: { opacity: 0, y: 18 },
