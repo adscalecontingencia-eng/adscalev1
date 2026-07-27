@@ -17,6 +17,7 @@ import { getBillingDueDate, getLastClosedBillingWeekRange, splitOverdueVsCurrent
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import LoyaltyTierCard from '@/components/clients/LoyaltyTierCard';
 import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 
@@ -762,6 +763,7 @@ const ClientDashboard: React.FC = () => {
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
+          <LanguageSwitcher />
           <ThemeToggle />
           {!isAdminView && user?.id && (
             <ClientNotificationCenter
