@@ -380,6 +380,17 @@ const pt = {
       rental: 'Aluguel',
       sales: 'Vendas',
     },
+    structures: {
+      profile: 'Perfil',
+      commonBm: 'BM Comum',
+      verifiedBm: 'BM Verificada',
+      apiBm: 'BM API',
+      broadcastBm: 'BM Disparo',
+      page: 'Página',
+      suppliers: 'Fornecedores',
+      marketing: 'Marketing',
+      operational: 'Operacional',
+    },
     exportExcel: 'Exportar Excel',
     exportTitle: 'Exportar gráficos para Excel',
     kpis: {
