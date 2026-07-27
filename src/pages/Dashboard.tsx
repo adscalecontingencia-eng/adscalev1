@@ -366,9 +366,9 @@ const Dashboard: React.FC = () => {
   };
 
   const dateLabel =
-    dateFilter === 'today' ? 'Hoje'
-    : dateFilter === '7days' ? 'Últimos 7 dias'
-    : dateFilter === 'month' ? 'Esse Mês'
+    dateFilter === 'today' ? t('adminDashboard.periods.today')
+    : dateFilter === '7days' ? t('adminDashboard.periods.last7')
+    : dateFilter === 'month' ? t('adminDashboard.periods.month')
     : dateFilter === 'custom' ? t('adminDashboard.periods.specificDate')
     : t('adminDashboard.periods.custom');
 
@@ -395,11 +395,11 @@ const Dashboard: React.FC = () => {
               Command Center
             </div>
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-              Bem-vindo de volta
+              {t('adminDashboard.welcomeBack')}
               {user?.email ? <span className="text-primary glow-text">.</span> : null}
             </h1>
             <p className="text-sm text-muted-foreground mt-2 max-w-lg">
-              Visão consolidada da operação · {dateLabel.toLowerCase()}
+              {t('adminDashboard.consolidatedView', { period: dateLabel.toLowerCase() })}
             </p>
           </div>
 
@@ -410,22 +410,22 @@ const Dashboard: React.FC = () => {
                   onClick={handleManualSync}
                   disabled={syncing}
                   className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium bg-card/40 backdrop-blur border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
-                  title="Gerar comissões pendentes a partir dos gastos sincronizados"
+                  title={t('adminDashboard.syncTitle')}
                 >
                   <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-                  {syncing ? 'Sincronizando...' : 'Sincronizar Comissões'}
+                  {syncing ? t('adminDashboard.syncing') : t('adminDashboard.syncCommissions')}
                 </button>
                 <button
                   onClick={() => { setShowSyncHistory(true); loadSyncHistory(); }}
                   className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium bg-card/40 backdrop-blur border border-border text-muted-foreground hover:text-foreground transition-colors"
-                  title="Ver histórico de sincronizações"
+                  title={t('adminDashboard.historyTitle')}
                 >
-                  <Clock size={13} /> Histórico
+                  <Clock size={13} /> {t('adminDashboard.history')}
                 </button>
               </>
             )}
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Margem operacional</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t('adminDashboard.operationalMargin')}</div>
               <div className={`font-display text-2xl font-bold ${margin >= 0 ? 'text-primary glow-text' : 'text-destructive'}`}>
                 {margin.toFixed(1)}%
               </div>
@@ -450,7 +450,7 @@ const Dashboard: React.FC = () => {
                 : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
             )}
           >
-            {f === 'today' ? 'Hoje' : f === '7days' ? 'Últimos 7 dias' : f === 'month' ? 'Esse Mês' : f === 'custom' ? 'Data específica' : 'Período'}
+            {f === 'today' ? t('adminDashboard.periods.today') : f === '7days' ? t('adminDashboard.periods.last7') : f === 'month' ? t('adminDashboard.periods.month') : f === 'custom' ? t('adminDashboard.periods.specificDate') : t('adminDashboard.periods.period')}
           </button>
         ))}
         {dateFilter === 'custom' && (
@@ -458,7 +458,7 @@ const Dashboard: React.FC = () => {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs bg-card/40 backdrop-blur border border-border/60 text-foreground hover:border-primary/50 transition-colors">
                 <CalendarIcon size={13} />
-                {customDate ? format(customDate, "dd 'de' MMM, yyyy", { locale: ptBR }) : 'Selecionar data'}
+                {customDate ? format(customDate, 'dd MMM, yyyy', { locale: dateLocale }) : t('adminDashboard.periods.selectDate')}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -472,7 +472,7 @@ const Dashboard: React.FC = () => {
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs bg-card/40 backdrop-blur border border-border/60 text-foreground hover:border-primary/50 transition-colors">
                   <CalendarIcon size={13} />
-                  {rangeFrom ? format(rangeFrom, 'dd/MM/yyyy', { locale: ptBR }) : 'De'}
+                  {rangeFrom ? format(rangeFrom, 'dd/MM/yyyy', { locale: dateLocale }) : t('adminDashboard.periods.from')}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -484,7 +484,7 @@ const Dashboard: React.FC = () => {
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs bg-card/40 backdrop-blur border border-border/60 text-foreground hover:border-primary/50 transition-colors">
                   <CalendarIcon size={13} />
-                  {rangeTo ? format(rangeTo, 'dd/MM/yyyy', { locale: ptBR }) : 'Até'}
+                  {rangeTo ? format(rangeTo, 'dd/MM/yyyy', { locale: dateLocale }) : t('adminDashboard.periods.to')}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -498,7 +498,7 @@ const Dashboard: React.FC = () => {
       {/* CLIENT TYPE + CURRENCY TOGGLES */}
       <div className="flex flex-wrap gap-2 items-center justify-between">
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">Tipo:</span>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">{t('adminDashboard.filters.type')}</span>
           {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(t => (
             <button
               key={t}
@@ -510,12 +510,12 @@ const Dashboard: React.FC = () => {
                   : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
               )}
             >
-              {t === 'geral' ? 'Geral' : t === 'aluguel' ? 'Aluguel' : 'Vendas'}
+              {t === 'geral' ? t('adminDashboard.filters.general') : t === 'aluguel' ? t('adminDashboard.filters.rental') : t('adminDashboard.filters.sales')}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Moeda:</span>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{t('adminDashboard.filters.currency')}</span>
           <div className="flex rounded-full border border-border/60 bg-card/40 backdrop-blur p-0.5">
             {(['USD', 'BRL'] as Currency[]).map(c => (
               <button
@@ -537,28 +537,28 @@ const Dashboard: React.FC = () => {
             onClick={handleExportExcel}
             translate="no"
             className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-[0_0_16px_hsl(var(--primary)/0.25)]"
-            title="Exportar gráficos para Excel"
+            title={t('adminDashboard.exportTitle')}
           >
             <Download className="w-3.5 h-3.5" />
-            Exportar Excel
+            {t('adminDashboard.exportExcel')}
           </button>
         </div>
       </div>
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <KpiCard label="Faturamento" value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
-        <KpiCard label="Lucro" value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
-        <KpiCard label="Gastos Estrutura" value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Custo de Produtos" value={fmt(productCost)} delta={fornecedorCosts > 0 ? `inclui ${fmt(fornecedorCosts)} fornec.` : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
-        <KpiCard label="Marketing" value={fmt(marketingCosts)} delta="anúncios + social" deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
-        <KpiCard label="Custo Operacional" value={fmt(operacionalCosts)} delta="ferramentas + equipe" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
-        <KpiCard label="Ticket Médio" value={fmt(avgTicket)} delta={`${salesCount} vendas`} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
-        <KpiCard label="Clientes Ativos" value={String(activeClients)} delta={`${clients.length} total`} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
+        <KpiCard label={t('adminDashboard.kpis.revenue')} value={fmt(revenue)} delta="+12%" deltaUp tone="primary" icon={DollarSign} sparkData={sparkRevenue} sparkColor="hsl(212,100%,55%)" />
+        <KpiCard label={t('adminDashboard.kpis.profit')} value={fmt(profit)} delta={`${margin.toFixed(1)}%`} deltaUp={profit >= 0} tone={profit >= 0 ? 'primary' : 'danger'} icon={Activity} sparkData={sparkProfit} sparkColor={profit >= 0 ? 'hsl(212,100%,55%)' : 'hsl(0,84%,60%)'} />
+        <KpiCard label={t('adminDashboard.kpis.structureCosts')} value={fmt(expenses)} delta="—" deltaUp={false} tone="warn" icon={TrendingDown} sparkData={sparkExpenses} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label={t('adminDashboard.kpis.productCost')} value={fmt(productCost)} delta={fornecedorCosts > 0 ? t('adminDashboard.kpis.includesSuppliers', { amount: fmt(fornecedorCosts) }) : '—'} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(0,84%,60%)" />
+        <KpiCard label="Marketing" value={fmt(marketingCosts)} delta={t('adminDashboard.kpis.marketingDelta')} deltaUp={false} tone="danger" icon={TrendingDown} sparkData={[]} sparkColor="hsl(330,80%,60%)" />
+        <KpiCard label={t('adminDashboard.kpis.operationalCost')} value={fmt(operacionalCosts)} delta={t('adminDashboard.kpis.operationalDelta')} deltaUp={false} tone="warn" icon={TrendingDown} sparkData={[]} sparkColor="hsl(50,90%,55%)" />
+        <KpiCard label={t('adminDashboard.kpis.avgTicket')} value={fmt(avgTicket)} delta={t('adminDashboard.kpis.salesCount', { count: salesCount })} deltaUp tone="info" icon={BarChart3} sparkData={[]} sparkColor="hsl(200,100%,55%)" />
+        <KpiCard label={t('adminDashboard.kpis.activeClients')} value={String(activeClients)} delta={t('adminDashboard.kpis.totalClients', { count: clients.length })} deltaUp icon={Users} sparkData={[]} sparkColor="hsl(200,100%,55%)" tone="info" />
       </div>
 
       {/* MAIN CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <PanelCard className="lg:col-span-2" title="Faturamento vs Gastos" subtitle="Últimos 7 dias" icon={BarChart3}>
+        <PanelCard className="lg:col-span-2" title={t('adminDashboard.charts.revenueVsCosts')} subtitle={t('adminDashboard.periods.last7')} icon={BarChart3}>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -576,14 +576,14 @@ const Dashboard: React.FC = () => {
                 <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} />
-                <Area type="monotone" dataKey="faturamento" stroke="hsl(212,100%,55%)" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-                <Area type="monotone" dataKey="gastos" stroke="hsl(0,84%,60%)" strokeWidth={2} fill="url(#colorExpenses)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="faturamento" name={t('adminDashboard.kpis.revenue')} stroke="hsl(212,100%,55%)" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="gastos" name={t('adminDashboard.charts.expenses')} stroke="hsl(0,84%,60%)" strokeWidth={2} fill="url(#colorExpenses)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </PanelCard>
 
-        <PanelCard title="Custos por Estrutura" subtitle={dateLabel} icon={Server}>
+        <PanelCard title={t('adminDashboard.charts.costsByStructure')} subtitle={dateLabel} icon={Server}>
           {pieData.length > 0 ? (
             <>
               <div className="h-44">
@@ -609,7 +609,7 @@ const Dashboard: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">Nenhum gasto no período.</div>
+            <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">{t('adminDashboard.charts.noCosts')}</div>
           )}
         </PanelCard>
       </div>
