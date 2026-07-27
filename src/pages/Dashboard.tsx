@@ -499,18 +499,18 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-wrap gap-2 items-center justify-between">
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-1">{t('adminDashboard.filters.type')}</span>
-          {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(t => (
+          {(['geral', 'aluguel', 'venda'] as ClientTypeFilter[]).map(filterType => (
             <button
-              key={t}
-              onClick={() => setClientTypeFilter(t)}
+              key={filterType}
+              onClick={() => setClientTypeFilter(filterType)}
               className={cn(
                 'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border',
-                clientTypeFilter === t
+                clientTypeFilter === filterType
                   ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_16px_hsl(var(--primary)/0.35)]'
                   : 'bg-card/40 backdrop-blur text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40'
               )}
             >
-              {t === 'geral' ? t('adminDashboard.filters.general') : t === 'aluguel' ? t('adminDashboard.filters.rental') : t('adminDashboard.filters.sales')}
+              {filterType === 'geral' ? t('adminDashboard.filters.general') : filterType === 'aluguel' ? t('adminDashboard.filters.rental') : t('adminDashboard.filters.sales')}
             </button>
           ))}
         </div>
