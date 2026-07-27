@@ -130,6 +130,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/marketplace" element={<MarketplaceGate><Marketplace /></MarketplaceGate>} />
               <Route path="/aluguel-de-contas" element={<AluguelDeContas />} />
+              <Route path="/rental-accounts" element={<RentalAccounts />} />
+              <Route path="/account-rental" element={<Navigate to="/rental-accounts" replace />} />
               <Route path="/inicio" element={<EscolhaSeuModelo />} />
               <Route path="/escolha-seu-modelo" element={<Navigate to="/inicio" replace />} />
               <Route path="/obrigado" element={<Obrigado />} />
