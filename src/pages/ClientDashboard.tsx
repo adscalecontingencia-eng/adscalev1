@@ -1631,7 +1631,7 @@ const ClientDashboard: React.FC = () => {
                         <tfoot className="bg-secondary/80 border-t-2 border-primary/40">
                           <tr>
                             <td colSpan={3} className="px-3 py-2.5 text-right text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                              Total ({withCommission.length} {withCommission.length === 1 ? 'conta' : 'contas'})
+                              Total ({withCommission.length})
                             </td>
                             <td className="px-3 py-2.5 text-right font-display text-sm font-bold text-foreground">{fmt(totalSpend)}</td>
                             <td className="px-3 py-2.5 text-right font-display text-sm font-bold text-primary">{fmt(totalCommission)}</td>
@@ -1703,19 +1703,19 @@ const ClientDashboard: React.FC = () => {
           <TabsContent value="suporte" className="space-y-5 mt-0">
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                <LifeBuoy size={16} className="text-primary" /> Solicitar serviço
+                <LifeBuoy size={16} className="text-primary" /> {t('clientDash.support.requestService')}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Peça contas de anúncio ou páginas adicionais. Nossa equipe é notificada automaticamente.
+                {t('clientDash.support.requestDesc')}
               </p>
 
               {!isAdminView && supportBlockedByOverdue && (
                 <div className="mb-4 rounded-xl border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
                   <AlertTriangle size={18} className="text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-destructive">Solicitações bloqueadas — pagamento pendente</p>
+                    <p className="text-sm font-semibold text-destructive">{t('clientDash.support.blockedTitle')}</p>
                     <p className="text-xs text-foreground/80 mt-1">
-                      Você possui <strong>${overdueTotal.toFixed(2)}</strong> em saldo atrasado (acima do limite de $25). Para liberar novas solicitações de suporte, regularize o pagamento na aba <strong>Cobranças</strong>.
+                      {t('clientDash.support.blockedDesc', { amount: overdueTotal.toFixed(2) })}
                     </p>
                   </div>
                 </div>
@@ -1725,9 +1725,9 @@ const ClientDashboard: React.FC = () => {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {([
-                    { v: 'add_ad_account', label: 'Adicionar conta', Icon: CreditCard },
-                    { v: 'add_page', label: 'Adicionar página', Icon: ImageIcon },
-                    { v: 'add_bm', label: 'Adicionar BM', Icon: Building2 },
+                    { v: 'add_ad_account', label: t('clientDash.support.addAccount'), Icon: CreditCard },
+                    { v: 'add_page', label: t('clientDash.support.addPage'), Icon: ImageIcon },
+                    { v: 'add_bm', label: t('clientDash.support.addBm'), Icon: Building2 },
                   ] as const).map(({ v, label, Icon }) => (
                     <button
                       key={v}
@@ -1755,7 +1755,7 @@ const ClientDashboard: React.FC = () => {
                   <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-[12px] text-primary flex items-start gap-2">
                     <Building2 size={14} className="shrink-0 mt-0.5" />
                     <span className="leading-relaxed">
-                      Solicite uma <strong>BM Mãe</strong> para receber suas contas de anúncio. Nossa equipe criará e compartilhará com você. Use o campo de observações abaixo para detalhes (nicho, país, etc.).
+                      {t('clientDash.support.addBmDesc')}
                     </span>
                   </div>
                 )}
@@ -1765,7 +1765,7 @@ const ClientDashboard: React.FC = () => {
                   return (
                     <div>
                       <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-                        Quantidade {reqType === 'add_ad_account' && <span className="text-muted-foreground/70 normal-case">(máx. {maxAllowed} por pedido)</span>}
+                        {t('clientDash.support.quantity')} {reqType === 'add_ad_account' && <span className="text-muted-foreground/70 normal-case">{t('clientDash.support.maxPerRequest', { max: maxAllowed })}</span>}
                       </label>
                       <input
                         type="number" min={1} max={maxAllowed}
@@ -1784,7 +1784,7 @@ const ClientDashboard: React.FC = () => {
                 {reqType === 'add_ad_account' && (
                   <div>
                     <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                      <Building2 size={11} /> ID da BM (onde receber as contas) *
+                      <Building2 size={11} /> {t('clientDash.support.bmId')}
                     </label>
                     <input
                       type="text"
@@ -1795,7 +1795,7 @@ const ClientDashboard: React.FC = () => {
                     />
                     <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
                       <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                      <span>Por segurança, envie os dados do cartão <strong>somente no grupo do WhatsApp</strong>. Nunca compartilhe aqui na plataforma.</span>
+                      <span>{t('clientDash.support.cardSecurity')}</span>
                     </div>
                   </div>
                 )}
@@ -1803,7 +1803,7 @@ const ClientDashboard: React.FC = () => {
                 {reqType === 'add_page' && reqQty > 0 && (
                   <div className="space-y-2">
                     <label className="block text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                      <ImageIcon size={11} /> Nomes das páginas ({reqQty}) *
+                      <ImageIcon size={11} /> {t('clientDash.support.pageNames', { count: reqQty })}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {Array.from({ length: reqQty }).map((_, i) => (
@@ -1817,7 +1817,7 @@ const ClientDashboard: React.FC = () => {
                             next[i] = e.target.value;
                             return next;
                           })}
-                          placeholder={`Página ${i + 1}`}
+                          placeholder={t('clientDash.support.pagePlaceholder', { number: i + 1 })}
                           className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
                         />
                       ))}
@@ -1826,11 +1826,11 @@ const ClientDashboard: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Observações (opcional)</label>
+                  <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">{t('clientDash.support.notes')}</label>
                   <textarea
                     value={reqDesc}
                     onChange={e => setReqDesc(e.target.value)}
-                    placeholder="Detalhes adicionais sobre o pedido..."
+                    placeholder={t('clientDash.support.notesPlaceholder')}
                     className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary h-24 resize-none"
                   />
                 </div>
@@ -1841,11 +1841,11 @@ const ClientDashboard: React.FC = () => {
                     disabled={submittingReq || (!isAdminView && supportBlockedByOverdue)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   >
-                    <Send size={14} /> {submittingReq ? 'Salvando...' : editingReqId ? 'Salvar alterações' : 'Enviar solicitação'}
+                    <Send size={14} /> {submittingReq ? t('clientDash.support.saving') : editingReqId ? t('clientDash.support.saveChanges') : t('clientDash.support.sendRequest')}
                   </button>
                   {editingReqId && (
                     <button onClick={resetReqForm} className="px-4 py-2.5 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:text-foreground">
-                      Cancelar edição
+                      {t('clientDash.support.cancelEdit')}
                     </button>
                   )}
                 </div>
@@ -1855,17 +1855,17 @@ const ClientDashboard: React.FC = () => {
             {/* Histórico de solicitações */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                <Clock size={16} className="text-primary" /> Minhas solicitações
+                <Clock size={16} className="text-primary" /> {t('clientDash.support.myRequests')}
               </h3>
               {supportRequests.length === 0 ? (
                 <div className="text-center py-6 border border-dashed border-border rounded-lg">
                   <LifeBuoy size={24} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma solicitação enviada ainda.</p>
+                  <p className="text-sm text-muted-foreground">{t('clientDash.support.noRequests')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {supportRequests.map((r: any) => {
-                    const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
+                    const typeLabel = supportRequestTypeLabel(r.request_type);
                     const statusColor =
                       r.status === 'concluida' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                       r.status === 'em_andamento' ? 'text-warning bg-warning/10 border-warning/30' :
@@ -1897,13 +1897,13 @@ const ClientDashboard: React.FC = () => {
                           )}
                           {r.description && <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground/70 mt-1">
-                            {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <span className={cn("text-[10px] px-2 py-1 rounded-md border font-medium flex items-center gap-1", statusColor)}>
                             <StatusIcon size={11} />
-                            {r.status === 'pendente' ? 'Pendente' : r.status === 'em_andamento' ? 'Em andamento' : r.status === 'concluida' ? 'Concluída' : 'Cancelada'}
+                            {r.status === 'pendente' ? t('clientDash.support.pending') : r.status === 'em_andamento' ? t('clientDash.support.inProgress') : r.status === 'concluida' ? t('clientDash.support.completed') : t('clientDash.support.canceled')}
                           </span>
                           {r.status === 'pendente' && (
                             <div className="flex gap-1">
@@ -1930,17 +1930,17 @@ const ClientDashboard: React.FC = () => {
               <div className="rounded-2xl p-5 border bg-gradient-to-br from-destructive/15 via-card to-card border-destructive/50 shadow-[0_0_30px_-10px_hsl(var(--destructive)/0.5)]">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/80 mb-1">Saldo Atrasado</p>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/80 mb-1">{t('clientDash.billing.overdueBalance')}</p>
                     <p className="font-display text-3xl font-bold text-destructive">{fmt(overdueTotal)}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Vencido após a sexta-feira de cobrança. Regularize para evitar bloqueios.
+                      {t('clientDash.billing.overdueDesc')}
                     </p>
                   </div>
                   <button
                     onClick={() => setOverdueDialogOpen(true)}
                     className="bg-destructive text-destructive-foreground font-semibold px-4 py-2.5 rounded-lg text-sm hover:opacity-90 flex items-center gap-2"
                   >
-                    <AlertTriangle size={16} /> Regularizar agora
+                    <AlertTriangle size={16} /> {t('clientDash.billing.settleNow')}
                   </button>
                 </div>
               </div>
@@ -1953,12 +1953,12 @@ const ClientDashboard: React.FC = () => {
             )}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Saldo Pendente (semana corrente)</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">{t('clientDash.billing.pendingBalance')}</p>
                   <p className={cn("font-display text-3xl font-bold", currentPendingTotal > 0 ? "text-warning" : "text-success")}>
                     {fmt(Math.max(0, currentPendingTotal))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {currentPendingTotal > 0 ? 'Cobrança realizada na próxima sexta-feira' : (overdueTotal > 0 ? 'Apenas saldo atrasado em aberto.' : 'Tudo em dia! Obrigado.')}
+                    {currentPendingTotal > 0 ? t('clientDash.billing.nextFriday') : (overdueTotal > 0 ? t('clientDash.billing.onlyOverdueOpen') : t('clientDash.billing.allGood'))}
                   </p>
                 </div>
                 {currentPendingTotal > 0 && <AlertTriangle size={36} className="text-warning" />}
@@ -1969,10 +1969,10 @@ const ClientDashboard: React.FC = () => {
             {creditPlan && creditPlan.rows.some(r => r.stillOwed > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                  <CalendarIcon size={16} className="text-primary" /> Comissões Pendentes por Semana
+                  <CalendarIcon size={16} className="text-primary" /> {t('clientDash.billing.weeklyPending')}
                 </h3>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  Valores calculados a partir do gasto sincronizado da Meta, após aplicar crédito e pagamentos já validados na semana correspondente.
+                  {t('clientDash.billing.pendingCommissionsDesc')}
                 </p>
                 <div className="space-y-2">
                   {creditPlan.rows.filter(r => r.stillOwed > 0).map((r, idx) => {
@@ -1991,15 +1991,15 @@ const ClientDashboard: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <CalendarIcon size={12} className={isPaid ? "text-success" : isOverdue ? "text-destructive" : "text-primary"} />
                             <span className="text-xs font-semibold">
-                              {format(r.weekStart, "dd/MM", { locale: ptBR })} — {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
+                              {format(r.weekStart, "dd/MM", { locale: dateLocale })} — {format(weekEnd, "dd/MM/yyyy", { locale: dateLocale })}
                             </span>
                             {isPaid ? (
                               <span className="text-[9px] uppercase tracking-wider bg-success/20 text-success border border-success/40 px-1.5 py-0.5 rounded">
-                                Pago
+                                {t('clientDash.billing.paid')}
                               </span>
                             ) : isOverdue && (
                               <span className="text-[9px] uppercase tracking-wider bg-destructive/20 text-destructive border border-destructive/40 px-1.5 py-0.5 rounded">
-                                Vencido
+                                {t('clientDash.billing.overdue')}
                               </span>
                             )}
                           </div>
@@ -2011,28 +2011,28 @@ const ClientDashboard: React.FC = () => {
                               ? "bg-destructive/15 text-destructive border-destructive/40"
                               : "bg-warning/15 text-warning border-warning/30"
                           )}>
-                            {isPaid ? `Pago: ${fmt(r.paidApplied)}` : `A pagar: ${fmt(r.stillOwed)}`}
+                            {isPaid ? `${t('clientDash.billing.paid')}: ${fmt(r.paidApplied)}` : `${t('clientDash.creditHistory.payable')}: ${fmt(r.stillOwed)}`}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Gasto sincronizado</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.syncedSpend')}</p>
                             <p className="font-bold text-foreground mt-0.5">{fmt(r.spend)}</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Taxa</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.rate')}</p>
                             <p className="font-bold text-primary mt-0.5">{rate.toFixed(2)}%</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Comissão calc.</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.calcCommission')}</p>
                             <p className="font-bold text-amber-400 mt-0.5">{fmt(r.commission)}</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Crédito aplicado</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.creditApplied')}</p>
                             <p className="font-bold text-emerald-400 mt-0.5">−{fmt(r.creditApplied)}</p>
                           </div>
                           <div className="bg-background/40 rounded p-2">
-                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">Pago</p>
+                            <p className="text-muted-foreground/70 uppercase tracking-wider text-[9px]">{t('clientDash.billing.paid')}</p>
                             <p className="font-bold text-success mt-0.5">−{fmt(r.paidApplied)}</p>
                           </div>
                         </div>
@@ -2057,16 +2057,16 @@ const ClientDashboard: React.FC = () => {
                     <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs">
                       {overdueSum > 0 && (
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Atrasado (vencido)</span>
+                          <span className="text-muted-foreground">{t('clientDash.billing.overdueShort')}</span>
                           <span className="font-bold text-destructive">{fmt(overdueSum)}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Pendente (semana corrente)</span>
+                        <span className="text-muted-foreground">{t('clientDash.billing.currentPending')}</span>
                         <span className="font-bold text-warning">{fmt(currentSum)}</span>
                       </div>
                       <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
-                        <span className="text-muted-foreground">Total a pagar</span>
+                        <span className="text-muted-foreground">{t('clientDash.billing.totalPayable')}</span>
                         <span className="font-bold text-warning text-base">{fmt(creditPlan.totalStillOwed)}</span>
                       </div>
                     </div>
@@ -2079,20 +2079,20 @@ const ClientDashboard: React.FC = () => {
             {pendingBillings.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Receipt size={16} className="text-warning" /> Cobranças Semanais Pendentes
+                  <Receipt size={16} className="text-warning" /> {t('clientDash.billing.weeklyPending')}
                 </h3>
                 <div className="space-y-2">
                   {pendingBillings.map((b: any) => (
                     <div key={b.id} className="bg-warning/10 border border-warning/30 rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
                       <div>
-                        <p className="text-xs font-semibold text-warning">{b.note || 'Cobrança Semanal'}</p>
+                        <p className="text-xs font-semibold text-warning">{b.note || t('clientDash.billing.weeklyBilling')}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Período: {b.billing_week_start ? formatDateShortBR(b.billing_week_start) : ''} — {b.billing_week_end ? formatDateShortBR(b.billing_week_end) : ''}
+                          {t('clientDash.billing.period')} {b.billing_week_start ? formatDateShortBR(b.billing_week_start) : ''} — {b.billing_week_end ? formatDateShortBR(b.billing_week_end) : ''}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-base font-bold text-warning">{fmt(Number(b.amount))}</p>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{b.status === 'parcial' ? 'Parcial' : 'Pendente'}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{b.status === 'parcial' ? t('clientDash.billing.partial') : t('clientDash.billing.pending')}</p>
                       </div>
                     </div>
                   ))}
@@ -2104,24 +2104,24 @@ const ClientDashboard: React.FC = () => {
             {pendingTotal > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-2 flex items-center gap-2">
-                  <DollarSign size={16} className="text-primary" /> Opções de Pagamento
+                  <DollarSign size={16} className="text-primary" /> {t('clientDash.billing.paymentOptions')}
                 </h3>
-                <p className="text-xs text-muted-foreground mb-4">Escolha a forma de pagamento e você será redirecionado para o WhatsApp:</p>
+                <p className="text-xs text-muted-foreground mb-4">{t('clientDash.billing.paymentOptionsDesc')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('PIX'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all group">
                     <Smartphone size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-emerald-500">PIX</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Transferência instantânea</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.instantTransfer')}</span>
                   </a>
                   <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('Payoneer'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all group">
                     <Globe size={24} className="text-sky-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-sky-500">PAYONEER</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Internacional</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.international')}</span>
                   </a>
                   <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('Crypto'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all group">
                     <Bitcoin size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-amber-500">CRYPTO</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Criptomoedas</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.crypto')}</span>
                   </a>
                 </div>
               </div>
@@ -2131,7 +2131,7 @@ const ClientDashboard: React.FC = () => {
             {commissions.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                  <DollarSign size={16} className="text-primary" /> Histórico de Lançamentos
+                  <DollarSign size={16} className="text-primary" /> {t('clientDash.billing.launchHistory')}
                 </h3>
                 <div className="space-y-1.5 max-h-80 overflow-y-auto">
                   {commissions.map((comm: any) => (
@@ -2143,7 +2143,7 @@ const ClientDashboard: React.FC = () => {
                         <span className={`w-2 h-2 rounded-full ${comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning'}`} />
                         <span className="text-muted-foreground">{formatDateBR(comm.date)}</span>
                         <span className="text-muted-foreground">
-                          {comm.type === 'daily' ? 'Comissão' : comm.type === 'paid' ? 'Pagamento' : '📋 Cobrança'}
+                          {comm.type === 'daily' ? t('clientDash.billing.commission') : comm.type === 'paid' ? t('clientDash.billing.payment') : t('clientDash.billing.billingEntry')}
                         </span>
                         {comm.type === 'daily' && Number(comm.ad_spend || 0) > 0 && (
                           <span className="text-muted-foreground">(Ads: {fmt(Number(comm.ad_spend))})</span>
@@ -2170,14 +2170,14 @@ const ClientDashboard: React.FC = () => {
               <div className="p-2 rounded-lg bg-destructive/15 text-destructive">
                 <AlertTriangle size={20} />
               </div>
-              <DialogTitle className="text-destructive">Saldo atrasado em aberto</DialogTitle>
+              <DialogTitle className="text-destructive">{t('clientDash.billing.overdueDialogTitle')}</DialogTitle>
             </div>
             <DialogDescription>
-              Você possui <strong className="text-destructive">{fmt(overdueTotal)}</strong> em comissões que venceram na sexta-feira de cobrança. Para evitar bloqueios nas contas, regularize o pagamento agora.
+              {t('clientDash.billing.overdueDialogDesc', { amount: fmt(overdueTotal) })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
-            <p className="text-xs text-muted-foreground">Escolha a forma de pagamento — você será redirecionado para o WhatsApp:</p>
+            <p className="text-xs text-muted-foreground">{t('clientDash.billing.paymentOptionsDesc')}</p>
             <div className="grid grid-cols-3 gap-2">
               <a
                 href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('PIX'))}`}
@@ -2211,7 +2211,7 @@ const ClientDashboard: React.FC = () => {
               onClick={() => setOverdueDialogOpen(false)}
               className="w-full text-xs text-muted-foreground hover:text-foreground py-2"
             >
-              Lembrar mais tarde
+              {t('clientDash.billing.remindLater')}
             </button>
           </div>
         </DialogContent>
@@ -2232,16 +2232,16 @@ const ClientDashboard: React.FC = () => {
               <DialogHeader className="mb-3">
                 <DialogTitle className={cn('font-display text-2xl', loyalty.current.accent)}>
                   {loyalty.current.id === 'standard'
-                    ? `🚀 Você está a ${Math.round(loyalty.progressPct)}% do nível ${loyalty.next?.label}!`
+                    ? t('clientDash.loyalty.standardNear', { pct: Math.round(loyalty.progressPct), level: loyalty.next?.label })
                     : loyalty.nearNext
-                      ? `🔥 Falta pouco para o nível ${loyalty.next?.label}!`
-                      : `🎉 Nível ${loyalty.current.label} desbloqueado!`}
+                      ? t('clientDash.loyalty.nearNext', { level: loyalty.next?.label })
+                      : t('clientDash.loyalty.unlocked', { level: loyalty.current.label })}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
                   {loyalty.achievedTop
-                    ? 'Você atingiu o topo — comissão base no menor patamar da agência.'
+                    ? t('clientDash.loyalty.topReached')
                     : loyalty.nearNext
-                      ? `Continue pagando sua comissão em dia — faltam apenas ${fmt(loyalty.remainingToNext)} para reduzir seu percentual base para ${loyalty.next?.basePct}%.`
+                      ? t('clientDash.loyalty.continueToReduce', { amount: fmt(loyalty.remainingToNext), pct: loyalty.next?.basePct })
                       : loyalty.current.tagline}
                 </DialogDescription>
               </DialogHeader>
@@ -2252,7 +2252,7 @@ const ClientDashboard: React.FC = () => {
                 onClick={() => setLoyaltyDialogOpen(false)}
                 className="mt-4 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
               >
-                {loyalty.nearNext ? 'Vamos lá!' : 'Continuar'}
+                {loyalty.nearNext ? t('clientDash.loyalty.letsGo') : t('clientDash.loyalty.continue')}
               </button>
             </div>
           </div>
