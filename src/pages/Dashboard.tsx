@@ -615,7 +615,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* MONTHLY */}
-      <PanelCard title="Receitas vs Gastos" subtitle="Últimos 6 meses" icon={DollarSign}>
+      <PanelCard title={t('adminDashboard.charts.revenueVsExpenses')} subtitle={t('adminDashboard.charts.last6Months')} icon={DollarSign}>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -623,8 +623,8 @@ const Dashboard: React.FC = () => {
               <XAxis dataKey="date" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-              <Bar dataKey="receitas" name="Receitas" fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="gastos" name="Gastos" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="receitas" name={t('adminDashboard.charts.revenue')} fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="gastos" name={t('adminDashboard.charts.expenses')} fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -656,11 +656,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* CLIENT PROFITS — split by client_type */}
-      <PanelCard title="Lucro por Cliente" subtitle={`${clientProfitsAluguel.length} aluguel · ${clientProfitsVenda.length} vendas`} icon={Users}>
+      <PanelCard title={t('adminDashboard.charts.profitByClient')} subtitle={t('adminDashboard.charts.clientProfitSubtitle', { rental: clientProfitsAluguel.length, sales: clientProfitsVenda.length })} icon={Users}>
         <Tabs defaultValue="aluguel" className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="aluguel">Clientes Aluguel ({clientProfitsAluguel.length})</TabsTrigger>
-            <TabsTrigger value="venda">Clientes Vendas ({clientProfitsVenda.length})</TabsTrigger>
+            <TabsTrigger value="aluguel">{t('adminDashboard.charts.rentalClients', { count: clientProfitsAluguel.length })}</TabsTrigger>
+            <TabsTrigger value="venda">{t('adminDashboard.charts.salesClients', { count: clientProfitsVenda.length })}</TabsTrigger>
           </TabsList>
 
           {(['aluguel', 'venda'] as const).map(tab => {
@@ -672,21 +672,21 @@ const Dashboard: React.FC = () => {
               <TabsContent key={tab} value={tab} className="mt-0">
                 {data.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">
-                    Nenhuma transação encontrada para clientes de {tab === 'aluguel' ? 'aluguel' : 'venda'} no período.
+                    {t('adminDashboard.charts.noClientTx', { type: tab === 'aluguel' ? t('adminDashboard.filters.rental').toLowerCase() : t('adminDashboard.filters.sales').toLowerCase() })}
                   </p>
                 ) : (
                   <>
                     <div className="grid grid-cols-3 gap-2 mb-4">
                       <div className="bg-secondary/40 rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Faturamento</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('adminDashboard.kpis.revenue')}</p>
                         <p className="text-sm font-mono font-bold text-primary">{fmt(totalRevenue)}</p>
                       </div>
                       <div className="bg-secondary/40 rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('adminDashboard.charts.cost')}</p>
                         <p className="text-sm font-mono font-bold text-destructive">{fmt(totalExpenses)}</p>
                       </div>
                       <div className="bg-secondary/40 rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Lucro</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('adminDashboard.kpis.profit')}</p>
                         <p className={`text-sm font-mono font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(totalProfit)}</p>
                       </div>
                     </div>
@@ -697,8 +697,8 @@ const Dashboard: React.FC = () => {
                           <XAxis dataKey="name" tick={{ fill: 'hsl(0,0%,55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis tick={{ fill: 'hsl(0,0%,55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                           <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => fmt(value)} cursor={{ fill: 'hsl(0,0%,12% / 0.4)' }} />
-                          <Bar dataKey="revenue" name="Faturamento" fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                          <Bar dataKey="expenses" name="Custo" fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          <Bar dataKey="revenue" name={t('adminDashboard.kpis.revenue')} fill="hsl(212,100%,55%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          <Bar dataKey="expenses" name={t('adminDashboard.charts.cost')} fill="hsl(0,84%,60%)" radius={[6, 6, 0, 0]} maxBarSize={28} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -736,12 +736,12 @@ const Dashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                <Clock size={16} className="text-primary" /> Histórico de Sincronização de Comissões
+                <Clock size={16} className="text-primary" /> {t('adminDashboard.syncHistory.title')}
               </h3>
               <button onClick={() => setShowSyncHistory(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             {syncHistory.length === 0 ? (
-              <p className="text-center text-muted-foreground text-xs py-8">Nenhuma sincronização registrada ainda.</p>
+              <p className="text-center text-muted-foreground text-xs py-8">{t('adminDashboard.syncHistory.empty')}</p>
             ) : (
               <div className="space-y-2">
                 {syncHistory.map((h: any) => (
@@ -752,7 +752,7 @@ const Dashboard: React.FC = () => {
                           ? <AlertTriangle size={14} className="text-destructive" />
                           : <CheckCircle2 size={14} className="text-primary" />}
                         <span className="font-semibold">
-                          {new Date(h.created_at).toLocaleString('pt-BR')}
+                          {new Date(h.created_at).toLocaleString(i18n.language?.startsWith('en') ? 'en-US' : i18n.language?.startsWith('es') ? 'es-ES' : 'pt-BR')}
                         </span>
                         <span className="text-[10px] uppercase bg-secondary px-2 py-0.5 rounded text-muted-foreground">{h.source}</span>
                       </div>
@@ -762,20 +762,20 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-[11px]">
                       <div className="bg-primary/10 rounded p-2 text-center">
-                        <p className="text-muted-foreground/70 uppercase text-[9px]">Inseridas</p>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">{t('adminDashboard.syncHistory.inserted')}</p>
                         <p className="font-bold text-primary text-base mt-0.5">{h.inserted_count}</p>
                       </div>
                       <div className="bg-background/40 rounded p-2 text-center">
-                        <p className="text-muted-foreground/70 uppercase text-[9px]">Ignoradas</p>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">{t('adminDashboard.syncHistory.skipped')}</p>
                         <p className="font-bold text-muted-foreground text-base mt-0.5">{h.skipped_count}</p>
                       </div>
                       <div className={cn("rounded p-2 text-center", h.error_count > 0 ? "bg-destructive/10" : "bg-background/40")}>
-                        <p className="text-muted-foreground/70 uppercase text-[9px]">Erros</p>
+                        <p className="text-muted-foreground/70 uppercase text-[9px]">{t('adminDashboard.syncHistory.errors')}</p>
                         <p className={cn("font-bold text-base mt-0.5", h.error_count > 0 ? "text-destructive" : "text-muted-foreground")}>{h.error_count}</p>
                       </div>
                     </div>
                     {h.triggered_by_email && (
-                      <p className="text-[10px] text-muted-foreground/70 mt-2">Disparado por: {h.triggered_by_email}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-2">{t('adminDashboard.syncHistory.triggeredBy', { email: h.triggered_by_email })}</p>
                     )}
                     {h.error_message && (
                       <p className="text-[10px] text-destructive mt-1">{h.error_message}</p>
