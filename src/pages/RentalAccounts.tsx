@@ -100,7 +100,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section id="how-it-works" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.div {...fadeUp} className="max-w-2xl">
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
             How the <span className="text-primary">rental model</span> works
@@ -144,7 +144,7 @@ const RentalAccounts: React.FC = () => {
       />
 
       {/* WHAT'S INCLUDED */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight max-w-2xl">
           What's <span className="text-primary">included</span>
         </motion.h2>
@@ -181,7 +181,7 @@ const RentalAccounts: React.FC = () => {
       />
 
       {/* PRICING */}
-      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
           Simple <span className="text-primary">pricing</span>
         </motion.h2>
@@ -208,7 +208,7 @@ const RentalAccounts: React.FC = () => {
       />
 
       {/* SUPPORT & OPS */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.div {...fadeUp} className="max-w-2xl">
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
             <span className="text-primary">Support & operations</span> built for scale
@@ -243,7 +243,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* SUPPORT — Dedicated group chat */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <motion.div {...fadeUp}>
             <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
@@ -295,7 +295,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* SUPPORT — In-app tickets */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <motion.div {...fadeUp} className="relative order-2 lg:order-1">
             <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-3xl" />
@@ -351,7 +351,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* PAYMENT METHODS */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
           Payment <span className="text-primary">methods</span>
         </motion.h2>
@@ -377,7 +377,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* FAQ */}
-      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
           Frequently asked questions
         </motion.h2>
@@ -407,7 +407,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* FINAL CTA */}
-      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18 lg:py-20">
         <motion.div
           {...fadeUp}
           className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-8 sm:p-12 text-center relative overflow-hidden"
@@ -463,7 +463,7 @@ const PricingRow: React.FC<{ label: string; value: string; hint?: string; highli
 );
 
 const DashShowcase: React.FC<{ eyebrow: string; title: string; desc: string; image: string; align: "left" | "right" }> = ({ eyebrow, title, desc, image, align }) => (
-  <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+  <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
     <div className={`grid lg:grid-cols-2 gap-8 lg:gap-12 items-center ${align === "left" ? "lg:[&>*:first-child]:order-2" : ""}`}>
       <motion.div {...fadeUp}>
         <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-primary/80">
