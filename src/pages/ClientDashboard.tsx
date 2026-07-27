@@ -695,7 +695,7 @@ const ClientDashboard: React.FC = () => {
         .eq('id', client.id);
       if (!error) {
         setClient((c: any) => c ? { ...c, percentage_value: targetPct } : c);
-        toast.success(`🎉 Nível ${loyalty.current.label} desbloqueado! Sua comissão base agora é ${targetPct}%.`, { duration: 8000 });
+        toast.success(t('clientDash.messages.levelUnlocked', { level: loyalty.current.label, pct: targetPct }), { duration: 8000 });
       }
     })();
   }, [client, loyalty.current.basePct, loyalty.current.label]);
@@ -717,13 +717,13 @@ const ClientDashboard: React.FC = () => {
     }
   }, [loading, isAdminView, client, loyalty.current.id, loyalty.nearNext]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">{t('common.loading')}</p></div>;
 
 
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Cadastro de cliente não encontrado.</p>
+        <p className="text-muted-foreground">{t('clientDash.messages.clientNotFound')}</p>
       </div>
     );
   }
@@ -741,10 +741,10 @@ const ClientDashboard: React.FC = () => {
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
   const paymentMsg = (method: string) =>
-    `Olá! Sou o cliente ${client.name}. Gostaria de realizar o pagamento do saldo pendente de ${fmt(pendingTotal)} via *${method}*.`;
+    t('clientDash.whatsapp.payment', { name: client.name, amount: fmt(pendingTotal), method });
 
   const overdueMsg = (method: string) =>
-    `Olá! Sou o cliente ${client.name}. Estou regularizando o *saldo atrasado* de ${fmt(overdueTotal)} via *${method}*.`;
+    t('clientDash.whatsapp.overdue', { name: client.name, amount: fmt(overdueTotal), method });
 
 
   return (
@@ -753,11 +753,11 @@ const ClientDashboard: React.FC = () => {
         <div className="sticky top-0 z-50 bg-primary text-primary-foreground border-b border-primary/60 px-4 lg:px-8 py-2.5 flex items-center justify-between text-xs shadow-lg">
           <div className="flex items-center gap-2">
             <Shield size={14} />
-            <span className="font-semibold uppercase tracking-wider">Modo Administrador</span>
-            <span className="opacity-90 hidden sm:inline">— visualizando como <strong>{client.name}</strong></span>
+            <span className="font-semibold uppercase tracking-wider">{t('clientDash.adminView.mode')}</span>
+            <span className="opacity-90 hidden sm:inline">— {t('clientDash.adminView.viewingAs', { name: client.name })}</span>
           </div>
           <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 text-primary-foreground font-medium border border-background/30">
-            <X size={13} /> Sair da visualização
+            <X size={13} /> {t('clientDash.adminView.exit')}
           </button>
         </div>
       )}
@@ -941,7 +941,7 @@ const ClientDashboard: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border hover:border-primary">
-                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.from')} {format(customStart, 'dd/MM/yyyy', { locale: ptBR })}
+                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.from')} {format(customStart, 'dd/MM/yyyy', { locale: dateLocale })}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -951,7 +951,7 @@ const ClientDashboard: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border hover:border-primary">
-                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.to')} {format(customEnd, 'dd/MM/yyyy', { locale: ptBR })}
+                        <CalendarIcon size={12} /> {t('clientDash.periodPanel.to')} {format(customEnd, 'dd/MM/yyyy', { locale: dateLocale })}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -981,7 +981,7 @@ const ClientDashboard: React.FC = () => {
             <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3">
               <Info size={16} className="text-amber-300 mt-0.5 shrink-0" />
               <div className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-amber-300">Ciclo de cobrança: sexta a quinta.</strong> A semana fecha na quinta-feira e o pagamento é gerado na sexta seguinte. Isso garante que todo o gasto do período já esteja consolidado nas contas de anúncio antes do faturamento.
+                <strong className="text-amber-300">{t('clientDash.billingCycle.title')}</strong> {t('clientDash.billingCycle.desc')}
               </div>
             </div>
 
@@ -992,15 +992,15 @@ const ClientDashboard: React.FC = () => {
                 <div className="relative">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                     <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                      <CreditCard size={16} className="text-primary" /> Plano de Crédito — histórico semana a semana
+                      <CreditCard size={16} className="text-primary" /> {t('clientDash.creditHistory.title')}
                     </h3>
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> Crédito abatido</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> A pagar</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> {t('clientDash.creditHistory.credited')}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> {t('clientDash.creditHistory.payable')}</span>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Histórico real de comissão gerada por semana a partir do gasto das suas contas de anúncio. Crédito total de <strong className="text-primary">{fmt(creditPlan.totalCredit)}</strong> · abatido até hoje <strong className="text-foreground">{fmt(creditPlan.totalApplied)}</strong> · saldo restante <strong className="text-primary">{fmt(creditPlan.remaining)}</strong> · saldo em aberto real <strong className="text-amber-300">{fmt(creditPlan.totalStillOwed)}</strong>.
+                    {t('clientDash.creditHistory.desc', { total: fmt(creditPlan.totalCredit), applied: fmt(creditPlan.totalApplied), remaining: fmt(creditPlan.remaining), owed: fmt(creditPlan.totalStillOwed) })}
                   </p>
 
                   {(() => {
@@ -1024,12 +1024,12 @@ const ClientDashboard: React.FC = () => {
                     return (
                       <>
                         <div className="flex flex-wrap items-center gap-2 mb-3">
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filtrar:</span>
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.creditHistory.filter')}</span>
                           {([
-                            { k: 'recent', l: 'Mais recentes' },
-                            { k: 'paying', l: 'Em aberto' },
-                            { k: 'covered', l: 'Cobertas pelo crédito' },
-                            { k: 'all', l: `Todas (${creditPlan.rows.length})` },
+                            { k: 'recent', l: t('clientDash.creditHistory.recent') },
+                            { k: 'paying', l: t('clientDash.creditHistory.open') },
+                            { k: 'covered', l: t('clientDash.creditHistory.covered') },
+                            { k: 'all', l: t('clientDash.creditHistory.all', { count: creditPlan.rows.length }) },
                           ] as const).map(opt => (
                             <button
                               key={opt.k}
@@ -1060,18 +1060,18 @@ const ClientDashboard: React.FC = () => {
                               )}>
                                 <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-mono text-muted-foreground">Semana {absoluteIdx + 1}</span>
+                                    <span className="text-[10px] font-mono text-muted-foreground">{t('clientDash.creditHistory.week', { number: absoluteIdx + 1 })}</span>
                                     <span className="text-xs font-medium text-foreground">
-                                      {format(r.weekStart, "dd 'de' MMM yyyy", { locale: ptBR })}
+                                      {format(r.weekStart, "dd MMM yyyy", { locale: dateLocale })}
                                     </span>
                                     {isFirstPaying && (
                                       <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-semibold">
-                                        Primeiro saldo em aberto
+                                        {t('clientDash.creditHistory.firstOpen')}
                                       </span>
                                     )}
                                   </div>
                                   <div className="text-[10px] text-muted-foreground">
-                                    Saldo: <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
+                                    {t('clientDash.creditHistory.balance')} <span className="text-primary font-semibold">{fmt(r.remainingAfter)}</span>
                                   </div>
                                 </div>
                                 <div className="relative h-6 rounded-md bg-background overflow-hidden border border-border">
@@ -1097,18 +1097,18 @@ const ClientDashboard: React.FC = () => {
                                   )}
                                 </div>
                                 <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                                  <span>Gasto: <span className="text-foreground font-medium">{fmt(r.spend)}</span> · Comissão: <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
+                                  <span>{t('clientDash.creditHistory.spend')} <span className="text-foreground font-medium">{fmt(r.spend)}</span> · {t('clientDash.creditHistory.commission')} <span className="text-foreground font-medium">{fmt(r.commission)}</span></span>
                                   <span>
-                                    {r.creditApplied >= r.commission && r.commission > 0 && '100% coberto pelo crédito'}
-                                    {r.creditApplied > 0 && r.creditApplied < r.commission && 'Crédito esgotado nesta semana'}
-                                    {r.creditApplied === 0 && r.commission > 0 && 'Pagamento integral via Pix/Cripto'}
+                                    {r.creditApplied >= r.commission && r.commission > 0 && t('clientDash.creditHistory.fullyCovered')}
+                                    {r.creditApplied > 0 && r.creditApplied < r.commission && t('clientDash.creditHistory.creditEnded')}
+                                    {r.creditApplied === 0 && r.commission > 0 && t('clientDash.creditHistory.fullPayment')}
                                   </span>
                                 </div>
                               </div>
                             );
                           })}
                           {pageRows.length === 0 && (
-                            <p className="text-xs text-muted-foreground/60 text-center py-6">Nenhuma semana neste filtro.</p>
+                            <p className="text-xs text-muted-foreground/60 text-center py-6">{t('clientDash.creditHistory.noWeeks')}</p>
                           )}
                         </div>
 
@@ -1119,17 +1119,17 @@ const ClientDashboard: React.FC = () => {
                               disabled={pageIdx === 0}
                               className="text-[11px] inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border bg-secondary/40 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              <ChevronLeft size={12} /> Mais recentes
+                              <ChevronLeft size={12} /> {t('clientDash.creditHistory.newer')}
                             </button>
                             <span className="text-[10px] text-muted-foreground">
-                              Página {pageIdx + 1} de {totalPages} · {ordered.length} semanas
+                              {t('clientDash.creditHistory.page', { page: pageIdx + 1, total: totalPages, count: ordered.length })}
                             </span>
                             <button
                               onClick={() => setHistoryPage(p => Math.min(totalPages - 1, p + 1))}
                               disabled={pageIdx >= totalPages - 1}
                               className="text-[11px] inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border bg-secondary/40 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              Mais antigas <ChevronRight size={12} />
+                              {t('clientDash.creditHistory.older')} <ChevronRight size={12} />
                             </button>
                           </div>
                         )}
@@ -1145,12 +1145,12 @@ const ClientDashboard: React.FC = () => {
             {savedAccounts.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-primary" /> Contas Salvas pela Agência
+                  <ShieldCheck size={16} className="text-primary" /> {t('clientDash.accounts.savedByAgency')}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {savedAccounts.slice(0, 12).map(s => (
                     <span key={s.id} className="text-[10px] px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-primary/90 font-mono">
-                      {s.ad_account?.name || s.ad_account?.meta_account_id || 'Conta'}
+                      {s.ad_account?.name || s.ad_account?.meta_account_id || t('clientDash.accounts.accountFallback')}
                     </span>
                   ))}
                 </div>
@@ -1160,7 +1160,7 @@ const ClientDashboard: React.FC = () => {
             {/* Ad Accounts */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                <Shield size={16} className="text-primary" /> Contas de Anúncio
+                <Shield size={16} className="text-primary" /> {t('clientDash.accounts.adAccounts')}
               </h3>
               {(() => {
                 const total = client.ad_accounts || 0;
@@ -1172,15 +1172,15 @@ const ClientDashboard: React.FC = () => {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-secondary rounded-lg p-4 text-center">
                       <p className="text-2xl font-bold text-primary">{available}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Disponíveis</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('clientDash.accounts.available')}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-4 text-center">
                       <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Em uso</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('clientDash.accounts.inUse')}</p>
                     </div>
                     <div className="bg-secondary rounded-lg p-4 text-center">
                       <p className="text-2xl font-bold text-destructive">{blockedCount}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Bloqueadas</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('clientDash.accounts.blocked')}</p>
                     </div>
                   </div>
                 );
@@ -1192,32 +1192,32 @@ const ClientDashboard: React.FC = () => {
           <TabsContent value="contrato" className="space-y-5 mt-0">
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-4 flex items-center gap-2">
-                <CreditCard size={16} className="text-primary" /> Detalhes do Contrato
+                <CreditCard size={16} className="text-primary" /> {t('clientDash.contract.details')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div className="bg-secondary/60 rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de Cliente</p>
-                  <p className="font-medium mt-1">{client.client_type === 'venda' ? 'Venda (Valor Fixo)' : 'Aluguel (% sobre Gasto)'}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.clientType')}</p>
+                  <p className="font-medium mt-1">{client.client_type === 'venda' ? t('clientDash.contract.fixedSale') : t('clientDash.contract.rentalSpend')}</p>
                 </div>
                 {client.client_type === 'venda' ? (
                   <div className="bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Fixo</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.fixedValue')}</p>
                     <p className="font-medium text-primary mt-1">{fmt(Number(client.fixed_value) || 0)}</p>
                   </div>
                 ) : (
                   <div className="bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual base</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.basePct')}</p>
                     <p className="font-medium text-primary mt-1">{Number(client.percentage_value) || 0}%</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">Percentual definido no contrato. Conforme as metas de gasto semanal forem atingidas, a taxa diminui progressivamente.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{t('clientDash.contract.basePctDesc')}</p>
                   </div>
                 )}
                 <div className="bg-secondary/60 rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Cobrança</p>
-                  <p className="font-medium mt-1">Semanal — toda sexta-feira</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.billing')}</p>
+                  <p className="font-medium mt-1">{t('clientDash.contract.weeklyFriday')}</p>
                 </div>
                 {client.observations && (
                   <div className="sm:col-span-2 bg-secondary/60 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Observações</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.observations')}</p>
                     <p className="text-sm mt-1 whitespace-pre-wrap">{client.observations}</p>
                   </div>
                 )}
@@ -1242,18 +1242,18 @@ const ClientDashboard: React.FC = () => {
               return (
                 <div className="bg-card border border-border rounded-xl p-5 border-glow">
                   <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-primary" /> Metas semanais de desconto
+                    <TrendingUp size={16} className="text-primary" /> {t('clientDash.contract.weeklyGoals')}
                   </h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Quanto mais sua conta gastar na semana, menor o percentual cobrado pela agência.
+                    {t('clientDash.contract.weeklyGoalsDesc')}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div className="bg-secondary/60 rounded-lg p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto última semana fechada</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.lastClosedSpend')}</p>
                       <p className="font-bold text-lg text-foreground mt-1">{fmt(weekSpend)}</p>
                     </div>
                     <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Percentual atual</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.currentPct')}</p>
                       <p className="font-bold text-lg text-primary mt-1">{currentRate}%</p>
                     </div>
                   </div>
@@ -1263,10 +1263,10 @@ const ClientDashboard: React.FC = () => {
                     </div>
                     {nextTier ? (
                       <p className="text-[11px] text-muted-foreground mt-2">
-                        Faltam <strong className="text-primary">{fmt(remaining)}</strong> para atingir <strong className="text-primary">{nextTier.pct}%</strong> (acima de {fmt(nextTier.min)}).
+                        {t('clientDash.contract.remainingToReach', { amount: fmt(remaining), pct: nextTier.pct, min: fmt(nextTier.min) })}
                       </p>
                     ) : (
-                      <p className="text-[11px] text-success mt-2">Você atingiu a meta máxima — {topTier?.pct ?? 1}% sobre o gasto.</p>
+                      <p className="text-[11px] text-success mt-2">{t('clientDash.contract.topGoalReached', { pct: topTier?.pct ?? 1 })}</p>
                     )}
                   </div>
                   <ul className="space-y-2">
@@ -1288,7 +1288,7 @@ const ClientDashboard: React.FC = () => {
                               "w-2 h-2 rounded-full",
                               active ? "bg-primary animate-pulse" : reached ? "bg-success" : "bg-muted-foreground/40"
                             )} />
-                            Acima de {fmt(t.min)}
+                            {t('clientDash.contract.above', { amount: fmt(t.min) })}
                           </span>
                           <span className={cn("font-semibold",
                             active ? "text-primary" : reached ? "text-success" : "text-muted-foreground"
@@ -1303,19 +1303,19 @@ const ClientDashboard: React.FC = () => {
 
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
-                <DollarSign size={16} className="text-primary" /> Histórico Acumulado
+                <DollarSign size={16} className="text-primary" /> {t('clientDash.contract.accumulatedHistory')}
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gasto Total Ads</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.totalAdSpend')}</p>
                   <p className="text-sm font-bold text-foreground mt-1">{fmt(allTimeTotals.adSpend)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Comissão Total</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.totalCommission')}</p>
                   <p className="text-sm font-bold text-primary mt-1">{fmt(allTimeTotals.commission)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Pago</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.totalPaid')}</p>
                   <p className="text-sm font-bold text-success mt-1">{fmt(allTimeTotals.paid)}</p>
                 </div>
               </div>
