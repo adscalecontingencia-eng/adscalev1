@@ -4,6 +4,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, AlertCircle, Zap } from 'lucide-react';
 import AdScaleLogo from '@/components/AdScaleLogo';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 
@@ -78,6 +79,8 @@ const Login: React.FC = () => {
         <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-primary/3 blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-primary/5" />
       </div>
+
+      <div className="absolute top-4 right-4 z-20"><LanguageSwitcher /></div>
 
       <motion.div
         initial={{ opacity: 0, y: 24 }}
