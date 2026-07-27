@@ -71,21 +71,21 @@ const RentalAccounts: React.FC = () => {
             Scale your operation with{" "}
             <span className="text-primary">unlimited ad accounts</span>.
           </h1>
-          <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+          <p className="mt-4 sm:mt-5 text-sm sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
             Rent verified agency Business Managers, ad accounts, aged pages and profiles —
             everything you need to run high-volume Meta Ads campaigns without downtime.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
             <Link
               to={SIGNUP}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:brightness-110 transition shadow-[0_0_30px_-8px_hsl(var(--primary))]"
+              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-5 sm:px-6 py-3 rounded-xl hover:brightness-110 transition shadow-[0_0_30px_-8px_hsl(var(--primary))] text-sm sm:text-base"
             >
               Create your agency account <ArrowRight size={16} />
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 border border-border/60 hover:border-primary/40 text-sm font-medium px-5 py-3 rounded-xl transition"
+              className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 text-sm font-medium px-5 py-3 rounded-xl transition"
             >
               How it works
             </a>
