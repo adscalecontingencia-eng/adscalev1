@@ -242,6 +242,114 @@ const RentalAccounts: React.FC = () => {
         </div>
       </section>
 
+      {/* SUPPORT — Dedicated group chat */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid lg:grid-cols-2 gap-10 items-center">
+          <motion.div {...fadeUp}>
+            <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
+              <MessageCircle size={12} /> Dedicated group chat
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mt-4">
+              A <span className="text-primary">private group</span> with our team and yours
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              As soon as your operation starts, we create a private group chat with our
+              operations squad and the people from your agency who need to be in the loop.
+              No shared inbox, no waiting queue — real humans, real-time answers.
+            </p>
+
+            <ul className="mt-6 space-y-3">
+              {[
+                { icon: Users, t: "Multi-member group", d: "Add your media buyers, account managers and ops leads. Everyone stays aligned." },
+                { icon: Clock, t: "Fast response times", d: "Business-hours coverage with dedicated agents who already know your account." },
+                { icon: UserPlus, t: "Onboarding included", d: "We walk your team through the dashboard, first BM assignment and best practices." },
+                { icon: Shield, t: "Escalation channel", d: "Blocked accounts, urgent replacements or Meta issues — escalated the moment they happen." },
+              ].map((f) => (
+                <li key={f.t} className="flex gap-3">
+                  <div className="w-9 h-9 shrink-0 rounded-lg bg-primary/10 border border-primary/30 text-primary grid place-items-center">
+                    <f.icon size={16} />
+                  </div>
+                  <div>
+                    <div className="font-display font-semibold text-foreground">{f.t}</div>
+                    <div className="text-sm text-muted-foreground">{f.d}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="relative">
+            <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-3xl" />
+            <div className="relative rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl overflow-hidden shadow-2xl">
+              <img
+                src={dashSupportGroup}
+                alt="Private group chat between AD SCALE team and client team"
+                loading="lazy"
+                width={1200}
+                height={1008}
+                className="w-full h-auto"
+              />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* SUPPORT — In-app tickets */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid lg:grid-cols-2 gap-10 items-center">
+          <motion.div {...fadeUp} className="relative order-2 lg:order-1">
+            <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-3xl" />
+            <div className="relative rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl overflow-hidden shadow-2xl">
+              <img
+                src={dashSupport}
+                alt="Support tickets dashboard with open requests and conversation thread"
+                loading="lazy"
+                width={1600}
+                height={1008}
+                className="w-full h-auto"
+              />
+            </div>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="order-1 lg:order-2">
+            <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
+              <Ticket size={12} /> In-app support tickets
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mt-4">
+              Every request tracked <span className="text-primary">inside the dashboard</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              Beyond the group chat, every operational request lives inside your panel — with
+              status, priority, history and full audit trail. Nothing gets lost, everything is
+              traceable.
+            </p>
+
+            <div className="mt-6 grid sm:grid-cols-2 gap-3">
+              {[
+                { icon: CreditCard, t: "Request Ad Accounts", d: "Ask for new ad accounts assigned to your BM." },
+                { icon: Layers, t: "Add Business Manager", d: "Additional BMs whenever your operation grows." },
+                { icon: RefreshCw, t: "Replace blocked account", d: "One click to trigger the replacement flow." },
+                { icon: FileCheck, t: "Status & history", d: "Open · In progress · Resolved — with timestamps." },
+              ].map((f) => (
+                <div key={f.t} className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-xl p-4">
+                  <f.icon size={18} className="text-primary mb-2" />
+                  <div className="font-display font-semibold text-sm">{f.t}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{f.d}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+              <MessageCircle size={18} className="text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                Every ticket update also pings the private group chat, so your team is
+                notified the moment there's progress — no need to refresh anything.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* PAYMENT METHODS */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
