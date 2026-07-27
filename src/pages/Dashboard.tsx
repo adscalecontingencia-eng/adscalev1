@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw, Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS, es as esLocale } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { parseDateLocal } from '@/lib/date-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,6 +25,7 @@ const CHART_COLORS = ['hsl(212,100%,55%)', 'hsl(160,80%,45%)', 'hsl(45,100%,55%)
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const [dateFilter, setDateFilter] = useState<DateFilter>('7days');
   const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('geral');
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -68,6 +70,7 @@ const Dashboard: React.FC = () => {
   const [syncHistory, setSyncHistory] = useState<any[]>([]);
   const [showSyncHistory, setShowSyncHistory] = useState(false);
   const isAdmin = user?.role === 'admin';
+  const dateLocale = i18n.language?.startsWith('en') ? enUS : i18n.language?.startsWith('es') ? esLocale : ptBR;
 
   const loadSyncHistory = async () => {
     const { data } = await supabase
@@ -79,14 +82,14 @@ const Dashboard: React.FC = () => {
   };
 
   const handleManualSync = async () => {
-    if (!isAdmin) { toast.error('Apenas administradores podem sincronizar comissões'); return; }
+    if (!isAdmin) { toast.error(t('adminDashboard.toasts.adminOnly')); return; }
     setSyncing(true);
     const r = await syncAutoCommissions({ logAudit: true, source: 'manual' });
     setSyncing(false);
     await loadSyncHistory();
-    if (r.errors > 0) toast.error('Erro ao sincronizar comissões');
-    else if (r.inserted > 0 || r.updated > 0) toast.success(`${r.inserted} comissão(ões) gerada(s) · ${r.updated} atualizada(s) pela Meta`);
-    else toast.info('Comissões já estão sincronizadas');
+    if (r.errors > 0) toast.error(t('adminDashboard.toasts.syncError'));
+    else if (r.inserted > 0 || r.updated > 0) toast.success(t('adminDashboard.toasts.syncSuccess', { inserted: r.inserted, updated: r.updated }));
+    else toast.info(t('adminDashboard.toasts.alreadySynced'));
   };
 
   // Mapa client_id → client_type para filtrar transações por tipo de cliente
@@ -218,10 +221,10 @@ const Dashboard: React.FC = () => {
       const dayStructure = dayTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       const dayProductCost = dayTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
       const dayExpenses = dayStructure + dayProductCost;
-      days.push({ date: format(d, 'dd/MM', { locale: ptBR }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
+      days.push({ date: format(d, 'dd/MM', { locale: dateLocale }), faturamento: dayRevenue, gastos: dayExpenses, lucro: dayRevenue - dayExpenses });
     }
     return days;
-  }, [baseTimeTransactions]);
+  }, [baseTimeTransactions, dateLocale]);
 
   const monthlyData = useMemo(() => {
     const months: any[] = [];
@@ -235,10 +238,10 @@ const Dashboard: React.FC = () => {
       const monthStructure = monthTx.filter((t: any) => t.type === 'gasto').reduce((s: number, t: any) => s + Number(t.amount), 0);
       const monthProductCost = monthTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
       const monthExpenses = monthStructure + monthProductCost;
-      months.push({ date: format(d, 'MMM/yy', { locale: ptBR }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
+      months.push({ date: format(d, 'MMM/yy', { locale: dateLocale }), receitas: monthRevenue, gastos: monthExpenses, lucro: monthRevenue - monthExpenses });
     }
     return months;
-  }, [baseTimeTransactions]);
+  }, [baseTimeTransactions, dateLocale]);
 
   // Conversão de moeda — todas as somas no banco são em USD
   const conv = (v: number) => currency === 'BRL' ? v * usdToBrl : v;
@@ -273,7 +276,7 @@ const Dashboard: React.FC = () => {
   const handleExportExcel = async () => {
     const sym = currency;
     const v = (n: number) => Number(conv(n).toFixed(2));
-    const tipoLabel = clientTypeFilter === 'geral' ? 'Geral' : clientTypeFilter === 'aluguel' ? 'Aluguel' : 'Vendas';
+    const tipoLabel = clientTypeFilter === 'geral' ? t('adminDashboard.filters.general') : clientTypeFilter === 'aluguel' ? t('adminDashboard.filters.rental') : t('adminDashboard.filters.sales');
 
     const wb = new ExcelJS.Workbook();
     wb.creator = 'AD SCALE';
@@ -290,63 +293,63 @@ const Dashboard: React.FC = () => {
     };
 
     // 1) Resumo / KPIs
-    const wsResumo = wb.addWorksheet('Resumo');
+    const wsResumo = wb.addWorksheet(t('adminDashboard.export.summary'));
     wsResumo.columns = [{ width: 28 }, { width: 26 }];
     [
       ['AD SCALE — Dashboard'],
-      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })],
-      ['Período', dateLabel],
-      ['Tipo de cliente', tipoLabel],
-      ['Moeda', sym + (sym === 'BRL' ? ` (cotação R$ ${usdToBrl.toFixed(4)})` : '')],
+      [t('adminDashboard.export.generatedAt'), format(new Date(), 'dd/MM/yyyy HH:mm', { locale: dateLocale })],
+      [t('adminDashboard.export.period'), dateLabel],
+      [t('adminDashboard.export.clientType'), tipoLabel],
+      [t('adminDashboard.export.currency'), sym + (sym === 'BRL' ? ` (${t('adminDashboard.export.rate', { rate: usdToBrl.toFixed(4) })})` : '')],
       [],
-      ['Indicador', `Valor (${sym})`],
-      ['Faturamento', v(revenue)],
-      ['Gastos Estrutura', v(expenses)],
-      ['Custo de Produtos', v(productCost)],
-      ['Lucro', v(profit)],
-      ['Margem (%)', Number(margin.toFixed(2))],
-      ['Ticket Médio', v(avgTicket)],
-      ['Vendas (qtd)', salesCount],
-      ['Clientes Ativos', activeClients],
-      ['Clientes Totais', clients.length],
+      [t('adminDashboard.export.indicator'), t('adminDashboard.export.value', { currency: sym })],
+      [t('adminDashboard.kpis.revenue'), v(revenue)],
+      [t('adminDashboard.kpis.structureCosts'), v(expenses)],
+      [t('adminDashboard.kpis.productCost'), v(productCost)],
+      [t('adminDashboard.kpis.profit'), v(profit)],
+      [t('adminDashboard.export.margin'), Number(margin.toFixed(2))],
+      [t('adminDashboard.kpis.avgTicket'), v(avgTicket)],
+      [t('adminDashboard.export.salesQty'), salesCount],
+      [t('adminDashboard.kpis.activeClients'), activeClients],
+      [t('adminDashboard.export.total'), clients.length],
     ].forEach(r => wsResumo.addRow(r));
     wsResumo.getRow(1).font = { bold: true, size: 14 };
     wsResumo.getRow(7).font = { bold: true, color: { argb: 'FF0F0F0F' } };
     wsResumo.getRow(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF39FF14' } };
 
     // 2) Diário
-    addSheet('Diario', [
-      ['Data', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.daily'), [
+      ['Data', `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...dailyData.map(d => [d.date, v(d.faturamento), v(d.gastos), v(d.lucro)]),
     ], [12, 18, 18, 18]);
 
     // 3) Mensal
-    addSheet('Mensal', [
-      ['Mês', `Receitas (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.monthly'), [
+      [t('adminDashboard.export.month'), `${t('adminDashboard.charts.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...monthlyData.map(m => [m.date, v(m.receitas), v(m.gastos), v(m.lucro)]),
     ], [12, 18, 18, 18]);
 
     // 4) Custos por Estrutura
     const totalEstrutura = pieData.reduce((s, p) => s + p.value, 0);
-    addSheet('Custos Estrutura', [
-      ['Estrutura', `Custo (${sym})`, '% do total'],
+    addSheet(t('adminDashboard.export.structureCosts'), [
+      [t('adminDashboard.export.structure'), `${t('adminDashboard.charts.cost')} (${sym})`, t('adminDashboard.export.pctTotal')],
       ...pieData.map(p => [
         p.name,
         v(p.value),
         totalEstrutura > 0 ? Number(((p.value / totalEstrutura) * 100).toFixed(2)) : 0,
       ]),
-      ['Total', v(totalEstrutura), 100],
+      [t('adminDashboard.export.total'), v(totalEstrutura), 100],
     ], [22, 18, 14]);
 
     // 5) Clientes Aluguel
-    addSheet('Clientes Aluguel', [
-      ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.rentalClients'), [
+      [t('adminDashboard.export.client'), `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...clientProfitsAluguel.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
     ], [30, 18, 18, 18]);
 
     // 6) Clientes Vendas
-    addSheet('Clientes Vendas', [
-      ['Cliente', `Faturamento (${sym})`, `Gastos (${sym})`, `Lucro (${sym})`],
+    addSheet(t('adminDashboard.export.salesClients'), [
+      [t('adminDashboard.export.client'), `${t('adminDashboard.kpis.revenue')} (${sym})`, `${t('adminDashboard.charts.expenses')} (${sym})`, `${t('adminDashboard.kpis.profit')} (${sym})`],
       ...clientProfitsVenda.map(c => [c.name, v(c.revenue), v(c.expenses), v(c.profit)]),
     ], [30, 18, 18, 18]);
 
@@ -366,8 +369,8 @@ const Dashboard: React.FC = () => {
     dateFilter === 'today' ? 'Hoje'
     : dateFilter === '7days' ? 'Últimos 7 dias'
     : dateFilter === 'month' ? 'Esse Mês'
-    : dateFilter === 'custom' ? 'Data específica'
-    : 'Período personalizado';
+    : dateFilter === 'custom' ? t('adminDashboard.periods.specificDate')
+    : t('adminDashboard.periods.custom');
 
   return (
     <div className="space-y-6">
