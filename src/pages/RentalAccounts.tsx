@@ -48,44 +48,44 @@ const RentalAccounts: React.FC = () => {
 
       {/* NAV */}
       <header className="relative z-20 border-b border-border/60 backdrop-blur-xl bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="text-primary notranslate" translate="no">
-            <AdScaleLogo size={26} />
+            <AdScaleLogo size={24} />
           </div>
           <Link
             to={SIGNUP}
-            className="hidden sm:inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-lg hover:brightness-110 transition"
+            className="inline-flex items-center gap-1.5 sm:gap-2 bg-primary text-primary-foreground text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:brightness-110 transition"
           >
-            Get started <ArrowRight size={14} />
+            Get started <ArrowRight size={12} className="sm:hidden" /><ArrowRight size={14} className="hidden sm:inline" />
           </Link>
         </div>
       </header>
 
       {/* HERO */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-16 sm:pb-24">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 lg:pt-20 pb-12 sm:pb-20 lg:pb-24">
         <motion.div {...fadeUp} className="max-w-3xl">
-          <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
+          <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] sm:tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
             <Sparkles size={12} /> Ad Structure Rental · <span className="notranslate" translate="no">AD SCALE</span>
           </span>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.05] tracking-tight">
+          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.1] sm:leading-[1.05] tracking-tight">
             Scale your operation with{" "}
             <span className="text-primary">unlimited ad accounts</span>.
           </h1>
-          <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+          <p className="mt-4 sm:mt-5 text-sm sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
             Rent verified agency Business Managers, ad accounts, aged pages and profiles —
             everything you need to run high-volume Meta Ads campaigns without downtime.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
             <Link
               to={SIGNUP}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:brightness-110 transition shadow-[0_0_30px_-8px_hsl(var(--primary))]"
+              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-5 sm:px-6 py-3 rounded-xl hover:brightness-110 transition shadow-[0_0_30px_-8px_hsl(var(--primary))] text-sm sm:text-base"
             >
               Create your agency account <ArrowRight size={16} />
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 border border-border/60 hover:border-primary/40 text-sm font-medium px-5 py-3 rounded-xl transition"
+              className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 text-sm font-medium px-5 py-3 rounded-xl transition"
             >
               How it works
             </a>
@@ -100,7 +100,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section id="how-it-works" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.div {...fadeUp} className="max-w-2xl">
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
             How the <span className="text-primary">rental model</span> works
@@ -144,7 +144,7 @@ const RentalAccounts: React.FC = () => {
       />
 
       {/* WHAT'S INCLUDED */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight max-w-2xl">
           What's <span className="text-primary">included</span>
         </motion.h2>
@@ -181,7 +181,7 @@ const RentalAccounts: React.FC = () => {
       />
 
       {/* PRICING */}
-      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
           Simple <span className="text-primary">pricing</span>
         </motion.h2>
@@ -208,7 +208,7 @@ const RentalAccounts: React.FC = () => {
       />
 
       {/* SUPPORT & OPS */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.div {...fadeUp} className="max-w-2xl">
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
             <span className="text-primary">Support & operations</span> built for scale
@@ -243,7 +243,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* SUPPORT — Dedicated group chat */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <motion.div {...fadeUp}>
             <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
@@ -295,7 +295,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* SUPPORT — In-app tickets */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <motion.div {...fadeUp} className="relative order-2 lg:order-1">
             <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-3xl" />
@@ -351,7 +351,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* PAYMENT METHODS */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
           Payment <span className="text-primary">methods</span>
         </motion.h2>
@@ -377,7 +377,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* FAQ */}
-      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-center">
           Frequently asked questions
         </motion.h2>
@@ -407,7 +407,7 @@ const RentalAccounts: React.FC = () => {
       </section>
 
       {/* FINAL CTA */}
-      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18 lg:py-20">
         <motion.div
           {...fadeUp}
           className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-8 sm:p-12 text-center relative overflow-hidden"
@@ -436,12 +436,12 @@ const RentalAccounts: React.FC = () => {
 
       {/* FOOTER */}
       <footer className="relative z-10 border-t border-border/60 mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <div className="text-primary"><AdScaleLogo size={20} /></div>
             <span>© {new Date().getFullYear()} <span className="notranslate" translate="no">AD SCALE</span></span>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition">Terms of Use</a>
             <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition">Advertising Policy</a>
             <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition">Privacy</a>
@@ -453,7 +453,7 @@ const RentalAccounts: React.FC = () => {
 };
 
 const PricingRow: React.FC<{ label: string; value: string; hint?: string; highlight?: boolean; last?: boolean }> = ({ label, value, hint, highlight, last }) => (
-  <div className={`flex items-center justify-between gap-4 px-6 py-5 ${last ? "" : "border-b border-border/60"} ${highlight ? "bg-primary/5" : ""}`}>
+  <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-5 sm:px-6 py-4 sm:py-5 ${last ? "" : "border-b border-border/60"} ${highlight ? "bg-primary/5" : ""}`}>
     <div>
       <p className="font-display font-semibold text-foreground text-sm sm:text-base">{label}</p>
       {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
@@ -463,7 +463,7 @@ const PricingRow: React.FC<{ label: string; value: string; hint?: string; highli
 );
 
 const DashShowcase: React.FC<{ eyebrow: string; title: string; desc: string; image: string; align: "left" | "right" }> = ({ eyebrow, title, desc, image, align }) => (
-  <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+  <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
     <div className={`grid lg:grid-cols-2 gap-8 lg:gap-12 items-center ${align === "left" ? "lg:[&>*:first-child]:order-2" : ""}`}>
       <motion.div {...fadeUp}>
         <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-primary/80">
