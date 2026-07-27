@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -15,13 +15,25 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { TERMS_OF_USE_TEXT, TERMS_VERSION } from "@/lib/terms";
 import { useAuth } from "@/contexts/AuthContext";
+import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const lang = searchParams.get("lang");
+    if (lang && (SUPPORTED_LANGUAGES as readonly string[]).includes(lang)) {
+      setLanguage(lang as SupportedLanguage);
+    }
+  }, [searchParams]);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,10 +53,10 @@ const AgencySignup: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password !== confirm) return setError("As senhas não coincidem");
-    if (password.length < 8) return setError("Senha precisa de pelo menos 8 caracteres");
-    if (phone.replace(/\D+/g, "").length < 10) return setError("WhatsApp obrigatório com DDD");
-    if (!accepted) return setError("Você precisa aceitar o Termo de Uso");
+    if (password !== confirm) return setError(t("agencySignup.errors.passwordMismatch"));
+    if (password.length < 8) return setError(t("agencySignup.errors.passwordShort"));
+    if (phone.replace(/\D+/g, "").length < 10) return setError(t("agencySignup.errors.phoneRequired"));
+    if (!accepted) return setError(t("agencySignup.errors.acceptTerms"));
 
     setSubmitting(true);
     try {
@@ -64,9 +76,8 @@ const AgencySignup: React.FC = () => {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
+      if (!res.ok || data?.error) throw new Error(data?.error || t("agencySignup.errors.signupHttp", { status: res.status }));
       setDone(true);
-      // Auto-login e redireciona direto para o painel da agência
       try {
         const ok = await login(email, password);
         setTimeout(() => navigate(ok ? "/client-dashboard" : "/login"), 1200);
@@ -74,7 +85,7 @@ const AgencySignup: React.FC = () => {
         setTimeout(() => navigate("/login"), 1500);
       }
     } catch (e: any) {
-      setError(e.message || "Erro no cadastro");
+      setError(e.message || t("agencySignup.errors.generic"));
     } finally {
       setSubmitting(false);
     }
@@ -87,10 +98,8 @@ const AgencySignup: React.FC = () => {
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mb-4">
             <CheckCircle2 size={32} className="text-primary" />
           </div>
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">Cadastro concluído</h2>
-          <p className="text-sm text-muted-foreground">
-            Entrando no seu painel da agência…
-          </p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">{t("agencySignup.done.title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("agencySignup.done.subtitle")}</p>
         </motion.div>
       </div>
     );
@@ -109,13 +118,13 @@ const AgencySignup: React.FC = () => {
           <div>
             <div className="text-primary"><AdScaleLogo size={42} /></div>
             <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
-              <Briefcase size={12} /> Aluguel de Contas de Anúncio
+              <Briefcase size={12} /> {t("agencySignup.pitch.eyebrow")}
             </p>
             <h1 className="font-display text-2xl font-bold text-foreground mt-5 leading-tight">
-              Escale suas campanhas com nossas <span className="text-primary">contas de anúncio dedicadas</span>.
+              {t("agencySignup.pitch.titleLead")} <span className="text-primary">{t("agencySignup.pitch.titleHighlight")}</span>.
             </h1>
             <p className="text-sm text-muted-foreground mt-3">
-              Plano sob medida para anunciantes que precisam de estrutura sólida, suporte humano e contas estáveis para rodar Meta Ads em escala.
+              {t("agencySignup.pitch.subtitle")}
             </p>
           </div>
 
@@ -124,40 +133,32 @@ const AgencySignup: React.FC = () => {
               <span className="mt-0.5 w-7 h-7 rounded-lg bg-primary/15 border border-primary/40 flex items-center justify-center shrink-0">
                 <Rocket size={14} className="text-primary" />
               </span>
-              <span className="text-foreground/90">
-                <strong>Contas prontas</strong> para começar a anunciar em até 24h após aprovação.
-              </span>
+              <span className="text-foreground/90" dangerouslySetInnerHTML={{ __html: t("agencySignup.pitch.bullet1") }} />
             </li>
             <li className="flex items-start gap-3">
               <span className="mt-0.5 w-7 h-7 rounded-lg bg-primary/15 border border-primary/40 flex items-center justify-center shrink-0">
                 <TrendingUp size={14} className="text-primary" />
               </span>
-              <span className="text-foreground/90">
-                <strong>Limite escalável</strong> conforme seu histórico de gasto.
-              </span>
+              <span className="text-foreground/90" dangerouslySetInnerHTML={{ __html: t("agencySignup.pitch.bullet2") }} />
             </li>
             <li className="flex items-start gap-3">
               <span className="mt-0.5 w-7 h-7 rounded-lg bg-primary/15 border border-primary/40 flex items-center justify-center shrink-0">
                 <Users size={14} className="text-primary" />
               </span>
-              <span className="text-foreground/90">
-                <strong>Suporte dedicado</strong> via WhatsApp para troca, reposição e backups.
-              </span>
+              <span className="text-foreground/90" dangerouslySetInnerHTML={{ __html: t("agencySignup.pitch.bullet3") }} />
             </li>
             <li className="flex items-start gap-3">
               <span className="mt-0.5 w-7 h-7 rounded-lg bg-primary/15 border border-primary/40 flex items-center justify-center shrink-0">
                 <ShieldCheck size={14} className="text-primary" />
               </span>
-              <span className="text-foreground/90">
-                <strong>Dashboard exclusivo</strong> para acompanhar gasto, faturamento e contas ativas.
-              </span>
+              <span className="text-foreground/90" dangerouslySetInnerHTML={{ __html: t("agencySignup.pitch.bullet4") }} />
             </li>
           </ul>
 
           <div className="mt-6 pt-5 border-t border-border/50 text-[11px] text-muted-foreground">
-            Procurando apenas <strong className="text-foreground/80">comprar ativos avulsos</strong> (BMs, perfis, proxies)?{" "}
+            <span dangerouslySetInnerHTML={{ __html: t("agencySignup.pitch.marketplaceHintPrefix") }} />{" "}
             <Link to="/marketplace-signup" className="text-primary hover:underline">
-              Cadastre-se no Marketplace
+              {t("agencySignup.pitch.marketplaceLink")}
             </Link>
             .
           </div>
@@ -168,15 +169,13 @@ const AgencySignup: React.FC = () => {
           <div className="lg:hidden flex flex-col items-center text-primary">
             <AdScaleLogo size={typeof window !== "undefined" && window.innerWidth < 640 ? 32 : 42} />
             <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
-              <Briefcase size={12} /> Cadastro Agência · Aluguel de Contas
+              <Briefcase size={12} /> {t("agencySignup.form.mobileEyebrow")}
             </p>
           </div>
 
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Solicite acesso à agência</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Preencha seus dados para abrir sua conta de cliente da agência. Após o cadastro, nosso time de onboarding entrará em contato.
-            </p>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("agencySignup.form.title")}</h2>
+            <p className="text-xs text-muted-foreground mt-1">{t("agencySignup.form.subtitle")}</p>
           </div>
 
           {error && (
@@ -189,65 +188,65 @@ const AgencySignup: React.FC = () => {
           <form onSubmit={submit} className="space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-medium text-muted-foreground">Nome completo</label>
+                <label className="text-xs font-medium text-muted-foreground">{t("agencySignup.form.fullName")}</label>
                 <div className="relative group">
                   <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input value={name} onChange={(e) => setName(e.target.value)} required
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="Seu nome" maxLength={120} />
+                    placeholder={t("agencySignup.form.fullNamePlaceholder")} maxLength={120} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">E-mail</label>
+                <label className="text-xs font-medium text-muted-foreground">{t("agencySignup.form.email")}</label>
                 <div className="relative group">
                   <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="seu@email.com" maxLength={255} />
+                    placeholder="your@email.com" maxLength={255} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">WhatsApp (com DDD) *</label>
+                <label className="text-xs font-medium text-muted-foreground">{t("agencySignup.form.whatsapp")}</label>
                 <div className="relative group">
                   <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} required
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="11999998888" maxLength={20} />
+                    placeholder="+1 555 000 0000" maxLength={20} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Senha</label>
+                <label className="text-xs font-medium text-muted-foreground">{t("agencySignup.form.password")}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="mín. 8 caracteres" />
+                    placeholder={t("agencySignup.form.passwordPlaceholder")} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Confirmar senha</label>
+                <label className="text-xs font-medium text-muted-foreground">{t("agencySignup.form.confirmPassword")}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8}
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="repita a senha" />
+                    placeholder={t("agencySignup.form.confirmPasswordPlaceholder")} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground/80">
-                <ScrollText size={12} className="text-primary" /> Termo de Uso · {TERMS_VERSION}
+                <ScrollText size={12} className="text-primary" /> {t("agencySignup.terms.heading")} · {TERMS_VERSION}
               </div>
               <div onScroll={handleScroll}
                 className="h-44 overflow-y-auto bg-background/40 border border-border/60 rounded-xl p-4 text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono scrollbar-neon">
                 {TERMS_OF_USE_TEXT}
               </div>
-              {!scrolledTerms && <p className="text-[10px] text-amber-400/80">Role o termo até o final para habilitar o aceite.</p>}
+              {!scrolledTerms && <p className="text-[10px] text-amber-400/80">{t("agencySignup.terms.scrollHint")}</p>}
 
               <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                 accepted ? "bg-primary/10 border-primary/40" : "bg-secondary/40 border-border"
@@ -256,26 +255,24 @@ const AgencySignup: React.FC = () => {
                   className="mt-0.5 w-4 h-4 accent-primary" disabled={!scrolledTerms} />
                 <div className="text-xs text-foreground/90">
                   <strong className="flex items-center gap-1.5">
-                    <ShieldCheck size={12} className="text-primary" /> Aceito o Termo de Uso
+                    <ShieldCheck size={12} className="text-primary" /> {t("agencySignup.terms.acceptTitle")}
                   </strong>
-                  <span className="text-muted-foreground">
-                    Declaro ter lido e concordo com a isenção de responsabilidade da agência e com a coleta de IP, dados de conexão e logs de acesso.
-                  </span>
+                  <span className="text-muted-foreground">{t("agencySignup.terms.acceptDesc")}</span>
                 </div>
               </label>
             </div>
 
             <button type="submit" disabled={submitting || !accepted}
               className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:pointer-events-none">
-              {submitting ? "Enviando solicitação…" : "Solicitar acesso à agência"}
+              {submitting ? t("agencySignup.form.submitting") : t("agencySignup.form.submit")}
             </button>
 
             <p className="text-center text-xs text-muted-foreground">
-              Já tem conta? <Link to="/login" className="text-primary hover:underline">Fazer login</Link>
+              {t("agencySignup.form.haveAccount")} <Link to="/login" className="text-primary hover:underline">{t("agencySignup.form.doLogin")}</Link>
             </p>
             <p className="text-center text-[10px] text-muted-foreground/70 lg:hidden">
-              Procura ativos avulsos?{" "}
-              <Link to="/marketplace-signup" className="text-primary hover:underline">Cadastro Marketplace</Link>
+              {t("agencySignup.form.marketplaceHint")}{" "}
+              <Link to="/marketplace-signup" className="text-primary hover:underline">{t("agencySignup.form.marketplaceLink")}</Link>
             </p>
           </form>
         </div>
