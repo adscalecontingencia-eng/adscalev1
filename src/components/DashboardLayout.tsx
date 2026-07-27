@@ -62,6 +62,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const visibleGroups = useMemo(() => {
@@ -77,7 +78,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       .filter(g => g.links.length > 0);
   }, [user]);
 
-  // Auto-open the group that contains the active route
   const activeGroupId = useMemo(() => {
     for (const g of visibleGroups) {
       if (g.links.some(l => location.pathname === l.path)) return g.id;
@@ -119,7 +119,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {visibleGroups.map(g => {
             const isOpen = openMap[g.id] || activeGroupId === g.id;
-            const hasHeader = !!g.label;
+            const hasHeader = !!g.labelKey;
             return (
               <div key={g.id} className="space-y-0.5">
                 {hasHeader && (
@@ -128,7 +128,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     className="w-full flex items-center gap-2 px-3 py-1.5 mt-2 mb-0.5 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground/70 hover:text-primary transition-colors"
                   >
                     {g.icon && <g.icon size={12} className="opacity-70" />}
-                    <span className="flex-1 text-left">{g.label}</span>
+                    <span className="flex-1 text-left">{t(g.labelKey as string)}</span>
                     {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                   </button>
                 )}
@@ -145,7 +145,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-full shadow-[0_0_8px_hsl(var(--primary))]" />
                       )}
                       <link.icon size={16} className={active ? '' : 'opacity-70 group-hover:opacity-100'} />
-                      <span className="font-medium">{link.label}</span>
+                      <span className="font-medium">{t(link.labelKey)}</span>
                       {active && <ChevronRight size={13} className="ml-auto" />}
                     </button>
                   );
@@ -165,7 +165,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <button onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
             <LogOut size={16} />
-            <span>Sair</span>
+            <span>{t('common.logout')}</span>
           </button>
         </div>
       </aside>
@@ -176,13 +176,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <Menu size={22} />
           </button>
           <h1 className="font-display text-sm font-semibold text-foreground tracking-wide">
-            {allLinks.find(l => l.path === location.pathname)?.label || 'Dashboard'}
+            {(() => {
+              const l = allLinks.find(l => l.path === location.pathname);
+              return l ? t(l.labelKey) : t('nav.dashboard');
+            })()}
           </h1>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-              Live
+              {t('common.live')}
             </div>
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationCenter />
           </div>
