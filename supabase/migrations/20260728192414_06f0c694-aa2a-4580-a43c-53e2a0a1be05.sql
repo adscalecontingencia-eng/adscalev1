@@ -1,0 +1,2 @@
+ALTER TABLE public.support_requests DROP CONSTRAINT support_requests_request_type_check;
+ALTER TABLE public.support_requests ADD CONSTRAINT support_requests_request_type_check CHECK (request_type = ANY (ARRAY['add_ad_account'::text, 'add_page'::text, 'add_bm'::text, 'other'::text]));
