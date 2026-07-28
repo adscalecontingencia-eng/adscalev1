@@ -674,8 +674,8 @@ const ClientDashboard: React.FC = () => {
 
   // Loyalty tier: calcula progressão pela comissão paga acumulada
   const loyalty = useMemo(
-    () => computeLoyaltyProgress(allTimeTotals.paid),
-    [allTimeTotals.paid],
+    () => computeLoyaltyProgress(allTimeTotals.paid, client?.percentage_value),
+    [allTimeTotals.paid, client?.percentage_value],
   );
 
   // Auto-ajuste do percentual base ao cruzar meta (apenas rental)

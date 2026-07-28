@@ -327,7 +327,7 @@ export const ClientCard: React.FC<Props> = (props) => {
               </span>
               <StatusBadge status={status} />
               {c.clientType === 'aluguel' && (() => {
-                const lp = computeLoyaltyProgress(comissaoPaga);
+                const lp = computeLoyaltyProgress(comissaoPaga, c.percentageValue);
                 if (lp.current.id === 'standard') return null;
                 const Icon = lp.current.id === 'elite' ? Crown : Gem;
                 return (

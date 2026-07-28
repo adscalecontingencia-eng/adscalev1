@@ -65,11 +65,26 @@ export interface LoyaltyProgress {
   nearNext: boolean;      // true quando >= 70% do próximo tier
 }
 
-export function computeLoyaltyProgress(totalPaid: number): LoyaltyProgress {
+/** Retorna o tier cujo basePct casa com a porcentagem informada (menor pct = tier melhor). */
+export function tierFromBasePct(basePct: number): LoyaltyTier {
+  const byPct = [...LOYALTY_TIERS].sort((a, b) => a.basePct - b.basePct); // 3, 4, 5
+  for (const t of byPct) if (basePct <= t.basePct + 0.0001) return t;
+  return byPct[byPct.length - 1];
+}
+
+export function computeLoyaltyProgress(totalPaid: number, basePctOverride?: number | null): LoyaltyProgress {
   const paid = Math.max(0, Number(totalPaid) || 0);
   const sorted = [...LOYALTY_TIERS].sort((a, b) => a.threshold - b.threshold);
   let current = sorted[0];
   for (const t of sorted) if (paid >= t.threshold) current = t;
+
+  // Override manual: se o admin ajustou a comissão para um valor melhor (menor)
+  // que o tier natural, força o tier correspondente àquela porcentagem.
+  if (basePctOverride !== undefined && basePctOverride !== null && !Number.isNaN(Number(basePctOverride))) {
+    const manual = tierFromBasePct(Number(basePctOverride));
+    if (manual.basePct < current.basePct) current = manual;
+  }
+
   const idx = sorted.findIndex(t => t.id === current.id);
   const next = idx < sorted.length - 1 ? sorted[idx + 1] : null;
 
