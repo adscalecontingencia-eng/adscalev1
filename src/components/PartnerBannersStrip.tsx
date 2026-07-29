@@ -25,7 +25,7 @@ const PartnerBannersStrip: React.FC<Props> = ({ placement, className }) => {
     (async () => {
       const { data } = await supabase
         .from('partner_banners')
-        .select('id,title,description,image_url,link_url,placement,sort_order')
+        .select('id,title,description,image_url,link_url,cta_label,placement,sort_order')
         .eq('active', true)
         .in('placement', [placement, 'both'])
         .order('sort_order', { ascending: true })
