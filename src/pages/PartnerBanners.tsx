@@ -167,7 +167,7 @@ const PartnerBanners: React.FC = () => {
         </div>
       </Panel>
 
-      <Panel title={`Banners cadastrados (${banners.length})`} icon={ImageIcon}>
+      <Panel title={`Banners cadastrados (${banners.length})`} icon={ImageIcon as any}>
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando...</p>
         ) : banners.length === 0 ? (
