@@ -795,7 +795,8 @@ const ClientDashboard: React.FC = () => {
       </header>
 
 
-      <div className="p-4 lg:p-8 max-w-[1400px] mx-auto">
+      <div className="p-4 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+        <PartnerBannersStrip placement="client_dashboard" />
         {/* Hero + Loyalty — side-by-side no desktop */}
         <div className={cn(
           'grid gap-5 mb-5',
