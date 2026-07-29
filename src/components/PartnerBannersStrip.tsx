@@ -7,6 +7,7 @@ type Banner = {
   description: string | null;
   image_url: string;
   link_url: string | null;
+  cta_label: string | null;
   placement: 'client_dashboard' | 'marketplace' | 'both';
   sort_order: number;
 };
