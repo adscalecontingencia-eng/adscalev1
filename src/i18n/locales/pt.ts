@@ -72,6 +72,7 @@ const pt = {
     access: 'Acessos',
     audit: 'Auditoria',
     manualAdjustments: 'Ajustes Manuais',
+    partnerBanners: 'Banners de Parceiros',
     users: 'Usuários',
     myWallet: 'Minha Carteira',
     myOrders: 'Meus Pedidos',

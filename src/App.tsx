@@ -56,6 +56,7 @@ import RentalAccounts from "./pages/RentalAccounts";
 import EscolhaSeuModelo from "./pages/EscolhaSeuModelo";
 import Obrigado from "./pages/Obrigado";
 import EstruturaAds from "./pages/EstruturaAds";
+import PartnerBanners from "./pages/PartnerBanners";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
               <Route path="/manual-adjustments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><ManualAdjustments /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/partner-banners" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><PartnerBanners /></DashboardLayout></ProtectedRoute>} />
 
               <Route path="/clients-auth-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><ClientsAuthAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />

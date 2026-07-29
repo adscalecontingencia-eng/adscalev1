@@ -74,6 +74,7 @@ const en: Translations = {
     access: 'Access',
     audit: 'Audit',
     manualAdjustments: 'Manual Adjustments',
+    partnerBanners: 'Partner Banners',
     users: 'Users',
     myWallet: 'My Wallet',
     myOrders: 'My Orders',
