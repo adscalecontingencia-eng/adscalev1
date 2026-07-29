@@ -56,12 +56,22 @@ const PartnerBannersStrip: React.FC<Props> = ({ placement, className }) => {
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 />
               </div>
-              {(b.title || b.description) && (
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent p-3">
-                  <p className="text-sm font-semibold text-foreground truncate">{b.title}</p>
-                  {b.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1">{b.description}</p>
-                  )}
+              {(b.title || b.description || b.link_url) && (
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/70 to-transparent p-3">
+                  <div className="flex items-end justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{b.title}</p>
+                      {b.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{b.description}</p>
+                      )}
+                    </div>
+                    {b.link_url && (
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
+                        {b.cta_label?.trim() || 'Saiba mais'}
+                        <span aria-hidden>→</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
