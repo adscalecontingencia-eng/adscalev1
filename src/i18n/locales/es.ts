@@ -74,6 +74,7 @@ const es: Translations = {
     access: 'Accesos',
     audit: 'Auditoría',
     manualAdjustments: 'Ajustes Manuales',
+    partnerBanners: 'Banners de Socios',
     users: 'Usuarios',
     myWallet: 'Mi Cartera',
     myOrders: 'Mis Pedidos',
