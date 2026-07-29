@@ -159,6 +159,7 @@ const App = () => (
               <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
               <Route path="/manual-adjustments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><ManualAdjustments /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/partner-banners" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><PartnerBanners /></DashboardLayout></ProtectedRoute>} />
 
               <Route path="/clients-auth-audit" element={<ProtectedRoute roles={['admin']}><DashboardLayout><ClientsAuthAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
