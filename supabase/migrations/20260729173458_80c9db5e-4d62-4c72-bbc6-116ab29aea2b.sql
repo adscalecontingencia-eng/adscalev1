@@ -1,0 +1,1 @@
+ALTER TABLE public.partner_banners ADD COLUMN IF NOT EXISTS cta_label text;

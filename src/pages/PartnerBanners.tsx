@@ -17,6 +17,7 @@ type Banner = {
   description: string | null;
   image_url: string;
   link_url: string | null;
+  cta_label: string | null;
   placement: 'client_dashboard' | 'marketplace' | 'both';
   active: boolean;
   sort_order: number;
@@ -28,6 +29,7 @@ const empty = {
   description: '',
   image_url: '',
   link_url: '',
+  cta_label: '',
   placement: 'both' as Banner['placement'],
   active: true,
   sort_order: 0,
@@ -68,6 +70,7 @@ const PartnerBanners: React.FC = () => {
       description: form.description.trim() || null,
       image_url: form.image_url.trim(),
       link_url: form.link_url.trim() || null,
+      cta_label: form.cta_label.trim() || null,
       placement: form.placement,
       active: form.active,
       sort_order: Number(form.sort_order) || 0,
@@ -90,6 +93,7 @@ const PartnerBanners: React.FC = () => {
       description: b.description || '',
       image_url: b.image_url,
       link_url: b.link_url || '',
+      cta_label: (b as any).cta_label || '',
       placement: b.placement,
       active: b.active,
       sort_order: b.sort_order,
@@ -138,8 +142,13 @@ const PartnerBanners: React.FC = () => {
             )}
           </div>
           <div>
-            <Label>Link de destino</Label>
+            <Label>Link de destino (URL)</Label>
             <Input value={form.link_url} onChange={e => setForm(f => ({ ...f, link_url: e.target.value }))} placeholder="https://..." />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Texto do botão (opcional)</Label>
+            <Input value={form.cta_label} onChange={e => setForm(f => ({ ...f, cta_label: e.target.value }))} placeholder="Ex: Saiba mais, Acessar, Comprar agora" />
+            <p className="mt-1 text-[11px] text-muted-foreground">Exibido como botão sobre o banner quando houver link. Padrão: "Saiba mais".</p>
           </div>
           <div>
             <Label>Exibir em</Label>
