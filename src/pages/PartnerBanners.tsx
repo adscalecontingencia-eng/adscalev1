@@ -118,7 +118,7 @@ const PartnerBanners: React.FC = () => {
         description="Adicione banners promocionais que aparecerão no dashboard dos clientes e/ou no marketplace."
       />
 
-      <Panel title={editingId ? 'Editar banner' : 'Novo banner'} icon={Plus}>
+      <Panel title={editingId ? 'Editar banner' : 'Novo banner'} icon={Plus as any}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <Label>Título *</Label>
