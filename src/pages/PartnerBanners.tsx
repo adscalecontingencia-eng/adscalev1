@@ -17,6 +17,7 @@ type Banner = {
   description: string | null;
   image_url: string;
   link_url: string | null;
+  cta_label: string | null;
   placement: 'client_dashboard' | 'marketplace' | 'both';
   active: boolean;
   sort_order: number;
@@ -28,6 +29,7 @@ const empty = {
   description: '',
   image_url: '',
   link_url: '',
+  cta_label: '',
   placement: 'both' as Banner['placement'],
   active: true,
   sort_order: 0,
