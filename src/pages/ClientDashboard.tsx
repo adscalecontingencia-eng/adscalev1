@@ -21,6 +21,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import LoyaltyTierCard from '@/components/clients/LoyaltyTierCard';
 import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
+import PartnerBannersStrip from '@/components/PartnerBannersStrip';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
