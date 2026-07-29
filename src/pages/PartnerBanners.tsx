@@ -142,8 +142,13 @@ const PartnerBanners: React.FC = () => {
             )}
           </div>
           <div>
-            <Label>Link de destino</Label>
+            <Label>Link de destino (URL)</Label>
             <Input value={form.link_url} onChange={e => setForm(f => ({ ...f, link_url: e.target.value }))} placeholder="https://..." />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Texto do botão (opcional)</Label>
+            <Input value={form.cta_label} onChange={e => setForm(f => ({ ...f, cta_label: e.target.value }))} placeholder="Ex: Saiba mais, Acessar, Comprar agora" />
+            <p className="mt-1 text-[11px] text-muted-foreground">Exibido como botão sobre o banner quando houver link. Padrão: "Saiba mais".</p>
           </div>
           <div>
             <Label>Exibir em</Label>
