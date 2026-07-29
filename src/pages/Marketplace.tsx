@@ -744,6 +744,9 @@ const Marketplace: React.FC = () => {
         </div>
       </section>
 
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-4 sm:py-6">
+        <PartnerBannersStrip placement="marketplace" />
+      </section>
 
       {/* Benefícios */}
       <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
