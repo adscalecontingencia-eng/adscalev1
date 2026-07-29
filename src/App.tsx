@@ -56,6 +56,7 @@ import RentalAccounts from "./pages/RentalAccounts";
 import EscolhaSeuModelo from "./pages/EscolhaSeuModelo";
 import Obrigado from "./pages/Obrigado";
 import EstruturaAds from "./pages/EstruturaAds";
+import PartnerBanners from "./pages/PartnerBanners";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 
