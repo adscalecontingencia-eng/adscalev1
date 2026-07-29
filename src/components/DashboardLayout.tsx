@@ -46,6 +46,7 @@ const groups: Group[] = [
       { path: '/admin-audit', labelKey: 'nav.paymentsAudit', icon: Shield, adminOnly: true },
       { path: '/admin-webhook-logs', labelKey: 'nav.mpLogs', icon: Activity, adminOnly: true },
       { path: '/admin-tracking', labelKey: 'nav.tracking', icon: Activity },
+      { path: '/partner-banners', labelKey: 'nav.partnerBanners', icon: ImageIcon },
     ]
   },
   {
