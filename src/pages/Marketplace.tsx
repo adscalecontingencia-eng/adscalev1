@@ -32,6 +32,7 @@ import {
   ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import { Music2, MessageSquare, Facebook, Hexagon } from "lucide-react";
+import PartnerBannersStrip from "@/components/PartnerBannersStrip";
 
 import AdScaleLogo from "@/components/AdScaleLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
