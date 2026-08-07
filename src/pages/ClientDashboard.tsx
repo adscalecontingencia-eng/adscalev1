@@ -110,8 +110,12 @@ const ClientDashboard: React.FC = () => {
       .select('*, ad_account:meta_ad_accounts(*)')
       .eq('client_id', clientId) as any, 10000, 'Contas de anúncio');
     const assignments = assigns || [];
-    const list = assignments.filter((a: any) => a.active);
+    const assigned = assignments.filter((a: any) => a.active);
+    // Arquivada (archived_at) = perdeu acesso / foi retirada. Não conta como ativa.
+    const list = assigned.filter((a: any) => !a.ad_account?.archived_at);
+    const archived = assigned.filter((a: any) => !!a.ad_account?.archived_at);
     setActiveAccounts(list);
+    setArchivedAccounts(archived);
     const latest = assignments
       .map((a: any) => a.ad_account?.last_synced_at)
       .filter(Boolean)
