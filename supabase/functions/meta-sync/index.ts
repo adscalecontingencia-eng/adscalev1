@@ -20,7 +20,7 @@ const corsHeaders = {
 };
 
 const META_API = "https://graph.facebook.com/v21.0";
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 15000;
 const RETRY_ATTEMPTS = 2;
 const JOB_TIMEOUT_MS = 45000;
 const MAX_PAGINATION_PAGES = 30;
@@ -901,7 +901,38 @@ type AccountsSyncState = {
   deepBmIndex?: number;
   deepBmEdgeIndex?: number;
   lightBmScanned?: number;
+  /** Tentativas por etapa crítica (ex.: /me/adaccounts) antes de desistir. */
+  stageRetries?: Record<string, number>;
 };
+
+const MAX_STAGE_RETRIES = 3;
+
+/** Erros de rede/timeout merecem nova tentativa — pular /me/adaccounts faz
+ *  contas novas sumirem do sistema até a próxima sincronização. */
+function isRetryableStageError(e: unknown): boolean {
+  const msg = String((e as Error)?.message || e || "").toLowerCase();
+  const name = String((e as Error)?.name || "").toLowerCase();
+  return name.includes("timeout")
+    || msg.includes("timed out")
+    || msg.includes("timeout")
+    || msg.includes("excedeu")
+    || msg.includes("network")
+    || msg.includes("connection")
+    || msg.includes("fetch failed");
+}
+
+/** Retorna true se ainda vale repetir a etapa (e contabiliza a tentativa). */
+function consumeStageRetry(state: AccountsSyncState, key: string): boolean {
+  state.stageRetries = state.stageRetries || {};
+  const used = state.stageRetries[key] || 0;
+  if (used >= MAX_STAGE_RETRIES) return false;
+  state.stageRetries[key] = used + 1;
+  return true;
+}
+
+function clearStageRetry(state: AccountsSyncState, key: string) {
+  if (state.stageRetries) delete state.stageRetries[key];
+}
 
 const RESUMABLE_SLICE_MS = 18000;
 const MAX_STAGE_EVENTS = 140;
