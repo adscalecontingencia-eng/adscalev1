@@ -20,7 +20,7 @@ const corsHeaders = {
 };
 
 const META_API = "https://graph.facebook.com/v21.0";
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 15000;
 const RETRY_ATTEMPTS = 2;
 const JOB_TIMEOUT_MS = 45000;
 const MAX_PAGINATION_PAGES = 30;
@@ -901,7 +901,38 @@ type AccountsSyncState = {
   deepBmIndex?: number;
   deepBmEdgeIndex?: number;
   lightBmScanned?: number;
+  /** Tentativas por etapa crítica (ex.: /me/adaccounts) antes de desistir. */
+  stageRetries?: Record<string, number>;
 };
+
+const MAX_STAGE_RETRIES = 3;
+
+/** Erros de rede/timeout merecem nova tentativa — pular /me/adaccounts faz
+ *  contas novas sumirem do sistema até a próxima sincronização. */
+function isRetryableStageError(e: unknown): boolean {
+  const msg = String((e as Error)?.message || e || "").toLowerCase();
+  const name = String((e as Error)?.name || "").toLowerCase();
+  return name.includes("timeout")
+    || msg.includes("timed out")
+    || msg.includes("timeout")
+    || msg.includes("excedeu")
+    || msg.includes("network")
+    || msg.includes("connection")
+    || msg.includes("fetch failed");
+}
+
+/** Retorna true se ainda vale repetir a etapa (e contabiliza a tentativa). */
+function consumeStageRetry(state: AccountsSyncState, key: string): boolean {
+  state.stageRetries = state.stageRetries || {};
+  const used = state.stageRetries[key] || 0;
+  if (used >= MAX_STAGE_RETRIES) return false;
+  state.stageRetries[key] = used + 1;
+  return true;
+}
+
+function clearStageRetry(state: AccountsSyncState, key: string) {
+  if (state.stageRetries) delete state.stageRetries[key];
+}
 
 const RESUMABLE_SLICE_MS = 18000;
 const MAX_STAGE_EVENTS = 140;
@@ -1367,10 +1398,12 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })), "light");
       state.syncedCount += saved;
       state.completedStages += 1;
+      clearStageRetry(state, `fast|${currentApp.label}|${choice.label}|${endpoint}`);
       advanceFastPass();
       await persist({ app: currentApp.label, endpoint, status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
     } catch (e) {
       const msg = (e as Error).message;
+      const retryKey = `fast|${currentApp.label}|${choice.label}|${endpoint}`;
       if (isMetaRateLimit(e)) {
         actualErrors.push({ app: currentApp.label, token: choice.label, edge: endpoint, erro: msg, code: metaErrorCode(e) });
         markAppCooldown(state, currentApp.label, extractRegainSeconds(e));
@@ -1378,6 +1411,11 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         state.fastChoiceIndex = 0;
         state.fastEndpointIndex = 0;
         await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Limite da API Meta atingido; descoberta rápida pausada." });
+      } else if (isRetryableStageError(e) && consumeStageRetry(state, retryKey)) {
+        // Não avança: tenta o mesmo endpoint na próxima fatia. Pular aqui já
+        // fez contas novas (ex.: BioActives) não aparecerem no sistema.
+        const attempt = state.stageRetries?.[retryKey] || 1;
+        await persist({ app: currentApp.label, endpoint, status: "running", token: choice.label, detail: `Timeout na Meta — nova tentativa ${attempt}/${MAX_STAGE_RETRIES}` });
       } else {
         state.completedStages += 1;
         advanceFastPass();
@@ -1611,11 +1649,30 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
 
       if (state.phase === "me_adaccounts") {
         await persist({ app: currentApp.label, endpoint: "/me/adaccounts", status: "running", token: choice.label, detail: "Contas diretas" });
-        const items = await paginateMeta(`${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=200`);
-        const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })));
-        state.syncedCount += saved;
-        nextPhase(state);
-        await persist({ app: currentApp.label, endpoint: "/me/adaccounts", status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
+        const retryKey = `deep|${currentApp.label}|${choice.label}|/me/adaccounts`;
+        try {
+          // Página menor: com ACCOUNT_FIELDS pesado, limit=200 estourava o
+          // timeout e a etapa era pulada, escondendo contas novas.
+          const items = await paginateMeta(`${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=${ACCOUNT_FIELDS}&limit=50`);
+          const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })));
+          state.syncedCount += saved;
+          clearStageRetry(state, retryKey);
+          nextPhase(state);
+          await persist({ app: currentApp.label, endpoint: "/me/adaccounts", status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
+        } catch (e) {
+          if (isMetaRateLimit(e)) {
+            actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/me/adaccounts", erro: (e as Error).message, code: metaErrorCode(e) });
+            cooldownCurrentApp(state, currentApp.label, extractRegainSeconds(e));
+            await persist({ app: currentApp.label, endpoint: "/me/adaccounts", status: "error", token: choice.label, detail: "Limite da API Meta atingido; token pulado para não travar." });
+          } else if (isRetryableStageError(e) && consumeStageRetry(state, retryKey)) {
+            const attempt = state.stageRetries?.[retryKey] || 1;
+            await persist({ app: currentApp.label, endpoint: "/me/adaccounts", status: "running", token: choice.label, detail: `Timeout na Meta — nova tentativa ${attempt}/${MAX_STAGE_RETRIES}` });
+          } else {
+            actualErrors.push({ app: currentApp.label, token: choice.label, edge: "/me/adaccounts", erro: (e as Error).message, code: metaErrorCode(e) });
+            nextPhase(state);
+            await persist({ app: currentApp.label, endpoint: "/me/adaccounts", status: "skipped", token: choice.label, detail: (e as Error).message });
+          }
+        }
         continue;
       }
 
