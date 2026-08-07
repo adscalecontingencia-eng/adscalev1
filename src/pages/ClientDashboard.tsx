@@ -1153,8 +1153,8 @@ const ClientDashboard: React.FC = () => {
             )}
 
 
-            {/* Saved accounts */}
-            {savedAccounts.length > 0 && (
+            {/* Saved accounts (inclui contas arquivadas / sem acesso) */}
+            {(savedAccounts.length > 0 || archivedAccounts.length > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
                   <ShieldCheck size={16} className="text-primary" /> {t('clientDash.accounts.savedByAgency')}
@@ -1165,9 +1165,15 @@ const ClientDashboard: React.FC = () => {
                       {s.ad_account?.name || s.ad_account?.meta_account_id || t('clientDash.accounts.accountFallback')}
                     </span>
                   ))}
+                  {archivedAccounts.slice(0, 24).map((a: any) => (
+                    <span key={`arch-${a.id}`} className="text-[10px] px-2 py-1 rounded-md bg-muted/40 border border-border text-muted-foreground font-mono">
+                      {a.ad_account?.name || a.ad_account?.meta_account_id || t('clientDash.accounts.accountFallback')}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
+
 
             {/* Ad Accounts */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
