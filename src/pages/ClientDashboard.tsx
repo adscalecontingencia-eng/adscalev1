@@ -882,13 +882,15 @@ const ClientDashboard: React.FC = () => {
           <TabsContent value="resumo" className="space-y-5 mt-0">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {(() => {
-                const blockedUnique = new Set(
-                  (savedAccounts || [])
+                const blockedIds = new Set<string>([
+                  ...(savedAccounts || [])
                     .filter((s: any) => !s.event_type || /block|bloq|disable|ban/i.test(s.event_type))
-                    .map((s: any) => s.ad_account_id)
-                ).size;
+                    .map((s: any) => String(s.ad_account_id)),
+                  // contas arquivadas (sem acesso) também entram como economizadas
+                  ...archivedAccounts.map((a: any) => String(a.ad_account?.id)).filter(Boolean),
+                ]);
                 const currentlyBlocked = activeAccounts.filter((a: any) => a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0).length;
-                const savedTotal = Math.max(blockedUnique, currentlyBlocked);
+                const savedTotal = Math.max(blockedIds.size, currentlyBlocked);
                 return (
                   <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
                     <ShieldCheck size={18} className="text-primary" />
