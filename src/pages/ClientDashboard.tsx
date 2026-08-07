@@ -33,6 +33,9 @@ const ClientDashboard: React.FC = () => {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
   const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
+  // Contas atribuídas que perderam acesso / foram arquivadas: saem de "ativas"
+  // e passam a contar no bloco de contas economizadas.
+  const [archivedAccounts, setArchivedAccounts] = useState<any[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
