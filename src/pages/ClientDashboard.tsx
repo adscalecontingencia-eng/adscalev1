@@ -33,6 +33,9 @@ const ClientDashboard: React.FC = () => {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
   const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
+  // Contas atribuídas que perderam acesso / foram arquivadas: saem de "ativas"
+  // e passam a contar no bloco de contas economizadas.
+  const [archivedAccounts, setArchivedAccounts] = useState<any[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
@@ -107,8 +110,12 @@ const ClientDashboard: React.FC = () => {
       .select('*, ad_account:meta_ad_accounts(*)')
       .eq('client_id', clientId) as any, 10000, 'Contas de anúncio');
     const assignments = assigns || [];
-    const list = assignments.filter((a: any) => a.active);
+    const assigned = assignments.filter((a: any) => a.active);
+    // Arquivada (archived_at) = perdeu acesso / foi retirada. Não conta como ativa.
+    const list = assigned.filter((a: any) => !a.ad_account?.archived_at);
+    const archived = assigned.filter((a: any) => !!a.ad_account?.archived_at);
     setActiveAccounts(list);
+    setArchivedAccounts(archived);
     const latest = assignments
       .map((a: any) => a.ad_account?.last_synced_at)
       .filter(Boolean)
@@ -875,13 +882,15 @@ const ClientDashboard: React.FC = () => {
           <TabsContent value="resumo" className="space-y-5 mt-0">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {(() => {
-                const blockedUnique = new Set(
-                  (savedAccounts || [])
+                const blockedIds = new Set<string>([
+                  ...(savedAccounts || [])
                     .filter((s: any) => !s.event_type || /block|bloq|disable|ban/i.test(s.event_type))
-                    .map((s: any) => s.ad_account_id)
-                ).size;
+                    .map((s: any) => String(s.ad_account_id)),
+                  // contas arquivadas (sem acesso) também entram como economizadas
+                  ...archivedAccounts.map((a: any) => String(a.ad_account?.id)).filter(Boolean),
+                ]);
                 const currentlyBlocked = activeAccounts.filter((a: any) => a.ad_account?.status === 'blocked' || (a.ad_account?.disable_reason ?? 0) > 0).length;
-                const savedTotal = Math.max(blockedUnique, currentlyBlocked);
+                const savedTotal = Math.max(blockedIds.size, currentlyBlocked);
                 return (
                   <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
                     <ShieldCheck size={18} className="text-primary" />
@@ -1144,8 +1153,8 @@ const ClientDashboard: React.FC = () => {
             )}
 
 
-            {/* Saved accounts */}
-            {savedAccounts.length > 0 && (
+            {/* Saved accounts (inclui contas arquivadas / sem acesso) */}
+            {(savedAccounts.length > 0 || archivedAccounts.length > 0) && (
               <div className="bg-card border border-border rounded-xl p-5 border-glow">
                 <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
                   <ShieldCheck size={16} className="text-primary" /> {t('clientDash.accounts.savedByAgency')}
@@ -1156,9 +1165,15 @@ const ClientDashboard: React.FC = () => {
                       {s.ad_account?.name || s.ad_account?.meta_account_id || t('clientDash.accounts.accountFallback')}
                     </span>
                   ))}
+                  {archivedAccounts.slice(0, 24).map((a: any) => (
+                    <span key={`arch-${a.id}`} className="text-[10px] px-2 py-1 rounded-md bg-muted/40 border border-border text-muted-foreground font-mono">
+                      {a.ad_account?.name || a.ad_account?.meta_account_id || t('clientDash.accounts.accountFallback')}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
+
 
             {/* Ad Accounts */}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
