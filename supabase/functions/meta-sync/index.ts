@@ -1398,10 +1398,12 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       const saved = await saveDiscoveredAccounts(supabase, currentApp, items.map((acc: any) => ({ ...acc, _bm_meta_id: acc.business?.id || null, _source_token: choice.token })), "light");
       state.syncedCount += saved;
       state.completedStages += 1;
+      clearStageRetry(state, `fast|${currentApp.label}|${choice.label}|${endpoint}`);
       advanceFastPass();
       await persist({ app: currentApp.label, endpoint, status: "done", token: choice.label, detail: `${saved} conta(s) salvas`, found: saved });
     } catch (e) {
       const msg = (e as Error).message;
+      const retryKey = `fast|${currentApp.label}|${choice.label}|${endpoint}`;
       if (isMetaRateLimit(e)) {
         actualErrors.push({ app: currentApp.label, token: choice.label, edge: endpoint, erro: msg, code: metaErrorCode(e) });
         markAppCooldown(state, currentApp.label, extractRegainSeconds(e));
@@ -1409,6 +1411,11 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
         state.fastChoiceIndex = 0;
         state.fastEndpointIndex = 0;
         await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Limite da API Meta atingido; descoberta rápida pausada." });
+      } else if (isRetryableStageError(e) && consumeStageRetry(state, retryKey)) {
+        // Não avança: tenta o mesmo endpoint na próxima fatia. Pular aqui já
+        // fez contas novas (ex.: BioActives) não aparecerem no sistema.
+        const attempt = state.stageRetries?.[retryKey] || 1;
+        await persist({ app: currentApp.label, endpoint, status: "running", token: choice.label, detail: `Timeout na Meta — nova tentativa ${attempt}/${MAX_STAGE_RETRIES}` });
       } else {
         state.completedStages += 1;
         advanceFastPass();
