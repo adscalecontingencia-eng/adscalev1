@@ -178,6 +178,11 @@ const App = () => (
               <Route path="/block-log" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><BlockLog /></DashboardLayout></ProtectedRoute>} />
               <Route path="/notification-settings" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><NotificationSettings /></DashboardLayout></ProtectedRoute>} />
               <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
+              <Route path="/dashboard-cliente" element={<Navigate to="/client-dashboard" replace />} />
+              <Route path="/painel" element={<Navigate to="/client-dashboard" replace />} />
+              <Route path="/painel-cliente" element={<Navigate to="/client-dashboard" replace />} />
+              <Route path="/cliente" element={<Navigate to="/client-dashboard" replace />} />
+
               <Route path="/client-view/:clientId" element={<ProtectedRoute roles={['admin', 'support']}><ClientDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
