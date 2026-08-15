@@ -259,11 +259,16 @@ const ClientDashboard: React.FC = () => {
         if (clientData) {
           setClient(clientData);
           clientIdRef.current = clientData.id;
-          const [commRes, blockedRes, pagesRes, reqsRes] = await Promise.all([
+          // Tudo em paralelo (inclusive contas/insights) para o dashboard abrir bem mais rápido
+          const [commRes, blockedRes, pagesRes, reqsRes, accountIds] = await Promise.all([
             supabase.from('commissions').select('*').eq('client_id', clientData.id).order('date', { ascending: false }),
             supabase.from('meta_blocked_accounts_log').select('*, ad_account:meta_ad_accounts(name, meta_account_id)').eq('client_id', clientData.id).order('detected_at', { ascending: false }),
             supabase.from('meta_page_assignments').select('*, page:meta_pages(*)').eq('client_id', clientData.id).eq('active', true),
             supabase.from('support_requests').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
+            fetchAccounts(clientData.id).catch((e) => {
+              console.warn('[ClientDashboard] falha ao carregar contas:', e);
+              return [] as string[];
+            }),
           ]);
           // Telemetria por sub-consulta para facilitar diagnóstico
           const subErrors: Record<string, any> = {};
@@ -274,11 +279,11 @@ const ClientDashboard: React.FC = () => {
           if (Object.keys(subErrors).length > 0) {
             console.warn('[ClientDashboard][telemetry] falhas em sub-consultas', { ...ctx, clientId: clientData.id, subErrors });
           }
-          const accountIds = await fetchAccounts(clientData.id);
           setCommissions(commRes.data || []);
           setSavedAccounts(blockedRes.data || []);
           setPages((pagesRes.data || []).map((a: any) => a.page).filter(Boolean));
           setSupportRequests(reqsRes.data || []);
+
           console.debug('[ClientDashboard][telemetry] dados carregados', {
             ...ctx,
             clientId: clientData.id,
