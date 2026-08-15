@@ -160,59 +160,55 @@ const ClientDashboard: React.FC = () => {
       const fallback = new Date();
       fallback.setMonth(fallback.getMonth() - 12);
       const fallbackStr = fallback.toISOString().split('T')[0];
-      const periodStarts = [
-        fallbackStr,
-        ...assignmentsForInsights.map((a: any) => a.effective_from).filter(Boolean),
-      ].sort();
-      const globalSince = periodStarts[0] || fallbackStr;
-      const globalUntil = fmtISO(new Date());
-      const results = await Promise.all(assignmentsForInsights.map(async (a: any) => {
-        const accId = a.ad_account?.id;
-        if (!accId) return [] as any[];
-        const since = a.effective_from && a.effective_from > fallbackStr ? a.effective_from : fallbackStr;
-        let q = supabase
+      const earliestFrom = assignmentsForInsights
+        .map((a: any) => a.effective_from)
+        .filter(Boolean)
+        .sort()[0] as string | undefined;
+      const globalSince = earliestFrom && earliestFrom > fallbackStr ? earliestFrom : fallbackStr;
+
+      // Busca única (paginada) de todos os insights das contas do cliente.
+      // Antes era 1 request por conta — em clientes com muitas contas isso
+      // deixava o dashboard extremamente lento.
+      const PAGE = 1000;
+      const fetchedRows: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await withTimeout<{ data: any[] | null; error: any }>(supabase
           .from('meta_ad_insights')
           .select('ad_account_id, date, spend, impressions, clicks, cpm, cpc, ctr, reach, purchases, revenue')
-          .eq('ad_account_id', accId)
-          .gte('date', since);
-        if (a.effective_to) q = q.lte('date', a.effective_to);
-        const { data, error } = await withTimeout<{ data: any[] | null; error: any }>(q.order('date', { ascending: false }).limit(5000) as any, 12000, 'Insights de anúncio');
+          .in('ad_account_id', accountIds)
+          .gte('date', globalSince)
+          .order('date', { ascending: false })
+          .range(from, from + PAGE - 1) as any, 15000, 'Insights de anúncio');
         if (error) throw error;
-        return data || [];
-      }));
-      const fetchedRows = results.flat();
-      const fetchedKeys = new Set(fetchedRows.map((row: any) => `${row.ad_account_id}|${String(row.date).slice(0, 10)}`));
-      const missingDays: { adAccountId: string; date: string }[] = [];
-      for (const accountId of accountIds) {
-        const day = parseDateLocal(globalSince);
-        const end = parseDateLocal(globalUntil);
-        while (day <= end) {
-          const key = `${accountId}|${fmtISO(day)}`;
-          if (!fetchedKeys.has(key)) missingDays.push({ adAccountId: accountId, date: fmtISO(day) });
-          day.setDate(day.getDate() + 1);
-        }
+        const rows = data || [];
+        fetchedRows.push(...rows);
+        if (rows.length < PAGE || fetchedRows.length >= 20000) break;
       }
-      if (missingDays.length > 0) {
-        const missingByAccount = missingDays.reduce((acc: Record<string, string[]>, row) => {
-          if (!acc[row.adAccountId]) acc[row.adAccountId] = [];
-          acc[row.adAccountId].push(row.date);
-          return acc;
-        }, {});
-        console.warn('[ClientDashboard] insights incompletos após limite de segurança', {
-          accounts: Object.keys(missingByAccount).length,
-          missingDays: missingDays.length,
+
+      // Janela de vigência por conta (effective_from / effective_to da atribuição deste cliente)
+      const windowByAccount = new Map<string, { from: string | null; to: string | null }>();
+      assignmentsForInsights.forEach((a: any) => {
+        windowByAccount.set(String(a.ad_account.id), {
+          from: a.effective_from || null,
+          to: a.effective_to || null,
         });
-      }
+      });
+
       const seen = new Set<string>();
       setInsights(fetchedRows.filter((row: any) => {
         const dateISO = String(row.date).slice(0, 10);
+        const w = windowByAccount.get(String(row.ad_account_id));
+        if (!w) return false;
+        if (w.from && dateISO < w.from) return false;
+        if (w.to && dateISO > w.to) return false;
         if (!belongsToClientOnDate(row.ad_account_id, dateISO)) return false;
-        const key = `${row.ad_account_id}|${String(row.date).slice(0, 10)}`;
+        const key = `${row.ad_account_id}|${dateISO}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       }));
       return accountIds;
+
     } else {
       setInsights([]);
       return [];
