@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Gift, LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { ptBR, enUS, es as esLocale } from 'date-fns/locale';
@@ -22,6 +22,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import LoyaltyTierCard from '@/components/clients/LoyaltyTierCard';
 import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 import PartnerBannersStrip from '@/components/PartnerBannersStrip';
+import ReferralProgram, { useReferralDict } from '@/components/client/ReferralProgram';
+import ReferralPopup from '@/components/client/ReferralPopup';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -29,6 +31,7 @@ const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
   const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
+  const referralDict = useReferralDict();
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
@@ -41,7 +44,7 @@ const ClientDashboard: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
-  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte' | 'indicacao'>('resumo');
   // Paginação do histórico semanal (Plano de Crédito). 8 semanas por página.
   const [historyPage, setHistoryPage] = useState(0);
   const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
@@ -847,8 +850,13 @@ const ClientDashboard: React.FC = () => {
 
 
 
+        <ReferralPopup
+          clientId={isAdminView ? client.id : null}
+          onOpenProgram={() => setTab('indicacao')}
+        />
+
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> {t('clientDash.tabs.overview')}
             </TabsTrigger>
@@ -877,7 +885,16 @@ const ClientDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="indicacao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
+              <Gift size={14} /> {referralDict.eyebrow}
+              <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">$20</span>
+            </TabsTrigger>
           </TabsList>
+
+          {/* INDICAÇÃO */}
+          <TabsContent value="indicacao" className="space-y-5 mt-0">
+            <ReferralProgram clientId={isAdminView ? client.id : null} />
+          </TabsContent>
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-5 mt-0">

@@ -20,7 +20,24 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { email, password, accept_terms, terms_version, phone, name } = await req.json();
+    const body = await req.json();
+    const { email, password, accept_terms, terms_version, phone, name, referral_code, action } = body;
+
+    const SUPABASE_URL_EARLY = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_ROLE_EARLY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Consulta pública leve: valida um código de indicação e devolve só o nome do indicador
+    if (action === "check_referral") {
+      const code = String(referral_code || "").trim().toUpperCase().slice(0, 32);
+      if (!code) return json({ valid: false });
+      const lookup = createClient(SUPABASE_URL_EARLY, SERVICE_ROLE_EARLY, { auth: { persistSession: false } });
+      const { data: ref } = await lookup
+        .from("clients")
+        .select("name")
+        .eq("referral_code", code)
+        .maybeSingle();
+      return json({ valid: !!ref, referrer_name: ref?.name ?? null });
+    }
 
     if (!email || !password) return json({ error: "E-mail e senha obrigatórios" }, 400);
     if (typeof email !== "string" || email.length > 255) return json({ error: "E-mail inválido" }, 400);
@@ -75,6 +92,32 @@ Deno.serve(async (req) => {
         .eq("id", client.id);
     }
 
+    // Vincula ao parceiro que indicou (programa de afiliados)
+    let referrerId: string | null = null;
+    const normalizedRefCode = String(referral_code || "").trim().toUpperCase().slice(0, 32);
+    if (normalizedRefCode) {
+      const { data: referrer } = await admin
+        .from("clients")
+        .select("id")
+        .eq("referral_code", normalizedRefCode)
+        .maybeSingle();
+      if (referrer?.id && referrer.id !== client.id) {
+        referrerId = referrer.id;
+        // Só vincula se ainda não houver indicador registrado (primeiro clique vence)
+        const { data: current } = await admin
+          .from("clients")
+          .select("referred_by_client_id")
+          .eq("id", client.id)
+          .maybeSingle();
+        if (!current?.referred_by_client_id) {
+          await admin
+            .from("clients")
+            .update({ referred_by_client_id: referrerId, referred_at: new Date().toISOString() })
+            .eq("id", client.id);
+        }
+      }
+    }
+
     const { data: created, error: authErr } = await admin.auth.admin.createUser({
       email: normEmail,
       password,
@@ -115,10 +158,10 @@ Deno.serve(async (req) => {
       user_agent: ua,
       country,
       city,
-      metadata: { terms_version, phone: normalizedPhone },
+      metadata: { terms_version, phone: normalizedPhone, referral_code: normalizedRefCode || null, referrer_id: referrerId },
     });
 
-    return json({ success: true });
+    return json({ success: true, referred_by: referrerId });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
