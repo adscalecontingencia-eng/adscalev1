@@ -14,6 +14,7 @@ import {
   Rocket,
   TrendingUp,
   Users,
+  Gift,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AdScaleLogo from "@/components/AdScaleLogo";
@@ -26,6 +27,56 @@ const AgencySignup: React.FC = () => {
   const { login } = useAuth();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [referrerName, setReferrerName] = useState<string>("");
+
+  // Captura do código de indicação (?ref= ou utm_content) e persistência local
+  useEffect(() => {
+    const raw =
+      searchParams.get("ref") ||
+      searchParams.get("referral") ||
+      searchParams.get("utm_content") ||
+      "";
+    const code = raw.trim().toUpperCase().slice(0, 32);
+    if (code) {
+      setReferralCode(code);
+      try {
+        localStorage.setItem("adscale.referralCode", code);
+        localStorage.setItem("adscale.referralSource", searchParams.get("utm_source") || "link");
+      } catch {
+        /* ignore */
+      }
+    } else {
+      try {
+        const stored = localStorage.getItem("adscale.referralCode");
+        if (stored) setReferralCode(stored);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!referralCode) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ action: "check_referral", referral_code: referralCode }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (active && data?.referrer_name) setReferrerName(data.referrer_name);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [referralCode]);
 
   useEffect(() => {
     const lang = searchParams.get("lang");
@@ -73,11 +124,16 @@ const AgencySignup: React.FC = () => {
           phone: phone.replace(/\D+/g, ""),
           accept_terms: true,
           terms_version: TERMS_VERSION,
+          referral_code: referralCode || undefined,
+          utm_source: searchParams.get("utm_source") || undefined,
+          utm_medium: searchParams.get("utm_medium") || undefined,
+          utm_campaign: searchParams.get("utm_campaign") || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) throw new Error(data?.error || t("agencySignup.errors.signupHttp", { status: res.status }));
       setDone(true);
+      try { localStorage.removeItem("adscale.referralCode"); } catch { /* ignore */ }
       try {
         const ok = await login(email, password);
         setTimeout(() => navigate(ok ? "/client-dashboard" : "/login"), 1200);
@@ -177,6 +233,27 @@ const AgencySignup: React.FC = () => {
             <h2 className="font-display text-lg font-semibold text-foreground">{t("agencySignup.form.title")}</h2>
             <p className="text-xs text-muted-foreground mt-1">{t("agencySignup.form.subtitle")}</p>
           </div>
+
+          {referralCode && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 rounded-xl border border-primary/40 bg-primary/10 p-3"
+            >
+              <Gift size={16} className="text-primary shrink-0 mt-0.5" />
+              <div className="text-xs text-foreground/90">
+                <strong className="block">
+                  {referrerName
+                    ? t("agencySignup.referral.invitedBy", { name: referrerName, defaultValue: `Indicado por ${referrerName}` })
+                    : t("agencySignup.referral.invited", { defaultValue: "Você chegou por uma indicação" })}
+                </strong>
+                <span className="text-muted-foreground">
+                  {t("agencySignup.referral.code", { defaultValue: "Código" })}:{" "}
+                  <span className="font-mono text-primary">{referralCode}</span>
+                </span>
+              </div>
+            </motion.div>
+          )}
 
           {error && (
             <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
