@@ -850,6 +850,11 @@ const ClientDashboard: React.FC = () => {
 
 
 
+        <ReferralAlerts
+          clientId={isAdminView ? client.id : null}
+          onOpenStatement={() => setTab('indicacao')}
+        />
+
         <ReferralPopup
           clientId={isAdminView ? client.id : null}
           onOpenProgram={() => setTab('indicacao')}
