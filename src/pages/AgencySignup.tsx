@@ -88,6 +88,11 @@ const AgencySignup: React.FC = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [niche, setNiche] = useState("");
+  const [monthlyInvestment, setMonthlyInvestment] = useState("");
+  const [howFoundUs, setHowFoundUs] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [accepted, setAccepted] = useState(false);
@@ -101,12 +106,30 @@ const AgencySignup: React.FC = () => {
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 12) setScrolledTerms(true);
   };
 
+  const formatCnpj = (raw: string) => {
+    const d = raw.replace(/\D+/g, "").slice(0, 14);
+    return d
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (password !== confirm) return setError(t("agencySignup.errors.passwordMismatch"));
     if (password.length < 8) return setError(t("agencySignup.errors.passwordShort"));
     if (phone.replace(/\D+/g, "").length < 10) return setError(t("agencySignup.errors.phoneRequired"));
+    if (companyName.trim().length < 2)
+      return setError(t("agencySignup.errors.companyRequired", { defaultValue: "Informe o nome da empresa" }));
+    if (cnpj.replace(/\D+/g, "").length !== 14)
+      return setError(t("agencySignup.errors.cnpjInvalid", { defaultValue: "CNPJ inválido (14 dígitos)" }));
+    if (!niche) return setError(t("agencySignup.errors.nicheRequired", { defaultValue: "Selecione o nicho" }));
+    if (!monthlyInvestment)
+      return setError(t("agencySignup.errors.investmentRequired", { defaultValue: "Informe o investimento mensal" }));
+    if (!howFoundUs.trim())
+      return setError(t("agencySignup.errors.howFoundRequired", { defaultValue: "Informe onde conheceu a agência" }));
     if (!accepted) return setError(t("agencySignup.errors.acceptTerms"));
 
     setSubmitting(true);
@@ -122,6 +145,11 @@ const AgencySignup: React.FC = () => {
           password,
           name,
           phone: phone.replace(/\D+/g, ""),
+          company_name: companyName.trim(),
+          cnpj: cnpj.replace(/\D+/g, ""),
+          niche,
+          monthly_investment: monthlyInvestment,
+          how_found_us: howFoundUs.trim(),
           accept_terms: true,
           terms_version: TERMS_VERSION,
           referral_code: referralCode || undefined,
@@ -134,12 +162,6 @@ const AgencySignup: React.FC = () => {
       if (!res.ok || data?.error) throw new Error(data?.error || t("agencySignup.errors.signupHttp", { status: res.status }));
       setDone(true);
       try { localStorage.removeItem("adscale.referralCode"); } catch { /* ignore */ }
-      try {
-        const ok = await login(email, password);
-        setTimeout(() => navigate(ok ? "/client-dashboard" : "/login"), 1200);
-      } catch {
-        setTimeout(() => navigate("/login"), 1500);
-      }
     } catch (e: any) {
       setError(e.message || t("agencySignup.errors.generic"));
     } finally {
@@ -154,12 +176,23 @@ const AgencySignup: React.FC = () => {
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mb-4">
             <CheckCircle2 size={32} className="text-primary" />
           </div>
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">{t("agencySignup.done.title")}</h2>
-          <p className="text-sm text-muted-foreground">{t("agencySignup.done.subtitle")}</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">
+            {t("agencySignup.done.pendingTitle", { defaultValue: "Cadastro enviado para aprovação" })}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("agencySignup.done.pendingSubtitle", {
+              defaultValue:
+                "Um administrador vai analisar as suas informações. Você receberá o acesso ao painel assim que o cadastro for aprovado.",
+            })}
+          </p>
+          <Link to="/login" className="inline-block mt-5 text-primary text-sm hover:underline">
+            {t("agencySignup.form.doLogin")}
+          </Link>
         </motion.div>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4 py-10">
