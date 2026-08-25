@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
       metadata: { terms_version, phone: normalizedPhone, referral_code: normalizedRefCode || null, referrer_id: referrerId },
     });
 
-    return json({ success: true, referred_by: referrerId });
+    return json({ success: true, pending_approval: true, referred_by: referrerId });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
