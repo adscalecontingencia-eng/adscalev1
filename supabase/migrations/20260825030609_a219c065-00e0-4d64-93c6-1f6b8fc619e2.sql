@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.referral_credit_alert() FROM PUBLIC, anon, authenticated;
