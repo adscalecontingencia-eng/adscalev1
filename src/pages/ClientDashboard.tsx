@@ -24,6 +24,8 @@ import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 import PartnerBannersStrip from '@/components/PartnerBannersStrip';
 import ReferralProgram, { useReferralDict } from '@/components/client/ReferralProgram';
 import ReferralPopup from '@/components/client/ReferralPopup';
+import ReferralAlerts from '@/components/client/ReferralAlerts';
+import ReferralStatement from '@/components/client/ReferralStatement';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
