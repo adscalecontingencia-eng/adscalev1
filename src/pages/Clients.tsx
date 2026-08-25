@@ -15,6 +15,7 @@ import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/c
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/lib/audit';
 import ClientKPIBar from '@/components/clients/ClientKPIBar';
+import PendingApprovalsPanel from '@/components/clients/PendingApprovalsPanel';
 import ClientFiltersBar, { TypeFilter, StatusFilter, SortKey } from '@/components/clients/ClientFiltersBar';
 import TiersDialog from '@/components/clients/TiersDialog';
 import ClientCard, { ClientStatus } from '@/components/clients/ClientCard';
@@ -1179,6 +1180,8 @@ const Clients: React.FC = () => {
 
 
       <ClientKPIBar kpi={kpi} />
+
+      <PendingApprovalsPanel onChanged={loadData} />
 
       <WeekComparisonCard
         data={weekCompareAgg}
