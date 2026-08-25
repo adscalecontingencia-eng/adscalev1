@@ -53,6 +53,24 @@ Deno.serve(async (req) => {
     const normalizedPhone = normalizePhone(phone || "");
     if (!normalizedPhone) return json({ error: "Telefone inválido (somente números, DDD + número)" }, 400);
 
+    const str = (v: unknown, max: number) => {
+      const s = typeof v === "string" ? v.trim() : "";
+      return s ? s.slice(0, max) : null;
+    };
+    const companyName = str(company_name, 160);
+    const cnpjDigits = String(cnpj || "").replace(/\D+/g, "");
+    const nicheValue = ["infoproduto", "produto_fisico", "outro"].includes(String(niche || ""))
+      ? String(niche)
+      : null;
+    const monthlyInvestment = str(monthly_investment, 60);
+    const howFoundUs = str(how_found_us, 160);
+
+    if (!companyName) return json({ error: "Informe o nome da empresa" }, 400);
+    if (cnpjDigits.length !== 14) return json({ error: "CNPJ inválido (14 dígitos)" }, 400);
+    if (!nicheValue) return json({ error: "Selecione o nicho" }, 400);
+    if (!monthlyInvestment) return json({ error: "Informe o investimento mensal" }, 400);
+    if (!howFoundUs) return json({ error: "Informe onde conheceu a agência" }, 400);
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
@@ -67,6 +85,18 @@ Deno.serve(async (req) => {
 
     if (cliErr) return json({ error: "Erro ao consultar cadastro" }, 500);
     if (existing?.auth_user_id) return json({ error: "Este e-mail já possui acesso ativo. Faça login." }, 409);
+
+    const profileFields = {
+      company_name: companyName,
+      cnpj: cnpjDigits,
+      niche: nicheValue,
+      monthly_investment: monthlyInvestment,
+      how_found_us: howFoundUs,
+      approval_status: "pending",
+      approved_at: null,
+      approved_by: null,
+      rejection_reason: null,
+    };
 
     let client = existing;
     if (!client) {
@@ -84,6 +114,7 @@ Deno.serve(async (req) => {
           blocked_accounts: 0,
           phone: normalizedPhone,
           whatsapp_phone: normalizedPhone,
+          ...profileFields,
         })
         .select("id, email, auth_user_id, name")
         .single();
@@ -92,9 +123,10 @@ Deno.serve(async (req) => {
     } else {
       await admin
         .from("clients")
-        .update({ phone: normalizedPhone, whatsapp_phone: normalizedPhone })
+        .update({ phone: normalizedPhone, whatsapp_phone: normalizedPhone, ...profileFields })
         .eq("id", client.id);
     }
+
 
     // Vincula ao parceiro que indicou (programa de afiliados)
     let referrerId: string | null = null;
