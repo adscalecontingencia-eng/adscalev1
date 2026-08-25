@@ -901,6 +901,7 @@ const ClientDashboard: React.FC = () => {
           {/* INDICAÇÃO */}
           <TabsContent value="indicacao" className="space-y-5 mt-0">
             <ReferralProgram clientId={isAdminView ? client.id : null} />
+            <ReferralStatement clientId={isAdminView ? client.id : null} />
           </TabsContent>
 
           {/* RESUMO */}
