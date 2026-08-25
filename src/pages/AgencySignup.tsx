@@ -15,16 +15,16 @@ import {
   TrendingUp,
   Users,
   Gift,
+  Building2,
+  FileText,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { TERMS_OF_USE_TEXT, TERMS_VERSION } from "@/lib/terms";
-import { useAuth } from "@/contexts/AuthContext";
 import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
 
