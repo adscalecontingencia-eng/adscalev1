@@ -455,6 +455,9 @@ export type Database = {
           plan_credit: number
           plan_credit_start_date: string | null
           preferred_language: string | null
+          referral_code: string | null
+          referred_at: string | null
+          referred_by_client_id: string | null
           updated_at: string
           used_accounts: number | null
           whatsapp_group_link: string | null
@@ -483,6 +486,9 @@ export type Database = {
           plan_credit?: number
           plan_credit_start_date?: string | null
           preferred_language?: string | null
+          referral_code?: string | null
+          referred_at?: string | null
+          referred_by_client_id?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -511,6 +517,9 @@ export type Database = {
           plan_credit?: number
           plan_credit_start_date?: string | null
           preferred_language?: string | null
+          referral_code?: string | null
+          referred_at?: string | null
+          referred_by_client_id?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -529,6 +538,13 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_referred_by_client_id_fkey"
+            columns: ["referred_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -2589,6 +2605,63 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_credits: {
+        Row: {
+          amount: number
+          applied_at: string | null
+          created_at: string
+          id: string
+          milestone_index: number | null
+          note: string | null
+          referred_client_id: string | null
+          referrer_client_id: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          milestone_index?: number | null
+          note?: string | null
+          referred_client_id?: string | null
+          referrer_client_id: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          milestone_index?: number | null
+          note?: string | null
+          referred_client_id?: string | null
+          referrer_client_id?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_credits_referred_client_id_fkey"
+            columns: ["referred_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_credits_referrer_client_id_fkey"
+            columns: ["referrer_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_bm_stock: {
         Row: {
           added_at: string
@@ -3208,6 +3281,10 @@ export type Database = {
       }
     }
     Functions: {
+      award_referral_milestones: {
+        Args: { _client_id: string }
+        Returns: undefined
+      }
       credit_wallet_from_deposit: {
         Args: {
           _external_reference: string
@@ -3225,6 +3302,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_referral_code: { Args: { _seed: string }; Returns: string }
       get_product_costs: {
         Args: never
         Returns: {
@@ -3232,6 +3310,7 @@ export type Database = {
           id: string
         }[]
       }
+      get_referral_summary: { Args: { _client_id?: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
