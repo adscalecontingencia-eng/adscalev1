@@ -1181,7 +1181,7 @@ const Clients: React.FC = () => {
 
       <ClientKPIBar kpi={kpi} />
 
-      <PendingApprovalsPanel onChanged={loadData} />
+      <PendingApprovalsPanel onChanged={fetchClients} />
 
       <WeekComparisonCard
         data={weekCompareAgg}
