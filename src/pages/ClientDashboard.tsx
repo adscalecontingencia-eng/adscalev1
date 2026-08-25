@@ -755,6 +755,35 @@ const ClientDashboard: React.FC = () => {
     );
   }
 
+  const approvalStatus = String((client as any)?.approval_status || 'approved');
+  if (!isAdminView && approvalStatus !== 'approved') {
+    const rejected = approvalStatus === 'rejected';
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="max-w-md w-full bg-card/80 border border-border/60 rounded-2xl p-7 text-center space-y-3">
+          <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center border ${rejected ? 'bg-destructive/10 border-destructive/40' : 'bg-primary/10 border-primary/40'}`}>
+            <Shield size={26} className={rejected ? 'text-destructive' : 'text-primary'} />
+          </div>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {rejected ? 'Cadastro não aprovado' : 'Cadastro em análise'}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {rejected
+              ? ((client as any)?.rejection_reason || 'Seu cadastro não foi aprovado pela nossa equipe. Fale com o suporte para mais detalhes.')
+              : 'Recebemos o seu cadastro e ele está aguardando a aprovação de um administrador. Você receberá o acesso assim que for aprovado.'}
+          </p>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); navigate('/login'); }}
+            className="mt-2 px-4 py-2 rounded-xl bg-secondary/60 border border-border text-sm hover:bg-secondary"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
   const originalCredit = Number(client?.plan_credit || 0);
   const creditUsed = creditPlan?.totalApplied || 0;
   const availableCredit = creditPlan ? creditPlan.remaining : originalCredit;

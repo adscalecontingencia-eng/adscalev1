@@ -434,17 +434,24 @@ export type Database = {
       clients: {
         Row: {
           ad_accounts: number | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           auth_user_id: string | null
           blocked_accounts: number | null
           client_type: string
+          cnpj: string | null
           company_name: string | null
           created_at: string
           custom_tiers: Json | null
           email: string
           fixed_value: number | null
+          how_found_us: string | null
           id: string
           meta_app_id: string | null
+          monthly_investment: string | null
           name: string
+          niche: string | null
           notify_whatsapp: boolean
           number: string | null
           observations: string | null
@@ -458,6 +465,7 @@ export type Database = {
           referral_code: string | null
           referred_at: string | null
           referred_by_client_id: string | null
+          rejection_reason: string | null
           updated_at: string
           used_accounts: number | null
           whatsapp_group_link: string | null
@@ -465,17 +473,24 @@ export type Database = {
         }
         Insert: {
           ad_accounts?: number | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           auth_user_id?: string | null
           blocked_accounts?: number | null
           client_type?: string
+          cnpj?: string | null
           company_name?: string | null
           created_at?: string
           custom_tiers?: Json | null
           email: string
           fixed_value?: number | null
+          how_found_us?: string | null
           id?: string
           meta_app_id?: string | null
+          monthly_investment?: string | null
           name: string
+          niche?: string | null
           notify_whatsapp?: boolean
           number?: string | null
           observations?: string | null
@@ -489,6 +504,7 @@ export type Database = {
           referral_code?: string | null
           referred_at?: string | null
           referred_by_client_id?: string | null
+          rejection_reason?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
@@ -496,17 +512,24 @@ export type Database = {
         }
         Update: {
           ad_accounts?: number | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           auth_user_id?: string | null
           blocked_accounts?: number | null
           client_type?: string
+          cnpj?: string | null
           company_name?: string | null
           created_at?: string
           custom_tiers?: Json | null
           email?: string
           fixed_value?: number | null
+          how_found_us?: string | null
           id?: string
           meta_app_id?: string | null
+          monthly_investment?: string | null
           name?: string
+          niche?: string | null
           notify_whatsapp?: boolean
           number?: string | null
           observations?: string | null
@@ -520,6 +543,7 @@ export type Database = {
           referral_code?: string | null
           referred_at?: string | null
           referred_by_client_id?: string | null
+          rejection_reason?: string | null
           updated_at?: string
           used_accounts?: number | null
           whatsapp_group_link?: string | null
