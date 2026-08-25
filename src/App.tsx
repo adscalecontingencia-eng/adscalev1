@@ -185,6 +185,10 @@ const App = () => (
               <Route path="/cliente" element={<Navigate to="/client-dashboard" replace />} />
 
               <Route path="/client-view/:clientId" element={<ProtectedRoute roles={['admin', 'support']}><ClientDashboard /></ProtectedRoute>} />
+              <Route path="/referral-statement" element={<ProtectedRoute roles={['client']}><ReferralStatementPage /></ProtectedRoute>} />
+              <Route path="/extrato-indicacao" element={<Navigate to="/referral-statement" replace />} />
+              <Route path="/admin/referral-statement" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><ReferralStatementPage /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/admin/referral-statement/:clientId" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><ReferralStatementPage /></DashboardLayout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </HashRouter>
