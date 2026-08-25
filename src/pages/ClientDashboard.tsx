@@ -24,6 +24,8 @@ import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 import PartnerBannersStrip from '@/components/PartnerBannersStrip';
 import ReferralProgram, { useReferralDict } from '@/components/client/ReferralProgram';
 import ReferralPopup from '@/components/client/ReferralPopup';
+import ReferralAlerts from '@/components/client/ReferralAlerts';
+import ReferralStatement from '@/components/client/ReferralStatement';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -850,6 +852,11 @@ const ClientDashboard: React.FC = () => {
 
 
 
+        <ReferralAlerts
+          clientId={isAdminView ? client.id : null}
+          onOpenStatement={() => setTab('indicacao')}
+        />
+
         <ReferralPopup
           clientId={isAdminView ? client.id : null}
           onOpenProgram={() => setTab('indicacao')}
@@ -894,6 +901,7 @@ const ClientDashboard: React.FC = () => {
           {/* INDICAÇÃO */}
           <TabsContent value="indicacao" className="space-y-5 mt-0">
             <ReferralProgram clientId={isAdminView ? client.id : null} />
+            <ReferralStatement clientId={isAdminView ? client.id : null} />
           </TabsContent>
 
           {/* RESUMO */}
