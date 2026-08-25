@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.get-marketplace-download-link]
 verify_jwt = false
+
+[functions.referral-alerts]
+verify_jwt = true
