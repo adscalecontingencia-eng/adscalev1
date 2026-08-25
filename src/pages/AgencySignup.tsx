@@ -328,6 +328,69 @@ const AgencySignup: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {t("agencySignup.form.companyName", { defaultValue: "Nome da empresa" })}
+                </label>
+                <div className="relative group">
+                  <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
+                  <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} required maxLength={160}
+                    className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
+                    placeholder={t("agencySignup.form.companyNamePlaceholder", { defaultValue: "Razão social ou nome fantasia" })} />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {t("agencySignup.form.cnpj", { defaultValue: "CNPJ" })}
+                </label>
+                <div className="relative group">
+                  <FileText size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
+                  <input value={cnpj} onChange={(e) => setCnpj(formatCnpj(e.target.value))} required inputMode="numeric"
+                    className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
+                    placeholder="00.000.000/0000-00" maxLength={18} />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {t("agencySignup.form.niche", { defaultValue: "Nicho" })}
+                </label>
+                <select value={niche} onChange={(e) => setNiche(e.target.value)} required
+                  className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary">
+                  <option value="">{t("agencySignup.form.select", { defaultValue: "Selecione" })}</option>
+                  <option value="infoproduto">{t("agencySignup.form.nicheInfo", { defaultValue: "Infoproduto" })}</option>
+                  <option value="produto_fisico">{t("agencySignup.form.nichePhysical", { defaultValue: "Produto físico" })}</option>
+                  <option value="outro">{t("agencySignup.form.nicheOther", { defaultValue: "Outro" })}</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {t("agencySignup.form.monthlyInvestment", { defaultValue: "Investimento mensal em anúncios" })}
+                </label>
+                <select value={monthlyInvestment} onChange={(e) => setMonthlyInvestment(e.target.value)} required
+                  className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary">
+                  <option value="">{t("agencySignup.form.select", { defaultValue: "Selecione" })}</option>
+                  <option value="ate_5k">US$ 0 – 5.000</option>
+                  <option value="5k_20k">US$ 5.000 – 20.000</option>
+                  <option value="20k_50k">US$ 20.000 – 50.000</option>
+                  <option value="50k_100k">US$ 50.000 – 100.000</option>
+                  <option value="acima_100k">US$ 100.000+</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {t("agencySignup.form.howFoundUs", { defaultValue: "Onde conheceu a agência?" })}
+                </label>
+                <input value={howFoundUs} onChange={(e) => setHowFoundUs(e.target.value)} required maxLength={160}
+                  className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary"
+                  placeholder={t("agencySignup.form.howFoundUsPlaceholder", { defaultValue: "Indicação, Instagram, YouTube, Google, evento…" })} />
+              </div>
+
+
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">{t("agencySignup.form.password")}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
