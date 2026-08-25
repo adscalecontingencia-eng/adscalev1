@@ -21,7 +21,11 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { email, password, accept_terms, terms_version, phone, name, referral_code, action } = body;
+    const {
+      email, password, accept_terms, terms_version, phone, name, referral_code, action,
+      company_name, cnpj, niche, monthly_investment, how_found_us,
+    } = body;
+
 
     const SUPABASE_URL_EARLY = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_EARLY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
