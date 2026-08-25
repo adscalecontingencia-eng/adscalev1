@@ -2605,6 +2605,66 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_alerts: {
+        Row: {
+          created_at: string
+          emailed_at: string | null
+          estimated_amount: number
+          id: string
+          kind: string
+          milestone_index: number
+          progress_pct: number
+          read_at: string | null
+          referred_client_id: string | null
+          referrer_client_id: string
+          remaining_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          emailed_at?: string | null
+          estimated_amount?: number
+          id?: string
+          kind: string
+          milestone_index: number
+          progress_pct?: number
+          read_at?: string | null
+          referred_client_id?: string | null
+          referrer_client_id: string
+          remaining_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          emailed_at?: string | null
+          estimated_amount?: number
+          id?: string
+          kind?: string
+          milestone_index?: number
+          progress_pct?: number
+          read_at?: string | null
+          referred_client_id?: string | null
+          referrer_client_id?: string
+          remaining_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_alerts_referred_client_id_fkey"
+            columns: ["referred_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_alerts_referrer_client_id_fkey"
+            columns: ["referrer_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_credits: {
         Row: {
           amount: number
@@ -3297,6 +3357,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      detect_referral_milestone_alerts: {
+        Args: { _threshold_pct?: number }
+        Returns: number
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -3310,6 +3374,7 @@ export type Database = {
           id: string
         }[]
       }
+      get_referral_statement: { Args: { _client_id?: string }; Returns: Json }
       get_referral_summary: { Args: { _client_id?: string }; Returns: Json }
       has_role: {
         Args: {
