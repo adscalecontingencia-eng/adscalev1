@@ -26,6 +26,7 @@ import ReferralProgram, { useReferralDict } from '@/components/client/ReferralPr
 import ReferralPopup from '@/components/client/ReferralPopup';
 import ReferralAlerts from '@/components/client/ReferralAlerts';
 import ReferralStatement from '@/components/client/ReferralStatement';
+import DashboardTour, { TourButton } from '@/components/client/DashboardTour';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -47,6 +48,17 @@ const ClientDashboard: React.FC = () => {
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
   const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte' | 'indicacao'>('resumo');
+  const [tourOpen, setTourOpen] = useState(false);
+  // Auto-abre o tutorial no primeiro acesso do cliente (uma vez por cliente/navegador)
+  useEffect(() => {
+    if (loading || !client?.id) return;
+    try {
+      if (!localStorage.getItem(`adscale_tour_done_${client.id}`)) {
+        const t = window.setTimeout(() => setTourOpen(true), 900);
+        return () => window.clearTimeout(t);
+      }
+    } catch { /* ignore */ }
+  }, [loading, client?.id]);
   // Paginação do histórico semanal (Plano de Crédito). 8 semanas por página.
   const [historyPage, setHistoryPage] = useState(0);
   const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
@@ -786,8 +798,11 @@ const ClientDashboard: React.FC = () => {
             <p className="text-xs font-medium text-foreground">{client.name}</p>
             <p className="text-[10px] text-muted-foreground">{client.email}</p>
           </div>
-          <LanguageSwitcher />
-          <ThemeToggle />
+          <span data-tour="lang" className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </span>
+          <TourButton onClick={() => setTourOpen(true)} />
           {!isAdminView && user?.id && (
             <ClientNotificationCenter
               clientId={client.id}
@@ -812,7 +827,7 @@ const ClientDashboard: React.FC = () => {
       <div className="p-4 lg:p-8 max-w-[1400px] mx-auto space-y-6">
         <PartnerBannersStrip placement="client_dashboard" />
         {/* Hero + Loyalty — side-by-side no desktop */}
-        <div className={cn(
+        <div data-tour="hero" className={cn(
           'grid gap-5 mb-5',
           client.client_type === 'aluguel' ? 'lg:grid-cols-12' : 'grid-cols-1'
         )}>
@@ -857,26 +872,33 @@ const ClientDashboard: React.FC = () => {
           onOpenStatement={() => setTab('indicacao')}
         />
 
+        <DashboardTour
+          storageKey={`adscale_tour_done_${client.id}`}
+          open={tourOpen}
+          onClose={() => setTourOpen(false)}
+          onTabChange={(v) => setTab(v)}
+        />
+
         <ReferralPopup
           clientId={isAdminView ? client.id : null}
           onOpenProgram={() => setTab('indicacao')}
         />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList data-tour="tabs" className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> {t('clientDash.tabs.overview')}
             </TabsTrigger>
             <TabsTrigger value="contrato" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <FileText size={14} /> {t('clientDash.tabs.contract')}
             </TabsTrigger>
-            <TabsTrigger value="estrutura" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="estrutura" data-tour="tab-estrutura" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <Layers size={14} /> {t('clientDash.tabs.structure')}
               {(activeAccounts.length + pages.length) > 0 && (
                 <span className="ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{activeAccounts.length + pages.length}</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="suporte" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
+            <TabsTrigger value="suporte" data-tour="tab-suporte" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
               <LifeBuoy size={14} /> {t('clientDash.tabs.support')}
               {supportRequests.filter(r => r.status === 'pendente' || r.status === 'em_andamento').length > 0 && (
                 <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
@@ -884,7 +906,7 @@ const ClientDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
+            <TabsTrigger value="cobrancas" data-tour="tab-cobrancas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
               <Receipt size={14} /> {t('clientDash.tabs.billing')}
               {cobrancasCount > 0 && (
                 <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-warning text-warning-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
@@ -892,7 +914,7 @@ const ClientDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="indicacao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
+            <TabsTrigger value="indicacao" data-tour="tab-indicacao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm relative">
               <Gift size={14} /> {referralDict.eyebrow}
               <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">$20</span>
             </TabsTrigger>
@@ -906,7 +928,7 @@ const ClientDashboard: React.FC = () => {
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-5 mt-0">
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div data-tour="kpis" className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {(() => {
                 const blockedIds = new Set<string>([
                   ...(savedAccounts || [])
