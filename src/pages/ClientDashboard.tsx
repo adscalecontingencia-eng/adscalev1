@@ -49,6 +49,16 @@ const ClientDashboard: React.FC = () => {
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
   const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte' | 'indicacao'>('resumo');
   const [tourOpen, setTourOpen] = useState(false);
+  // Auto-abre o tutorial no primeiro acesso do cliente (uma vez por cliente/navegador)
+  useEffect(() => {
+    if (loading || !client?.id) return;
+    try {
+      if (!localStorage.getItem(`adscale_tour_done_${client.id}`)) {
+        const t = window.setTimeout(() => setTourOpen(true), 900);
+        return () => window.clearTimeout(t);
+      }
+    } catch { /* ignore */ }
+  }, [loading, client?.id]);
   // Paginação do histórico semanal (Plano de Crédito). 8 semanas por página.
   const [historyPage, setHistoryPage] = useState(0);
   const [historyFilter, setHistoryFilter] = useState<'recent' | 'all' | 'paying' | 'covered'>('recent');
