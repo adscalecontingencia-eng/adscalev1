@@ -22,7 +22,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import LoyaltyTierCard from '@/components/clients/LoyaltyTierCard';
 import { computeLoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
 import PartnerBannersStrip from '@/components/PartnerBannersStrip';
-import ReferralProgram from '@/components/client/ReferralProgram';
+import ReferralProgram, { useReferralDict } from '@/components/client/ReferralProgram';
 import ReferralPopup from '@/components/client/ReferralPopup';
 
 const ClientDashboard: React.FC = () => {
@@ -31,6 +31,7 @@ const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
   const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
+  const referralDict = useReferralDict();
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
@@ -848,6 +849,11 @@ const ClientDashboard: React.FC = () => {
         </div>
 
 
+
+        <ReferralPopup
+          clientId={isAdminView ? client.id : null}
+          onOpenProgram={() => setTab('indicacao')}
+        />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
           <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto p-1 bg-secondary/60 border border-border">
