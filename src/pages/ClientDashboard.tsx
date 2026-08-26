@@ -2020,6 +2020,17 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
+            {client?.id && (
+              <DailyStatement
+                clientId={client.id}
+                clientName={client.name || ''}
+                accounts={statementAccounts}
+                insights={insights as any}
+                basePct={Number(client.percentage_value) || 0}
+                getTierPct={getTierPct}
+                isAdmin={user?.role === 'admin'}
+              />
+            )}
             {/* Saldo Atrasado — destaque em vermelho quando há vencimento */}
             {overdueTotal > 0 && (
               <div className="rounded-2xl p-5 border bg-gradient-to-br from-destructive/15 via-card to-card border-destructive/50 shadow-[0_0_30px_-10px_hsl(var(--destructive)/0.5)]">
