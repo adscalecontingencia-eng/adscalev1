@@ -491,6 +491,24 @@ const ClientDashboard: React.FC = () => {
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
+  // Contas (ativas + arquivadas) usadas no extrato diário — arquivadas seguem
+  // no extrato porque podem ter gerado gasto na semana antes de perder acesso.
+  const statementAccounts = useMemo(
+    () => [...activeAccounts, ...archivedAccounts]
+      .map((a: any) => a.ad_account)
+      .filter(Boolean)
+      .map((acc: any) => ({
+        id: acc.id,
+        name: acc.name,
+        meta_account_id: acc.meta_account_id,
+        timezone_name: acc.timezone_name,
+        currency: acc.currency,
+        last_synced_at: acc.last_synced_at,
+        archived_at: acc.archived_at,
+      })),
+    [activeAccounts, archivedAccounts]
+  );
+
   const getFilterRange = () => {
     const now = new Date();
     switch (periodFilter) {
