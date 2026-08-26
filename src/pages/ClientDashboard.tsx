@@ -27,6 +27,7 @@ import ReferralPopup from '@/components/client/ReferralPopup';
 import ReferralAlerts from '@/components/client/ReferralAlerts';
 import ReferralStatement from '@/components/client/ReferralStatement';
 import DashboardTour, { TourButton } from '@/components/client/DashboardTour';
+import DailyStatement from '@/components/client/DailyStatement';
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -489,6 +490,24 @@ const ClientDashboard: React.FC = () => {
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+  // Contas (ativas + arquivadas) usadas no extrato diário — arquivadas seguem
+  // no extrato porque podem ter gerado gasto na semana antes de perder acesso.
+  const statementAccounts = useMemo(
+    () => [...activeAccounts, ...archivedAccounts]
+      .map((a: any) => a.ad_account)
+      .filter(Boolean)
+      .map((acc: any) => ({
+        id: acc.id,
+        name: acc.name,
+        meta_account_id: acc.meta_account_id,
+        timezone_name: acc.timezone_name,
+        currency: acc.currency,
+        last_synced_at: acc.last_synced_at,
+        archived_at: acc.archived_at,
+      })),
+    [activeAccounts, archivedAccounts]
+  );
 
   const getFilterRange = () => {
     const now = new Date();
@@ -1568,6 +1587,7 @@ const ClientDashboard: React.FC = () => {
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
                                     <span>{t('clientDash.structure.balance')} <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
                                     {acc.currency && <span>{t('clientDash.structure.currency')} <span className="text-foreground/80">{acc.currency}</span></span>}
+                                    {acc.timezone_name && <span>Fuso: <span className="text-foreground/80">{acc.timezone_name}</span></span>}
                                     {acc.last_synced_at && (
                                       <span>{t('clientDash.structure.updated')} <span className="text-foreground/80">{formatDistanceToNow(new Date(acc.last_synced_at), { addSuffix: true, locale: dateLocale })}</span></span>
                                     )}
@@ -2019,6 +2039,17 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
+            {client?.id && (
+              <DailyStatement
+                clientId={client.id}
+                clientName={client.name || ''}
+                accounts={statementAccounts}
+                insights={insights as any}
+                basePct={Number(client.percentage_value) || 0}
+                getTierPct={getTierPct}
+                isAdmin={user?.role === 'admin'}
+              />
+            )}
             {/* Saldo Atrasado — destaque em vermelho quando há vencimento */}
             {overdueTotal > 0 && (
               <div className="rounded-2xl p-5 border bg-gradient-to-br from-destructive/15 via-card to-card border-destructive/50 shadow-[0_0_30px_-10px_hsl(var(--destructive)/0.5)]">

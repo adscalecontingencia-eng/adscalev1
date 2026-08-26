@@ -130,6 +130,68 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_week_snapshots: {
+        Row: {
+          client_id: string
+          closed_by: string | null
+          closed_by_email: string | null
+          commission_amount: number
+          commission_pct: number
+          created_at: string
+          currency: string
+          id: string
+          items: Json
+          notes: string | null
+          timezone_note: string | null
+          total_spend: number
+          updated_at: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          client_id: string
+          closed_by?: string | null
+          closed_by_email?: string | null
+          commission_amount?: number
+          commission_pct?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          timezone_note?: string | null
+          total_spend?: number
+          updated_at?: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          client_id?: string
+          closed_by?: string | null
+          closed_by_email?: string | null
+          commission_amount?: number
+          commission_pct?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          timezone_note?: string | null
+          total_spend?: number
+          updated_at?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_week_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bm_activity_log: {
         Row: {
           accounts_available: number | null
