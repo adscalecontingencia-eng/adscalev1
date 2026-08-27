@@ -639,6 +639,17 @@ const pt = {
     downloaded: 'Termos baixados com sucesso',
     unavailable: 'O texto desta versão não está disponível',
   },
+  termsUpdate: {
+    title: 'Nova versão dos Termos de Uso',
+    description: 'Publicamos uma atualização dos Termos. Você aceitou a versão {{previous}}; para continuar, é necessário aceitar a versão {{current}}.',
+    banner: 'Nova versão dos Termos de Uso ({{version}}) requer seu aceite.',
+    review: 'Revisar e aceitar',
+    checkbox: 'Li e aceito a nova versão dos Termos de Uso',
+    acceptButton: 'Aceitar nova versão',
+    later: 'Depois',
+    accepted: 'Novo aceite registrado com sucesso',
+    error: 'Não foi possível registrar o aceite. Tente novamente.',
+  },
 };
 
 export type Translations = typeof pt;
