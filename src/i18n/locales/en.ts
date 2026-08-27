@@ -105,6 +105,28 @@ const en: Translations = {
     contactSupport: 'Contact support',
   },
   clientDash: {
+    approval: {
+      pendingTitle: 'Application under review',
+      rejectedTitle: 'Application not approved',
+      pendingBody: 'We received your application and it is waiting for an administrator to approve it. You will get access as soon as it is approved.',
+      rejectedBody: 'Your application was not approved by our team. Please contact support for more details.',
+      signOut: 'Sign out',
+    },
+    notifications: {
+      title: 'Notifications',
+      refresh: 'Refresh',
+      markAll: 'Mark all read',
+      empty: 'No notifications. Everything is fine!',
+      accountBanned: 'Account banned',
+      accountBlocked: 'Account blocked',
+      accountRecovered: 'Account restored',
+      bmRestricted: 'BM restricted',
+      pageBanned: 'Page banned',
+      adRejected: 'Ad rejected',
+      accountBlockedReason: 'Account currently blocked',
+      pageRestrictedReason: 'Page under restriction',
+    },
+
     statement: {
       eyebrow: 'Transparency',
       title: 'Daily statement per account',
