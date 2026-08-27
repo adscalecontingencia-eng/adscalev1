@@ -108,14 +108,22 @@ const AgencySignup: React.FC = () => {
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 12) setScrolledTerms(true);
   };
 
-  const formatCnpj = (raw: string) => {
-    const d = raw.replace(/\D+/g, "").slice(0, 14);
-    return d
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d)/, "$1-$2");
+  // BR: CNPJ (14 dígitos) · US/International: EIN — Employer Identification Number (9 digits)
+  const formatTaxId = (raw: string) => {
+    if (isBR) {
+      const d = raw.replace(/\D+/g, "").slice(0, 14);
+      return d
+        .replace(/^(\d{2})(\d)/, "$1.$2")
+        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+        .replace(/\.(\d{3})(\d)/, ".$1/$2")
+        .replace(/(\d{4})(\d)/, "$1-$2");
+    }
+    const d = raw.replace(/\D+/g, "").slice(0, 9);
+    return d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d;
   };
+
+  // Ao trocar de idioma o formato do documento muda: limpa o campo para evitar valor inválido
+  useEffect(() => { setCnpj(""); }, [isBR]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,8 +133,13 @@ const AgencySignup: React.FC = () => {
     if (phone.replace(/\D+/g, "").length < 10) return setError(t("agencySignup.errors.phoneRequired"));
     if (companyName.trim().length < 2)
       return setError(t("agencySignup.errors.companyRequired", { defaultValue: "Informe o nome da empresa" }));
-    if (cnpj.replace(/\D+/g, "").length !== 14)
-      return setError(t("agencySignup.errors.cnpjInvalid", { defaultValue: "CNPJ inválido (14 dígitos)" }));
+    if (cnpj.replace(/\D+/g, "").length !== (isBR ? 14 : 9))
+      return setError(
+        isBR
+          ? t("agencySignup.errors.cnpjInvalid", { defaultValue: "CNPJ inválido (14 dígitos)" })
+          : t("agencySignup.errors.einInvalid", { defaultValue: "Invalid EIN (9 digits)" })
+      );
+
     if (!niche) return setError(t("agencySignup.errors.nicheRequired", { defaultValue: "Selecione o nicho" }));
     if (!monthlyInvestment)
       return setError(t("agencySignup.errors.investmentRequired", { defaultValue: "Informe o investimento mensal" }));
