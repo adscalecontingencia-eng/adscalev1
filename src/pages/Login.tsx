@@ -201,19 +201,24 @@ const Login: React.FC = () => {
         </motion.form>
 
         <p className="text-center text-muted-foreground text-xs mt-6">
-          Primeiro acesso? <Link to="/signup" className="text-primary hover:underline font-medium">Cadastre-se</Link>
+          {t('auth.firstAccess')} <Link to="/signup" className="text-primary hover:underline font-medium">{t('auth.signUpCta')}</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
-          Esqueceu sua senha? <Link to="/forgot-password" className="text-primary hover:underline font-medium">Redefinir senha</Link>
+          {t('auth.forgotQuestion')} <Link to="/forgot-password" className="text-primary hover:underline font-medium">{t('auth.resetCta')}</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
-          <Link to="/marketplace" className="text-primary hover:underline font-medium">Explorar marketplace</Link>
+          <Link to="/marketplace" className="text-primary hover:underline font-medium">{t('auth.exploreMarketplace')}</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
-          Quer indicar clientes? <Link to="/partner-signup" className="text-primary hover:underline font-medium">Seja um parceiro</Link>
+          {t('auth.referQuestion')} <Link to="/partner-signup" className="text-primary hover:underline font-medium">{t('auth.becomePartner')}</Link>
+        </p>
+        <p className="text-center text-muted-foreground text-xs mt-2">
+          <a href={getTermsHref(i18n.language)} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+            {t('auth.termsOfUse')}
+          </a>
         </p>
         <p className="text-center text-muted-foreground/40 text-xs mt-4">
-          © {new Date().getFullYear()} AD Scale · Todos os direitos reservados
+          © {new Date().getFullYear()} AD Scale · {t('auth.rights')}
         </p>
       </motion.div>
     </div>
