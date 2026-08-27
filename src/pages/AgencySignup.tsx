@@ -25,8 +25,10 @@ import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
+  const isBR = (i18n.language || "pt").startsWith("pt");
+
 
   const [referralCode, setReferralCode] = useState<string>("");
   const [referrerName, setReferrerName] = useState<string>("");
