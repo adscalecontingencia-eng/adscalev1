@@ -53,7 +53,7 @@ const Login: React.FC = () => {
     try {
       const success = await login(email, password);
       if (!success) {
-        setError('E-mail ou senha incorretos');
+        setError(t('auth.invalidCredentials'));
         supabase.functions.invoke('record-access', { body: { action: 'login_failed', email } }).catch(() => {});
       } else {
         supabase.functions.invoke('record-access', { body: { action: 'login', email } }).catch(() => {});
@@ -135,8 +135,8 @@ const Login: React.FC = () => {
           className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-2xl p-7 space-y-5 shadow-lg shadow-black/10"
         >
           <div className="text-center mb-2">
-            <h2 className="text-lg font-semibold text-foreground">Bem-vindo de volta</h2>
-            <p className="text-muted-foreground text-xs mt-1">Faça login para acessar seu painel</p>
+            <h2 className="text-lg font-semibold text-foreground">{t('auth.welcomeBack')}</h2>
+            <p className="text-muted-foreground text-xs mt-1">{t('auth.loginSubtitle')}</p>
           </div>
 
           {error && (
@@ -151,7 +151,7 @@ const Login: React.FC = () => {
           )}
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-muted-foreground">E-mail</label>
+            <label className="block text-xs font-medium text-muted-foreground">{t('auth.emailLabel')}</label>
             <div className="relative group">
               <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
@@ -166,7 +166,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-muted-foreground">Senha</label>
+            <label className="block text-xs font-medium text-muted-foreground">{t('auth.passwordLabel')}</label>
             <div className="relative group">
               <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
@@ -188,10 +188,10 @@ const Login: React.FC = () => {
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Entrando...
+                {t('auth.signingIn')}
               </span>
             ) : (
-              'Entrar'
+              t('auth.signIn')
             )}
           </button>
 
@@ -201,7 +201,7 @@ const Login: React.FC = () => {
 
           <button type="button" onClick={signInWithGoogle}
             className="w-full flex items-center justify-center gap-3 bg-secondary/60 hover:bg-secondary border border-border rounded-xl py-3 text-sm font-medium transition-all">
-            <GoogleIcon /> Continuar com Google
+            <GoogleIcon /> {t('auth.continueWithGoogle')}
           </button>
         </motion.form>
 
