@@ -46,6 +46,7 @@ import MyWallet from "./pages/MyWallet";
 import AdminPayments from "./pages/AdminPayments";
 import AdminAudit from "./pages/AdminAudit";
 import ManualAdjustments from "./pages/ManualAdjustments";
+import TermsAudit from "./pages/TermsAudit";
 import AdminWebhookLogs from "./pages/AdminWebhookLogs";
 import MarketplaceProfile from "./pages/MarketplaceProfile";
 import MarketplaceClients from "./pages/MarketplaceClients";
@@ -159,6 +160,7 @@ const App = () => (
               <Route path="/" element={<RoleHome />} />
               <Route path="/access-logs" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><AccessLogs /></DashboardLayout></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AuditLog /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/terms-audit" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><TermsAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/manual-adjustments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><ManualAdjustments /></DashboardLayout></ProtectedRoute>} />
               <Route path="/partner-banners" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><PartnerBanners /></DashboardLayout></ProtectedRoute>} />
 

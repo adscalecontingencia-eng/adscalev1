@@ -74,6 +74,7 @@ const en: Translations = {
     access: 'Access',
     audit: 'Audit',
     manualAdjustments: 'Manual Adjustments',
+    termsAudit: 'Terms Audit',
     partnerBanners: 'Partner Banners',
     users: 'Users',
     myWallet: 'My Wallet',
@@ -383,6 +384,14 @@ const en: Translations = {
     rights: 'All rights reserved',
     termsOfUse: 'Terms of Use',
     logoutSuccess: 'You have been logged out',
+  },
+  termsRecord: {
+    title: 'Accepted Terms of Use',
+    acceptedOn: 'Accepted on {{date}}',
+    view: 'View',
+    download: 'Download',
+    downloaded: 'Terms downloaded successfully',
+    unavailable: 'The text of this version is not available',
   },
 };
 

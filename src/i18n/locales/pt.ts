@@ -72,6 +72,7 @@ const pt = {
     access: 'Acessos',
     audit: 'Auditoria',
     manualAdjustments: 'Ajustes Manuais',
+    termsAudit: 'Auditoria de Termos',
     partnerBanners: 'Banners de Parceiros',
     users: 'Usuários',
     myWallet: 'Minha Carteira',
@@ -629,6 +630,14 @@ const pt = {
     rights: 'Todos os direitos reservados',
     termsOfUse: 'Termo de Uso',
     logoutSuccess: 'Você saiu da conta',
+  },
+  termsRecord: {
+    title: 'Termos de Uso aceitos',
+    acceptedOn: 'Aceito em {{date}}',
+    view: 'Visualizar',
+    download: 'Baixar',
+    downloaded: 'Termos baixados com sucesso',
+    unavailable: 'O texto desta versão não está disponível',
   },
 };
 

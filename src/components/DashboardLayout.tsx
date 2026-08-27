@@ -54,6 +54,7 @@ const groups: Group[] = [
       { path: '/access-logs', labelKey: 'nav.access', icon: Activity },
       { path: '/audit-log', labelKey: 'nav.audit', icon: Shield, adminOnly: true },
       { path: '/manual-adjustments', labelKey: 'nav.manualAdjustments', icon: Shield },
+      { path: '/terms-audit', labelKey: 'nav.termsAudit', icon: Shield, adminOnly: true },
       { path: '/users', labelKey: 'nav.users', icon: UserCog, adminOnly: true },
     ]
   },
