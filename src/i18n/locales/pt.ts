@@ -103,6 +103,28 @@ const pt = {
     contactSupport: 'Falar com o suporte',
   },
   clientDash: {
+    approval: {
+      pendingTitle: 'Cadastro em análise',
+      rejectedTitle: 'Cadastro não aprovado',
+      pendingBody: 'Recebemos o seu cadastro e ele está aguardando a aprovação de um administrador. Você receberá o acesso assim que for aprovado.',
+      rejectedBody: 'Seu cadastro não foi aprovado pela nossa equipe. Fale com o suporte para mais detalhes.',
+      signOut: 'Sair',
+    },
+    notifications: {
+      title: 'Notificações',
+      refresh: 'Atualizar',
+      markAll: 'Marcar todas',
+      empty: 'Nenhuma notificação. Está tudo certo!',
+      accountBanned: 'Conta banida',
+      accountBlocked: 'Conta bloqueada',
+      accountRecovered: 'Conta liberada',
+      bmRestricted: 'BM restrita',
+      pageBanned: 'Página banida',
+      adRejected: 'Anúncio reprovado',
+      accountBlockedReason: 'Conta atualmente bloqueada',
+      pageRestrictedReason: 'Página com restrição',
+    },
+
     statement: {
       eyebrow: 'Transparência',
       title: 'Extrato diário por conta',
