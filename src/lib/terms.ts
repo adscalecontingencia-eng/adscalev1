@@ -2,7 +2,7 @@
  * AD SCALE — Termo de Uso e Política de Privacidade.
  * Versionado: incrementar TERMS_VERSION sempre que o conteúdo mudar.
  */
-export const TERMS_VERSION = "2026-05-13.v1";
+export const TERMS_VERSION = "2026-08-27.v2";
 
 export const TERMS_OF_USE_TEXT = `
 TERMO DE USO E ISENÇÃO DE RESPONSABILIDADE — AD SCALE
@@ -33,6 +33,7 @@ A AD SCALE ("AGÊNCIA") aluga e disponibiliza ao CLIENTE contas de anúncio, Bus
 
 5. PAGAMENTO E COMISSIONAMENTO
 O CLIENTE reconhece os termos comerciais (valor fixo, percentual sobre o gasto, ou ambos) acordados com a AGÊNCIA, com cobrança semanal liquidada às sextas-feiras. O atraso autoriza a suspensão imediata dos ATIVOS.
+5.1. POLÍTICA DE NÃO REEMBOLSO DE CRÉDITOS: os valores adicionados pelo CLIENTE como crédito na plataforma destinam-se exclusivamente ao uso dos ATIVOS da AGÊNCIA (contas de anúncio, BMs e estruturas correlatas). Uma vez iniciado o uso de qualquer conta de anúncio disponibilizada pela AGÊNCIA — caracterizado pela atribuição/vinculação da conta ao CLIENTE e/ou pela veiculação de qualquer campanha —, NÃO HAVERÁ REEMBOLSO do valor do crédito, total ou parcial, em dinheiro ou qualquer outra forma, ressalvadas as hipóteses de direito de arrependimento previstas em lei (CDC, art. 49) para contratações realizadas fora do estabelecimento comercial, quando aplicável. Créditos não utilizados antes do início do uso poderão ser reembolsados mediante análise e aprovação da AGÊNCIA.
 
 6. CONFIDENCIALIDADE
 Credenciais, tokens, métodos operacionais e estruturas internas da AGÊNCIA são confidenciais. O CLIENTE não pode compartilhá-los com terceiros sem autorização escrita.
@@ -79,6 +80,7 @@ AD SCALE ("AGENCY") rents out and provides to the CLIENT ad accounts, Business M
 
 5. PAYMENT AND COMMISSIONS
 The CLIENT acknowledges the commercial terms (fixed fee, percentage of ad spend, or both) agreed with the AGENCY, billed weekly and settled on Fridays. Late payment authorizes the immediate suspension of the ASSETS.
+5.1. NO-REFUND POLICY FOR CREDITS: amounts added by the CLIENT as credit on the platform are intended exclusively for the use of the AGENCY's ASSETS (ad accounts, Business Managers and related structures). Once the use of any ad account provided by the AGENCY has started — characterized by the assignment/linking of the account to the CLIENT and/or by the delivery of any campaign — there will be NO REFUND of the credit amount, in whole or in part, in cash or in any other form, except for any statutory withdrawal rights that may apply to off-premises contracts under applicable law. Credits not used before usage has started may be refunded subject to the AGENCY's review and approval.
 
 6. CONFIDENTIALITY
 Credentials, tokens, operating methods and internal structures of the AGENCY are confidential. The CLIENT may not share them with third parties without written authorization.
