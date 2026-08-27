@@ -105,6 +105,28 @@ const es: Translations = {
     contactSupport: 'Contactar soporte',
   },
   clientDash: {
+    approval: {
+      pendingTitle: 'Registro en análisis',
+      rejectedTitle: 'Registro no aprobado',
+      pendingBody: 'Recibimos tu registro y está esperando la aprobación de un administrador. Tendrás acceso en cuanto sea aprobado.',
+      rejectedBody: 'Tu registro no fue aprobado por nuestro equipo. Contacta al soporte para más detalles.',
+      signOut: 'Salir',
+    },
+    notifications: {
+      title: 'Notificaciones',
+      refresh: 'Actualizar',
+      markAll: 'Marcar todas',
+      empty: 'Sin notificaciones. ¡Todo en orden!',
+      accountBanned: 'Cuenta baneada',
+      accountBlocked: 'Cuenta bloqueada',
+      accountRecovered: 'Cuenta liberada',
+      bmRestricted: 'BM restringida',
+      pageBanned: 'Página baneada',
+      adRejected: 'Anuncio rechazado',
+      accountBlockedReason: 'Cuenta actualmente bloqueada',
+      pageRestrictedReason: 'Página con restricción',
+    },
+
     statement: {
       eyebrow: 'Transparencia',
       title: 'Extracto diario por cuenta',

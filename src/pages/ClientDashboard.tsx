@@ -784,19 +784,20 @@ const ClientDashboard: React.FC = () => {
             <Shield size={26} className={rejected ? 'text-destructive' : 'text-primary'} />
           </div>
           <h2 className="font-display text-lg font-semibold text-foreground">
-            {rejected ? 'Cadastro não aprovado' : 'Cadastro em análise'}
+            {rejected ? t('clientDash.approval.rejectedTitle') : t('clientDash.approval.pendingTitle')}
           </h2>
           <p className="text-sm text-muted-foreground">
             {rejected
-              ? ((client as any)?.rejection_reason || 'Seu cadastro não foi aprovado pela nossa equipe. Fale com o suporte para mais detalhes.')
-              : 'Recebemos o seu cadastro e ele está aguardando a aprovação de um administrador. Você receberá o acesso assim que for aprovado.'}
+              ? ((client as any)?.rejection_reason || t('clientDash.approval.rejectedBody'))
+              : t('clientDash.approval.pendingBody')}
           </p>
           <button
             onClick={async () => { await supabase.auth.signOut(); navigate('/login'); }}
             className="mt-2 px-4 py-2 rounded-xl bg-secondary/60 border border-border text-sm hover:bg-secondary"
           >
-            Sair
+            {t('clientDash.approval.signOut')}
           </button>
+
         </div>
       </div>
     );
