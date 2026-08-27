@@ -17,7 +17,9 @@ const GoogleIcon = () => (
 
 const Login: React.FC = () => {
   const { login, isAuthenticated, user, loading } = useAuth();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
   const [params] = useSearchParams();
   const next = params.get('next');
   const [email, setEmail] = useState('');
