@@ -12,7 +12,9 @@ const GoogleIcon = () => (
 );
 
 const Signup: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
