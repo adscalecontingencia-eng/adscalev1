@@ -393,6 +393,17 @@ const es: Translations = {
     downloaded: 'Términos descargados con éxito',
     unavailable: 'El texto de esta versión no está disponible',
   },
+  termsUpdate: {
+    title: 'Nueva versión de los Términos de Uso',
+    description: 'Publicamos una actualización de los Términos. Aceptaste la versión {{previous}}; para continuar, debes aceptar la versión {{current}}.',
+    banner: 'Una nueva versión de los Términos de Uso ({{version}}) requiere tu aceptación.',
+    review: 'Revisar y aceptar',
+    checkbox: 'He leído y acepto la nueva versión de los Términos de Uso',
+    acceptButton: 'Aceptar nueva versión',
+    later: 'Después',
+    accepted: 'Nueva aceptación registrada con éxito',
+    error: 'No se pudo registrar la aceptación. Inténtalo de nuevo.',
+  },
 };
 
 export default es;

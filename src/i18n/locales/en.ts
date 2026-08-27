@@ -393,6 +393,17 @@ const en: Translations = {
     downloaded: 'Terms downloaded successfully',
     unavailable: 'The text of this version is not available',
   },
+  termsUpdate: {
+    title: 'New Terms of Use version',
+    description: 'We published an update to the Terms. You accepted version {{previous}}; to continue, you must accept version {{current}}.',
+    banner: 'A new Terms of Use version ({{version}}) requires your acceptance.',
+    review: 'Review and accept',
+    checkbox: 'I have read and accept the new Terms of Use',
+    acceptButton: 'Accept new version',
+    later: 'Later',
+    accepted: 'New acceptance recorded successfully',
+    error: 'Could not record your acceptance. Please try again.',
+  },
 };
 
 export default en;

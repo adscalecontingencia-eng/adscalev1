@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { getTermsHref } from '@/lib/terms';
 import MyTermsAcceptance from '@/components/clients/MyTermsAcceptance';
+import TermsUpdateNotice from '@/components/clients/TermsUpdateNotice';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Gift, LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -2288,6 +2289,8 @@ const ClientDashboard: React.FC = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        <TermsUpdateNotice />
 
         <MyTermsAcceptance />
 
