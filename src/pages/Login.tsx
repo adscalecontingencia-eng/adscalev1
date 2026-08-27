@@ -196,7 +196,7 @@ const Login: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            <span className="flex-1 h-px bg-border" /> ou <span className="flex-1 h-px bg-border" />
+            <span className="flex-1 h-px bg-border" /> {t('auth.or')} <span className="flex-1 h-px bg-border" />
           </div>
 
           <button type="button" onClick={signInWithGoogle}
