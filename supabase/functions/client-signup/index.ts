@@ -66,7 +66,9 @@ Deno.serve(async (req) => {
     const howFoundUs = str(how_found_us, 160);
 
     if (!companyName) return json({ error: "Informe o nome da empresa" }, 400);
-    if (cnpjDigits.length !== 14) return json({ error: "CNPJ inválido (14 dígitos)" }, 400);
+    // BR: CNPJ (14 dígitos) · US/Internacional: EIN (9 dígitos)
+    if (cnpjDigits.length !== 14 && cnpjDigits.length !== 9)
+      return json({ error: "Invalid company tax ID (CNPJ 14 digits or EIN 9 digits)" }, 400);
     if (!nicheValue) return json({ error: "Selecione o nicho" }, 400);
     if (!monthlyInvestment) return json({ error: "Informe o investimento mensal" }, 400);
     if (!howFoundUs) return json({ error: "Informe onde conheceu a agência" }, 400);
