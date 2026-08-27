@@ -2286,7 +2286,20 @@ const ClientDashboard: React.FC = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        <footer className="mt-8 pt-4 border-t border-border/40 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground/70">
+          <a
+            href={getTermsHref(i18n.language)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            {t('auth.termsOfUse')}
+          </a>
+          <span>© {new Date().getFullYear()} AD Scale · {t('auth.rights')}</span>
+        </footer>
       </div>
+
 
       {/* Pop-up de Saldo Atrasado — redireciona para WhatsApp */}
       <Dialog open={overdueDialogOpen} onOpenChange={setOverdueDialogOpen}>
