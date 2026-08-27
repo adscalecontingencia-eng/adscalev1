@@ -25,8 +25,10 @@ import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
 const AgencySignup: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
+  const isBR = (i18n.language || "pt").startsWith("pt");
+
 
   const [referralCode, setReferralCode] = useState<string>("");
   const [referrerName, setReferrerName] = useState<string>("");
@@ -106,14 +108,22 @@ const AgencySignup: React.FC = () => {
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 12) setScrolledTerms(true);
   };
 
-  const formatCnpj = (raw: string) => {
-    const d = raw.replace(/\D+/g, "").slice(0, 14);
-    return d
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d)/, "$1-$2");
+  // BR: CNPJ (14 dígitos) · US/International: EIN — Employer Identification Number (9 digits)
+  const formatTaxId = (raw: string) => {
+    if (isBR) {
+      const d = raw.replace(/\D+/g, "").slice(0, 14);
+      return d
+        .replace(/^(\d{2})(\d)/, "$1.$2")
+        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+        .replace(/\.(\d{3})(\d)/, ".$1/$2")
+        .replace(/(\d{4})(\d)/, "$1-$2");
+    }
+    const d = raw.replace(/\D+/g, "").slice(0, 9);
+    return d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d;
   };
+
+  // Ao trocar de idioma o formato do documento muda: limpa o campo para evitar valor inválido
+  useEffect(() => { setCnpj(""); }, [isBR]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,8 +133,13 @@ const AgencySignup: React.FC = () => {
     if (phone.replace(/\D+/g, "").length < 10) return setError(t("agencySignup.errors.phoneRequired"));
     if (companyName.trim().length < 2)
       return setError(t("agencySignup.errors.companyRequired", { defaultValue: "Informe o nome da empresa" }));
-    if (cnpj.replace(/\D+/g, "").length !== 14)
-      return setError(t("agencySignup.errors.cnpjInvalid", { defaultValue: "CNPJ inválido (14 dígitos)" }));
+    if (cnpj.replace(/\D+/g, "").length !== (isBR ? 14 : 9))
+      return setError(
+        isBR
+          ? t("agencySignup.errors.cnpjInvalid", { defaultValue: "CNPJ inválido (14 dígitos)" })
+          : t("agencySignup.errors.einInvalid", { defaultValue: "Invalid EIN (9 digits)" })
+      );
+
     if (!niche) return setError(t("agencySignup.errors.nicheRequired", { defaultValue: "Selecione o nicho" }));
     if (!monthlyInvestment)
       return setError(t("agencySignup.errors.investmentRequired", { defaultValue: "Informe o investimento mensal" }));
@@ -341,14 +356,21 @@ const AgencySignup: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                  {t("agencySignup.form.cnpj", { defaultValue: "CNPJ" })}
+                  {isBR
+                    ? t("agencySignup.form.cnpj", { defaultValue: "CNPJ" })
+                    : t("agencySignup.form.ein", { defaultValue: "EIN (Employer Identification Number)" })}
                 </label>
                 <div className="relative group">
                   <FileText size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
-                  <input value={cnpj} onChange={(e) => setCnpj(formatCnpj(e.target.value))} required inputMode="numeric"
+                  <input value={cnpj} onChange={(e) => setCnpj(formatTaxId(e.target.value))} required inputMode="numeric"
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="00.000.000/0000-00" maxLength={18} />
+                    placeholder={isBR ? "00.000.000/0000-00" : "12-3456789"} maxLength={isBR ? 18 : 10} />
                 </div>
+                {!isBR && (
+                  <p className="text-[10px] text-muted-foreground/70">
+                    {t("agencySignup.form.einHint", { defaultValue: "US federal tax ID issued by the IRS (9 digits)." })}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -371,13 +393,23 @@ const AgencySignup: React.FC = () => {
                 <select value={monthlyInvestment} onChange={(e) => setMonthlyInvestment(e.target.value)} required
                   className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary">
                   <option value="">{t("agencySignup.form.select", { defaultValue: "Selecione" })}</option>
-                  <option value="ate_5k">US$ 0 – 5.000</option>
-                  <option value="5k_20k">US$ 5.000 – 20.000</option>
-                  <option value="20k_50k">US$ 20.000 – 50.000</option>
-                  <option value="50k_100k">US$ 50.000 – 100.000</option>
-                  <option value="acima_100k">US$ 100.000+</option>
+                  {[
+                    { v: "ate_5k", min: 0, max: 5000 },
+                    { v: "5k_20k", min: 5000, max: 20000 },
+                    { v: "20k_50k", min: 20000, max: 50000 },
+                    { v: "50k_100k", min: 50000, max: 100000 },
+                    { v: "acima_100k", min: 100000, max: null as number | null },
+                  ].map((o) => {
+                    const nf = new Intl.NumberFormat(i18n.language || "pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+                    return (
+                      <option key={o.v} value={o.v}>
+                        {o.max === null ? `${nf.format(o.min)}+` : `${nf.format(o.min)} – ${nf.format(o.max)}`}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+
 
               <div className="space-y-1.5 sm:col-span-2">
                 <label className="text-xs font-medium text-muted-foreground">
