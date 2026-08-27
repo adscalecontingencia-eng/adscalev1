@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AdScaleLogo from "@/components/AdScaleLogo";
-import { TERMS_OF_USE_TEXT, TERMS_VERSION } from "@/lib/terms";
+import { TERMS_VERSION, getTermsText } from "@/lib/terms";
 import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
 const AgencySignup: React.FC = () => {
@@ -449,7 +449,7 @@ const AgencySignup: React.FC = () => {
               </div>
               <div onScroll={handleScroll}
                 className="h-44 overflow-y-auto bg-background/40 border border-border/60 rounded-xl p-4 text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono scrollbar-neon">
-                {TERMS_OF_USE_TEXT}
+                {getTermsText(i18n.language)}
               </div>
               {!scrolledTerms && <p className="text-[10px] text-amber-400/80">{t("agencySignup.terms.scrollHint")}</p>}
 
