@@ -3052,6 +3052,86 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_download_log: {
+        Row: {
+          acceptance_id: string | null
+          action: string
+          auth_user_id: string | null
+          client_id: string | null
+          created_at: string
+          email: string | null
+          format: string
+          id: string
+          ip_address: string | null
+          language: string
+          terms_version: string
+          user_agent: string | null
+        }
+        Insert: {
+          acceptance_id?: string | null
+          action?: string
+          auth_user_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          format?: string
+          id?: string
+          ip_address?: string | null
+          language?: string
+          terms_version: string
+          user_agent?: string | null
+        }
+        Update: {
+          acceptance_id?: string | null
+          action?: string
+          auth_user_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          format?: string
+          id?: string
+          ip_address?: string | null
+          language?: string
+          terms_version?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_download_log_acceptance_id_fkey"
+            columns: ["acceptance_id"]
+            isOneToOne: false
+            referencedRelation: "client_terms_acceptances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      terms_versions: {
+        Row: {
+          content_en: string | null
+          content_pt: string
+          created_at: string
+          label: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          content_en?: string | null
+          content_pt: string
+          created_at?: string
+          label?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          content_en?: string | null
+          content_pt?: string
+          created_at?: string
+          label?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       tracking_pixels: {
         Row: {
           created_at: string
