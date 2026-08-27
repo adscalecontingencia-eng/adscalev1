@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock, AlertCircle, CheckCircle2, ScrollText, ShieldCheck, Phone, User } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
-import { TERMS_OF_USE_TEXT, TERMS_VERSION } from "@/lib/terms";
+import { TERMS_VERSION, getTermsText } from "@/lib/terms";
+import { useTranslation } from "react-i18next";
 import { lovable } from "@/integrations/lovable";
 
 const GoogleIcon = () => (
@@ -11,7 +12,9 @@ const GoogleIcon = () => (
 );
 
 const Signup: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -181,13 +184,13 @@ const Signup: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground/80">
-                <ScrollText size={12} className="text-primary" /> Termo de Uso · {TERMS_VERSION}
+                <ScrollText size={12} className="text-primary" /> {t("auth.termsOfUse")} · {TERMS_VERSION}
               </div>
               <div onScroll={handleScroll}
                 className="h-44 overflow-y-auto bg-background/40 border border-border/60 rounded-xl p-4 text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono scrollbar-neon">
-                {TERMS_OF_USE_TEXT}
+                {getTermsText(i18n.language)}
               </div>
-              {!scrolledTerms && <p className="text-[10px] text-amber-400/80">Role o termo até o final para habilitar o aceite.</p>}
+              {!scrolledTerms && <p className="text-[10px] text-amber-400/80">{t('agencySignup.terms.scrollHint')}</p>}
 
               <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                 accepted ? "bg-primary/10 border-primary/40" : "bg-secondary/40 border-border"

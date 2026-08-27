@@ -45,3 +45,57 @@ Fica eleito o foro da comarca da sede da AGÊNCIA para dirimir quaisquer controv
 
 AO MARCAR "ACEITO", O CLIENTE DECLARA TER LIDO, COMPREENDIDO E CONCORDADO INTEGRALMENTE COM ESTE TERMO, BEM COMO COM A COLETA DOS DADOS DE ACESSO E CONEXÃO DESCRITOS NO ITEM 4.
 `.trim();
+
+/**
+ * English version of the Terms of Use (same legal content, translated).
+ * Keep in sync with TERMS_OF_USE_TEXT whenever TERMS_VERSION changes.
+ */
+export const TERMS_OF_USE_TEXT_EN = `
+TERMS OF USE AND LIABILITY DISCLAIMER — AD SCALE
+Version ${TERMS_VERSION}
+
+1. PURPOSE
+AD SCALE ("AGENCY") rents out and provides to the CLIENT ad accounts, Business Managers, profiles and paid-media structures ("ASSETS") for the exclusive use of the CLIENT's legitimate campaigns. The CLIENT is solely responsible for the content published, for the products/services offered and for the use of the ASSETS.
+
+2. PERMITTED AND PROHIBITED USE
+2.1. The CLIENT undertakes to fully comply with Meta's (Facebook/Instagram) Advertising and Commerce Policies, as well as all applicable laws (consumer protection, data protection, intellectual property and any other applicable rules).
+2.2. The CLIENT IS EXPRESSLY PROHIBITED from: (i) advertising counterfeit, illegal, dangerous or misleading products; (ii) committing fraud, money laundering, financial scams, pyramid schemes or similar acts; (iii) using third-party identities, trademarks or content without authorization; (iv) using the ASSETS for purposes other than those contracted; (v) attempting to circumvent limits, billing systems, payment methods or platform policies.
+
+3. DISCLAIMER OF LIABILITY FOR FRAUD
+3.1. The AGENCY acts exclusively as the lessor of the ASSETS and operational manager of the structure. The AGENCY IS NOT liable, under any circumstances, for: (i) fraud, scams or crimes committed by the CLIENT or by third parties using the CLIENT's credentials; (ii) blocks, suspensions or penalties applied by the platforms because of the content published by the CLIENT; (iii) financial, reputational or legal damages suffered by the CLIENT or third parties as a result of the campaigns.
+3.2. If fraud is detected in the accounts assigned to the CLIENT, the AGENCY may immediately suspend access, report the case to the competent authorities and provide all logs, access data and collected information — including the data described in item 4 below — for investigation purposes.
+3.3. The CLIENT agrees to indemnify and hold harmless the AGENCY, its partners, employees and business partners from any claims, lawsuits, fines or damages arising from the misuse of the ASSETS.
+
+4. COLLECTION OF ACCESS AND CONNECTION DATA (DATA PROTECTION)
+4.1. For security, fraud prevention, compliance with legal obligations and auditing purposes, the CLIENT expressly consents that the AGENCY collects and stores, for a minimum period of 6 (six) months and up to the applicable legal limit:
+  (a) IP address on every access (signup, login, logout, sensitive actions);
+  (b) Device and browser data (User-Agent, operating system, language);
+  (c) Approximate geolocation (country, city) derived from the IP address;
+  (d) Date/time stamp of each access;
+  (e) Session and authentication identifiers;
+  (f) History of actions performed in the dashboard.
+4.2. This data may be shared with authorities upon a valid judicial or administrative request, or used out of court for the AGENCY's defense in cases of proven fraud.
+4.3. The CLIENT may at any time request access to their own data through the AGENCY's official channels, in accordance with applicable data protection law.
+
+5. PAYMENT AND COMMISSIONS
+The CLIENT acknowledges the commercial terms (fixed fee, percentage of ad spend, or both) agreed with the AGENCY, billed weekly and settled on Fridays. Late payment authorizes the immediate suspension of the ASSETS.
+
+6. CONFIDENTIALITY
+Credentials, tokens, operating methods and internal structures of the AGENCY are confidential. The CLIENT may not share them with third parties without written authorization.
+
+7. TERMINATION
+Either party may terminate the relationship at any time upon notice. The AGENCY may terminate immediately in the event of a breach of these terms, suspected fraud or default.
+
+8. GOVERNING LAW AND JURISDICTION
+These terms are governed by the laws of Brazil, and the courts of the district of the AGENCY's head office are elected to settle any dispute, waiving any other, however privileged.
+
+BY CHECKING "I ACCEPT", THE CLIENT DECLARES HAVING READ, UNDERSTOOD AND FULLY AGREED WITH THESE TERMS, AS WELL AS WITH THE COLLECTION OF ACCESS AND CONNECTION DATA DESCRIBED IN ITEM 4.
+`.trim();
+
+/** Returns the Terms of Use text for the given UI language. */
+export const getTermsText = (lang?: string) =>
+  (lang || "pt").slice(0, 2) === "en" ? TERMS_OF_USE_TEXT_EN : TERMS_OF_USE_TEXT;
+
+/** Public terms page (static HTML) for the given UI language. */
+export const getTermsHref = (lang?: string) =>
+  (lang || "pt").slice(0, 2) === "en" ? "/terms-en.html" : "/terms.html";
