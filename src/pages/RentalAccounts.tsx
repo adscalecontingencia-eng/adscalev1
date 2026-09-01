@@ -402,6 +402,7 @@ const RentalAccounts: React.FC = () => {
               key={i}
               {...fadeUp}
               transition={{ ...fadeUp.transition, delay: i * 0.03 }}
+              onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open && item.q.includes("$240")) track("rental_faq_credit"); }}
               className="group rounded-xl border border-border/60 bg-card/40 backdrop-blur-xl p-5 open:bg-card/70 transition"
             >
               <summary className="cursor-pointer list-none flex items-center justify-between gap-4 font-semibold">
