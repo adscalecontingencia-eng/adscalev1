@@ -383,12 +383,20 @@ const RentalAccounts: React.FC = () => {
         </motion.h2>
         <div className="mt-10 space-y-3">
           {[
-            { q: "How much does the rental cost?", a: "There is no monthly fee and no setup cost. You only pay a 5% commission over the ad spend of the previous week, which can drop down to 1% based on weekly volume goals." },
-            { q: "What happens if Meta blocks an account?", a: "We replace the structure quickly at no extra cost. Your dashboard always shows how many accounts you have available, in use and blocked." },
-            { q: "How does the progressive commission work?", a: "The more you spend during the week, the lower your commission rate. Tier thresholds are shown inside the dashboard under 'Weekly discount goals'." },
-            { q: "When exactly are you billed?", a: "Weekly cycle: the week closes on Thursday and the invoice is generated on Friday, in USD, for the previous week's spend." },
+            { q: "Is the $240 a rental fee?", a: "No. The $240 is not a rental fee. 100% of the amount is allocated to advertising spend on the rented account." },
+            { q: "How much of the $240 can I use for advertising?", a: "The full $240 is allocated as advertising credit." },
+            { q: "Is the $240 an account purchase fee?", a: "No. The $240 funds advertising activity and does not represent the purchase price of the Meta ad account." },
+            { q: "Do I own the account after paying $240?", a: "No. The account remains within AD SCALE's managed infrastructure. The client receives managed access during the rental period." },
+            { q: "What happens when the $240 is spent?", a: "Additional advertising credit can be added according to the needs of your campaigns and the current conditions of the account." },
+            { q: "Does AD SCALE manage my campaigns?", a: "No. AD SCALE provides the advertising infrastructure and managed access. Campaign creation and management remain the responsibility of the client or their media buying team." },
+            { q: "Can I add more than $240?", a: "The $240 represents the initial ad spend credit. Additional funding may be added according to the account conditions and the needs of the advertising operation." },
+            { q: "Does AD SCALE guarantee account stability?", a: "No. All Meta advertising accounts and advertising activity remain subject to Meta's policies, reviews, systems and platform restrictions." },
+            { q: "What happens if Meta blocks an account?", a: "Our team works to replace the structure as quickly as account availability allows. Your dashboard always shows how many accounts you have available, in use and restricted." },
+            { q: "How does the commission work?", a: "A commission of 5% is applied over the weekly ad spend synced from Meta, and it can reduce progressively down to 1% based on weekly volume goals. This is separate from the initial ad spend credit." },
+            { q: "When exactly am I billed?", a: "Weekly cycle: the week closes on Thursday and the invoice is generated on Friday, in USD, for the previous week's spend." },
             { q: "Which payment methods do you accept?", a: "USDT (crypto) on your preferred network and international transfer via Payoneer." },
             { q: "Do I need a long-term contract?", a: "No. There is no lock-in — you run the operation for as long as it makes sense for your business." },
+
           ].map((item, i) => (
             <motion.details
               key={i}
