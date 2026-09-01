@@ -134,6 +134,130 @@ const RentalAccounts: React.FC = () => {
         </div>
       </section>
 
+      {/* HOW OUR RENTAL WORKS */}
+      <section id="rental-model" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+          <motion.div {...fadeUp}>
+            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+              How Does Our <span className="text-primary">Ad Account Rental</span> Work?
+            </h2>
+            <div className="mt-4 space-y-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
+              <p><span className="notranslate" translate="no">AD SCALE</span> provides managed access to Meta ad accounts for agencies, media buyers, affiliates, e-commerce businesses and professional advertisers who need additional advertising infrastructure.</p>
+              <p>The client receives authorized advertising access during the contracted rental period. The account itself is not sold to the client and remains within <span className="notranslate" translate="no">AD SCALE</span>'s managed infrastructure.</p>
+              <p>Payment of the $240 advertising credit does not transfer ownership of the account.</p>
+            </div>
+          </motion.div>
+
+          <motion.div {...fadeUp}>
+            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+              What Does <span className="text-primary">Managed Access</span> Mean?
+            </h2>
+            <div className="mt-4 space-y-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
+              <p>Managed access means your team receives the appropriate permissions to operate advertising campaigns while the underlying account remains within <span className="notranslate" translate="no">AD SCALE</span>'s managed infrastructure.</p>
+              <p>You are renting access to advertising infrastructure — you are not purchasing ownership of the Meta ad account.</p>
+            </div>
+            <div className="mt-5 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 font-display font-semibold text-primary text-center">
+              Managed Access ≠ Account Ownership
+            </div>
+          </motion.div>
+        </div>
+
+        {/* 3-WAY DIFFERENTIATION */}
+        <div className="mt-10 grid sm:grid-cols-3 gap-4">
+          {[
+            { t: "Ad Spend Credit", d: "The money available to spend on advertising." },
+            { t: "Managed Access", d: "The permission provided to operate the rented account." },
+            { t: "Account Ownership", d: "The account remains within AD SCALE's managed infrastructure." },
+          ].map((c, i) => (
+            <motion.div
+              key={c.t}
+              {...fadeUp}
+              transition={{ ...fadeUp.transition, delay: i * 0.05 }}
+              className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-5"
+            >
+              <div className="text-[10px] uppercase tracking-[0.28em] text-primary/80">Step {i + 1}</div>
+              <h3 className="font-display font-semibold text-foreground mt-2">{c.t}</h3>
+              <p className="text-sm text-muted-foreground mt-1.5">{c.d}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* WHO MANAGES THE CAMPAIGNS */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+        <motion.div {...fadeUp} className="rounded-2xl border border-border/60 bg-card/50 backdrop-blur-xl p-6 sm:p-8">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
+            Who Runs the <span className="text-primary">Campaigns</span>?
+          </h2>
+          <p className="mt-3 text-muted-foreground text-sm sm:text-base">
+            <span className="notranslate" translate="no">AD SCALE</span> provides the advertising infrastructure and managed access.
+            The client or the client's media buying team is responsible for:
+          </p>
+          <ul className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            {["Campaign creation", "Creatives", "Copy", "Targeting", "Campaign optimization", "Landing pages", "Offers", "Tracking", "Compliance"].map((x) => (
+              <li key={x} className="flex items-center gap-2"><CheckCircle2 size={14} className="text-primary shrink-0" /> {x}</li>
+            ))}
+          </ul>
+          <p className="mt-5 text-sm font-semibold text-foreground">
+            <span className="notranslate" translate="no">AD SCALE</span> does not automatically manage the client's campaigns.
+          </p>
+        </motion.div>
+      </section>
+
+      {/* TRANSPARENCY TABLE */}
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+        <motion.h2 {...fadeUp} className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-center">
+          Full <span className="text-primary">transparency</span>
+        </motion.h2>
+        <motion.div {...fadeUp} className="mt-8 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl overflow-hidden">
+          <div className="hidden sm:grid grid-cols-[1fr_1.4fr] gap-4 px-6 py-3 border-b border-border/60 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div>Item</div><div>What it means</div>
+          </div>
+          {[
+            ["$240 Initial Ad Spend Credit", "Initial advertising balance required to start."],
+            ["Meta Ad Account Rental", "Temporary managed access to advertising infrastructure."],
+            ["Ad Spend", "Campaign activity consumes the available advertising credit."],
+            ["Additional Funding", "More advertising credit can be added as campaigns continue."],
+            ["Account Ownership", "The account is not sold or transferred to the client."],
+            ["Campaign Management", "The client or their media buying team manages campaigns."],
+          ].map(([a, b], i, arr) => (
+            <div key={a} className={`sm:grid sm:grid-cols-[1fr_1.4fr] gap-4 px-6 py-4 ${i === arr.length - 1 ? "" : "border-b border-border/60"}`}>
+              <div className="font-display font-semibold text-foreground text-sm">{a}</div>
+              <div className="text-sm text-muted-foreground mt-1 sm:mt-0">{b}</div>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* IMPORTANT BOX */}
+        <motion.div {...fadeUp} className="mt-8 rounded-2xl border border-primary/40 bg-primary/[0.07] p-6 sm:p-8">
+          <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-primary border border-primary/40 rounded-full px-3 py-1">
+            <Info size={12} /> Important
+          </div>
+          <ul className="mt-4 space-y-2 text-sm sm:text-base text-foreground/90">
+            <li>The $240 is <strong>not</strong> the price of the Meta ad account.</li>
+            <li>It is <strong>not</strong> an account purchase fee.</li>
+            <li>It is <strong>not</strong> a security deposit.</li>
+            <li><strong>100% of the $240 is allocated to advertising spend.</strong></li>
+            <li>The rented account remains within <span className="notranslate" translate="no">AD SCALE</span>'s managed infrastructure.</li>
+          </ul>
+        </motion.div>
+      </section>
+
+      {/* ADDITIONAL FUNDING */}
+      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <motion.div {...fadeUp} className="rounded-2xl border border-border/60 bg-card/50 backdrop-blur-xl p-6 sm:p-8 text-center">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
+            What Happens After the <span className="text-primary">$240</span> Is Spent?
+          </h2>
+          <p className="mt-3 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Once the available advertising credit has been consumed, additional ad spend credit can be
+            added according to the needs of your campaigns and the current conditions of the account.
+            The $240 represents the initial funding — not the end of your operation.
+          </p>
+        </motion.div>
+      </section>
+
+
       {/* PRINT 1 — Overview */}
       <DashShowcase
         eyebrow="Client Dashboard"
