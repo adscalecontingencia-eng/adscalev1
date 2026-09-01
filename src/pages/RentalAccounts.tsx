@@ -400,9 +400,9 @@ const RentalAccounts: React.FC = () => {
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             { icon: Shield, t: "Verified BMs", d: "Business Managers ready to scale, with clean history and high spend limits." },
-            { icon: CreditCard, t: "Ad accounts", d: "Always-available inventory with fast replacement whenever Meta blocks an account." },
+            { icon: CreditCard, t: "Ad accounts", d: "Ad account inventory with fast replacement requests when Meta restricts an account, subject to availability." },
             { icon: Layers, t: "Profiles & pages", d: "Aged profiles and pages ready to publish your creatives without warm-up." },
-            { icon: RefreshCw, t: "Automatic replacement", d: "Got blocked? We swap the structure so you never lose traction on your campaigns." },
+            { icon: RefreshCw, t: "Replacement flow", d: "If an account gets restricted, our team works to swap the structure according to account availability." },
             { icon: BarChart3, t: "Live dashboard", d: "Your spend, commission and billing visible 24/7 with sync directly from Meta." },
             { icon: HeadphonesIcon, t: "Human support", d: "Dedicated team over WhatsApp and in-app tickets to solve any issue fast." },
           ].map((f, i) => (
@@ -471,7 +471,7 @@ const RentalAccounts: React.FC = () => {
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             { icon: HeadphonesIcon, t: "In-app tickets", d: "Open requests for new ad accounts, additional BMs, pages, profiles or proxies directly from your panel." },
-            { icon: RefreshCw, t: "Fast replacement", d: "When a Meta block happens, our team replaces the structure without any additional fee." },
+            { icon: RefreshCw, t: "Replacement support", d: "When a Meta restriction happens, our team works on replacing the structure without any additional fee." },
             { icon: Shield, t: "Access control", d: "Only you and the users you invite have access — every action is logged for auditability." },
             { icon: Calendar, t: "Billing cycle", d: "Week runs Friday → Thursday. Invoices are generated every Friday for the previous week." },
             { icon: TrendingUp, t: "Progressive commission", d: "The more you spend, the lower your commission — down to 1% for high-volume accounts." },
