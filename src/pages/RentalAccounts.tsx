@@ -418,21 +418,23 @@ const RentalAccounts: React.FC = () => {
               <CheckCircle2 size={12} /> Start in minutes
             </span>
             <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mt-5 tracking-tight">
-              Ready to scale with a{" "}
-              <span className="text-primary">real ad structure</span>?
+              Ready to <span className="text-primary">Start</span>?
             </h2>
             <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-              Create your agency account now and get instant access to verified Meta ad accounts.
+              Choose your rental account and start with $240 in advertising credit.
+              100% of your initial $240 is allocated to ad spend.
             </p>
             <Link
               to={SIGNUP}
+              onClick={() => track("rental_start_after_credit")}
               className="mt-8 inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-7 py-3.5 rounded-xl hover:brightness-110 transition shadow-[0_0_40px_-8px_hsl(var(--primary))]"
             >
-              Create your agency account <ArrowRight size={16} />
+              View Available Rental Accounts <ArrowRight size={16} />
             </Link>
           </div>
         </motion.div>
       </section>
+
 
       {/* FOOTER */}
       <footer className="relative z-10 border-t border-border/60 mt-10">
