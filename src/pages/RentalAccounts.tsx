@@ -99,24 +99,107 @@ const RentalAccounts: React.FC = () => {
         </motion.div>
       </section>
 
+      {/* $240 INITIAL AD SPEND CREDIT */}
+      <section id="ad-spend-credit" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+        <motion.div
+          {...fadeUp}
+          className="rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 sm:p-10"
+        >
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-primary border border-primary/40 bg-primary/10 rounded-full px-3 py-1">
+                <Wallet size={12} /> Initial Ad Spend Credit
+              </span>
+              <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mt-4">
+                <span className="text-primary">$240</span> Initial Ad Spend Credit
+              </h2>
+              <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                To activate your rented Meta ad account, an initial USD 240 ad spend credit is required.
+                <strong className="text-foreground"> 100% of this amount is allocated to advertising spend.</strong>
+              </p>
+              <p className="mt-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                The $240 is not a rental fee, account purchase fee, setup fee, or security deposit.
+                The full amount becomes operational advertising credit for use with campaigns running
+                on the rented account.
+              </p>
+
+              <div className="mt-6 rounded-2xl border border-primary/30 bg-background/40 p-5">
+                <div className="text-[10px] uppercase tracking-[0.28em] text-primary/80">Example</div>
+                <dl className="mt-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-muted-foreground">Initial funding</dt>
+                    <dd className="font-display font-bold tabular-nums text-foreground">$240</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-muted-foreground">Available Ad Spend Credit</dt>
+                    <dd className="font-display font-bold tabular-nums text-primary">$240</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-muted-foreground">Amount retained by <span className="notranslate" translate="no">AD SCALE</span> as rental fee from this initial credit</dt>
+                    <dd className="font-display font-bold tabular-nums text-foreground">$0</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  The initial $240 is fully allocated as advertising credit. This refers to the credit
+                  received by <span className="notranslate" translate="no">AD SCALE</span> to fund the account.
+                </p>
+              </div>
+
+              <Link
+                to={SIGNUP}
+                onClick={() => track("rental_view_accounts_after_credit")}
+                className="mt-6 inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:brightness-110 transition text-sm sm:text-base"
+              >
+                View Rental Accounts <ArrowRight size={16} />
+              </Link>
+            </div>
+
+            {/* FLOW VISUAL */}
+            <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-6 text-center">
+              <div className="font-display text-xl sm:text-2xl font-bold text-primary">100% Goes to Ad Spend</div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                You pay $240 → $240 becomes available as advertising credit.
+              </p>
+              <div className="mt-6 space-y-2">
+                {[
+                  { label: "You fund", value: "$240" },
+                  { label: "Your ad spend credit", value: "$240" },
+                  { label: "Run your campaigns", value: "Live" },
+                ].map((s, i) => (
+                  <React.Fragment key={s.label}>
+                    {i > 0 && <div className="text-primary text-lg leading-none">↓</div>}
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.26em] text-muted-foreground">{s.label}</div>
+                      <div className="font-display text-2xl font-bold text-foreground mt-1 tabular-nums">{s.value}</div>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="mt-5 text-xs uppercase tracking-[0.2em] text-primary">100% allocated to ad spend</div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section id="how-it-works" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
         <motion.div {...fadeUp} className="max-w-2xl">
           <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
-            How the <span className="text-primary">rental model</span> works
+            How It <span className="text-primary">Works</span>
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Straightforward and transparent: you get instant access to our ad structure and only
-            pay a commission over what you actually spend. No monthly fees, no setup, no lock-in.
+            Five straightforward steps from funding your initial ad spend credit to running campaigns
+            on managed Meta advertising infrastructure.
           </p>
         </motion.div>
 
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { icon: Layers, title: "1. Request accounts", desc: "Open a ticket from your dashboard to receive the ad accounts, BMs, pages and profiles you need." },
-            { icon: Zap, title: "2. Launch campaigns", desc: "We assign the structure to your Business Manager. Start advertising within minutes." },
-            { icon: BarChart3, title: "3. Track in real time", desc: "Your ad spend syncs from Meta into our dashboard automatically — no manual reporting." },
-            { icon: TrendingUp, title: "4. Weekly settlement", desc: "Every Friday you settle the commission for the previous week (5% of Ad Spend, down to 1%)." },
+            { icon: Layers, title: "Choose Your Account", desc: "Select the rental option that best matches your advertising operation." },
+            { icon: Wallet, title: "Add Your $240 Initial Ad Spend Credit", desc: "Fund the required initial credit. 100% of the $240 is allocated to advertising spend." },
+            { icon: Shield, title: "Receive Managed Access", desc: "After activation, your team receives the appropriate access to operate the account." },
+            { icon: Zap, title: "Launch Your Campaigns", desc: "Your team creates, launches, manages and optimizes the campaigns." },
+            { icon: TrendingUp, title: "Add More Ad Spend Credit When Needed", desc: "As your available advertising balance is consumed, additional funding can be added to continue operating." },
           ].map((c, i) => (
             <motion.div
               key={c.title}
@@ -127,11 +210,13 @@ const RentalAccounts: React.FC = () => {
               <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/30 text-primary flex items-center justify-center mb-3">
                 <c.icon size={18} />
               </div>
-              <h3 className="font-display font-semibold text-foreground">{c.title}</h3>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-primary/80">Step {i + 1}</div>
+              <h3 className="font-display font-semibold text-foreground mt-1">{c.title}</h3>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{c.desc}</p>
             </motion.div>
           ))}
         </div>
+
       </section>
 
       {/* HOW OUR RENTAL WORKS */}
