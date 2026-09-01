@@ -65,29 +65,38 @@ const RentalAccounts: React.FC = () => {
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 lg:pt-20 pb-12 sm:pb-20 lg:pb-24">
         <motion.div {...fadeUp} className="max-w-3xl">
           <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] sm:tracking-[0.32em] text-primary/80 border border-primary/30 bg-primary/5 rounded-full px-3 py-1">
-            <Sparkles size={12} /> Ad Structure Rental · <span className="notranslate" translate="no">AD SCALE</span>
+            <Sparkles size={12} /> Managed Advertising Infrastructure · <span className="notranslate" translate="no">AD SCALE</span>
           </span>
           <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold mt-5 leading-[1.1] sm:leading-[1.05] tracking-tight">
-            Scale your operation with{" "}
-            <span className="text-primary">unlimited ad accounts</span>.
+            Rent Meta Ad Accounts with{" "}
+            <span className="text-primary">Managed Access</span>
           </h1>
           <p className="mt-4 sm:mt-5 text-sm sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            Rent verified agency Business Managers, ad accounts, aged pages and profiles —
-            everything you need to run high-volume Meta Ads campaigns without downtime.
+            Access Meta advertising infrastructure for agencies, media buyers, affiliates,
+            e-commerce businesses and professional advertisers.
           </p>
+
+          <div className="mt-5 sm:mt-6 rounded-2xl border border-primary/40 bg-primary/[0.08] p-4 sm:p-5 max-w-2xl">
+            <div className="font-display text-lg sm:text-2xl font-bold text-primary">
+              Start with a $240 Initial Ad Spend Credit
+            </div>
+            <p className="mt-1.5 text-sm sm:text-base text-foreground/90">
+              100% of the $240 is allocated to advertising spend.
+            </p>
+          </div>
 
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
             <Link
               to={SIGNUP}
               className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-5 sm:px-6 py-3 rounded-xl hover:brightness-110 transition shadow-[0_0_30px_-8px_hsl(var(--primary))] text-sm sm:text-base"
             >
-              Create your agency account <ArrowRight size={16} />
+              View Rental Options <ArrowRight size={16} />
             </Link>
             <a
               href="#how-it-works"
               className="inline-flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 text-sm font-medium px-5 py-3 rounded-xl transition"
             >
-              How it works
+              How It Works
             </a>
           </div>
 
@@ -98,6 +107,7 @@ const RentalAccounts: React.FC = () => {
           </div>
         </motion.div>
       </section>
+
 
       {/* $240 INITIAL AD SPEND CREDIT */}
       <section id="ad-spend-credit" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
