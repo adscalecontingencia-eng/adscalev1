@@ -15,6 +15,15 @@ import dashSupportGroup from "@/assets/landing/dash-support-group.jpg";
 
 const SIGNUP = "/cadastro-agencia?lang=en";
 
+function track(event: string) {
+  try {
+    const w = window as unknown as { dataLayer?: unknown[]; gtag?: (...a: unknown[]) => void; fbq?: (...a: unknown[]) => void };
+    w.dataLayer?.push({ event });
+    w.gtag?.("event", event);
+    w.fbq?.("trackCustom", event);
+  } catch { /* analytics optional */ }
+}
+
 const fadeUp = {
   initial: { opacity: 0, y: 18 },
   whileInView: { opacity: 1, y: 0 },
@@ -24,7 +33,7 @@ const fadeUp = {
 
 const RentalAccounts: React.FC = () => {
   useEffect(() => {
-    document.title = "Meta Ad Account Rental — AD SCALE";
+    document.title = "Meta Ad Account Rental with Managed Access — AD SCALE";
     const meta = document.querySelector('meta[name="description"]') || (() => {
       const m = document.createElement("meta");
       m.setAttribute("name", "description");
@@ -33,9 +42,30 @@ const RentalAccounts: React.FC = () => {
     })();
     meta.setAttribute(
       "content",
-      "Rent verified Meta Business Managers, ad accounts and pages. Live dashboard, weekly billing in USD, dedicated human support. Scale without limits."
+      "Rent Meta ad accounts with managed access. Start with a $240 Initial Ad Spend Credit — 100% allocated to advertising spend. Live dashboard, weekly USD billing, dedicated support."
     );
   }, []);
+
+  // Section view analytics
+  useEffect(() => {
+    const map: Record<string, string> = {
+      "ad-spend-credit": "rental_credit_section_view",
+      "how-it-works": "rental_how_it_works_view",
+    };
+    const seen = new Set<string>();
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        const ev = map[e.target.id];
+        if (e.isIntersecting && ev && !seen.has(ev)) { seen.add(ev); track(ev); }
+      });
+    }, { threshold: 0.25 });
+    Object.keys(map).forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
