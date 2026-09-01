@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight, CheckCircle2, Shield, Zap, RefreshCw, HeadphonesIcon, TrendingUp,
   Wallet, Bitcoin, Globe, Calendar, BarChart3, Layers, Sparkles, CreditCard,
-  MessageCircle, Users, Ticket, Clock, UserPlus, FileCheck,
+  MessageCircle, Users, Ticket, Clock, UserPlus, FileCheck, Info,
 } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import dashResumo from "@/assets/landing/dash-resumo.png";
