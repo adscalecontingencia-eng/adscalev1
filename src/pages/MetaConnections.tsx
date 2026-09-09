@@ -441,6 +441,13 @@ export default function MetaConnections() {
         unassigned={stats.unassigned}
       />
 
+      {staleCount > 0 && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          {staleCount} conta(s) não retornaram na última sincronização (sem acesso na API) e ficam fora dos números acima.
+        </p>
+      )}
+
+
       <SystemUserHelp />
 
       {/* Mobile BM selector */}
