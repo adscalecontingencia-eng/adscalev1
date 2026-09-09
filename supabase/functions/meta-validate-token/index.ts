@@ -2,6 +2,8 @@
 // Request: { meta_app_id: uuid, token_type?: "user" | "system" }
 // Verbose logging is emitted at every step to help diagnose permission issues.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

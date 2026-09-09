@@ -2,6 +2,8 @@
 // Gera faturas semanais (Pix / Mercado Pago) com o total em aberto de cada cliente,
 // envia e-mail com o QR Code, dispara lembretes e marca faturas vencidas.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

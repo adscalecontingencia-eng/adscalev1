@@ -1,6 +1,8 @@
 // Exchanges the short-lived user access token stored in meta_apps for a long-lived one.
 // Request: { meta_app_id: uuid }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

@@ -4,6 +4,8 @@
 // Endpoints: /me/businesses → /{bm}/owned_ad_accounts + /{bm}/client_ad_accounts.
 // Request: { meta_app_id: uuid, dry_run?: boolean }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
