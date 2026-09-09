@@ -42,22 +42,52 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
   const [to, setTo] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [retentionWeeks, setRetentionWeeks] = useState<number>(2);
+  const [retentionInput, setRetentionInput] = useState<string>("2");
+  const [savingRetention, setSavingRetention] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("meta_ad_accounts")
-        .select("id,name,meta_account_id,last_sync_error_code,last_sync_error_message,last_sync_error_at,last_sync_error_source,archived_at")
-        .not("archived_at", "is", null)
-        .order("archived_at", { ascending: false })
-        .limit(1000);
-      if (!cancelled && !error) setRows((data as any) || []);
+      const [{ data, error }, cfg] = await Promise.all([
+        supabase
+          .from("meta_ad_accounts")
+          .select("id,name,meta_account_id,last_sync_error_code,last_sync_error_message,last_sync_error_at,last_sync_error_source,archived_at")
+          .not("archived_at", "is", null)
+          .order("archived_at", { ascending: false })
+          .limit(1000),
+        supabase.from("support_settings").select("value").eq("key", "archived_retention_weeks").maybeSingle(),
+      ]);
+      if (!cancelled) {
+        if (!error) setRows((data as any) || []);
+        const w = Number((cfg.data as any)?.value ?? 2);
+        if (Number.isFinite(w) && w > 0) { setRetentionWeeks(w); setRetentionInput(String(w)); }
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [refreshKey, tick]);
+
+  const saveRetention = async () => {
+    const w = Number(retentionInput);
+    if (!Number.isFinite(w) || w < 1) {
+      toast({ title: "Valor inválido", description: "Informe pelo menos 1 semana.", variant: "destructive" });
+      return;
+    }
+    setSavingRetention(true);
+    const { error } = await supabase
+      .from("support_settings")
+      .upsert({ key: "archived_retention_weeks", value: w as any }, { onConflict: "key" });
+    setSavingRetention(false);
+    if (error) {
+      toast({ title: "Falha ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRetentionWeeks(w);
+    toast({ title: "Configuração salva", description: `Contas somem do painel ${w} semana(s) após o arquivamento.` });
+  };
+
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
