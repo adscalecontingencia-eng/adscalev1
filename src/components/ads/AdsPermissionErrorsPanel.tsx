@@ -77,6 +77,26 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
     return rows.filter(r => (r.last_sync_error_source || "system") === filter);
   }, [rows, filter]);
 
+  const archive = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setBusy(ids.length === 1 ? ids[0] : "bulk");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-sync", {
+        body: { action: "archive_account", account_ids: ids },
+      });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+      toast({ title: ids.length === 1 ? "Conta arquivada" : `${ids.length} contas arquivadas`, description: "Removidas da sincronização e dos relatórios." });
+      onChanged?.();
+    } catch (e: any) {
+      toast({ title: "Falha ao arquivar", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+
   if (loading || rows.length === 0) return null;
 
   const FilterBtn = ({ f, label }: { f: Filter; label: string }) => (
