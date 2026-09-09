@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, result: res });
   } catch (err) {
     console.error(`[wallet-sim ${reqId}] error`, err);
-    return json({ error: (err as Error).message }, 500);
+    console.error("unhandled error", err);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

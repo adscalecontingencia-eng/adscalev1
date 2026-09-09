@@ -2,6 +2,8 @@
 // Request: { meta_app_id: uuid, token_type?: "user" | "system" }
 // Verbose logging is emitted at every step to help diagnose permission issues.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,9 +36,13 @@ Deno.serve(async (req) => {
   };
 
   try {
+    const auth = await requireStaff(req, corsHeaders);
+    if (auth.error) return auth.error;
+
     const { meta_app_id, token_type = "user" } = await req.json();
     log("start", { meta_app_id, token_type });
     if (!meta_app_id) return json({ error: "meta_app_id obrigatório", logs }, 400);
+
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

@@ -2,6 +2,8 @@
 // Gera faturas semanais (Pix / Mercado Pago) com o total em aberto de cada cliente,
 // envia e-mail com o QR Code, dispara lembretes e marca faturas vencidas.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,19 +118,10 @@ Deno.serve(async (req) => {
     const mode: string = body?.mode ?? "auto"; // auto | generate | reminders | single
     const singleClientId: string | null = body?.client_id ?? null;
 
-    // Chamada manual do painel exige admin/support; cron usa service role sem Authorization de usuário.
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const jwt = authHeader.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : null;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (jwt && jwt !== serviceKey) {
-      const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-      const { data: claims } = await anon.auth.getClaims(jwt);
-      const uid = claims?.claims?.sub;
-      if (!uid) return json({ error: "Unauthenticated" }, 401);
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", uid);
-      const ok = (roles ?? []).some((r: any) => r.role === "admin" || r.role === "support");
-      if (!ok) return json({ error: "Forbidden" }, 403);
-    }
+    // Exige sempre identidade: service role (cron interno) ou admin/support logado.
+    const auth = await requireStaff(req, corsHeaders);
+    if (auth.error) return auth.error;
+
 
     // O Pix é gerado sob demanda (função billing-create-pix), aqui só criamos a fatura.
 
@@ -300,6 +293,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, mode, week_start: iso(weekStart), week_end: iso(weekEnd), ...result });
   } catch (err) {
     console.error("billing-generate-invoices error", err);
-    return json({ error: (err as Error).message }, 500);
+    console.error("unhandled error", err);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

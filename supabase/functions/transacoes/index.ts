@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (txError) {
-        return new Response(JSON.stringify({ erro: txError.message }), {
+        return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
         });
 
       if (paidCommError) {
-        return new Response(JSON.stringify({ erro: paidCommError.message }), {
+        return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         .order("date", { ascending: true });
 
       if (pcError) {
-        return new Response(JSON.stringify({ erro: pcError.message }), {
+        return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
         .select().single();
 
       if (error) {
-        return new Response(JSON.stringify({ erro: error.message }), {
+        return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
       .select().single();
 
     if (error) {
-      return new Response(JSON.stringify({ erro: error.message }), {
+      return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -193,7 +193,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ erro: err.message }), {
+    console.error("transacoes error", err);
+    return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

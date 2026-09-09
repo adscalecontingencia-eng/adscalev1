@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("check-marketplace-order-status error", err);
-    return json({ error: (err as Error).message }, 500);
+    console.error("unhandled error", err);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });
 

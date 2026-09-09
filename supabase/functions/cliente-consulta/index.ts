@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (clientError) {
-      return new Response(JSON.stringify({ erro: clientError.message }), {
+      return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       .order("date", { ascending: false });
 
     if (txError) {
-      return new Response(JSON.stringify({ erro: txError.message }), {
+      return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       .order("date", { ascending: false });
 
     if (commError) {
-      return new Response(JSON.stringify({ erro: commError.message }), {
+      return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -164,7 +164,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ erro: err.message }), {
+    console.error("cliente-consulta error", err);
+    return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

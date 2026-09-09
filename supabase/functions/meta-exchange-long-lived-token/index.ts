@@ -1,6 +1,8 @@
 // Exchanges the short-lived user access token stored in meta_apps for a long-lived one.
 // Request: { meta_app_id: uuid }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,8 +20,12 @@ function sanitizeErr(msg: string): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    const auth = await requireStaff(req, corsHeaders);
+    if (auth.error) return auth.error;
+
     const { meta_app_id } = await req.json();
     if (!meta_app_id) return json({ error: "meta_app_id obrigatório" }, 400);
+
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: app } = await supabase.from("meta_apps").select("*").eq("id", meta_app_id).single();
