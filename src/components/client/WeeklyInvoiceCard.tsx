@@ -33,6 +33,8 @@ export default function WeeklyInvoiceCard({ clientId }: { clientId: string }) {
   const [history, setHistory] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
   const [showQr, setShowQr] = useState(false);
 
   const load = useCallback(async () => {
