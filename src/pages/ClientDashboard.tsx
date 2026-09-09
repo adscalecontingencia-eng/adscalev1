@@ -31,6 +31,8 @@ import ReferralAlerts from '@/components/client/ReferralAlerts';
 import ReferralStatement from '@/components/client/ReferralStatement';
 import DashboardTour, { TourButton } from '@/components/client/DashboardTour';
 import DailyStatement from '@/components/client/DailyStatement';
+import WeeklyInvoiceCard from '@/components/client/WeeklyInvoiceCard';
+
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
