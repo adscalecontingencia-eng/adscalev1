@@ -220,8 +220,17 @@ export default function MetaConnections() {
     return (accId: string) => m.get(accId) || null;
   }, [assignments]);
 
+  // Contas realmente identificadas pela API: as que falharam por permissão
+  // ficam de fora dos KPIs/listagem e aparecem no painel de erros de permissão.
+  const PERMISSION_CODES = [200, 190, 10, 100];
+  const apiAccounts = useMemo(
+    () => accounts.filter((a: any) => !PERMISSION_CODES.includes(Number(a.last_sync_error_code))),
+    [accounts],
+  );
+
   const filtered = useMemo(() => {
-    return accounts.filter((a) => {
+    return apiAccounts.filter((a) => {
+
       // BM
       if (selectedBm === "none") { if (a.bm_id) return false; }
       else if (selectedBm !== "all" && a.bm_id !== selectedBm) return false;
