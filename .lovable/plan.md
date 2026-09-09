@@ -1,47 +1,57 @@
-# Plano de melhorias para crescer receita — AD SCALE
+# Cobrança automática no cartão (débito na sexta)
 
-## Contexto
-O usuário escolheu **"Crescer receita"** como foco imediato. O sistema já possui: programa de afiliados, marketplace, landing page internacional, painel de contas Meta, comissões por gasto, tiers de fidelidade, aprovação de cadastros e banners de parceiros.
+Objetivo: o cliente cadastra um cartão dentro do painel e, toda sexta-feira, o sistema cobra automaticamente o valor total em aberto da semana fechada (comissão da semana + saldo atrasado), sem precisar de Pix manual.
 
-## Opções de melhoria para aumentar receita
+## Como vai funcionar para o cliente
 
-### 1. Upsell de crédito de gasto no dashboard do cliente
-- Botão "Adicionar fundos" dentro do dashboard de aluguel.
-- Pacotes pré-definidos (ex: US$ 500, US$ 1.000, US$ 2.500) com checkout PIX/cartão.
-- Crédito entra na wallet e é consumido antes da cobrança de comissão.
-- Impacto: aumenta ticket médio e reduz atrito para o cliente aumentar investimento.
+1. No painel, uma nova área "Pagamento automático" mostra um botão para cadastrar cartão.
+2. O cartão é digitado direto no formulário seguro do provedor de pagamento — o sistema nunca guarda o número do cartão, só os últimos 4 dígitos, bandeira e validade.
+3. O cliente ativa a cobrança automática e vê: cartão salvo, próxima data de cobrança e valor estimado.
+4. Toda sexta-feira de manhã o sistema fecha a semana (sexta anterior → quinta), soma o que está em aberto e cobra o cartão.
+5. O cliente recebe e-mail com o recibo e vê o pagamento marcado como quitado no extrato.
+6. O cliente pode trocar o cartão ou desativar a cobrança automática a qualquer momento (volta para Pix manual).
 
-### 2. Planos de suporte premium (receita recorrente)
-- Criar planos pagos de suporte: Básico, Pro, Elite.
-- Benefícios: tempo de resposta, número de BMs incluídos, limite de contas, atendimento prioritário.
-- Cobrança mensal automática via PIX assinatura ou cartão.
-- Impacto: receita previsível e menor dependência de comissão sobre gasto.
+## Se o cartão for recusado
 
-### 3. Programa de parceiros revendedores
-- Permitir que parceiros indiquem outros parceiros (2º nível) ou revendam contas.
-- Comissão sobre vendas geradas pelo parceiro indicado.
-- Painel do parceiro mostra clientes indicados, comissões a receber e saques.
-- Impacto: canal de aquisição escalável sem custo de marketing.
+- Nova tentativa automática em D+1, D+3 e D+5 (3 tentativas).
+- A cada falha: e-mail para o cliente e aviso vermelho no painel dele.
+- Aviso também no painel do administrador, com lista de cobranças falhadas.
+- Após a 3ª falha, a cobrança fica como "pendente manual" e o cliente paga por Pix; não há bloqueio automático de contas.
 
-### 4. Recuperação de clientes inativos / arquivados
-- Detectar clientes com contas arquivadas ou sem gasto há X dias.
-- Enviar campanha automática (e-mail/WhatsApp) com oferta de reativação.
-- Oferecer crédito bônus ou taxa reduzida por tempo limitado.
-- Impacto: reativação de base sem precisar captar novos leads.
+## Brasil e exterior
 
-### 5. Painel comercial de vendas e conversão
-- Rastrear funil de cadastro: visitou landing → iniciou cadastro → aprovado → primeiro gasto.
-- Métricas: CAC, LTV, taxa de aprovação, tempo de onboarding, churn.
-- Alerta quando lead fica parado há mais de X horas.
-- Impacto: decisões baseadas em dados para escalar vendas.
+- Clientes internacionais: cobrança em dólar via Stripe.
+- Clientes do Brasil: cobrança via Mercado Pago (que já está integrado ao sistema), com cartão salvo em cobrança recorrente em real, usando a cotação do dia da cobrança registrada no recibo.
+- O sistema escolhe o provedor pelo país do cliente; o admin pode forçar um provedor num cliente específico.
 
-## Recomendação de prioridade
-Começar pela **opção 1 (Upsell de crédito)** porque:
-- Usa a wallet e o checkout PIX que já existem.
-- Cliente já está no dashboard, momento de compra natural.
-- Entrega receita extra no curto prazo com baixa complexidade.
+## Painel do administrador
 
-Depois, implementar **opção 2 (Planos de suporte)** para criar previsibilidade de receita.
+- Nova tela "Cobranças automáticas": clientes com cartão ativo, valor da próxima sexta, histórico de cobranças (paga, falhada, tentativa em andamento).
+- Botão para cobrar manualmente antes da sexta ou tentar de novo agora.
+- Botão para cancelar/estornar uma cobrança feita por engano.
 
-## Próximo passo
-Escolha uma ou mais opções para eu detalhar o escopo técnico e iniciar a implementação.
+## Detalhes técnicos
+
+- Novas tabelas: `billing_payment_methods` (cliente, provedor, id do cartão no provedor, últimos 4 dígitos, bandeira, status, padrão) e `billing_charges` (cliente, semana de referência, valor, moeda, provedor, id da transação, status, tentativa, erro, timestamps). RLS: cliente vê só as suas linhas; admin/support veem tudo; GRANT para `authenticated` e `service_role`.
+- Fluxo de salvamento do cartão: Stripe SetupIntent (off_session) para exterior; tokenização de cartão do Mercado Pago (customer + card) para Brasil. Nenhum dado sensível trafega pelo nosso banco.
+- Novas edge functions:
+  - `billing-setup-card` — cria a sessão de cadastro de cartão no provedor certo.
+  - `billing-charge-week` — calcula o em aberto a partir de `commissions` / `billing_week_snapshots`, cria a cobrança off-session, grava em `billing_charges`, e ao aprovar atualiza `valor_pago`/`valor_pendente` e lança em `transactions`. Idempotente por (cliente, semana).
+  - `billing-webhook` — recebe confirmações e recusas do Stripe e do Mercado Pago e atualiza o status da cobrança.
+  - `billing-retry` — reprocessa cobranças recusadas dentro da janela de tentativas.
+- Agendamento: um job diário às 09:00 BRT que cobra as semanas fechadas na sexta e processa as tentativas de retry nos demais dias (um único job, não vários). Máximo de atraso: 1 dia.
+- Front-end: card "Pagamento automático" no dashboard do cliente (PT/EN/ES), página admin `/cobrancas-automaticas`, avisos de falha no `ClientNotificationCenter`.
+- E-mails de recibo e de falha usam a fila de e-mails já existente.
+
+## Pré-requisitos
+
+- Chaves do Stripe (conta da agência) para as cobranças em dólar — vou pedir quando chegarmos nessa etapa.
+- Mercado Pago já tem credenciais no sistema; será preciso habilitar cartão salvo/recorrência na conta.
+- Vale incluir nos Termos de Uso a autorização de débito recorrente no cartão antes de ativar para os clientes.
+
+## Ordem de entrega
+
+1. Tabelas, cadastro de cartão e cobrança em dólar (Stripe) ponta a ponta.
+2. Cobrança automática de sexta + retries + e-mails.
+3. Cartão salvo do Mercado Pago para clientes do Brasil.
+4. Tela administrativa completa.
