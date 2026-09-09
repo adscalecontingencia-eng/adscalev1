@@ -306,7 +306,7 @@ export default function MetaConnections() {
   const sidebarNode = (
     <BmSidebar
       bms={bms}
-      accounts={accounts}
+      accounts={apiAccounts}
       selected={selectedBm}
       onSelect={(v) => { setSelectedBm(v); setMobileBmOpen(false); }}
     />
