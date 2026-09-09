@@ -3619,6 +3619,10 @@ export type Database = {
         Returns: number
       }
       generate_referral_code: { Args: { _seed: string }; Returns: string }
+      get_order_delivery_payload: {
+        Args: { _delivery_id: string }
+        Returns: Json
+      }
       get_product_costs: {
         Args: never
         Returns: {
