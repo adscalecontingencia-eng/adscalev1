@@ -1,5 +1,7 @@
 // Edge Function: wallet-check-deposit (polling fallback)
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getUserId, hasStaffRole } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
