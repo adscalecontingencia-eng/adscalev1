@@ -36,9 +36,13 @@ Deno.serve(async (req) => {
   };
 
   try {
+    const auth = await requireStaff(req, corsHeaders);
+    if (auth.error) return auth.error;
+
     const { meta_app_id, token_type = "user" } = await req.json();
     log("start", { meta_app_id, token_type });
     if (!meta_app_id) return json({ error: "meta_app_id obrigatório", logs }, 400);
+
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

@@ -83,9 +83,13 @@ Deno.serve(async (req) => {
   };
 
   try {
+    const auth = await requireStaff(req, corsHeaders);
+    if (auth.error) return auth.error;
+
     const payload = await req.json();
     meta_app_id = payload.meta_app_id;
     const dry_run = !!payload.dry_run;
+
     if (!meta_app_id) return json({ error: "meta_app_id obrigatório" }, 400);
 
     const { data: app } = await supabase.from("meta_apps").select("*").eq("id", meta_app_id).single();
