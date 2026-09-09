@@ -21,10 +21,17 @@ Deno.serve(async (req) => {
       : Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
     if (!accessToken) return json({ error: `MP token missing (${isLive ? "LIVE" : "TEST"})` }, 500);
 
+    const userId = await getUserId(req);
+    if (!userId) return json({ error: "Unauthenticated" }, 401);
+
     const { deposit_id } = (await req.json()) as { deposit_id: string };
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: dep } = await admin.from("wallet_deposits").select("*").eq("id", deposit_id).maybeSingle();
     if (!dep) return json({ error: "not_found" }, 404);
+    if (dep.user_id !== userId && !(await hasStaffRole(userId))) {
+      return json({ error: "Forbidden" }, 403);
+    }
+
     if (dep.credited_at) return json({ status: "approved", credited: true });
 
     const paymentId = dep.mercado_pago_payment_id;
