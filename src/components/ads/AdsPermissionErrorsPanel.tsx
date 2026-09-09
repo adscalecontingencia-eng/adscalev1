@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Archive, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 
 type Attempt = { source: string; code: number | null; message: string };
 
