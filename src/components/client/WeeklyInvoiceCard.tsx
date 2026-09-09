@@ -33,6 +33,8 @@ export default function WeeklyInvoiceCard({ clientId }: { clientId: string }) {
   const [history, setHistory] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
   const [showQr, setShowQr] = useState(false);
 
   const load = useCallback(async () => {
@@ -51,11 +53,31 @@ export default function WeeklyInvoiceCard({ clientId }: { clientId: string }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const generatePix = async () => {
+    if (!current) return;
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('billing-create-pix', {
+        body: { invoice_id: current.id },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setShowQr(true);
+      await load();
+      toast.success(t('invoice.generated', 'Pix gerado com sucesso'));
+    } catch (e: any) {
+      toast.error(e?.message || t('invoice.generateError', 'Não foi possível gerar o Pix'));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const copyPix = async () => {
     if (!current?.qr_code) return;
     await navigator.clipboard.writeText(current.qr_code);
     toast.success(t('invoice.copied', 'Código Pix copiado'));
   };
+
 
   const checkPayment = async () => {
     if (!current) return;
@@ -145,29 +167,46 @@ export default function WeeklyInvoiceCard({ clientId }: { clientId: string }) {
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button size="sm" onClick={copyPix} disabled={!current.qr_code}>
-                <Copy className="h-4 w-4 mr-1.5" />
-                {t('invoice.copyPix', 'Copiar código Pix')}
-              </Button>
-              {current.qr_code_base64 && (
-                <Button size="sm" variant="outline" onClick={() => setShowQr((v) => !v)}>
-                  <QrCode className="h-4 w-4 mr-1.5" />
-                  {showQr ? t('invoice.hideQr', 'Ocultar QR Code') : t('invoice.showQr', 'Ver QR Code')}
+              {!current.qr_code ? (
+                <Button size="sm" onClick={generatePix} disabled={generating}>
+                  <QrCode className={`h-4 w-4 mr-1.5 ${generating ? 'animate-pulse' : ''}`} />
+                  {generating
+                    ? t('invoice.generating', 'Gerando Pix...')
+                    : t('invoice.generatePix', 'Gerar Pix (QR Code e copia e cola)')}
                 </Button>
+              ) : (
+                <>
+                  <Button size="sm" onClick={copyPix}>
+                    <Copy className="h-4 w-4 mr-1.5" />
+                    {t('invoice.copyPix', 'Copiar código Pix')}
+                  </Button>
+                  {current.qr_code_base64 && (
+                    <Button size="sm" variant="outline" onClick={() => setShowQr((v) => !v)}>
+                      <QrCode className="h-4 w-4 mr-1.5" />
+                      {showQr ? t('invoice.hideQr', 'Ocultar QR Code') : t('invoice.showQr', 'Ver QR Code')}
+                    </Button>
+                  )}
+                  {current.ticket_url && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={current.ticket_url} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-1.5" />
+                        {t('invoice.openCharge', 'Abrir cobrança')}
+                      </a>
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={checkPayment} disabled={checking}>
+                    <RefreshCw className={`h-4 w-4 mr-1.5 ${checking ? 'animate-spin' : ''}`} />
+                    {t('invoice.alreadyPaid', 'Já paguei')}
+                  </Button>
+                </>
               )}
-              {current.ticket_url && (
-                <Button size="sm" variant="outline" asChild>
-                  <a href={current.ticket_url} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-1.5" />
-                    {t('invoice.openCharge', 'Abrir cobrança')}
-                  </a>
-                </Button>
-              )}
-              <Button size="sm" variant="ghost" onClick={checkPayment} disabled={checking}>
-                <RefreshCw className={`h-4 w-4 mr-1.5 ${checking ? 'animate-spin' : ''}`} />
-                {t('invoice.alreadyPaid', 'Já paguei')}
-              </Button>
             </div>
+            {!current.qr_code && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t('invoice.generateHint', 'O código Pix é gerado apenas quando você clicar no botão acima.')}
+              </p>
+            )}
+
 
             {showQr && current.qr_code_base64 && (
               <div className="mt-4 bg-white p-3 rounded-xl w-fit">
