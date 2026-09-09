@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       });
     }
   } catch (err) {
+    console.error("clientes-geral error", err);
     return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
     const [pendentes, pagas] = await Promise.all([getPendentes(), getPagas()]);
     return json({ ...pendentes, ...pagas });
   } catch (err) {
+    console.error("comissoes-consulta error", err);
     return new Response(JSON.stringify({ erro: "Erro interno. Tente novamente." }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
