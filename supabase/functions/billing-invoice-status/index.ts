@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, status: inv.status, provider_status: current });
   } catch (err) {
     console.error("billing-invoice-status error", err);
-    return json({ error: (err as Error).message }, 500);
+    console.error("unhandled error", err_generic_log);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
 
     return json({ success: true });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("unhandled error", err_generic_log);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

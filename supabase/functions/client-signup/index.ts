@@ -201,6 +201,7 @@ Deno.serve(async (req) => {
 
     return json({ success: true, pending_approval: true, referred_by: referrerId });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("unhandled error", err_generic_log);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

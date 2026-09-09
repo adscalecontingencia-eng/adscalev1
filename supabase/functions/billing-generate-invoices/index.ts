@@ -293,6 +293,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, mode, week_start: iso(weekStart), week_end: iso(weekEnd), ...result });
   } catch (err) {
     console.error("billing-generate-invoices error", err);
-    return json({ error: (err as Error).message }, 500);
+    console.error("unhandled error", err_generic_log);
+    return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });
