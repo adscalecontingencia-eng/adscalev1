@@ -652,6 +652,28 @@ const pt = {
     accepted: 'Novo aceite registrado com sucesso',
     error: 'Não foi possível registrar o aceite. Tente novamente.',
   },
+  invoice: {
+    title: 'Fatura da semana',
+    none: 'Nenhuma fatura em aberto no momento.',
+    due: 'Vencimento',
+    open: 'Em aberto',
+    overdue: 'Vencida',
+    overdueHint: 'Esta fatura está vencida. Pague o quanto antes para evitar interrupções.',
+    amountUsd: 'Valor (USD)',
+    amountBrl: 'Valor em reais',
+    copyPix: 'Copiar código Pix',
+    copied: 'Código Pix copiado',
+    showQr: 'Ver QR Code',
+    hideQr: 'Ocultar QR Code',
+    qrAlt: 'QR Code Pix da fatura semanal',
+    openCharge: 'Abrir cobrança',
+    alreadyPaid: 'Já paguei',
+    confirmed: 'Pagamento confirmado!',
+    notYet: 'Ainda não identificamos o pagamento. Tente em alguns minutos.',
+    checkError: 'Erro ao consultar pagamento',
+    history: 'Histórico de faturas',
+    paid: 'Paga',
+  },
 };
 
 export type Translations = typeof pt;

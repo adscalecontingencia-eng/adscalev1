@@ -406,6 +406,28 @@ const en: Translations = {
     accepted: 'New acceptance recorded successfully',
     error: 'Could not record your acceptance. Please try again.',
   },
+  invoice: {
+    title: 'Weekly invoice',
+    none: 'No open invoice at the moment.',
+    due: 'Due date',
+    open: 'Open',
+    overdue: 'Overdue',
+    overdueHint: 'This invoice is overdue. Please pay as soon as possible to avoid interruptions.',
+    amountUsd: 'Amount (USD)',
+    amountBrl: 'Amount in BRL',
+    copyPix: 'Copy Pix code',
+    copied: 'Pix code copied',
+    showQr: 'Show QR code',
+    hideQr: 'Hide QR code',
+    qrAlt: 'Pix QR code for the weekly invoice',
+    openCharge: 'Open charge',
+    alreadyPaid: 'I already paid',
+    confirmed: 'Payment confirmed!',
+    notYet: 'We could not find the payment yet. Try again in a few minutes.',
+    checkError: 'Error checking the payment',
+    history: 'Invoice history',
+    paid: 'Paid',
+  },
 };
 
 export default en;

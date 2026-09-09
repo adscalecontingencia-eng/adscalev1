@@ -406,6 +406,28 @@ const es: Translations = {
     accepted: 'Nueva aceptación registrada con éxito',
     error: 'No se pudo registrar la aceptación. Inténtalo de nuevo.',
   },
+  invoice: {
+    title: 'Factura de la semana',
+    none: 'No hay factura abierta en este momento.',
+    due: 'Vencimiento',
+    open: 'Abierta',
+    overdue: 'Vencida',
+    overdueHint: 'Esta factura está vencida. Págala cuanto antes para evitar interrupciones.',
+    amountUsd: 'Importe (USD)',
+    amountBrl: 'Importe en reales',
+    copyPix: 'Copiar código Pix',
+    copied: 'Código Pix copiado',
+    showQr: 'Ver código QR',
+    hideQr: 'Ocultar código QR',
+    qrAlt: 'Código QR Pix de la factura semanal',
+    openCharge: 'Abrir cobro',
+    alreadyPaid: 'Ya pagué',
+    confirmed: '¡Pago confirmado!',
+    notYet: 'Todavía no identificamos el pago. Inténtalo en unos minutos.',
+    checkError: 'Error al consultar el pago',
+    history: 'Historial de facturas',
+    paid: 'Pagada',
+  },
 };
 
 export default es;
