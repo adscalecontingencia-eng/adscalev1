@@ -326,7 +326,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("webhook error", err);
     await logEvent({ http_status: 500, status: "error", response: { message: (err as Error).message } });
-    return json({ error: (err as Error).message }, 500);
+    return json({ error: "Erro interno." }, 500);
   }
 });
 
