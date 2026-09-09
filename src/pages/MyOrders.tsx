@@ -151,9 +151,7 @@ const MyOrders: React.FC = () => {
                       <Package size={11} /> Credenciais entregues
                     </p>
                     {o.order_deliveries.map((d: any) => (
-                      <pre key={d.id} className="bg-secondary/40 border border-border rounded p-2 text-[11px] whitespace-pre-wrap font-mono">
-                        {JSON.stringify(d.payload, null, 2)}
-                      </pre>
+                      <DeliveryPayload key={d.id} deliveryId={d.id} />
                     ))}
                   </div>
                 ) : o.status === "aguardando_pagamento" ? (
