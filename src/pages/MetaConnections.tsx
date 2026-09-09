@@ -259,15 +259,20 @@ export default function MetaConnections() {
       }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
+  }, [apiAccounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
-  const stats = useMemo(() => ({
-    total: accounts.length,
-    active: accounts.filter((a) => a.status === "active").length,
-    blocked: accounts.filter((a) => a.status !== "active").length,
-    assigned: assignments.length,
-    unassigned: accounts.length - assignments.length,
-  }), [accounts, assignments]);
+  const stats = useMemo(() => {
+    const ids = new Set(apiAccounts.map((a) => a.id));
+    const assigned = assignments.filter((a) => ids.has(a.ad_account_id)).length;
+    return {
+      total: apiAccounts.length,
+      active: apiAccounts.filter((a) => a.status === "active").length,
+      blocked: apiAccounts.filter((a) => a.status !== "active").length,
+      assigned,
+      unassigned: apiAccounts.length - assigned,
+    };
+  }, [apiAccounts, assignments]);
+
 
   const lastSyncAt = useMemo(() => {
     const dates = [
