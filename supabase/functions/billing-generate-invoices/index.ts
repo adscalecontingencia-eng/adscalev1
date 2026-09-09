@@ -130,8 +130,8 @@ Deno.serve(async (req) => {
       if (!ok) return json({ error: "Forbidden" }, 403);
     }
 
-    const token = mpToken();
-    if (!token) return json({ error: "Mercado Pago token ausente" }, 500);
+    // O Pix é gerado sob demanda (função billing-create-pix), aqui só criamos a fatura.
+
 
     const today = brtToday();
     const dow = today.getUTCDay(); // 5 = sexta
