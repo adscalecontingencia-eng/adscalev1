@@ -37,12 +37,14 @@ const sourceLabel: Record<string, { text: string; cls: string }> = {
   no_token: { text: "Sem token",     cls: "bg-zinc-500/20 text-zinc-200 border-zinc-400/40" },
 };
 
-export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKey?: number }) {
+export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: { refreshKey?: number; onChanged?: () => void }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>("both");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
 
   useEffect(() => {
     let cancelled = false;
