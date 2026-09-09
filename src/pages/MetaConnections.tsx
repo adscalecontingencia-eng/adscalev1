@@ -64,6 +64,8 @@ export default function MetaConnections() {
   const [filterOwnerBmId, setFilterOwnerBmId] = useState<string>("");
   const [detail, setDetail] = useState<Account | null>(null);
   const [mobileBmOpen, setMobileBmOpen] = useState(false);
+  const [panelKey, setPanelKey] = useState(0);
+
 
   const load = async () => {
     setLoading(true);
