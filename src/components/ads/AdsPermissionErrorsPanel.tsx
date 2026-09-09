@@ -209,10 +209,22 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
                         </td>
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmt(r.last_synced_at)}</td>
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmt(r.last_sync_error_at)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px]"
+                            disabled={busy !== null}
+                            onClick={() => archive([r.id])}
+                          >
+                            <Archive className="h-3 w-3 mr-1" /> Arquivar
+                          </Button>
+                        </td>
                       </tr>
                       {isOpen && attempts.length > 0 && (
                         <tr key={r.id + "-att"} className="bg-red-500/[0.03]">
-                          <td colSpan={6} className="px-3 py-2">
+                          <td colSpan={7} className="px-3 py-2">
+
                             <div className="space-y-1">
                               {attempts.map((a, i) => (
                                 <div key={i} className="flex items-start gap-2 text-[11px]">
