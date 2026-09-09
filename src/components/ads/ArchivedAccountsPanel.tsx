@@ -89,11 +89,20 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
   };
 
 
+  // Contas arquivadas há mais de N semanas somem automaticamente do painel.
+  const visibleRows = useMemo(() => {
+    const cutoff = Date.now() - retentionWeeks * 7 * 86400000;
+    return rows.filter((r) => (r.archived_at ? new Date(r.archived_at).getTime() >= cutoff : true));
+  }, [rows, retentionWeeks]);
+
+  const expiredCount = rows.length - visibleRows.length;
+
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     const fromTs = from ? new Date(from).getTime() : null;
     const toTs = to ? new Date(to).getTime() + 86400000 : null;
-    return rows.filter((r) => {
+    return visibleRows.filter((r) => {
+
       if (term && !`${r.name} ${r.meta_account_id}`.toLowerCase().includes(term)) return false;
       if (token !== "all" && (r.last_sync_error_source || "no_token") !== token) return false;
       const code = r.last_sync_error_code;
