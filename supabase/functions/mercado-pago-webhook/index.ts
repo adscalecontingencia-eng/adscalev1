@@ -160,8 +160,64 @@ Deno.serve(async (req) => {
       return json({ ok: true, ignored: true });
     }
 
+    // Faturas semanais usam prefixo "inv-"
+    if (externalReference?.startsWith("inv-")) {
+      const txInv = mpOrder?.transactions?.payments?.[0] ?? {};
+      const statusInv = mpPayment?.status ?? mpOrder?.status ?? txInv?.status;
+      const isPaidInv = ["approved", "processed"].includes(String(mpPayment?.status))
+        || ["approved", "processed"].includes(String(mpOrder?.status))
+        || ["approved", "processed"].includes(String(txInv?.status));
+
+      const { data: invRow } = await supabase
+        .from("billing_invoices")
+        .select("id, status")
+        .eq("external_reference", externalReference)
+        .maybeSingle();
+
+      if (!invRow) {
+        await logEvent({
+          http_status: 200,
+          status: "invoice_not_found",
+          external_reference: externalReference,
+          signature_valid: sig.required,
+        });
+        return json({ ok: true, ignored: true });
+      }
+
+      if (isPaidInv) {
+        const mpPaymentId = mpPayment?.id?.toString() ?? txInv?.id?.toString() ?? null;
+        const { data: res } = await supabase.rpc("settle_invoice_payment", {
+          _invoice_id: invRow.id,
+          _mp_payment_id: mpPaymentId,
+          _raw: mpOrder ?? mpPayment,
+        });
+        await logEvent({
+          http_status: 200,
+          status: "invoice_paid",
+          external_reference: externalReference,
+          signature_valid: sig.required,
+          response: res,
+        });
+        return json({ ok: true, invoice: res });
+      }
+
+      await supabase
+        .from("billing_invoices")
+        .update({ raw_response: mpOrder ?? mpPayment })
+        .eq("id", invRow.id);
+
+      await logEvent({
+        http_status: 200,
+        status: `invoice_${statusInv ?? "pending"}`,
+        external_reference: externalReference,
+        signature_valid: sig.required,
+      });
+      return json({ ok: true, invoice_pending: true });
+    }
+
     // Wallet deposits use prefix "dep-"
     if (externalReference?.startsWith("dep-")) {
+
       const tx2 = mpOrder?.transactions?.payments?.[0] ?? {};
       const status2 = mpPayment?.status ?? mpOrder?.status ?? tx2?.status;
       const isPaid2 = ["approved", "processed"].includes(String(mpPayment?.status))

@@ -130,6 +130,92 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_invoices: {
+        Row: {
+          amount_brl: number | null
+          amount_usd: number
+          client_id: string
+          created_at: string
+          due_date: string | null
+          external_reference: string
+          fx_rate: number | null
+          id: string
+          last_reminder_at: string | null
+          marked_paid_by: string | null
+          mercado_pago_payment_id: string | null
+          note: string | null
+          paid_at: string | null
+          provider: string
+          qr_code: string | null
+          qr_code_base64: string | null
+          raw_response: Json | null
+          reminders_sent: number
+          status: string
+          ticket_url: string | null
+          updated_at: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          amount_brl?: number | null
+          amount_usd?: number
+          client_id: string
+          created_at?: string
+          due_date?: string | null
+          external_reference: string
+          fx_rate?: number | null
+          id?: string
+          last_reminder_at?: string | null
+          marked_paid_by?: string | null
+          mercado_pago_payment_id?: string | null
+          note?: string | null
+          paid_at?: string | null
+          provider?: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json | null
+          reminders_sent?: number
+          status?: string
+          ticket_url?: string | null
+          updated_at?: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          amount_brl?: number | null
+          amount_usd?: number
+          client_id?: string
+          created_at?: string
+          due_date?: string | null
+          external_reference?: string
+          fx_rate?: number | null
+          id?: string
+          last_reminder_at?: string | null
+          marked_paid_by?: string | null
+          mercado_pago_payment_id?: string | null
+          note?: string | null
+          paid_at?: string | null
+          provider?: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json | null
+          reminders_sent?: number
+          status?: string
+          ticket_url?: string | null
+          updated_at?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_week_snapshots: {
         Row: {
           client_id: string
@@ -3590,6 +3676,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      settle_invoice_payment: {
+        Args: { _invoice_id: string; _mp_payment_id?: string; _raw?: Json }
+        Returns: Json
       }
       upsert_deposit_finance: {
         Args: { _deposit_id: string; _status: string }

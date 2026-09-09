@@ -72,6 +72,8 @@ const pt = {
     access: 'Acessos',
     audit: 'Auditoria',
     manualAdjustments: 'Ajustes Manuais',
+    weeklyInvoices: 'Faturas Semanais',
+
     termsAudit: 'Auditoria de Termos',
     partnerBanners: 'Banners de Parceiros',
     users: 'Usuários',
