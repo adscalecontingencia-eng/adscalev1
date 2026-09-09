@@ -11,6 +11,38 @@ import { toast } from "sonner";
 const fmtBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
+const DeliveryPayload: React.FC<{ deliveryId: string }> = ({ deliveryId }) => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const reveal = async () => {
+    setLoading(true);
+    const { data: res, error } = await supabase.rpc("get_order_delivery_payload", {
+      _delivery_id: deliveryId,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("Não foi possível exibir as credenciais.");
+      return;
+    }
+    setData(res);
+  };
+
+  if (!data) {
+    return (
+      <Button size="sm" variant="outline" onClick={reveal} disabled={loading}>
+        {loading ? "Carregando…" : "Exibir credenciais"}
+      </Button>
+    );
+  }
+
+  return (
+    <pre className="bg-secondary/40 border border-border rounded p-2 text-[11px] whitespace-pre-wrap font-mono">
+      {JSON.stringify(data, null, 2)}
+    </pre>
+  );
+};
+
 const MyOrders: React.FC = () => {
   const { user } = useAuth();
   const [params] = useSearchParams();
