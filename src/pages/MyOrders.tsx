@@ -30,7 +30,9 @@ const MyOrders: React.FC = () => {
     }
     const { data } = await supabase
       .from("orders")
-      .select("*, order_items(*, products(name)), order_deliveries(*), payments(*)")
+      .select(
+        "*, order_items(*, products(name)), order_deliveries(id, order_id, product_id, delivery_mode, delivered_at), payments(*)"
+      )
       .eq("client_id", client.id)
       .order("created_at", { ascending: false });
     setOrders(data || []);
