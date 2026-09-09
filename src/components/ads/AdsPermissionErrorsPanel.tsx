@@ -142,6 +142,15 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
             <FilterBtn f="user" label="Só user" />
             <FilterBtn f="no_token" label="Sem token" />
             <FilterBtn f="all" label="Todos" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto h-7 text-[11px]"
+              disabled={busy !== null || filtered.length === 0}
+              onClick={() => archive(filtered.map((r) => r.id))}
+            >
+              <Archive className="h-3 w-3 mr-1" /> Arquivar filtradas ({filtered.length})
+            </Button>
           </div>
 
           <div className="overflow-x-auto border-t border-red-500/20">
@@ -154,8 +163,10 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
                   <th className="text-left px-3 py-2 font-medium">Erro</th>
                   <th className="text-left px-3 py-2 font-medium">Última sync</th>
                   <th className="text-left px-3 py-2 font-medium">Erro em</th>
+                  <th className="text-right px-3 py-2 font-medium">Ações</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.map((r) => {
                   const src = (r.last_sync_error_source || "system") as keyof typeof sourceLabel;
