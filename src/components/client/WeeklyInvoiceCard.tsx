@@ -51,11 +51,31 @@ export default function WeeklyInvoiceCard({ clientId }: { clientId: string }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const generatePix = async () => {
+    if (!current) return;
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('billing-create-pix', {
+        body: { invoice_id: current.id },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setShowQr(true);
+      await load();
+      toast.success(t('invoice.generated', 'Pix gerado com sucesso'));
+    } catch (e: any) {
+      toast.error(e?.message || t('invoice.generateError', 'Não foi possível gerar o Pix'));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const copyPix = async () => {
     if (!current?.qr_code) return;
     await navigator.clipboard.writeText(current.qr_code);
     toast.success(t('invoice.copied', 'Código Pix copiado'));
   };
+
 
   const checkPayment = async () => {
     if (!current) return;
