@@ -195,7 +195,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
             </select>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-[140px] text-xs" />
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 w-[140px] text-xs" />
-            <span className="text-[11px] text-muted-foreground ml-auto">{filtered.length} de {rows.length}</span>
+            <span className="text-[11px] text-muted-foreground ml-auto">{filtered.length} de {visibleRows.length}</span>
           </div>
 
           <div className="overflow-x-auto">
