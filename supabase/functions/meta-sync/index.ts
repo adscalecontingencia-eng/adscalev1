@@ -1961,6 +1961,20 @@ Deno.serve(async (req) => {
       return json({ sucesso: true, arquivadas: ids.length, min_days: minDays, contas: candidates });
     }
 
+    // ===== Arquivar conta(s) manualmente =====
+    if (action === "archive_account") {
+      const ids: string[] = Array.isArray(body.account_ids) && body.account_ids.length
+        ? body.account_ids.map((x: any) => String(x))
+        : body.account_id ? [String(body.account_id)] : [];
+      if (ids.length === 0) return json({ erro: "account_id ou account_ids obrigatório" }, 400);
+      const { error } = await supabase
+        .from("meta_ad_accounts")
+        .update({ archived_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+      return json({ sucesso: true, arquivadas: ids.length });
+    }
+
     // ===== Restaurar conta arquivada =====
     if (action === "unarchive_account") {
       const id = String(body.account_id || "");
@@ -1972,6 +1986,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       return json({ sucesso: true });
     }
+
     const appIds: string[] | undefined = Array.isArray(body.app_ids) && body.app_ids.length > 0 ? body.app_ids : undefined;
     // Padrão agora é "deep": além de descobrir contas novas, revarre BMs e
     // atualiza gasto, status (ativa/banida) e score de cada conta. O modo "light"
