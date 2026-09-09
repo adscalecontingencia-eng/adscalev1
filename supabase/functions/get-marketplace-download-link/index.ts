@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("get-marketplace-download-link error", err);
     await logAttempt(false, (err as Error).message, null);
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

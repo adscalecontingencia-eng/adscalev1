@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     return json({ ...result, external_reference: externalReference });
   } catch (err) {
     console.error("create-pix-order error", err);
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

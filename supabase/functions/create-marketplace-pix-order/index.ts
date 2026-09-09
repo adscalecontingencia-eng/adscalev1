@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("create-marketplace-pix-order error", err);
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, result });
   } catch (err) {
     console.error("admin-payment-action error", err);
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

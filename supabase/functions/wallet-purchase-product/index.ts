@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     }
     return json({ ok: true, order_id: r.order_id, new_balance: r.new_balance });
   } catch (err) {
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

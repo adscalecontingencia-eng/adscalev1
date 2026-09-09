@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, qr_code: qrCode, qr_code_base64: qrBase64, ticket_url: ticketUrl });
   } catch (err) {
     console.error("billing-create-pix error", err);
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });

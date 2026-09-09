@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     return json(result);
   } catch (err) {
     console.error("mercado-pago-validate error", err);
-    console.error("unhandled error", err_generic_log);
+    console.error("unhandled error", err);
     return json({ error: "Erro interno. Tente novamente." }, 500);
   }
 });
