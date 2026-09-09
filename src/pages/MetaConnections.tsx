@@ -225,10 +225,28 @@ export default function MetaConnections() {
   // Contas realmente identificadas pela API: as que falharam por permissão
   // ficam de fora dos KPIs/listagem e aparecem no painel de erros de permissão.
   const PERMISSION_CODES = [200, 190, 10, 100];
+  // Janela da última sincronização: contas não tocadas nela não estão mais
+  // visíveis na API (sem permissão / removidas) e ficam fora dos KPIs.
+  const freshCutoff = useMemo(() => {
+    const times = accounts
+      .map((a: any) => (a.last_synced_at ? new Date(a.last_synced_at).getTime() : 0))
+      .filter(Boolean);
+    if (!times.length) return 0;
+    return Math.max(...times) - 24 * 60 * 60 * 1000;
+  }, [accounts]);
+
   const apiAccounts = useMemo(
-    () => accounts.filter((a: any) => !PERMISSION_CODES.includes(Number(a.last_sync_error_code))),
-    [accounts],
+    () =>
+      accounts.filter((a: any) => {
+        if (PERMISSION_CODES.includes(Number(a.last_sync_error_code))) return false;
+        if (!a.last_synced_at) return false;
+        return new Date(a.last_synced_at).getTime() >= freshCutoff;
+      }),
+    [accounts, freshCutoff],
   );
+
+  const staleCount = accounts.length - apiAccounts.length;
+
 
   const filtered = useMemo(() => {
     return apiAccounts.filter((a) => {
@@ -422,6 +440,13 @@ export default function MetaConnections() {
         assigned={stats.assigned}
         unassigned={stats.unassigned}
       />
+
+      {staleCount > 0 && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          {staleCount} conta(s) não retornaram na última sincronização (sem acesso na API) e ficam fora dos números acima.
+        </p>
+      )}
+
 
       <SystemUserHelp />
 
