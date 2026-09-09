@@ -203,39 +203,8 @@ Deno.serve(async (req) => {
 
           const amountBrl = Number((amountUsd * fxRate).toFixed(2));
           const externalReference = `inv-${client.id.slice(0, 8)}-${iso(weekStart)}-${crypto.randomUUID().slice(0, 6)}`;
-          const payerEmail = isTestMode()
-            ? (Deno.env.get("MP_TEST_BUYER_EMAIL")?.trim() || "test_user_adscale@testuser.com")
-            : (client.email || "pagamentos@adscale.app");
 
-          const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-              "X-Idempotency-Key": crypto.randomUUID(),
-            },
-            body: JSON.stringify({
-              type: "online",
-              processing_mode: "automatic",
-              external_reference: externalReference,
-              total_amount: amountBrl.toFixed(2),
-              description: `AD•SCALE — semana ${fmtBR(iso(weekStart))} a ${fmtBR(iso(weekEnd))}`,
-              payer: { email: payerEmail, first_name: isTestMode() ? "APRO" : (client.name || "Cliente") },
-              transactions: {
-                payments: [{ amount: amountBrl.toFixed(2), payment_method: { id: "pix", type: "bank_transfer" } }],
-              },
-            }),
-          });
-          const mpData = await mpRes.json().catch(() => ({}));
-          if (!mpRes.ok) {
-            result.errors.push(`${client.name}: ${mpData?.message ?? mpRes.status}`);
-            continue;
-          }
-
-          const tx = mpData?.transactions?.payments?.[0] ?? {};
-          const pm = tx?.payment_method ?? {};
-          const td = tx?.point_of_interaction?.transaction_data ?? {};
-
+          // O Pix (QR Code / copia e cola) é gerado sob demanda pelo cliente no painel.
           const { data: inv, error: insErr } = await admin
             .from("billing_invoices")
             .insert({
@@ -246,16 +215,12 @@ Deno.serve(async (req) => {
               fx_rate: fxRate,
               amount_brl: amountBrl,
               external_reference: externalReference,
-              mercado_pago_payment_id: tx?.id?.toString() ?? null,
-              qr_code: pm?.qr_code ?? td?.qr_code ?? null,
-              qr_code_base64: pm?.qr_code_base64 ?? td?.qr_code_base64 ?? null,
-              ticket_url: pm?.ticket_url ?? td?.ticket_url ?? null,
               status: "aberta",
               due_date: iso(dueDate),
-              raw_response: mpData,
             })
             .select("id, qr_code, ticket_url")
             .single();
+
           if (insErr) { result.errors.push(`${client.name}: ${insErr.message}`); continue; }
 
           if (client.email) {
