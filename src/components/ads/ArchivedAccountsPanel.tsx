@@ -42,28 +42,67 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
   const [to, setTo] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [retentionWeeks, setRetentionWeeks] = useState<number>(2);
+  const [retentionInput, setRetentionInput] = useState<string>("2");
+  const [savingRetention, setSavingRetention] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("meta_ad_accounts")
-        .select("id,name,meta_account_id,last_sync_error_code,last_sync_error_message,last_sync_error_at,last_sync_error_source,archived_at")
-        .not("archived_at", "is", null)
-        .order("archived_at", { ascending: false })
-        .limit(1000);
-      if (!cancelled && !error) setRows((data as any) || []);
+      const [{ data, error }, cfg] = await Promise.all([
+        supabase
+          .from("meta_ad_accounts")
+          .select("id,name,meta_account_id,last_sync_error_code,last_sync_error_message,last_sync_error_at,last_sync_error_source,archived_at")
+          .not("archived_at", "is", null)
+          .order("archived_at", { ascending: false })
+          .limit(1000),
+        supabase.from("support_settings").select("value").eq("key", "archived_retention_weeks").maybeSingle(),
+      ]);
+      if (!cancelled) {
+        if (!error) setRows((data as any) || []);
+        const w = Number((cfg.data as any)?.value ?? 2);
+        if (Number.isFinite(w) && w > 0) { setRetentionWeeks(w); setRetentionInput(String(w)); }
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [refreshKey, tick]);
 
+  const saveRetention = async () => {
+    const w = Number(retentionInput);
+    if (!Number.isFinite(w) || w < 1) {
+      toast({ title: "Valor inválido", description: "Informe pelo menos 1 semana.", variant: "destructive" });
+      return;
+    }
+    setSavingRetention(true);
+    const { error } = await supabase
+      .from("support_settings")
+      .upsert({ key: "archived_retention_weeks", value: w as any }, { onConflict: "key" });
+    setSavingRetention(false);
+    if (error) {
+      toast({ title: "Falha ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRetentionWeeks(w);
+    toast({ title: "Configuração salva", description: `Contas somem do painel ${w} semana(s) após o arquivamento.` });
+  };
+
+
+  // Contas arquivadas há mais de N semanas somem automaticamente do painel.
+  const visibleRows = useMemo(() => {
+    const cutoff = Date.now() - retentionWeeks * 7 * 86400000;
+    return rows.filter((r) => (r.archived_at ? new Date(r.archived_at).getTime() >= cutoff : true));
+  }, [rows, retentionWeeks]);
+
+  const expiredCount = rows.length - visibleRows.length;
+
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     const fromTs = from ? new Date(from).getTime() : null;
     const toTs = to ? new Date(to).getTime() + 86400000 : null;
-    return rows.filter((r) => {
+    return visibleRows.filter((r) => {
+
       if (term && !`${r.name} ${r.meta_account_id}`.toLowerCase().includes(term)) return false;
       if (token !== "all" && (r.last_sync_error_source || "no_token") !== token) return false;
       const code = r.last_sync_error_code;
@@ -81,7 +120,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       }
       return true;
     });
-  }, [rows, q, token, reason, from, to]);
+  }, [visibleRows, q, token, reason, from, to]);
 
   const unarchive = async (id: string) => {
     setBusy(id);
@@ -108,15 +147,33 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
         <div className="flex items-center gap-2">
           <Archive className="h-4 w-4 text-zinc-300" />
-          <span className="text-sm font-medium text-zinc-200">Contas arquivadas ({rows.length})</span>
-          <span className="text-[10px] text-muted-foreground">removidas da sincronização e dos relatórios</span>
+          <span className="text-sm font-medium text-zinc-200">Contas arquivadas ({visibleRows.length})</span>
+          <span className="text-[10px] text-muted-foreground">
+            removidas da sincronização e dos relatórios
+            {expiredCount > 0 && ` · ${expiredCount} ocultada(s) após ${retentionWeeks} semana(s)`}
+          </span>
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-zinc-300" /> : <ChevronDown className="h-4 w-4 text-zinc-300" />}
       </button>
 
       {open && (
         <div className="border-t border-zinc-500/20">
+          <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
+            <span className="text-[11px] text-muted-foreground">Remover do painel automaticamente após</span>
+            <Input
+              type="number"
+              min={1}
+              value={retentionInput}
+              onChange={(e) => setRetentionInput(e.target.value)}
+              className="h-8 w-[70px] text-xs"
+            />
+            <span className="text-[11px] text-muted-foreground">semana(s) do arquivamento</span>
+            <Button size="sm" variant="outline" className="h-8 text-xs" disabled={savingRetention} onClick={saveRetention}>
+              Salvar
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center gap-2 p-3">
+
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar por nome ou ID..." className="pl-7 h-8 text-xs" />
@@ -138,7 +195,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
             </select>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-[140px] text-xs" />
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 w-[140px] text-xs" />
-            <span className="text-[11px] text-muted-foreground ml-auto">{filtered.length} de {rows.length}</span>
+            <span className="text-[11px] text-muted-foreground ml-auto">{filtered.length} de {visibleRows.length}</span>
           </div>
 
           <div className="overflow-x-auto">

@@ -64,6 +64,8 @@ export default function MetaConnections() {
   const [filterOwnerBmId, setFilterOwnerBmId] = useState<string>("");
   const [detail, setDetail] = useState<Account | null>(null);
   const [mobileBmOpen, setMobileBmOpen] = useState(false);
+  const [panelKey, setPanelKey] = useState(0);
+
 
   const load = async () => {
     setLoading(true);
@@ -220,8 +222,17 @@ export default function MetaConnections() {
     return (accId: string) => m.get(accId) || null;
   }, [assignments]);
 
+  // Contas realmente identificadas pela API: as que falharam por permissão
+  // ficam de fora dos KPIs/listagem e aparecem no painel de erros de permissão.
+  const PERMISSION_CODES = [200, 190, 10, 100];
+  const apiAccounts = useMemo(
+    () => accounts.filter((a: any) => !PERMISSION_CODES.includes(Number(a.last_sync_error_code))),
+    [accounts],
+  );
+
   const filtered = useMemo(() => {
-    return accounts.filter((a) => {
+    return apiAccounts.filter((a) => {
+
       // BM
       if (selectedBm === "none") { if (a.bm_id) return false; }
       else if (selectedBm !== "all" && a.bm_id !== selectedBm) return false;
@@ -250,15 +261,20 @@ export default function MetaConnections() {
       }
       return true;
     });
-  }, [accounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
+  }, [apiAccounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
-  const stats = useMemo(() => ({
-    total: accounts.length,
-    active: accounts.filter((a) => a.status === "active").length,
-    blocked: accounts.filter((a) => a.status !== "active").length,
-    assigned: assignments.length,
-    unassigned: accounts.length - assignments.length,
-  }), [accounts, assignments]);
+  const stats = useMemo(() => {
+    const ids = new Set(apiAccounts.map((a) => a.id));
+    const assigned = assignments.filter((a) => ids.has(a.ad_account_id)).length;
+    return {
+      total: apiAccounts.length,
+      active: apiAccounts.filter((a) => a.status === "active").length,
+      blocked: apiAccounts.filter((a) => a.status !== "active").length,
+      assigned,
+      unassigned: apiAccounts.length - assigned,
+    };
+  }, [apiAccounts, assignments]);
+
 
   const lastSyncAt = useMemo(() => {
     const dates = [
@@ -292,7 +308,7 @@ export default function MetaConnections() {
   const sidebarNode = (
     <BmSidebar
       bms={bms}
-      accounts={accounts}
+      accounts={apiAccounts}
       selected={selectedBm}
       onSelect={(v) => { setSelectedBm(v); setMobileBmOpen(false); }}
     />
@@ -344,8 +360,9 @@ export default function MetaConnections() {
       </div>
 
       <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
-      <AdsPermissionErrorsPanel refreshKey={bms.length} />
-      <ArchivedAccountsPanel refreshKey={bms.length} />
+      <AdsPermissionErrorsPanel refreshKey={bms.length + panelKey} onChanged={() => { setPanelKey((k) => k + 1); load(); }} />
+      <ArchivedAccountsPanel refreshKey={bms.length + panelKey} />
+
 
 
       {/* Sync job progress */}

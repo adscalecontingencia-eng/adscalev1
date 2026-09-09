@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Archive, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 
 type Attempt = { source: string; code: number | null; message: string };
 
@@ -34,12 +37,14 @@ const sourceLabel: Record<string, { text: string; cls: string }> = {
   no_token: { text: "Sem token",     cls: "bg-zinc-500/20 text-zinc-200 border-zinc-400/40" },
 };
 
-export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKey?: number }) {
+export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: { refreshKey?: number; onChanged?: () => void }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>("both");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +76,26 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKe
     if (filter === "all") return rows;
     return rows.filter(r => (r.last_sync_error_source || "system") === filter);
   }, [rows, filter]);
+
+  const archive = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setBusy(ids.length === 1 ? ids[0] : "bulk");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-sync", {
+        body: { action: "archive_account", account_ids: ids },
+      });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+      toast({ title: ids.length === 1 ? "Conta arquivada" : `${ids.length} contas arquivadas`, description: "Removidas da sincronização e dos relatórios." });
+      onChanged?.();
+    } catch (e: any) {
+      toast({ title: "Falha ao arquivar", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
 
   if (loading || rows.length === 0) return null;
 
@@ -117,6 +142,15 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKe
             <FilterBtn f="user" label="Só user" />
             <FilterBtn f="no_token" label="Sem token" />
             <FilterBtn f="all" label="Todos" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto h-7 text-[11px]"
+              disabled={busy !== null || filtered.length === 0}
+              onClick={() => archive(filtered.map((r) => r.id))}
+            >
+              <Archive className="h-3 w-3 mr-1" /> Arquivar filtradas ({filtered.length})
+            </Button>
           </div>
 
           <div className="overflow-x-auto border-t border-red-500/20">
@@ -129,8 +163,10 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKe
                   <th className="text-left px-3 py-2 font-medium">Erro</th>
                   <th className="text-left px-3 py-2 font-medium">Última sync</th>
                   <th className="text-left px-3 py-2 font-medium">Erro em</th>
+                  <th className="text-right px-3 py-2 font-medium">Ações</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.map((r) => {
                   const src = (r.last_sync_error_source || "system") as keyof typeof sourceLabel;
@@ -173,10 +209,22 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0 }: { refreshKe
                         </td>
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmt(r.last_synced_at)}</td>
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmt(r.last_sync_error_at)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px]"
+                            disabled={busy !== null}
+                            onClick={() => archive([r.id])}
+                          >
+                            <Archive className="h-3 w-3 mr-1" /> Arquivar
+                          </Button>
+                        </td>
                       </tr>
                       {isOpen && attempts.length > 0 && (
                         <tr key={r.id + "-att"} className="bg-red-500/[0.03]">
-                          <td colSpan={6} className="px-3 py-2">
+                          <td colSpan={7} className="px-3 py-2">
+
                             <div className="space-y-1">
                               {attempts.map((a, i) => (
                                 <div key={i} className="flex items-start gap-2 text-[11px]">
