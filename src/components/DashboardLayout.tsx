@@ -26,6 +26,8 @@ const groups: Group[] = [
       { path: '/clients', labelKey: 'nav.clients', icon: Users },
       { path: '/partners', labelKey: 'nav.partners', icon: Handshake },
       { path: '/financial', labelKey: 'nav.financial', icon: DollarSign },
+      { path: '/faturas-semanais', labelKey: 'nav.weeklyInvoices', icon: DollarSign },
+
       { path: '/ads-dashboard', labelKey: 'nav.ads', icon: BarChart3 },
       { path: '/support', labelKey: 'nav.support', icon: HeadphonesIcon },
       { path: '/meta-connections', labelKey: 'nav.metaConnections', icon: Plug },

@@ -31,6 +31,8 @@ import ReferralAlerts from '@/components/client/ReferralAlerts';
 import ReferralStatement from '@/components/client/ReferralStatement';
 import DashboardTour, { TourButton } from '@/components/client/DashboardTour';
 import DailyStatement from '@/components/client/DailyStatement';
+import WeeklyInvoiceCard from '@/components/client/WeeklyInvoiceCard';
+
 
 const ClientDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -2043,7 +2045,9 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
+            {client?.id && <WeeklyInvoiceCard clientId={client.id} />}
             {client?.id && (
+
               <DailyStatement
                 clientId={client.id}
                 clientName={client.name || ''}
