@@ -120,7 +120,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       }
       return true;
     });
-  }, [rows, q, token, reason, from, to]);
+  }, [visibleRows, q, token, reason, from, to]);
 
   const unarchive = async (id: string) => {
     setBusy(id);
@@ -147,15 +147,33 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
         <div className="flex items-center gap-2">
           <Archive className="h-4 w-4 text-zinc-300" />
-          <span className="text-sm font-medium text-zinc-200">Contas arquivadas ({rows.length})</span>
-          <span className="text-[10px] text-muted-foreground">removidas da sincronização e dos relatórios</span>
+          <span className="text-sm font-medium text-zinc-200">Contas arquivadas ({visibleRows.length})</span>
+          <span className="text-[10px] text-muted-foreground">
+            removidas da sincronização e dos relatórios
+            {expiredCount > 0 && ` · ${expiredCount} ocultada(s) após ${retentionWeeks} semana(s)`}
+          </span>
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-zinc-300" /> : <ChevronDown className="h-4 w-4 text-zinc-300" />}
       </button>
 
       {open && (
         <div className="border-t border-zinc-500/20">
+          <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
+            <span className="text-[11px] text-muted-foreground">Remover do painel automaticamente após</span>
+            <Input
+              type="number"
+              min={1}
+              value={retentionInput}
+              onChange={(e) => setRetentionInput(e.target.value)}
+              className="h-8 w-[70px] text-xs"
+            />
+            <span className="text-[11px] text-muted-foreground">semana(s) do arquivamento</span>
+            <Button size="sm" variant="outline" className="h-8 text-xs" disabled={savingRetention} onClick={saveRetention}>
+              Salvar
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center gap-2 p-3">
+
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar por nome ou ID..." className="pl-7 h-8 text-xs" />
