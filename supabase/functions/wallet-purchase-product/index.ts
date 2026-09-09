@@ -29,7 +29,11 @@ Deno.serve(async (req) => {
       _product_id: product_id,
       _quantity: quantity ?? 1,
     });
-    if (error) return json({ error: error.message }, 400);
+    if (error) {
+      console.error("purchase_with_wallet error", error);
+      return json({ error: "Não foi possível concluir a compra." }, 400);
+    }
+
     const r = data as { ok: boolean; reason?: string; order_id?: string; new_balance?: number; balance?: number; required?: number };
     if (!r?.ok) {
       if (r?.reason === "insufficient_balance")
