@@ -2043,7 +2043,9 @@ const ClientDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cobrancas" className="space-y-5 mt-0">
+            {client?.id && <WeeklyInvoiceCard clientId={client.id} />}
             {client?.id && (
+
               <DailyStatement
                 clientId={client.id}
                 clientName={client.name || ''}
