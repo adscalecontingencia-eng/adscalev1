@@ -448,9 +448,27 @@ const Clients: React.FC = () => {
               .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
           : null,
       };
+      // Atualiza login (senha / e-mail) no Auth quando alterados
+      const newPwd = (form.password || '').trim();
+      const emailChanged = clientType === 'aluguel' && (effectiveEmail || '').toLowerCase() !== (editing.email || '').toLowerCase();
+      if (newPwd || emailChanged) {
+        if (newPwd && newPwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); setSaving(false); return; }
+        const res = await supabase.functions.invoke('manage-users', {
+          body: {
+            action: 'reset_login', client_id: editing.id,
+            ...(emailChanged ? { new_email: effectiveEmail } : {}),
+            ...(newPwd ? { new_password: newPwd } : {}),
+          },
+        });
+        if (res.error || (res.data as any)?.error) {
+          toast.error((res.data as any)?.error || res.error?.message || 'Erro ao atualizar login do cliente');
+          setSaving(false); return;
+        }
+        logAudit({ action: 'client_login_reset', entity: 'client', entity_id: editing.id, after: { email_changed: emailChanged, password_changed: !!newPwd } as any });
+      }
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
       if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
-      toast.success('Cliente atualizado!');
+      toast.success(newPwd ? 'Cliente atualizado e senha alterada!' : 'Cliente atualizado!');
     } else if (clientType === 'venda') {
       // Cliente de venda: cadastro simples, sem usuário de auth/login
       const { error } = await supabase.from('clients').insert({
