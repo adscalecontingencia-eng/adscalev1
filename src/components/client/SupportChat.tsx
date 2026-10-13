@@ -130,6 +130,7 @@ const SupportChat: React.FC<{ clientId: string | null }> = ({ clientId }) => {
                     : 'max-w-[80%] text-foreground rounded-2xl rounded-bl-md px-4 py-2.5 text-sm whitespace-pre-wrap border border-border/60'
                 }
               >
+                {m.role === 'agent' && <p className="text-[10px] text-primary font-semibold mb-1">{t('supportInbox.agentLabel')}</p>}
                 {m.content.replace(WHATSAPP_MARKER, '').trim()}
               </div>
             </div>
