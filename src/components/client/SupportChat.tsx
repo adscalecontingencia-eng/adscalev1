@@ -89,11 +89,6 @@ const SupportChat: React.FC<{ clientId: string | null }> = ({ clientId }) => {
     }
   };
 
-  const showWhatsappCta =
-    whatsappUrl &&
-    messages.some(m => m.role === 'assistant' && false) === false && // sempre visível quando configurado
-    !!whatsappUrl;
-
   return (
     <div className="bg-card border border-border rounded-xl border-glow overflow-hidden">
       <div className="flex items-center gap-2 px-5 py-4 border-b border-border/60">

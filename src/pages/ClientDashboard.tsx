@@ -33,6 +33,7 @@ import DashboardTour, { TourButton } from '@/components/client/DashboardTour';
 import DailyStatement from '@/components/client/DailyStatement';
 import WeeklyInvoiceCard from '@/components/client/WeeklyInvoiceCard';
 import ChangePasswordCard from '@/components/client/ChangePasswordCard';
+import SupportChat from '@/components/client/SupportChat';
 
 
 const ClientDashboard: React.FC = () => {
@@ -1830,6 +1831,7 @@ const ClientDashboard: React.FC = () => {
 
           {/* SUPORTE */}
           <TabsContent value="suporte" className="space-y-5 mt-0">
+            {!isAdminView && <SupportChat clientId={client?.id ?? null} />}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                 <LifeBuoy size={16} className="text-primary" /> {t('clientDash.support.requestService')}
