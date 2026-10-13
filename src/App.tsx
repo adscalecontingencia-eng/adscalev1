@@ -47,6 +47,7 @@ import AdminPayments from "./pages/AdminPayments";
 import AdminAudit from "./pages/AdminAudit";
 import ManualAdjustments from "./pages/ManualAdjustments";
 import WeeklyInvoices from "./pages/WeeklyInvoices";
+import SupportInbox from "./pages/SupportInbox";
 
 import TermsAudit from "./pages/TermsAudit";
 import AdminWebhookLogs from "./pages/AdminWebhookLogs";
@@ -165,6 +166,7 @@ const App = () => (
               <Route path="/terms-audit" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><TermsAudit /></DashboardLayout></ProtectedRoute>} />
               <Route path="/manual-adjustments" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><ManualAdjustments /></DashboardLayout></ProtectedRoute>} />
               <Route path="/faturas-semanais" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><WeeklyInvoices /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/central-suporte" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><SupportInbox /></DashboardLayout></ProtectedRoute>} />
 
               <Route path="/partner-banners" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><PartnerBanners /></DashboardLayout></ProtectedRoute>} />
 
