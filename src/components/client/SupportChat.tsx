@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'agent';
   content: string;
   created_at: string;
 }
