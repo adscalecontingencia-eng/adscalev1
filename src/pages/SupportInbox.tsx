@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 type Msg = { id: string; client_id: string; role: string; content: string; created_at: string };
 type Req = { id: string; client_id: string; request_type: string; description: string | null; quantity: number | null; status: string; created_at: string; client?: { name: string } | null };
 
-const STATUSES = ['pendente', 'em_andamento', 'concluido', 'cancelado'];
+const STATUSES = ['pendente', 'em_andamento', 'concluida', 'cancelada'];
 const clean = (s: string) => s.replace('[WHATSAPP]', '').trim();
 
 const SupportInbox: React.FC = () => {
@@ -63,7 +63,7 @@ const SupportInbox: React.FC = () => {
   };
 
   const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('support_requests').update({ status, resolved_at: status === 'concluido' ? new Date().toISOString() : null }).eq('id', id);
+    const { error } = await supabase.from('support_requests').update({ status, resolved_at: status === 'concluida' ? new Date().toISOString() : null }).eq('id', id);
     if (error) return toast.error(t('supportInbox.statusError'));
     setReqs(prev => prev.map(r => (r.id === id ? { ...r, status } : r)));
   };
@@ -130,7 +130,7 @@ const SupportInbox: React.FC = () => {
 
         <TabsContent value="tickets">
           <div className="flex gap-2 mb-3 flex-wrap">
-            {['pendente', 'em_andamento', 'concluido', 'cancelado', 'all'].map(s => (
+            {['pendente', 'em_andamento', 'concluida', 'cancelada', 'all'].map(s => (
               <button key={s} onClick={() => setFilter(s)}
                 className={cn('text-xs px-3 py-1.5 rounded-lg border', filter === s ? 'bg-primary text-primary-foreground border-primary' : 'border-border')}>
                 {t(`supportInbox.status_${s}`)}
