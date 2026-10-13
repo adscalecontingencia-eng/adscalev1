@@ -168,6 +168,7 @@ const es: Translations = {
       structure: 'Estructura',
       support: 'Soporte',
       billing: 'Cobros',
+      account: 'Cuenta',
     },
     kpi: {
       savedAccounts: 'Cuentas Ahorradas',
@@ -386,6 +387,20 @@ const es: Translations = {
     rights: 'Todos los derechos reservados',
     termsOfUse: 'Términos de Uso',
     logoutSuccess: 'Has cerrado sesión',
+  },
+  account: {
+    changePasswordTitle: 'Cambiar contraseña',
+    changePasswordDesc: 'Cambia tu contraseña de acceso sin contactar soporte.',
+    currentPassword: 'Contraseña actual',
+    newPassword: 'Nueva contraseña',
+    confirmPassword: 'Confirmar nueva contraseña',
+    savePassword: 'Guardar nueva contraseña',
+    saving: 'Guardando...',
+    changeSuccess: '¡Contraseña cambiada con éxito!',
+    changeError: 'No se pudo cambiar la contraseña',
+    wrongCurrentPassword: 'La contraseña actual es incorrecta',
+    passwordTooShort: 'La contraseña debe tener al menos 6 caracteres',
+    passwordMismatch: 'Las contraseñas no coinciden',
   },
   termsRecord: {
     title: 'Términos de Uso aceptados',

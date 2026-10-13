@@ -166,6 +166,7 @@ const pt = {
       structure: 'Estrutura',
       support: 'Suporte',
       billing: 'Cobranças',
+      account: 'Conta',
     },
     kpi: {
       savedAccounts: 'Contas Economizadas',
@@ -632,6 +633,20 @@ const pt = {
     rights: 'Todos os direitos reservados',
     termsOfUse: 'Termo de Uso',
     logoutSuccess: 'Você saiu da conta',
+  },
+  account: {
+    changePasswordTitle: 'Trocar senha',
+    changePasswordDesc: 'Altere sua senha de acesso sem precisar falar com o suporte.',
+    currentPassword: 'Senha atual',
+    newPassword: 'Nova senha',
+    confirmPassword: 'Confirmar nova senha',
+    savePassword: 'Salvar nova senha',
+    saving: 'Salvando...',
+    changeSuccess: 'Senha alterada com sucesso!',
+    changeError: 'Não foi possível alterar a senha',
+    wrongCurrentPassword: 'A senha atual está incorreta',
+    passwordTooShort: 'A senha deve ter pelo menos 6 caracteres',
+    passwordMismatch: 'As senhas não coincidem',
   },
   termsRecord: {
     title: 'Termos de Uso aceitos',

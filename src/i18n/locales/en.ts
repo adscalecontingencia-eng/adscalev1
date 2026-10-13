@@ -168,6 +168,7 @@ const en: Translations = {
       structure: 'Structure',
       support: 'Support',
       billing: 'Billing',
+      account: 'Account',
     },
     kpi: {
       savedAccounts: 'Accounts Saved',
@@ -386,6 +387,20 @@ const en: Translations = {
     rights: 'All rights reserved',
     termsOfUse: 'Terms of Use',
     logoutSuccess: 'You have been logged out',
+  },
+  account: {
+    changePasswordTitle: 'Change password',
+    changePasswordDesc: 'Change your sign-in password without contacting support.',
+    currentPassword: 'Current password',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm new password',
+    savePassword: 'Save new password',
+    saving: 'Saving...',
+    changeSuccess: 'Password changed successfully!',
+    changeError: 'Could not change the password',
+    wrongCurrentPassword: 'The current password is incorrect',
+    passwordTooShort: 'Password must be at least 6 characters',
+    passwordMismatch: 'Passwords do not match',
   },
   termsRecord: {
     title: 'Accepted Terms of Use',
