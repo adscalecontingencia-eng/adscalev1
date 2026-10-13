@@ -32,6 +32,7 @@ import ReferralStatement from '@/components/client/ReferralStatement';
 import DashboardTour, { TourButton } from '@/components/client/DashboardTour';
 import DailyStatement from '@/components/client/DailyStatement';
 import WeeklyInvoiceCard from '@/components/client/WeeklyInvoiceCard';
+import ChangePasswordCard from '@/components/client/ChangePasswordCard';
 
 
 const ClientDashboard: React.FC = () => {
@@ -53,7 +54,7 @@ const ClientDashboard: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
-  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte' | 'indicacao'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte' | 'indicacao' | 'conta'>('resumo');
   const [tourOpen, setTourOpen] = useState(false);
   // Auto-abre o tutorial no primeiro acesso do cliente (uma vez por cliente/navegador)
   useEffect(() => {
@@ -939,7 +940,7 @@ const ClientDashboard: React.FC = () => {
         />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
-          <TabsList data-tour="tabs" className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto p-1 bg-secondary/60 border border-border">
+          <TabsList data-tour="tabs" className="w-full grid grid-cols-3 sm:grid-cols-7 h-auto p-1 bg-secondary/60 border border-border">
             <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
               <LayoutDashboard size={14} /> {t('clientDash.tabs.overview')}
             </TabsTrigger>
@@ -972,7 +973,15 @@ const ClientDashboard: React.FC = () => {
               <Gift size={14} /> {referralDict.eyebrow}
               <span className="absolute -top-1 -right-1 sm:static sm:ml-1 bg-primary/20 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">$20</span>
             </TabsTrigger>
+            <TabsTrigger value="conta" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 gap-2 text-xs sm:text-sm">
+              <KeyRound size={14} /> {t('clientDash.tabs.account')}
+            </TabsTrigger>
           </TabsList>
+
+          {/* CONTA */}
+          <TabsContent value="conta" className="space-y-5 mt-0">
+            <ChangePasswordCard />
+          </TabsContent>
 
           {/* INDICAÇÃO */}
           <TabsContent value="indicacao" className="space-y-5 mt-0">
