@@ -73,7 +73,7 @@ const SupportInbox: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PageHero title={t('supportInbox.title')} subtitle={t('supportInbox.subtitle')} />
+      <PageHero title={t('supportInbox.title')} description={t('supportInbox.subtitle')} />
       <Tabs defaultValue="chats">
         <TabsList>
           <TabsTrigger value="chats" className="gap-2"><MessageSquare size={14} /> {t('supportInbox.chats')} ({conversations.length})</TabsTrigger>
