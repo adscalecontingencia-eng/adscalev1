@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791924135063,
+      "tag": "0000_referral_milestone_10k_ad_spend",
+      "breakpoints": true
+    }
+  ]
+}

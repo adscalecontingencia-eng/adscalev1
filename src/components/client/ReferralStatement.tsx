@@ -51,7 +51,7 @@ const T = {
   pt: {
     title: 'Extrato do programa de indicação',
     subtitle: 'Todos os créditos gerados, com data, origem e status.',
-    all: 'Todos', signup: 'Cadastro (US$ 20)', milestone: 'Bônus US$ 1.000 (US$ 50)', manual: 'Ajuste manual',
+    all: 'Todos', signup: 'Cadastro (US$ 20)', milestone: 'Bônus US$ 10.000 (US$ 50)', manual: 'Ajuste manual',
     pending: 'Pendente', applied: 'Aprovado', cancelled: 'Cancelado',
     searchPh: 'Buscar por indicado, parceiro ou descrição...',
     date: 'Data', origin: 'Origem', referred: 'Indicado', partner: 'Parceiro', amount: 'Valor', status: 'Status', note: 'Descrição',
@@ -68,7 +68,7 @@ const T = {
   en: {
     title: 'Referral program statement',
     subtitle: 'Every credit earned, with date, source and status.',
-    all: 'All', signup: 'Signup (US$ 20)', milestone: 'US$ 1,000 bonus (US$ 50)', manual: 'Manual adjustment',
+    all: 'All', signup: 'Signup (US$ 20)', milestone: 'US$ 10,000 bonus (US$ 50)', manual: 'Manual adjustment',
     pending: 'Pending', applied: 'Approved', cancelled: 'Cancelled',
     searchPh: 'Search by referral, partner or description...',
     date: 'Date', origin: 'Source', referred: 'Referral', partner: 'Partner', amount: 'Amount', status: 'Status', note: 'Description',
@@ -85,7 +85,7 @@ const T = {
   es: {
     title: 'Extracto del programa de referidos',
     subtitle: 'Todos los créditos generados, con fecha, origen y estado.',
-    all: 'Todos', signup: 'Registro (US$ 20)', milestone: 'Bono US$ 1.000 (US$ 50)', manual: 'Ajuste manual',
+    all: 'Todos', signup: 'Registro (US$ 20)', milestone: 'Bono US$ 10.000 (US$ 50)', manual: 'Ajuste manual',
     pending: 'Pendiente', applied: 'Aprobado', cancelled: 'Cancelado',
     searchPh: 'Buscar por referido, socio o descripción...',
     date: 'Fecha', origin: 'Origen', referred: 'Referido', partner: 'Socio', amount: 'Importe', status: 'Estado', note: 'Descripción',
