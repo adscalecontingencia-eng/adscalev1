@@ -115,8 +115,8 @@ Deno.serve(async (req) => {
     ].join("\n");
 
     const history = (historyRes.data ?? []).reverse().map((m: any) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content as string,
+      role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
+      content: m.role === "agent" ? `[Equipe AD SCALE respondeu]: ${m.content}` : (m.content as string),
     }));
 
     // Salva a mensagem do usuário antes de chamar a IA

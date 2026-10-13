@@ -15,6 +15,20 @@
       "when": 1791924771752,
       "tag": "0001_support_chat_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791926483970,
+      "tag": "0002_purge_cron_history_daily",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791926509030,
+      "tag": "0003_support_chat_agent_replies",
+      "breakpoints": true
     }
   ]
 }

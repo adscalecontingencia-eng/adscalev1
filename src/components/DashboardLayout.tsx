@@ -30,6 +30,7 @@ const groups: Group[] = [
 
       { path: '/ads-dashboard', labelKey: 'nav.ads', icon: BarChart3 },
       { path: '/support', labelKey: 'nav.support', icon: HeadphonesIcon },
+      { path: '/central-suporte', labelKey: 'nav.supportInbox', icon: HeadphonesIcon },
       { path: '/meta-connections', labelKey: 'nav.metaConnections', icon: Plug },
       { path: '/meta-apps', labelKey: 'nav.metaApps', icon: AppWindow, adminOnly: true },
       { path: '/pages', labelKey: 'nav.pages', icon: ImageIcon },
