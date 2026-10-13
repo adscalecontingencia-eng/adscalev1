@@ -9,27 +9,27 @@ const T = {
   pt: {
     heading: 'Alertas do programa de indicação',
     approaching: 'Falta pouco para o próximo bônus!',
-    approachingBody: '{{name}} já pagou US$ {{paid}} à agência. Faltam US$ {{remaining}} para você receber mais US$ {{bonus}} em crédito.',
+    approachingBody: '{{name}} já gastou US$ {{paid}} em anúncios. Faltam US$ {{remaining}} para você receber mais US$ {{bonus}} em crédito.',
     awarded: 'Bônus liberado!',
-    awardedBody: 'Você ganhou US$ {{bonus}} em crédito pela meta de US$ {{target}} paga por {{name}}.',
+    awardedBody: 'Você ganhou US$ {{bonus}} em crédito pela meta de US$ {{target}} em gastos de {{name}}.',
     statement: 'Ver extrato',
     dismiss: 'Dispensar',
   },
   en: {
     heading: 'Referral program alerts',
     approaching: 'Almost there for the next bonus!',
-    approachingBody: '{{name}} has paid US$ {{paid}} to the agency. US$ {{remaining}} to go until you earn another US$ {{bonus}} in credit.',
+    approachingBody: '{{name}} has spent US$ {{paid}} on ads. US$ {{remaining}} to go until you earn another US$ {{bonus}} in credit.',
     awarded: 'Bonus released!',
-    awardedBody: 'You earned US$ {{bonus}} in credit for the US$ {{target}} milestone paid by {{name}}.',
+    awardedBody: 'You earned US$ {{bonus}} in credit for the US$ {{target}} milestone spent by {{name}}.',
     statement: 'View statement',
     dismiss: 'Dismiss',
   },
   es: {
     heading: 'Alertas del programa de referidos',
     approaching: '¡Falta poco para el próximo bono!',
-    approachingBody: '{{name}} ya pagó US$ {{paid}} a la agencia. Faltan US$ {{remaining}} para que recibas US$ {{bonus}} más en crédito.',
+    approachingBody: '{{name}} ya gastó US$ {{paid}} en anuncios. Faltan US$ {{remaining}} para que recibas US$ {{bonus}} más en crédito.',
     awarded: '¡Bono liberado!',
-    awardedBody: 'Ganaste US$ {{bonus}} en crédito por la meta de US$ {{target}} pagada por {{name}}.',
+    awardedBody: 'Ganaste US$ {{bonus}} en crédito por la meta de US$ {{target}} en gastos de {{name}}.',
     statement: 'Ver extracto',
     dismiss: 'Descartar',
   },
@@ -81,7 +81,7 @@ const ReferralAlerts: React.FC<Props> = ({ clientId, onOpenStatement }) => {
           const body = isAwarded
             ? d.awardedBody
                 .replace('{{bonus}}', num(a.estimated_amount, locale))
-                .replace('{{target}}', num((a.milestone_index || 1) * 1000, locale))
+                .replace('{{target}}', num((a.milestone_index || 1) * 10000, locale))
                 .replace('{{name}}', a.referred_name || '—')
             : d.approachingBody
                 .replace('{{name}}', a.referred_name || '—')

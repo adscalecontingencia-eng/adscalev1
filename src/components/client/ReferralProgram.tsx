@@ -23,11 +23,11 @@ const DICT = {
   pt: {
     eyebrow: 'Programa de indicação',
     title: 'Indique e ganhe créditos',
-    subtitle: 'Ganhe US$ 20 por cada agência indicada e mais US$ 50 a cada US$ 1.000 pagos por ela.',
+    subtitle: 'Ganhe US$ 20 por cada agência indicada e mais US$ 50 a cada US$ 10.000 gastos em anúncios por ela.',
     step1Title: 'US$ 20 por cadastro',
     step1Desc: 'Assim que o indicado finaliza o cadastro pelo seu link, US$ 20 em crédito entram na sua conta.',
-    step2Title: 'US$ 50 a cada US$ 1.000',
-    step2Desc: 'A cada US$ 1.000 que o indicado pagar à agência, você recebe mais US$ 50 em crédito — sem limite.',
+    step2Title: 'US$ 50 a cada US$ 10.000',
+    step2Desc: 'A cada US$ 10.000 que o indicado gastar em anúncios, você recebe mais US$ 50 em crédito — sem limite.',
     step3Title: 'Crédito no seu faturamento',
     step3Desc: 'Os créditos são aplicados como desconto nas suas próximas cobranças semanais.',
     linkTitle: 'Seu link de indicação',
@@ -43,12 +43,12 @@ const DICT = {
     referralsCount: 'Indicados',
     yourReferrals: 'Seus indicados',
     noReferrals: 'Você ainda não tem indicados. Compartilhe seu link e comece a acumular créditos.',
-    paid: 'Pago à agência',
+    paid: 'Gasto em anúncios',
     credits: 'Créditos gerados',
     nextMilestone: 'Faltam US$ {{v}} para o próximo bônus de US$ 50',
     history: 'Histórico de créditos',
     typeSignup: 'Cadastro',
-    typeMilestone: 'Meta US$ 1.000',
+    typeMilestone: 'Meta US$ 10.000',
     typeManual: 'Ajuste',
     statusPending: 'Pendente',
     statusApplied: 'Aplicado',
@@ -60,11 +60,11 @@ const DICT = {
   en: {
     eyebrow: 'Referral program',
     title: 'Refer and earn credits',
-    subtitle: 'Earn US$ 20 for every agency you refer, plus US$ 50 for each US$ 1,000 they pay.',
+    subtitle: 'Earn US$ 20 for every agency you refer, plus US$ 50 for each US$ 10,000 they spend on ads.',
     step1Title: 'US$ 20 per signup',
     step1Desc: 'As soon as your referral completes signup through your link, US$ 20 in credit is added to your account.',
-    step2Title: 'US$ 50 per US$ 1,000',
-    step2Desc: 'For every US$ 1,000 your referral pays the agency, you get another US$ 50 in credit — no cap.',
+    step2Title: 'US$ 50 per US$ 10,000',
+    step2Desc: 'For every US$ 10,000 your referral spends on ads, you get another US$ 50 in credit — no cap.',
     step3Title: 'Credit on your invoices',
     step3Desc: 'Credits are applied as a discount on your upcoming weekly invoices.',
     linkTitle: 'Your referral link',
@@ -80,12 +80,12 @@ const DICT = {
     referralsCount: 'Referrals',
     yourReferrals: 'Your referrals',
     noReferrals: 'No referrals yet. Share your link and start earning credits.',
-    paid: 'Paid to agency',
+    paid: 'Ad spend',
     credits: 'Credits earned',
     nextMilestone: 'US$ {{v}} to go until the next US$ 50 bonus',
     history: 'Credit history',
     typeSignup: 'Signup',
-    typeMilestone: 'US$ 1,000 milestone',
+    typeMilestone: 'US$ 10,000 milestone',
     typeManual: 'Adjustment',
     statusPending: 'Pending',
     statusApplied: 'Applied',
@@ -97,11 +97,11 @@ const DICT = {
   es: {
     eyebrow: 'Programa de referidos',
     title: 'Refiere y gana créditos',
-    subtitle: 'Gana US$ 20 por cada agencia referida y US$ 50 por cada US$ 1.000 que ella pague.',
+    subtitle: 'Gana US$ 20 por cada agencia referida y US$ 50 por cada US$ 10.000 que ella gaste en anuncios.',
     step1Title: 'US$ 20 por registro',
     step1Desc: 'En cuanto tu referido completa el registro con tu enlace, US$ 20 en crédito entran en tu cuenta.',
-    step2Title: 'US$ 50 por cada US$ 1.000',
-    step2Desc: 'Por cada US$ 1.000 que tu referido pague a la agencia, recibes US$ 50 más en crédito — sin límite.',
+    step2Title: 'US$ 50 por cada US$ 10.000',
+    step2Desc: 'Por cada US$ 10.000 que tu referido gaste en anuncios, recibes US$ 50 más en crédito — sin límite.',
     step3Title: 'Crédito en tu facturación',
     step3Desc: 'Los créditos se aplican como descuento en tus próximas facturas semanales.',
     linkTitle: 'Tu enlace de referido',
@@ -117,12 +117,12 @@ const DICT = {
     referralsCount: 'Referidos',
     yourReferrals: 'Tus referidos',
     noReferrals: 'Aún no tienes referidos. Comparte tu enlace y empieza a acumular créditos.',
-    paid: 'Pagado a la agencia',
+    paid: 'Gasto en anuncios',
     credits: 'Créditos generados',
     nextMilestone: 'Faltan US$ {{v}} para el próximo bono de US$ 50',
     history: 'Historial de créditos',
     typeSignup: 'Registro',
-    typeMilestone: 'Meta US$ 1.000',
+    typeMilestone: 'Meta US$ 10.000',
     typeManual: 'Ajuste',
     statusPending: 'Pendiente',
     statusApplied: 'Aplicado',
@@ -313,8 +313,8 @@ const ReferralProgram: React.FC<{ clientId?: string | null }> = ({ clientId }) =
         ) : (
           <div className="space-y-2">
             {referrals.map((r) => {
-              const remaining = 1000 - (Number(r.total_paid || 0) % 1000);
-              const pct = ((Number(r.total_paid || 0) % 1000) / 1000) * 100;
+              const remaining = 10000 - (Number(r.total_paid || 0) % 10000);
+              const pct = ((Number(r.total_paid || 0) % 10000) / 10000) * 100;
               return (
                 <div key={r.id} className="rounded-xl border border-border/50 bg-secondary/30 p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">

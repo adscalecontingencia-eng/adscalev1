@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         bonus: Number(alert.estimated_amount || 50),
         remaining: Number(alert.remaining_amount || 0),
         paid,
-        target: Number(alert.milestone_index || 1) * 1000,
+        target: Number(alert.milestone_index || 1) * 10000,
       });
 
       const messageId = `referral-alert-${alert.id}`;
