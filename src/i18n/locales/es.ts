@@ -168,6 +168,7 @@ const es: Translations = {
       structure: 'Estructura',
       support: 'Soporte',
       billing: 'Cobros',
+      account: 'Cuenta',
     },
     kpi: {
       savedAccounts: 'Cuentas Ahorradas',

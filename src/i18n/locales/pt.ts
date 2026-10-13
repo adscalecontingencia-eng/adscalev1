@@ -166,6 +166,7 @@ const pt = {
       structure: 'Estrutura',
       support: 'Suporte',
       billing: 'Cobranças',
+      account: 'Conta',
     },
     kpi: {
       savedAccounts: 'Contas Economizadas',
