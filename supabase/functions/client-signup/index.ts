@@ -162,7 +162,19 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { name: client.name, role: "client", phone: normalizedPhone },
     });
-    if (authErr || !created.user) return json({ error: authErr?.message || "Erro ao criar usuário" }, 400);
+    if (authErr || !created.user) {
+      const raw = (authErr?.message || "").toLowerCase();
+      let msg = "Erro ao criar usuário. Tente novamente.";
+      if (raw.includes("weak") || raw.includes("pwned") || raw.includes("easy to guess")) {
+        msg = "Essa senha é muito comum e já apareceu em vazamentos na internet. Escolha uma senha mais forte, misturando letras maiúsculas, minúsculas, números e símbolos (ex.: Agencia#2026Pedro). / This password is too common. Please choose a stronger one.";
+      } else if (raw.includes("already") || raw.includes("registered")) {
+        msg = "Este e-mail já possui acesso. Faça login ou use 'Esqueceu sua senha'.";
+      } else if (raw.includes("password")) {
+        msg = "Senha inválida. Use pelo menos 8 caracteres com letras, números e símbolos.";
+      }
+      console.error("createUser failed", authErr?.message);
+      return json({ error: msg, code: "auth_error" }, 400);
+    }
 
     const uid = created.user.id;
 
