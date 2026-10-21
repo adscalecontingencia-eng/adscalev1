@@ -43,7 +43,7 @@ const Confetti: React.FC = () => {
   );
 };
 
-const ReferralPopup: React.FC<Props> = ({ clientId, forceOpen, onOpenProgram }) => {
+const ReferralPopup: React.FC<Props & { blocked?: boolean }> = ({ clientId, forceOpen, onOpenProgram, blocked }) => {
   const d = useReferralDict();
   const { data, loading } = useReferralSummary(clientId);
   const [open, setOpen] = useState(false);
@@ -54,12 +54,14 @@ const ReferralPopup: React.FC<Props> = ({ clientId, forceOpen, onOpenProgram }) 
   useEffect(() => {
     if (loading || !data?.ok) return;
     if (forceOpen) { setOpen(true); return; }
+    // Aguarda o tutorial terminar antes de mostrar o pop-up de indicação
+    if (blocked) { setOpen(false); return; }
     try {
       if (localStorage.getItem(storageKey) === dayKey()) return;
     } catch { /* ignore */ }
     const timer = setTimeout(() => setOpen(true), 800);
     return () => clearTimeout(timer);
-  }, [loading, data?.ok, forceOpen, storageKey]);
+  }, [loading, data?.ok, forceOpen, storageKey, blocked]);
 
   const close = () => {
     setOpen(false);

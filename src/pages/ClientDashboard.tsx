@@ -938,6 +938,7 @@ const ClientDashboard: React.FC = () => {
         <ReferralPopup
           clientId={isAdminView ? client.id : null}
           onOpenProgram={() => setTab('indicacao')}
+          blocked={tourOpen || (() => { try { return !localStorage.getItem(`adscale_tour_done_${client.id}`); } catch { return false; } })()}
         />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-5">
