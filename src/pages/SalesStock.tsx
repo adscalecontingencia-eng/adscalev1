@@ -66,7 +66,7 @@ export default function SalesStock() {
       supabase.from('meta_apps').select('id, label, status, is_default').order('is_default', { ascending: false }),
       supabase.from('sales_stocks').select('*').order('created_at', { ascending: true }),
       supabase.from('sales_bm_stock').select('*').order('added_at', { ascending: false }),
-      supabase.from('meta_business_managers').select('id, meta_bm_id, name, status, verification_status, account_count, page_count, pixel_count, last_synced_at, created_at, meta_app_id').order('created_at', { ascending: false }),
+      supabase.from('meta_business_managers').select('id, meta_bm_id, name, status, verification_status, account_count, page_count, pixel_count, last_synced_at, created_at, meta_app_id').neq("status", "removed").order("created_at", { ascending: false }),
     ]);
     setApps((appsData || []) as MetaApp[]);
     setStocks((stocksData || []) as Stock[]);
