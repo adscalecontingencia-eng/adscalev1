@@ -118,7 +118,7 @@ export default function AdsDashboard() {
 
   const loadMeta = async () => {
     const [b, a, c, asn] = await Promise.all([
-      supabase.from("meta_business_managers").select("id, name").order("name"),
+      supabase.from("meta_business_managers").select("id, name").neq("status", "removed").order("name"),
       supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at").order("name"),
       supabase.from("clients").select("id, name").order("name"),
       // Load ALL assignments (including inactive/expired) so historical spend
