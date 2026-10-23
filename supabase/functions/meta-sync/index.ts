@@ -112,13 +112,13 @@ async function honorMetaUsageHeaders(res: Response) {
   const buc = parseUsageHeader(res.headers.get("x-business-use-case-usage"));
   const acc = parseUsageHeader(res.headers.get("x-ad-account-usage"));
   const usage = Math.max(app, buc, acc);
-  const regain = Math.max(
-    parseRegainSeconds(res.headers.get("x-app-usage")),
-    parseRegainSeconds(res.headers.get("x-business-use-case-usage")),
-    parseRegainSeconds(res.headers.get("x-ad-account-usage")),
-  );
-  if (usage >= 90 || regain > 0) {
-    throw new MetaQuotaExceeded(`Meta usage ${usage}% (regain in ${regain}s) — pausando app.`, usage, regain);
+  // Só a cota GERAL do app pausa o app inteiro. Cotas de uma BM ou de uma
+  // conta específica (business-use-case / ad-account) altas apenas
+  // desaceleram — antes uma única BM ocupada pausava a descoberta inteira,
+  // mesmo com o painel da Meta mostrando o app longe do limite.
+  const appRegain = parseRegainSeconds(res.headers.get("x-app-usage"));
+  if (app >= 90 || appRegain > 0) {
+    throw new MetaQuotaExceeded(`Meta app usage ${app}% (regain in ${appRegain}s) — pausando app.`, app, appRegain);
   }
   if (usage >= 75) {
     // desacelera exponencialmente ao se aproximar do teto
@@ -1406,11 +1406,24 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       const retryKey = `fast|${currentApp.label}|${choice.label}|${endpoint}`;
       if (isMetaRateLimit(e)) {
         actualErrors.push({ app: currentApp.label, token: choice.label, edge: endpoint, erro: msg, code: metaErrorCode(e) });
-        markAppCooldown(state, currentApp.label, extractRegainSeconds(e));
-        state.fastAppIndex = fastAppIndex + 1;
-        state.fastChoiceIndex = 0;
-        state.fastEndpointIndex = 0;
-        await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Limite da API Meta atingido; descoberta rápida pausada." });
+        if (e instanceof MetaQuotaExceeded) {
+          // Cota geral do app realmente alta: pausa o app.
+          markAppCooldown(state, currentApp.label, extractRegainSeconds(e));
+          state.fastAppIndex = fastAppIndex + 1;
+          state.fastChoiceIndex = 0;
+          state.fastEndpointIndex = 0;
+          await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Cota geral do app Meta acima de 90%; descoberta rápida pausada." });
+        } else {
+          // Limite temporário de um token/BM (ex.: código 4 subcódigo 1504022):
+          // pula só esse token e segue com os demais.
+          state.fastEndpointIndex = 0;
+          state.fastChoiceIndex = (state.fastChoiceIndex || 0) + 1;
+          if (state.fastChoiceIndex >= choices.length) {
+            state.fastChoiceIndex = 0;
+            state.fastAppIndex = (state.fastAppIndex || 0) + 1;
+          }
+          await persist({ app: currentApp.label, endpoint, status: "error", token: choice.label, detail: "Limite temporário da Meta para este token/BM; pulando para o próximo token." });
+        }
       } else if (isRetryableStageError(e) && consumeStageRetry(state, retryKey)) {
         // Não avança: tenta o mesmo endpoint na próxima fatia. Pular aqui já
         // fez contas novas (ex.: BioActives) não aparecerem no sistema.

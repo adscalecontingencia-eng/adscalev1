@@ -51,6 +51,7 @@ async function paginateMeta(firstUrl: string, log: (m: string, x?: unknown) => v
   const out: any[] = [];
   let url: string | null = firstUrl;
   while (url) {
+    await new Promise((res) => setTimeout(res, 300)); // ritmo: evita rajadas
     log("GET", { url: sanitize(url) });
     const r = await fetch(url);
     const d = await r.json().catch(() => ({}));
@@ -152,7 +153,24 @@ Deno.serve(async (req) => {
           sources[`biz/${bm.id}/${edge}`] = items.length;
           for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
         } catch (e: any) {
-          endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: e?.message });
+          const msg = String(e?.message || "");
+          if (/"code":(4|17|32|613)\b/.test(msg)) {
+            // limite temporário: espera e tenta 1x antes de desistir da BM
+            await new Promise((res) => setTimeout(res, 15000));
+            try {
+              const items = await paginateMeta(
+                `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+                (m, x) => log(`biz ${bm.id} ${edge}:retry:${m}`, x),
+              );
+              sources[`biz/${bm.id}/${edge}`] = items.length;
+              for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
+              continue;
+            } catch (e2: any) {
+              endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: e2?.message });
+              continue;
+            }
+          }
+          endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: msg });
         }
       }
     }
