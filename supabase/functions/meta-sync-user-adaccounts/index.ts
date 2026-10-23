@@ -51,7 +51,7 @@ async function paginateMeta(firstUrl: string, log: (m: string, x?: unknown) => v
   const out: any[] = [];
   let url: string | null = firstUrl;
   while (url) {
-    await new Promise((res) => setTimeout(res, 700)); // ritmo: evita rajadas
+    await new Promise((res) => setTimeout(res, 300)); // ritmo: evita rajadas
     log("GET", { url: sanitize(url) });
     const r = await fetch(url);
     const d = await r.json().catch(() => ({}));
