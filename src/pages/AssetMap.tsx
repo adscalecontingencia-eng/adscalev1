@@ -347,7 +347,7 @@ export default function AssetMap() {
   const load = useCallback(async () => {
     setLoading(true);
     const [b, a] = await Promise.all([
-      supabase.from("meta_business_managers").select("*").order("name"),
+      supabase.from("meta_business_managers").select("*").neq("status", "removed").order("name"),
       supabase.from("meta_ad_accounts").select("*").order("name"),
     ]);
     setBms((b.data as any) || []);
