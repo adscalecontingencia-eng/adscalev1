@@ -890,6 +890,11 @@ type AccountsSyncState = {
   systemUserIndex?: number;
   /** Timestamp (ms) até quando cada app está em cooldown por rate-limit. */
   appCooldownUntil?: Record<string, number>;
+  /** BMs retornadas por /me/businesses por app (para remover as que saíram do perfil). */
+  seenBms?: Record<string, string[]>;
+  bmFetchAttempts?: Record<string, number>;
+  bmFetchOk?: Record<string, number>;
+  startedAtMs?: number;
   /** Passo leve executado no início para contas novas aparecerem antes da varredura pesada de BMs. */
   fastPassDone?: boolean;
   fastAppIndex?: number;
@@ -1253,12 +1258,37 @@ async function activeBmsForApp(supabase: any, app: AppRow) {
   let q = supabase
     .from("meta_business_managers")
     .select("id, meta_bm_id, name, verification_status, last_synced_at")
+    .neq("status", "removed")
     .order("last_synced_at", { ascending: true, nullsFirst: true })
     .order("name");
   q = ownAppId ? q.eq("meta_app_id", ownAppId) : q;
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
+}
+
+/** Marca como "removed" as BMs do app que não vieram mais em /me/businesses
+ *  (saíram do perfil Meta). Só roda quando todas as buscas de BM do app deram certo. */
+async function pruneRemovedBms(supabase: any, app: AppRow, state: AccountsSyncState) {
+  const label = app.label;
+  const attempts = state.bmFetchAttempts?.[label] || 0;
+  const ok = state.bmFetchOk?.[label] || 0;
+  const seen = new Set(state.seenBms?.[label] || []);
+  if (attempts === 0 || attempts !== ok || seen.size === 0) return;
+  const ownAppId = app.id.startsWith("00000000") ? null : app.id;
+  let q = supabase.from("meta_business_managers").select("id, meta_bm_id").neq("status", "removed");
+  q = ownAppId ? q.eq("meta_app_id", ownAppId) : q.is("meta_app_id", null);
+  const { data } = await q;
+  const candidates = (data || []).filter((b: any) => !seen.has(String(b.meta_bm_id)));
+  if (!candidates.length) return;
+  const since = new Date(state.startedAtMs || Date.now()).toISOString();
+  const { data: recent } = await supabase.from("meta_ad_accounts").select("bm_id")
+    .in("bm_id", candidates.map((b: any) => b.id)).gte("last_synced_at", since).limit(5000);
+  const stillUsed = new Set((recent || []).map((r: any) => r.bm_id));
+  const toRemove = candidates.filter((b: any) => !stillUsed.has(b.id)).map((b: any) => b.id);
+  for (let i = 0; i < toRemove.length; i += 200) {
+    await supabase.from("meta_business_managers").update({ status: "removed", updated_at: new Date().toISOString() }).in("id", toRemove.slice(i, i + 200));
+  }
 }
 
 async function markBmAccountsScanned(supabase: any, bmDbId: string) {
@@ -1470,8 +1500,13 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     return;
   }
 
-  const finishCurrentChoiceIfNeeded = (choicesLength: number) => {
+  if (!state.startedAtMs) state.startedAtMs = Date.now();
+  const finishCurrentChoiceIfNeeded = async (choicesLength: number) => {
     if (state.choiceIndex >= choicesLength) {
+      const finishedApp = apps[state.appIndex];
+      if (finishedApp) {
+        try { await pruneRemovedBms(supabase, finishedApp, state); } catch (e) { console.error("pruneRemovedBms", e); }
+      }
       state.choiceIndex = 0;
       state.phase = "me_businesses";
       state.bmIndex = 0;
@@ -1530,7 +1565,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       await persist({ app: app.label, endpoint: "tokens", status: "error", detail: "Sem token configurado" });
       continue;
     }
-    finishCurrentChoiceIfNeeded(choices.length);
+    await finishCurrentChoiceIfNeeded(choices.length);
     if (state.appIndex >= apps.length) continue;
 
     const currentApp = apps[state.appIndex];
@@ -1540,7 +1575,13 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
     try {
       if (state.phase === "me_businesses") {
         await persist({ app: currentApp.label, endpoint: "/me/businesses", status: "running", token: choice.label, detail: "Buscando Business Managers" });
+        state.bmFetchAttempts = state.bmFetchAttempts || {};
+        state.bmFetchAttempts[currentApp.label] = (state.bmFetchAttempts[currentApp.label] || 0) + 1;
         const bms = await paginateMeta(`${META_API}/me/businesses?access_token=${encodeURIComponent(choice.token)}&fields=id,name,verification_status&limit=200`);
+        state.bmFetchOk = state.bmFetchOk || {};
+        state.bmFetchOk[currentApp.label] = (state.bmFetchOk[currentApp.label] || 0) + 1;
+        state.seenBms = state.seenBms || {};
+        state.seenBms[currentApp.label] = Array.from(new Set([...(state.seenBms[currentApp.label] || []), ...bms.map((b: any) => String(b.id))]));
         const ownAppId = currentApp.id.startsWith("00000000") ? null : currentApp.id;
         if (bms.length > 0) {
           const { error } = await supabase.from("meta_business_managers").upsert(bms.map((bm: any) => ({
