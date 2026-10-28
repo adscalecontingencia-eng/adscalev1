@@ -172,8 +172,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const login = useCallback(async (rawEmail: string, password: string): Promise<boolean> => {
+    // Celulares costumam colocar espaço no fim ou letra maiúscula no e-mail;
+    // o cadastro sempre grava o e-mail em minúsculas e sem espaços.
+    const email = rawEmail.trim().toLowerCase();
+    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // Teclados/autopreenchimento às vezes adicionam espaço no fim da senha.
+    if ((error || !data.user) && password !== password.trim()) {
+      ({ data, error } = await supabase.auth.signInWithPassword({ email, password: password.trim() }));
+    }
     if (error || !data.user) return false;
 
     const profile = await fetchUserProfile(data.user.id, email);
