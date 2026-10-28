@@ -2254,6 +2254,37 @@ Deno.serve(async (req) => {
         return 0;
       };
 
+      // Pré-busca em lote: 1 chamada traz os insights de até 50 contas via
+      // field expansion em /me/adaccounts. Antes era 1 chamada por conta
+      // (centenas por sincronização), o que levava o app a ~199% da cota.
+      // Contas não cobertas pelo lote caem no fetch individual abaixo.
+      const normId = (v: string) => String(v || "").replace(/^act_/, "");
+      const bulkRows = new Map<string, any[]>();
+      const bulkCovered = new Set<string>();
+      if ((accounts || []).length > 0) {
+        const insightFields = "date_start,spend,impressions,clicks,cpm,cpc,ctr,reach,actions,action_values";
+        const tr = encodeURIComponent(JSON.stringify({ since, until }));
+        for (const app of apps) {
+          for (const choice of tokenChoicesForApp(app)) {
+            try {
+              const items = await paginateMeta(
+                `${META_API}/me/adaccounts?access_token=${encodeURIComponent(choice.token)}&fields=id,insights.time_range(${tr}).time_increment(1).limit(100){${insightFields}}&limit=50`,
+              );
+              for (const it of items) {
+                const id = normId(it.id);
+                bulkCovered.add(id);
+                const rows = it.insights?.data || [];
+                if (rows.length) bulkRows.set(id, rows);
+              }
+            } catch (e) {
+              console.warn(`[sync_insights] lote falhou (${app.label}/${choice.label}):`, (e as Error).message?.slice(0, 200));
+              if (e instanceof MetaQuotaExceeded) break;
+            }
+          }
+        }
+        console.log(`[sync_insights] lote cobriu ${bulkCovered.size} contas; restantes vão individualmente`);
+      }
+
       const errors: any[] = [];
       const allRows: any[] = [];
       let idx = 0;
@@ -2281,9 +2312,10 @@ Deno.serve(async (req) => {
           }
           const attempts: Array<{ source: string; code: number | null; message: string }> = [];
           try {
-            let data: any = null;
+            const nid = normId(acc.meta_account_id);
+            let data: any = bulkCovered.has(nid) ? { data: bulkRows.get(nid) || [] } : null;
             let lastError: unknown = null;
-            for (let ti = 0; ti < tokens.length; ti++) {
+            for (let ti = 0; !data && ti < tokens.length; ti++) {
               const tok = tokens[ti];
               // Ordem atual de tokenCandidates: 0 = User Access Token (perfil),
               // 1 = System User Token (fallback). Rotular corretamente a origem
