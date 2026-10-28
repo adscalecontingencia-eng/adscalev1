@@ -153,6 +153,22 @@ export default function MetaConnections() {
     };
   }, [job?.id]);
 
+  const [syncingBmId, setSyncingBmId] = useState<string | null>(null);
+  const syncSingleBm = async (bmId: string) => {
+    setSyncingBmId(bmId);
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-sync", { body: { action: "sync_single_bm", bm_id: bmId } });
+      if (error) throw error;
+      if ((data as any)?.erro) throw new Error((data as any).erro);
+      toast.success(`${(data as any).bm}: ${(data as any).contas} conta(s) atualizadas`);
+      await load();
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar BM: ${e.message}`);
+    } finally {
+      setSyncingBmId(null);
+    }
+  };
+
   const sync = async () => {
     setSyncing(true);
     try {
@@ -329,6 +345,8 @@ export default function MetaConnections() {
       accounts={apiAccounts}
       selected={selectedBm}
       onSelect={(v) => { setSelectedBm(v); setMobileBmOpen(false); }}
+      onSyncBm={syncSingleBm}
+      syncingBmId={syncingBmId}
     />
   );
 

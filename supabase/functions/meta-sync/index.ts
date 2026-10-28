@@ -1198,7 +1198,9 @@ async function saveDiscoveredAccounts(supabase: any, app: AppRow, accounts: any[
       status: "active",
       meta_app_id: ownAppId,
     }));
-    const { error } = await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id" });
+    // ignoreDuplicates: não reativa BMs que saíram do perfil (status "removed")
+    // nem sobrescreve o status das já existentes.
+    const { error } = await supabase.from("meta_business_managers").upsert(bmRows, { onConflict: "meta_bm_id", ignoreDuplicates: true });
     if (error) throw error;
   }
 
@@ -1277,15 +1279,14 @@ async function pruneRemovedBms(supabase: any, app: AppRow, state: AccountsSyncSt
   if (attempts === 0 || attempts !== ok || seen.size === 0) return;
   const ownAppId = app.id.startsWith("00000000") ? null : app.id;
   let q = supabase.from("meta_business_managers").select("id, meta_bm_id").neq("status", "removed");
-  q = ownAppId ? q.eq("meta_app_id", ownAppId) : q.is("meta_app_id", null);
+  // Inclui BMs antigas sem app vinculado (legado) — também somem se não estão no perfil.
+  q = ownAppId ? q.or(`meta_app_id.eq.${ownAppId},meta_app_id.is.null`) : q.is("meta_app_id", null);
   const { data } = await q;
-  const candidates = (data || []).filter((b: any) => !seen.has(String(b.meta_bm_id)));
-  if (!candidates.length) return;
-  const since = new Date(state.startedAtMs || Date.now()).toISOString();
-  const { data: recent } = await supabase.from("meta_ad_accounts").select("bm_id")
-    .in("bm_id", candidates.map((b: any) => b.id)).gte("last_synced_at", since).limit(5000);
-  const stillUsed = new Set((recent || []).map((r: any) => r.bm_id));
-  const toRemove = candidates.filter((b: any) => !stillUsed.has(b.id)).map((b: any) => b.id);
+  // Só aparecem no painel as BMs que vieram em /me/businesses. BMs criadas a
+  // partir do "business" de contas (BMs de terceiros) também são escondidas;
+  // as contas continuam visíveis em "Todas as BMs".
+  const toRemove = (data || []).filter((b: any) => !seen.has(String(b.meta_bm_id))).map((b: any) => b.id);
+  if (!toRemove.length) return;
   for (let i = 0; i < toRemove.length; i += 200) {
     await supabase.from("meta_business_managers").update({ status: "removed", updated_at: new Date().toISOString() }).in("id", toRemove.slice(i, i + 200));
   }
@@ -1592,6 +1593,11 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
             meta_app_id: ownAppId,
           })), { onConflict: "meta_bm_id" });
           if (error) throw error;
+        }
+        // Atualiza o contador de BMs logo após ler o perfil (não espera o fim
+        // da varredura completa, que pode expirar antes).
+        if (state.choiceIndex >= tokenChoicesForApp(currentApp).length - 1) {
+          try { await pruneRemovedBms(supabase, currentApp, state); } catch (e) { console.error("pruneRemovedBms", e); }
         }
         nextPhase(state);
         await persist({ app: currentApp.label, endpoint: "/me/businesses", status: "done", token: choice.label, detail: `${bms.length} BM(s) encontradas`, found: bms.length });
@@ -2103,6 +2109,32 @@ Deno.serve(async (req) => {
     }
 
     // ===== Multi-app sync of BMs + accounts =====
+    if (action === "sync_single_bm") {
+      const bmId = String(body.bm_id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(bmId)) return json({ erro: "bm_id inválido" }, 400);
+      const { data: bm } = await supabase.from("meta_business_managers").select("id, meta_bm_id, name, meta_app_id").eq("id", bmId).maybeSingle();
+      if (!bm) return json({ erro: "BM não encontrada" }, 404);
+      const apps = await loadActiveApps(supabase, bm.meta_app_id ? [bm.meta_app_id] : undefined);
+      if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);
+      let saved = 0; let ok = false; let lastErr = "";
+      for (const app of apps) {
+        for (const choice of tokenChoicesForApp(app)) {
+          try {
+            const items: any[] = [];
+            for (const edge of BM_ACCOUNT_EDGES) {
+              items.push(...await paginateMeta(`${META_API}/${bm.meta_bm_id}/${edge}?access_token=${encodeURIComponent(choice.token)}&fields=${LIGHT_ACCOUNT_FIELDS}&limit=100`));
+            }
+            saved = await saveDiscoveredAccounts(supabase, app, items.map((acc: any) => ({ ...acc, _bm_meta_id: bm.meta_bm_id, _source_token: choice.token })), "light");
+            ok = true; break;
+          } catch (e) { lastErr = (e as Error).message || ""; console.warn("sync_single_bm", lastErr.slice(0, 200)); }
+        }
+        if (ok) break;
+      }
+      if (!ok) return json({ erro: "Não foi possível ler esta BM na Meta. Verifique se o perfil ainda tem acesso." }, 502);
+      await markBmAccountsScanned(supabase, bm.id);
+      return json({ ok: true, contas: saved, bm: bm.name });
+    }
+
     if (action === "sync_bms" || action === "sync_accounts") {
       const apps = await loadActiveApps(supabase, appIds);
       if (apps.length === 0) return json({ erro: "Nenhum aplicativo Meta ativo configurado" }, 400);

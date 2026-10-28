@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Building2, ShieldAlert, Layers, AlertCircle, Search, X,
-  BadgeCheck, ShieldQuestion, Clock, FileText, Target,
+  BadgeCheck, ShieldQuestion, Clock, FileText, Target, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,8 @@ interface Props {
   accounts: Account[];
   selected: string;
   onSelect: (v: string) => void;
+  onSyncBm?: (bmId: string) => void;
+  syncingBmId?: string | null;
 }
 
 function timeAgo(iso: string | null): string {
@@ -65,7 +67,7 @@ function VerifiedBadge({ status }: { status: string | null }) {
   return null;
 }
 
-export default function BmSidebar({ bms, accounts, selected, onSelect }: Props) {
+export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm, syncingBmId }: Props) {
   const [query, setQuery] = useState("");
 
   const totalAccounts = accounts.length;
@@ -173,6 +175,22 @@ export default function BmSidebar({ bms, accounts, selected, onSelect }: Props) 
                       {bm.name}
                     </span>
                     <VerifiedBadge status={bm.verification_status} />
+                    {onSyncBm && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Sincronizar ${bm.name}`}
+                        title="Sincronizar só esta BM (busca contas de anúncio)"
+                        onClick={(e) => { e.stopPropagation(); if (!syncingBmId) onSyncBm(bm.id); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); if (!syncingBmId) onSyncBm(bm.id); } }}
+                        className={cn(
+                          "ml-auto shrink-0 rounded p-1 text-muted-foreground hover:text-primary hover:bg-primary/10",
+                          syncingBmId && syncingBmId !== bm.id && "opacity-40 pointer-events-none",
+                        )}
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", syncingBmId === bm.id && "animate-spin text-primary")} />
+                      </span>
+                    )}
                   </div>
 
                   <div className="text-[10px] text-muted-foreground/80 font-mono truncate mt-0.5">
