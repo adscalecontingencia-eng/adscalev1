@@ -20,6 +20,7 @@ import BmSidebar from "@/components/meta/BmSidebar";
 import AccountCard, { type AccountCardData } from "@/components/meta/AccountCard";
 import AccountDetailSheet from "@/components/meta/AccountDetailSheet";
 import SystemUserHelp from "@/components/meta/SystemUserHelp";
+import TokenExpiryBanner from "@/components/meta/TokenExpiryBanner";
 import AreaResponsibles from "@/components/support/AreaResponsibles";
 import AdsPermissionErrorsPanel from "@/components/ads/AdsPermissionErrorsPanel";
 import ArchivedAccountsPanel from "@/components/ads/ArchivedAccountsPanel";
@@ -352,6 +353,7 @@ export default function MetaConnections() {
 
   return (
     <div className="space-y-4">
+      <TokenExpiryBanner />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
