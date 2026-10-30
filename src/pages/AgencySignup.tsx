@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AdScaleLogo from "@/components/AdScaleLogo";
+import { useAgencyBranding } from "@/hooks/useAgencyBranding";
 import { TERMS_VERSION, getTermsText } from "@/lib/terms";
 import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
@@ -28,6 +29,10 @@ const AgencySignup: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const isBR = (i18n.language || "pt").startsWith("pt");
+  const { branding: agency } = useAgencyBranding(searchParams);
+  const BrandLogo = ({ size }: { size: number }) => agency
+    ? (agency.logo_url ? <img src={agency.logo_url} alt={agency.brand_name || ""} style={{ height: size }} className="max-w-[200px] object-contain" /> : <span translate="no" className="notranslate font-display text-2xl font-bold">{agency.brand_name}</span>)
+    : <AdScaleLogo size={size} />;
 
 
   const [referralCode, setReferralCode] = useState<string>("");
@@ -167,7 +172,9 @@ const AgencySignup: React.FC = () => {
           how_found_us: howFoundUs.trim(),
           accept_terms: true,
           terms_version: TERMS_VERSION,
-          referral_code: referralCode || undefined,
+          referral_code: agency ? undefined : (referralCode || undefined),
+          agency_key: agency?.slug || undefined,
+          agency_client_id: agency?.agency_client_id || undefined,
           utm_source: searchParams.get("utm_source") || undefined,
           utm_medium: searchParams.get("utm_medium") || undefined,
           utm_campaign: searchParams.get("utm_campaign") || undefined,
@@ -220,7 +227,7 @@ const AgencySignup: React.FC = () => {
         {/* Side pitch */}
         <div className="hidden lg:flex flex-col justify-between bg-card/60 backdrop-blur-xl border border-border/60 rounded-2xl p-7 shadow-2xl shadow-black/30">
           <div>
-            <div className="text-primary"><AdScaleLogo size={42} /></div>
+            <div className="text-primary"><BrandLogo size={42} /></div>
             <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
               <Briefcase size={12} /> {t("agencySignup.pitch.eyebrow")}
             </p>
@@ -271,7 +278,7 @@ const AgencySignup: React.FC = () => {
         {/* Form */}
         <div className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl shadow-black/30">
           <div className="lg:hidden flex flex-col items-center text-primary">
-            <AdScaleLogo size={typeof window !== "undefined" && window.innerWidth < 640 ? 32 : 42} />
+            <BrandLogo size={typeof window !== "undefined" && window.innerWidth < 640 ? 32 : 42} />
             <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
               <Briefcase size={12} /> {t("agencySignup.form.mobileEyebrow")}
             </p>

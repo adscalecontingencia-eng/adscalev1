@@ -98,6 +98,7 @@ export type Database = {
           data_mode: string
           logo_url: string | null
           primary_color: string | null
+          slug: string | null
           updated_at: string
         }
         Insert: {
@@ -111,6 +112,7 @@ export type Database = {
           data_mode?: string
           logo_url?: string | null
           primary_color?: string | null
+          slug?: string | null
           updated_at?: string
         }
         Update: {
@@ -124,6 +126,7 @@ export type Database = {
           data_mode?: string
           logo_url?: string | null
           primary_color?: string | null
+          slug?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -233,6 +236,7 @@ export type Database = {
       agency_sub_clients: {
         Row: {
           agency_client_id: string
+          client_id: string | null
           created_at: string
           email: string | null
           id: string
@@ -244,6 +248,7 @@ export type Database = {
         }
         Insert: {
           agency_client_id: string
+          client_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -255,6 +260,7 @@ export type Database = {
         }
         Update: {
           agency_client_id?: string
+          client_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -276,7 +282,9 @@ export type Database = {
       }
       agency_support_tasks: {
         Row: {
+          account_naming: string | null
           agency_client_id: string
+          bm_id: string | null
           category: string
           created_at: string
           description: string | null
@@ -289,7 +297,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_naming?: string | null
           agency_client_id: string
+          bm_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -302,7 +312,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_naming?: string | null
           agency_client_id?: string
+          bm_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -4028,6 +4040,16 @@ export type Database = {
       }
       generate_referral_code: { Args: { _seed: string }; Returns: string }
       get_agencies_overview: { Args: { _week_start: string }; Returns: Json }
+      get_agency_branding: {
+        Args: { _key: string }
+        Returns: {
+          agency_client_id: string
+          brand_name: string
+          logo_url: string
+          primary_color: string
+          slug: string
+        }[]
+      }
       get_agency_week_summary: {
         Args: { _agency: string; _week_start: string }
         Returns: Json

@@ -26,7 +26,8 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[] }> = ({ age
   const [tasks, setTasks] = useState<any[]>([]);
   const [show, setShow] = useState(false);
   const [filter, setFilter] = useState('todos');
-  const [form, setForm] = useState({ title: '', description: '', category: 'manutencao', structure_type: 'BM Comum', sub_client_id: 'none' });
+  const EMPTY = { title: '', description: '', category: 'manutencao', structure_type: 'BM Comum', sub_client_id: 'none', bm_id: '', account_naming: '' };
+  const [form, setForm] = useState(EMPTY);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('agency_support_tasks').select('*').eq('agency_client_id', agencyId).order('created_at', { ascending: false });
@@ -41,10 +42,24 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[] }> = ({ age
       agency_client_id: agencyId, title, description: form.description.trim().slice(0, 2000) || null,
       category: form.category, structure_type: form.structure_type,
       sub_client_id: form.sub_client_id === 'none' ? null : form.sub_client_id,
-    });
+      bm_id: form.bm_id.trim() || null, account_naming: form.account_naming.trim().slice(0, 200) || null,
+    } as any);
     if (error) return toast.error('Não foi possível criar o chamado.');
     toast.success('Chamado criado.');
-    setForm({ title: '', description: '', category: 'manutencao', structure_type: 'BM Comum', sub_client_id: 'none' }); setShow(false); load();
+    setForm(EMPTY); setShow(false); load();
+  };
+  const copyTicket = async (t: any) => {
+    const lines = [
+      `Chamado: ${t.title}`,
+      `Categoria: ${CATEGORIES.find(c => c.v === t.category)?.l ?? t.category}`,
+      `Estrutura: ${t.structure_type}`,
+      `Cliente: ${subs.find(s => s.id === t.sub_client_id)?.name ?? 'Interno'}`,
+      `ID da BM: ${t.bm_id || '—'}`,
+      `Nomenclatura das contas: ${t.account_naming || '—'}`,
+      t.description ? `Descrição: ${t.description}` : '',
+    ].filter(Boolean).join('\n');
+    try { await navigator.clipboard.writeText(lines); toast.success('Chamado copiado. Cole no WhatsApp da AD SCALE.'); }
+    catch { toast.error('Não foi possível copiar.'); }
   };
   const setStatus = async (id: string, status: string) => {
     const patch: any = { status, resolved_at: status === 'concluida' || status === 'cancelada' ? new Date().toISOString() : null };
@@ -85,6 +100,8 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[] }> = ({ age
           <Select value={form.structure_type} onValueChange={v => setForm({ ...form, structure_type: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STRUCTURES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
+          <Input placeholder="ID da BM da agência (ex.: 1234567890)" maxLength={40} value={form.bm_id} onChange={e => setForm({ ...form, bm_id: e.target.value.replace(/[^\d]/g, '') })} />
+          <Input placeholder="Nomenclatura das contas (ex.: LOJA-CA-01)" maxLength={200} value={form.account_naming} onChange={e => setForm({ ...form, account_naming: e.target.value })} />
           <Textarea className="sm:col-span-2" placeholder="Descrição" maxLength={2000} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           <div className="sm:col-span-2 flex gap-2 justify-end"><Button variant="ghost" onClick={() => setShow(false)}>Cancelar</Button><Button onClick={create}>Criar chamado</Button></div>
         </div>
@@ -102,7 +119,14 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[] }> = ({ age
                 <span>{subs.find(s => s.id === t.sub_client_id)?.name ?? 'Interno'}</span>
                 <span>· {format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</span>
               </div>
+              {(t.bm_id || t.account_naming) && (
+                <div className="flex flex-wrap gap-3 mt-2 text-xs">
+                  {t.bm_id && <span>ID da BM: <b className="font-mono">{t.bm_id}</b></span>}
+                  {t.account_naming && <span>Nomenclatura: <b>{t.account_naming}</b></span>}
+                </div>
+              )}
               {t.description && <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{t.description}</p>}
+              <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => copyTicket(t)}>Copiar para repassar à AD SCALE</Button>
             </div>
             <Select value={t.status} onValueChange={v => setStatus(t.id, v)}>
               <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
