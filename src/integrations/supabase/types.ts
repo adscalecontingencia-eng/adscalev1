@@ -143,6 +143,12 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           data_mode: string
+          domain_a_ip: string | null
+          domain_activated_at: string | null
+          domain_admin_note: string | null
+          domain_requested_at: string | null
+          domain_status: string | null
+          domain_txt_value: string | null
           favicon_url: string | null
           logo_url: string | null
           primary_color: string | null
@@ -160,6 +166,12 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           data_mode?: string
+          domain_a_ip?: string | null
+          domain_activated_at?: string | null
+          domain_admin_note?: string | null
+          domain_requested_at?: string | null
+          domain_status?: string | null
+          domain_txt_value?: string | null
           favicon_url?: string | null
           logo_url?: string | null
           primary_color?: string | null
@@ -177,6 +189,12 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           data_mode?: string
+          domain_a_ip?: string | null
+          domain_activated_at?: string | null
+          domain_admin_note?: string | null
+          domain_requested_at?: string | null
+          domain_status?: string | null
+          domain_txt_value?: string | null
           favicon_url?: string | null
           logo_url?: string | null
           primary_color?: string | null
