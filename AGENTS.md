@@ -11,3 +11,4 @@
 - Sub-client dashboards take the agency's brand (name, logo, color, title, footer, support chat) from `get_client_agency_branding()` via `useClientAgencyBranding`; AD SCALE branding shows only when it returns nothing — agency end clients never see AD SCALE.
 - Agency collaborators live in `agency_members` (created only by the `agency-members` edge function, owner-only) with per-section `permissions`; RLS uses `agency_can()`/`agency_can_any()` so section limits are enforced server-side, not just hidden in the UI.
 - An agency's own support WhatsApp (`agency_settings.support_whatsapp`) replaces AD SCALE's number for its end clients in the chat, payment and overdue buttons — agency clients never reach AD SCALE directly.
+- Weekly goal rates for AD SCALE clients come only from `tiersForClient()` in `src/lib/commission-tiers.ts` (custom goals win, otherwise global goals adjusted to the loyalty base %) — dashboard, admin cards and auto-commissions must stay in sync.

@@ -40,7 +40,8 @@ export const TiersDialog: React.FC<Props> = ({
           <DialogTitle className="font-display">Metas semanais de desconto</DialogTitle>
           <DialogDescription className="text-xs">
             Configuração <strong className="text-foreground">global</strong>. Define o percentual aplicado conforme o
-            gasto semanal acumulado de cada cliente de aluguel.
+            gasto semanal acumulado de cada cliente de aluguel. As metas acompanham o nível de fidelidade: clientes
+            Premium (4% base) e Elite (3% base) recebem cada meta reduzida pela mesma diferença — ex.: Premium começa em 3%.
           </DialogDescription>
         </DialogHeader>
 

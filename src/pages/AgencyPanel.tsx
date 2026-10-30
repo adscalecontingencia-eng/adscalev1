@@ -159,6 +159,14 @@ const AgencyPanel: React.FC = () => {
 
   useEffect(() => { if (accepted) load(); }, [accepted, load]);
 
+  // Cor da agência também nas janelas que abrem por cima (renderizadas fora do painel).
+  useEffect(() => {
+    const vars = brandVarsRaw(settings.primary_color) || {};
+    const root = document.documentElement;
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    return () => { Object.keys(vars).forEach(k => root.style.removeProperty(k)); };
+  }, [settings.primary_color]);
+
   const terms = useMemo(() => getAgencyTerms(lang), [lang]);
 
   const acceptTerms = async () => {
@@ -418,7 +426,8 @@ const AgencyPanel: React.FC = () => {
 
           <TabsContent value="clientes">
             <AgencyClientsSection subs={subs} summary={summary} credits={credits} accountsOf={accountsOf} creditBalance={creditBalance}
-              onView={id => { const cid = subs.find(s => s.id === id)?.client_id; if (cid) navigate(`/agencia/cliente/${cid}`); else setViewSub(id); }} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor} />
+              onView={id => { const cid = subs.find(s => s.id === id)?.client_id; if (cid) navigate(`/agencia/cliente/${cid}`); else setViewSub(id); }} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor}
+              agencyId={agency.id} tiers={tiers} platformPcts={platformPcts} onTiersChanged={load} />
           </TabsContent>
 
           <TabsContent value="suporte">

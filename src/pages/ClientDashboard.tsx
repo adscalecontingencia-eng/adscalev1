@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useClientAgencyBranding } from '@/hooks/useAgencyBranding';
-import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
+import { useCommissionTiers, getTierPctFromTiers, tiersForClient } from '@/lib/commission-tiers';
 import { getBillingDueDate, getLastClosedBillingWeekRange, splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
@@ -574,15 +574,11 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   // Tier logic — tiers come from DB (admin-configurable globally).
   // Se o cliente tiver `custom_tiers` definidos, esses sobrescrevem os globais.
   const { tiers: globalCommissionTiers } = useCommissionTiers();
-  const commissionTiers = useMemo(() => {
-    const ct = (client as any)?.custom_tiers;
-    if (Array.isArray(ct) && ct.length > 0) {
-      return ct
-        .filter((t: any) => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
-        .map((t: any) => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }));
-    }
-    return globalCommissionTiers;
-  }, [client, globalCommissionTiers]);
+  // Metas globais acompanham o nível de fidelidade (Premium começa em 3%, Elite em 2%).
+  const commissionTiers = useMemo(
+    () => tiersForClient((client as any)?.custom_tiers, globalCommissionTiers, Number(client?.percentage_value) || 0),
+    [client, globalCommissionTiers],
+  );
   const getTierPct = (weekSpend: number, basePct: number) =>
     getTierPctFromTiers(weekSpend, basePct, commissionTiers);
 

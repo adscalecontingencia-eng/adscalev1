@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, endOfWeek, format, addDays } from 'date-fns';
 import { parseDateLocal } from '@/lib/date-utils';
-import { fetchCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
+import { fetchCommissionTiers, getTierPctFromTiers, tiersForClient } from '@/lib/commission-tiers';
 
 export interface AutoCommissionResult {
   inserted: number;
@@ -118,11 +118,7 @@ export async function syncAutoCommissions(opts?: { logAudit?: boolean; source?: 
     for (const [weekKey, weekSpend] of weeks.entries()) {
       if (weekKey === currentWeekStart) continue; // open week
       if (weekSpend <= 0) continue;
-      const clientTiers = Array.isArray((client as any).custom_tiers) && (client as any).custom_tiers.length > 0
-        ? (client as any).custom_tiers
-            .filter((t: any) => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
-            .map((t: any) => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
-        : tiers;
+      const clientTiers = tiersForClient((client as any).custom_tiers, tiers, basePct);
       const rate = getTierPctFromTiers(weekSpend, basePct, clientTiers);
       const commission = weekSpend * (rate / 100);
       if (commission <= 0) continue;
