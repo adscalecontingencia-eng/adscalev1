@@ -4,7 +4,7 @@ export const DEFAULT_DOMAIN_IP = '185.158.133.1';
 const TWO_LEVEL_SUFFIXES = ['com.br', 'net.br', 'org.br', 'art.br', 'blog.br', 'eco.br', 'app.br', 'dev.br', 'co.uk', 'com.au', 'com.mx', 'com.ar', 'com.co', 'com.pt', 'co.za'];
 
 export function normalizeDomain(raw: string): string {
-  return raw.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, (m) => m);
+  return raw.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
 }
 
 export function isValidDomain(d: string): boolean {
