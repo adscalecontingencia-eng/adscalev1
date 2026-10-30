@@ -36,12 +36,15 @@ import ChangePasswordCard from '@/components/client/ChangePasswordCard';
 import SupportChat from '@/components/client/SupportChat';
 
 
-const ClientDashboard: React.FC = () => {
+const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = false }) => {
   const { user, logout } = useAuth();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { clientId: viewAsClientId } = useParams<{ clientId?: string }>();
-  const isAdminView = !!viewAsClientId && (user?.role === 'admin' || user?.role === 'support');
+  // Agência parceira abrindo o painel de um cliente dela (somente leitura, igual à visão admin).
+  const isAgencyView = agencyView && !!viewAsClientId && user?.role === 'client';
+  const isAdminView = !!viewAsClientId && (isAgencyView || user?.role === 'admin' || user?.role === 'support');
+  const exitPath = isAgencyView ? '/agencia' : '/clients';
   const referralDict = useReferralDict();
   const [client, setClient] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
@@ -334,7 +337,7 @@ const ClientDashboard: React.FC = () => {
             requests: reqsRes.data?.length || 0,
             elapsed_ms: Math.round(performance.now() - t0),
           });
-          syncClosedBillingWeek(accountIds)
+          if (!isAgencyView) syncClosedBillingWeek(accountIds)
             .then(() => fetchAccounts(clientData.id))
             .catch((e) => console.warn('[ClientDashboard] atualização em background falhou:', e));
         } else if (!clientErr) {
@@ -356,7 +359,7 @@ const ClientDashboard: React.FC = () => {
       }
     };
     fetchData();
-  }, [user, viewAsClientId, isAdminView, fetchAccounts]);
+  }, [user, viewAsClientId, isAdminView, isAgencyView, fetchAccounts]);
 
   // Realtime: refresh ad accounts whenever sync updates them or assignments change
   useEffect(() => {
@@ -858,10 +861,10 @@ const ClientDashboard: React.FC = () => {
         <div className="sticky top-0 z-50 bg-primary text-primary-foreground border-b border-primary/60 px-4 lg:px-8 py-2.5 flex items-center justify-between text-xs shadow-lg">
           <div className="flex items-center gap-2">
             <Shield size={14} />
-            <span className="font-semibold uppercase tracking-wider">{t('clientDash.adminView.mode')}</span>
+            <span className="font-semibold uppercase tracking-wider">{isAgencyView ? 'Visão da agência' : t('clientDash.adminView.mode')}</span>
             <span className="opacity-90 hidden sm:inline">— {t('clientDash.adminView.viewingAs', { name: client.name })}</span>
           </div>
-          <button onClick={() => navigate('/clients')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 text-primary-foreground font-medium border border-background/30">
+          <button onClick={() => navigate(exitPath)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 text-primary-foreground font-medium border border-background/30">
             <X size={13} /> {t('clientDash.adminView.exit')}
           </button>
         </div>
@@ -890,7 +893,7 @@ const ClientDashboard: React.FC = () => {
             />
           )}
           {isAdminView ? (
-            <button onClick={() => navigate('/clients')} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title="Voltar para Clientes">
+            <button onClick={() => navigate(exitPath)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title="Voltar para Clientes">
               <X size={16} />
             </button>
           ) : (
