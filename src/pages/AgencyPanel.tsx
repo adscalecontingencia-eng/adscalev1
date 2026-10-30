@@ -102,7 +102,7 @@ const AgencyPanel: React.FC = () => {
   const [newTier, setNewTier] = useState({ name: '', min: '0', pct: '5', subsidy: false });
   const [newCredit, setNewCredit] = useState({ sub: '', amount: '', note: '' });
   const [section, setSection] = useState('resumo');
-  const [navOpen, setNavOpen] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
   const [viewSub, setViewSub] = useState<string | null>(null);
 
   useEffect(() => {
