@@ -134,7 +134,8 @@ export function brandVars(hex?: string | null): Record<string, string> | undefin
  * Applies the agency color to the whole page (incl. dialogs) while mounted.
  */
 export function useClientAgencyBranding(clientId?: string | null) {
-  const [branding, setBranding] = useState<AgencyBranding | null>(null);
+  // On an agency host start from the cached host brand so AD SCALE never flashes.
+  const [branding, setBranding] = useState<AgencyBranding | null>(() => (clientId && bootKey() ? readBrandCache(bootKey()) : null));
   const [loading, setLoading] = useState(!!clientId);
   useEffect(() => {
     if (!clientId) { setBranding(null); setLoading(false); return; }
