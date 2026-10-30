@@ -483,10 +483,33 @@ const AgencyPanel: React.FC = () => {
               <Input placeholder="Observação" value={newCredit.note} onChange={e => setNewCredit({ ...newCredit, note: e.target.value })} />
               <Button onClick={addCredit}>Registrar</Button>
             </CardContent></Card>
-            <Card><CardContent className="pt-6 text-sm space-y-2">
-              {subs.map(s => { const b = creditBalance(s.id); return <div key={s.id} className="flex gap-3 border-b border-border/40 pb-2"><span className="flex-1">{s.name}</span><span>Créditos: {usd(b.paid)}</span><span className="text-muted-foreground">Comissão da semana: {usd(b.weekUse)}</span></div>; })}
-              <p className="text-xs text-muted-foreground pt-2">O crédito é uma caução paga pelo cliente ao entrar. Ela é descontada integralmente da comissão até zerar; depois disso a comissão vira saldo acumulado a cobrar.</p>
-            </CardContent></Card>
+            {(() => {
+              const rows = subs.map(s => {
+                const r = summary?.sub_clients?.find((x: any) => x.sub_client_id === s.id);
+                const fee = Number(r?.client_fee || 0), ad = Number(r?.adscale_fee || 0);
+                const caucao = creditBalance(s.id).paid;
+                const fromCaucao = Math.min(caucao, fee);
+                return { s, fee, ad, caucao, fromCaucao, toCharge: fee - fromCaucao, margin: fee - ad };
+              });
+              const sumAd = rows.reduce((t, r) => t + r.ad, 0);
+              const due = Number(summary?.adscale_due || 0);
+              const unassigned = Math.max(0, due - sumAd);
+              const coveredByCaucao = rows.reduce((t, r) => t + Math.min(r.fromCaucao, r.ad), 0);
+              return <>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <Card className="border-primary/40"><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total a pagar à AD SCALE (semana)</p><p className="text-2xl font-bold text-primary">{usd(due)}</p><p className="text-xs text-muted-foreground">Pago na sexta seguinte ao fechamento</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Parte coberta por caução que ficou com você</p><p className="text-2xl font-bold text-warning">{usd(coveredByCaucao)}</p><p className="text-xs text-muted-foreground">Você recebeu esse valor na caução — repasse à AD SCALE</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Contas sem cliente atribuído</p><p className="text-2xl font-bold">{usd(unassigned)}</p><p className="text-xs text-muted-foreground">Repasse sobre gasto de contas não atribuídas</p></CardContent></Card>
+                </div>
+                <Card><CardHeader><CardTitle className="text-base">Repasse ao fornecedor AD SCALE por cliente</CardTitle></CardHeader><CardContent className="overflow-x-auto">
+                  <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">Cliente</th><th>Caução</th><th>Comissão</th><th>Abatido da caução</th><th>A cobrar do cliente</th><th>Repasse AD SCALE</th><th>Sua margem</th></tr></thead>
+                    <tbody>{rows.map(r => <tr key={r.s.id} className="border-t border-border/50">
+                      <td className="py-2">{r.s.name}</td><td>{usd(r.caucao)}</td><td>{usd(r.fee)}</td><td className="text-warning">{usd(r.fromCaucao)}</td><td>{usd(r.toCharge)}</td><td className="text-primary font-semibold">{usd(r.ad)}</td><td>{usd(r.margin)}</td>
+                    </tr>)}{!rows.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">Nenhum cliente cadastrado.</td></tr>}</tbody></table>
+                  <p className="text-xs text-muted-foreground mt-3">A caução fica com a agência e não é paga à AD SCALE. Mesmo quando a comissão do cliente é abatida da caução, a parte AD SCALE dessa comissão (taxa do seu nível sobre o gasto) continua devida e entra na fatura semanal.</p>
+                </CardContent></Card>
+              </>;
+            })()}
           </TabsContent>
 
           <TabsContent value="marca" className="space-y-4">
