@@ -63,7 +63,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [tourOpen, setTourOpen] = useState(false);
   // Auto-abre o tutorial no primeiro acesso do cliente (uma vez por cliente/navegador)
   useEffect(() => {
-    if (loading || !client?.id) return;
+    if (loading || !client?.id || isAgencyView) return;
     try {
       if (!localStorage.getItem(`adscale_tour_done_${client.id}`)) {
         const t = window.setTimeout(() => setTourOpen(true), 900);
