@@ -34,6 +34,7 @@ import DailyStatement from '@/components/client/DailyStatement';
 import WeeklyInvoiceCard from '@/components/client/WeeklyInvoiceCard';
 import ChangePasswordCard from '@/components/client/ChangePasswordCard';
 import SupportChat from '@/components/client/SupportChat';
+import { isDemoSubClient, buildDemoClientData } from '@/components/agency/agency-demo-client';
 
 
 const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = false }) => {
@@ -133,6 +134,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   };
 
   const fetchAccounts = useCallback(async (clientId: string) => {
+    if (demoClientRef.current) return [] as string[]; // cliente demo da agência: dados simulados
     const { data: assigns } = await withTimeout<{ data: any[] | null }>(supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
@@ -327,6 +329,16 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
           setSavedAccounts(blockedRes.data || []);
           setPages((pagesRes.data || []).map((a: any) => a.page).filter(Boolean));
           setSupportRequests(reqsRes.data || []);
+          if (isDemoSubClient(clientData.email)) {
+            // Cliente de demonstração da Agência Demo: gasto/contas/cobranças simulados (nada gravado).
+            const demo = buildDemoClientData(clientData.email, clientData.id);
+            demoClientRef.current = true;
+            setActiveAccounts(demo.assignments); setArchivedAccounts([]);
+            setInsights(demo.insights); setCommissions(demo.commissions);
+            setLastAccountsSync(new Date());
+            return;
+          }
+          demoClientRef.current = false;
 
           console.debug('[ClientDashboard][telemetry] dados carregados', {
             ...ctx,
