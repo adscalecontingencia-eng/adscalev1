@@ -363,28 +363,13 @@ const AgencyPanel: React.FC = () => {
             </CardContent></Card>
           </TabsContent>
 
-          <TabsContent value="clientes" className="space-y-4">
-            <Card><CardHeader><CardTitle className="text-base">Novo cliente</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-4 gap-2">
-              <Input placeholder="Nome" value={newSub.name} onChange={e => setNewSub({ ...newSub, name: e.target.value })} />
-              <Input placeholder="E-mail" value={newSub.email} onChange={e => setNewSub({ ...newSub, email: e.target.value })} />
-              <Input placeholder="WhatsApp" value={newSub.phone} onChange={e => setNewSub({ ...newSub, phone: e.target.value })} />
-              <Button onClick={addSub} className="gap-2"><Plus size={14} />Adicionar</Button>
-            </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-base">Clientes ({subs.length})</CardTitle></CardHeader><CardContent className="overflow-x-auto">
-              <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">Cliente</th><th>Contas</th><th>Gasto semana</th><th>Taxa</th><th>Crédito</th><th>Sua margem</th><th></th></tr></thead>
-                <tbody>{subs.map(s => {
-                  const row = summary?.sub_clients?.find((r: any) => r.sub_client_id === s.id);
-                  const accs = accountsOf(s.id); const cb = creditBalance(s.id);
-                  return <tr key={s.id} className="border-t border-border/50">
-                    <td className="py-2"><p className="font-medium">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.email}</p></td>
-                    <td>{accs.filter(a => a.account_status === 1).length}/{accs.length}</td>
-                    <td>{usd(row?.spend)}</td><td>{row?.client_pct ?? '—'}%</td>
-                    <td className={cb.paid - cb.weekUse < 0 ? 'text-destructive' : ''}>{usd(cb.paid - cb.weekUse)}</td>
-                    <td className="text-primary">{usd(row?.agency_margin)}</td>
-                    <td className="text-right whitespace-nowrap"><Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setViewSub(s.id)}><Eye size={13} />Acessar painel</Button><Button size="icon" variant="ghost" onClick={() => delSub(s.id)}><Trash2 size={14} /></Button></td>
-                  </tr>;
-                })}{!subs.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">Nenhum cliente cadastrado.</td></tr>}</tbody></table>
-            </CardContent></Card>
+          <TabsContent value="clientes">
+            <AgencyClientsSection subs={subs} summary={summary} credits={credits} accountsOf={accountsOf} creditBalance={creditBalance}
+              onView={id => setViewSub(id)} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor} />
+          </TabsContent>
+
+          <TabsContent value="suporte">
+            <AgencySupport agencyId={agency.id} subs={subs} />
           </TabsContent>
 
           <TabsContent value="contas" className="space-y-4">
@@ -395,13 +380,38 @@ const AgencyPanel: React.FC = () => {
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Banidas / com problema</p><p className="text-2xl font-bold text-destructive">{accounts.filter(a => a.account_status !== 1).length}</p></CardContent></Card>
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Saldo somado</p><p className="text-2xl font-bold">{usd(accounts.reduce((t, a) => t + Number(a.balance || 0), 0))}</p></CardContent></Card>
             </div>
-            <AgencyAccountsTable accounts={accounts}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9 h-11" placeholder="Pesquisar conta de anúncio pelo nome ou ID..." value={accQ} onChange={e => setAccQ(e.target.value)} />
+              </div>
+              <Select value={accOwner} onValueChange={setAccOwner}>
+                <SelectTrigger className="w-56 h-11"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todos os clientes</SelectItem><SelectItem value="none">Sem cliente atribuído</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">{filteredAccounts.length} de {accounts.length}</span>
+            </div>
+            <Card><CardHeader><CardTitle className="text-base">Atribuições</CardTitle></CardHeader><CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">Escolha o cliente e marque as contas que ele vai usar. Ele passa a ver só essas contas no painel dele.</p>
+              <div className="flex flex-wrap gap-2">
+                <Select value={bulkSub} onValueChange={setBulkSub}>
+                  <SelectTrigger className="w-56"><SelectValue placeholder="Cliente" /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">Remover atribuição</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+                <Button disabled={!bulkSub || !bulkSel.length} onClick={bulkAssign}>Atribuir {bulkSel.length || ''} conta(s)</Button>
+                {!!bulkSel.length && <Button variant="ghost" onClick={() => setBulkSel([])}>Limpar seleção</Button>}
+              </div>
+            </CardContent></Card>
+            <AgencyAccountsTable accounts={filteredAccounts}
               ownerOf={id => subs.find(s => s.id === linkOf(id))?.name ?? null}
-              renderAction={a => isDemo ? null : (
-                <Select value={linkOf(a.id)} onValueChange={v => assign(a.id, v)}>
-                  <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">Sem cliente</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                </Select>)} />
+              renderAction={a => (
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={bulkSel.includes(a.id)} onCheckedChange={v => setBulkSel(p => v ? [...p, a.id] : p.filter(x => x !== a.id))} aria-label="Selecionar conta" />
+                  <Select value={linkOf(a.id)} onValueChange={v => assign(a.id, v)}>
+                    <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Sem cliente</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>)} />
           </TabsContent>
 
           <TabsContent value="tiers" className="space-y-4">
