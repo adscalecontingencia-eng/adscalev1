@@ -16,30 +16,34 @@ import {
 interface RecoveryEmailProps {
   siteName: string
   confirmationUrl: string
+  token?: string
 }
 
 export const RecoveryEmail = ({
   siteName,
   confirmationUrl,
+  token,
 }: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="pt-BR" dir="ltr">
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Seu código para redefinir a senha</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
+        <Heading style={h1}>Redefinir sua senha</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          Recebemos um pedido para redefinir sua senha. Digite o código abaixo
+          na tela de recuperação de senha:
         </Text>
+        {token ? <Text style={code}>{token}</Text> : null}
+        <Text style={text}>Se preferir, clique no botão abaixo:</Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Reset Password
+          Redefinir senha
         </Button>
         <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+          Se você não pediu a troca de senha, ignore este e-mail. Sua senha não
+          será alterada.
         </Text>
       </Container>
     </Body>
@@ -71,6 +75,7 @@ const button = {
   padding: '12px 20px',
   textDecoration: 'none',
 }
+const code = { fontSize: '30px', fontWeight: 'bold' as const, letterSpacing: '6px', color: '#000000', backgroundColor: '#f3f4f6', borderRadius: '8px', padding: '14px', textAlign: 'center' as const, margin: '0 0 25px' }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
 // Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
 const darkModeCss = `
