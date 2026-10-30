@@ -152,6 +152,10 @@ export type Database = {
           favicon_url: string | null
           logo_url: string | null
           primary_color: string | null
+          signup_terms_en: string | null
+          signup_terms_pt: string | null
+          signup_terms_updated_at: string | null
+          signup_terms_version: string | null
           site_title: string | null
           slug: string | null
           support_whatsapp: string | null
@@ -175,6 +179,10 @@ export type Database = {
           favicon_url?: string | null
           logo_url?: string | null
           primary_color?: string | null
+          signup_terms_en?: string | null
+          signup_terms_pt?: string | null
+          signup_terms_updated_at?: string | null
+          signup_terms_version?: string | null
           site_title?: string | null
           slug?: string | null
           support_whatsapp?: string | null
@@ -198,6 +206,10 @@ export type Database = {
           favicon_url?: string | null
           logo_url?: string | null
           primary_color?: string | null
+          signup_terms_en?: string | null
+          signup_terms_pt?: string | null
+          signup_terms_updated_at?: string | null
+          signup_terms_version?: string | null
           site_title?: string | null
           slug?: string | null
           support_whatsapp?: string | null
@@ -4167,6 +4179,16 @@ export type Database = {
         Returns: {
           ad_account_id: string
           linked_at: string
+        }[]
+      }
+      get_agency_signup_terms: {
+        Args: { _key: string }
+        Returns: {
+          agency_client_id: string
+          brand_name: string
+          terms_en: string
+          terms_pt: string
+          terms_version: string
         }[]
       }
       get_agency_week_summary: {

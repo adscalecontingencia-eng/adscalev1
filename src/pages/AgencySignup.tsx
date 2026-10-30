@@ -22,6 +22,8 @@ import { useTranslation } from "react-i18next";
 import AdScaleLogo from "@/components/AdScaleLogo";
 import { useAgencyBranding } from "@/hooks/useAgencyBranding";
 import { TERMS_VERSION, getTermsText } from "@/lib/terms";
+import { resolveAgencySignupTerms, type AgencySignupTerms } from "@/lib/agency-signup-terms";
+import { supabase } from "@/integrations/supabase/client";
 import { setLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n";
 
 const AgencySignup: React.FC = () => {
@@ -29,7 +31,19 @@ const AgencySignup: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const isBR = (i18n.language || "pt").startsWith("pt");
-  const { branding: agency } = useAgencyBranding(searchParams);
+  const { branding: agency, key: agencyKey } = useAgencyBranding(searchParams);
+  // Agency end clients accept the agency's own terms (custom text, or the default carrying the agency name).
+  const [agencyTerms, setAgencyTerms] = useState<AgencySignupTerms | null>(null);
+  useEffect(() => {
+    if (!agencyKey) return;
+    (supabase.rpc as any)("get_agency_signup_terms", { _key: agencyKey }).then(({ data }: any) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) setAgencyTerms(row);
+    });
+  }, [agencyKey]);
+  const agencyTermsResolved = agency ? resolveAgencySignupTerms(agencyTerms || { brand_name: agency.brand_name, terms_pt: null, terms_en: null, terms_version: null }, i18n.language) : null;
+  const termsText = agencyTermsResolved ? agencyTermsResolved.text : getTermsText(i18n.language);
+  const termsVersion = agencyTermsResolved ? agencyTermsResolved.version : TERMS_VERSION;
   const BrandLogo = ({ size }: { size: number }) => agency
     ? (agency.logo_url ? <img src={agency.logo_url} alt={agency.brand_name || ""} style={{ height: size }} className="max-w-[200px] object-contain" /> : <span translate="no" className="notranslate font-display text-2xl font-bold">{agency.brand_name}</span>)
     : <AdScaleLogo size={size} />;
@@ -171,7 +185,7 @@ const AgencySignup: React.FC = () => {
           monthly_investment: monthlyInvestment,
           how_found_us: howFoundUs.trim(),
           accept_terms: true,
-          terms_version: TERMS_VERSION,
+          terms_version: termsVersion,
           referral_code: agency ? undefined : (referralCode || undefined),
           agency_key: agency?.slug || undefined,
           agency_client_id: agency?.agency_client_id || undefined,
@@ -452,11 +466,11 @@ const AgencySignup: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground/80">
-                <ScrollText size={12} className="text-primary" /> {t("agencySignup.terms.heading")} · {TERMS_VERSION}
+                <ScrollText size={12} className="text-primary" /> {t("agencySignup.terms.heading")} · {termsVersion}
               </div>
               <div onScroll={handleScroll}
                 className="h-44 overflow-y-auto bg-background/40 border border-border/60 rounded-xl p-4 text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono scrollbar-neon">
-                {getTermsText(i18n.language)}
+                {termsText}
               </div>
               {!scrolledTerms && <p className="text-[10px] text-amber-400/80">{t("agencySignup.terms.scrollHint")}</p>}
 
