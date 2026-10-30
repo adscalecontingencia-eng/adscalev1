@@ -911,6 +911,11 @@ const ClientDashboard: React.FC = () => {
               <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary bg-primary/10 border border-primary/30 rounded-full px-2.5 py-1">
                 <Sparkles size={11} /> {t('clientDash.tagAutoSync')}
               </span>
+              {client.is_agency && !isAdminView && (
+                <button onClick={() => navigate('/agencia')} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary-foreground bg-primary rounded-full px-3 py-1 font-semibold">
+                  Painel da Agência →
+                </button>
+              )}
             </div>
           </div>
 

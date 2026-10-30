@@ -77,6 +77,8 @@ const es: Translations = {
     weeklyInvoices: 'Facturas Semanales',
     supportInbox: 'Centro de Soporte',
 
+    agencyPartners: 'Agencias Socias',
+
     termsAudit: 'Auditoría de Términos',
     partnerBanners: 'Banners de Socios',
     users: 'Usuarios',
