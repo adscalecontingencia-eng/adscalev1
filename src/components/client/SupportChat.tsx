@@ -13,7 +13,7 @@ interface ChatMessage {
 
 const WHATSAPP_MARKER = '[WHATSAPP]';
 
-const SupportChat: React.FC<{ clientId: string | null }> = ({ clientId }) => {
+const SupportChat: React.FC<{ clientId: string | null; brandName?: string | null }> = ({ clientId, brandName }) => {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -45,7 +45,7 @@ const SupportChat: React.FC<{ clientId: string | null }> = ({ clientId }) => {
   }, [loading]);
 
   const whatsappUrl = whatsapp
-    ? `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent('Olá! Vim do chat do painel AD SCALE e preciso de ajuda.')}`
+    ? `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Vim do chat do painel ${brandName || 'AD SCALE'} e preciso de ajuda.`)}`
     : null;
 
   const send = async (e: React.FormEvent) => {
@@ -130,7 +130,7 @@ const SupportChat: React.FC<{ clientId: string | null }> = ({ clientId }) => {
                     : 'max-w-[80%] text-foreground rounded-2xl rounded-bl-md px-4 py-2.5 text-sm whitespace-pre-wrap border border-border/60'
                 }
               >
-                {m.role === 'agent' && <p className="text-[10px] text-primary font-semibold mb-1">{t('supportInbox.agentLabel')}</p>}
+                {m.role === 'agent' && <p className="text-[10px] text-primary font-semibold mb-1">{brandName ? t('supportChat.teamOf', { name: brandName, defaultValue: `Equipe ${brandName}` }) : t('supportInbox.agentLabel')}</p>}
                 {m.content.replace(WHATSAPP_MARKER, '').trim()}
               </div>
             </div>
