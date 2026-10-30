@@ -134,7 +134,22 @@ const ClientDashboard: React.FC = () => {
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
       .eq('client_id', clientId) as any, 10000, 'Contas de anúncio');
-    const assignments = assigns || [];
+    const assignments = [...(assigns || [])];
+    // Clientes de agência parceira: contas que a agência atribuiu a eles.
+    const agencyLinked = new Set<string>();
+    try {
+      const { data: linked } = await supabase.rpc('get_agency_linked_accounts', { _client_id: clientId });
+      const missing = (linked || []).filter((l: any) => !assignments.some((a: any) => String(a.ad_account_id) === String(l.ad_account_id)));
+      if (missing.length) {
+        const { data: accs } = await supabase.from('meta_ad_accounts').select('*').in('id', missing.map((m: any) => m.ad_account_id));
+        missing.forEach((m: any) => {
+          const acc = (accs || []).find((x: any) => x.id === m.ad_account_id);
+          if (!acc) return;
+          agencyLinked.add(String(acc.id));
+          assignments.push({ id: `agency-${acc.id}`, ad_account_id: acc.id, client_id: clientId, active: true, effective_from: String(m.linked_at || '').slice(0, 10) || null, effective_to: null, assigned_at: m.linked_at, ad_account: acc });
+        });
+      }
+    } catch (e) { console.warn('[ClientDashboard] contas da agência indisponíveis', e); }
     const assigned = assignments.filter((a: any) => a.active);
     // Arquivada (archived_at) = perdeu acesso / foi retirada. Não conta como ativa.
     const list = assigned.filter((a: any) => !a.ad_account?.archived_at);
