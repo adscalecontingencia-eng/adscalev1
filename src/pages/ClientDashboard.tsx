@@ -51,6 +51,8 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [client, setClient] = useState<any>(null);
   // Cliente de agência parceira: painel com logo, nome e cor da agência (sem citar a AD SCALE).
   const { branding: agencyBrand } = useClientAgencyBranding(client?.id);
+  // Clientes de agência falam com o WhatsApp da agência; demais, com o da AD SCALE.
+  const waNumber = (agencyBrand?.support_whatsapp || '').replace(/\D/g, '') || '553198416336';
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
   const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
@@ -1901,7 +1903,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
 
           {/* SUPORTE */}
           <TabsContent value="suporte" className="space-y-5 mt-0">
-            {!isAdminView && <SupportChat clientId={client?.id ?? null} brandName={agencyBrand?.brand_name || null} />}
+            {!isAdminView && <SupportChat clientId={client?.id ?? null} brandName={agencyBrand?.brand_name || null} whatsappOverride={agencyBrand ? (agencyBrand.support_whatsapp || null) : undefined} />}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                 <LifeBuoy size={16} className="text-primary" /> {t('clientDash.support.requestService')}
@@ -2322,17 +2324,17 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                 </h3>
                 <p className="text-xs text-muted-foreground mb-4">{t('clientDash.billing.paymentOptionsDesc')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('PIX'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all group">
+                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(paymentMsg('PIX'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all group">
                     <Smartphone size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-emerald-500">PIX</span>
                     <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.instantTransfer')}</span>
                   </a>
-                  <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('Payoneer'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all group">
+                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(paymentMsg('Payoneer'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all group">
                     <Globe size={24} className="text-sky-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-sky-500">PAYONEER</span>
                     <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.international')}</span>
                   </a>
-                  <a href={`https://wa.me/553198416336?text=${encodeURIComponent(paymentMsg('Crypto'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all group">
+                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(paymentMsg('Crypto'))}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all group">
                     <Bitcoin size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-semibold text-amber-500">CRYPTO</span>
                     <span className="text-[10px] text-muted-foreground text-center">{t('clientDash.billing.crypto')}</span>
@@ -2411,7 +2413,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
             <p className="text-xs text-muted-foreground">{t('clientDash.billing.paymentOptionsDesc')}</p>
             <div className="grid grid-cols-3 gap-2">
               <a
-                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('PIX'))}`}
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(overdueMsg('PIX'))}`}
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => setOverdueDialogOpen(false)}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all"
@@ -2420,7 +2422,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                 <span className="text-xs font-semibold text-emerald-500">PIX</span>
               </a>
               <a
-                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('Payoneer'))}`}
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(overdueMsg('Payoneer'))}`}
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => setOverdueDialogOpen(false)}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/20 transition-all"
@@ -2429,7 +2431,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                 <span className="text-xs font-semibold text-sky-500">PAYONEER</span>
               </a>
               <a
-                href={`https://wa.me/553198416336?text=${encodeURIComponent(overdueMsg('Crypto'))}`}
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(overdueMsg('Crypto'))}`}
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => setOverdueDialogOpen(false)}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface AgencyBranding { agency_client_id: string; brand_name: string | null; logo_url: string | null; primary_color: string | null; slug: string | null }
+export interface AgencyBranding { agency_client_id: string; brand_name: string | null; logo_url: string | null; primary_color: string | null; slug: string | null; support_whatsapp?: string | null }
 
 const OWN_HOSTS = ['localhost', '127.0.0.1', 'lovable.app', 'lovableproject.com', 'adscalehub.com'];
 
