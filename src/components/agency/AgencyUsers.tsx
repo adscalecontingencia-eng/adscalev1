@@ -52,7 +52,6 @@ export const AgencyUsers: React.FC<{ agencyId: string; isDemo: boolean }> = ({ a
   useEffect(() => { load(); }, [load]);
 
   const run = async (body: Record<string, unknown>, ok: string) => {
-    if (isDemo) { toast.info('Conta de demonstração: usuários não são salvos.'); return false; }
     setBusy(true);
     try { await call(body); toast.success(ok); await load(); return true; }
     catch (e: any) { toast.error(e.message); return false; }
