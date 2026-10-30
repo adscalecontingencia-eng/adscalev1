@@ -545,8 +545,11 @@ const AgencyPanel: React.FC = () => {
           <TabsContent value="marca" className="space-y-4">
             <Card><CardHeader><CardTitle className="text-base">Identidade visual</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-2 gap-3">
               <div><Label>Nome da marca</Label><Input value={settings.brand_name || ''} onChange={e => setSettings({ ...settings, brand_name: e.target.value })} /></div>
-              <div><Label>URL do logo</Label><Input value={settings.logo_url || ''} onChange={e => setSettings({ ...settings, logo_url: e.target.value })} /></div>
-              <div><Label>Ícone da aba (favicon) — URL da imagem</Label><Input placeholder="https://suaagencia.com/icone.png" value={settings.favicon_url || ''} onChange={e => setSettings({ ...settings, favicon_url: e.target.value.trim() || null })} /><p className="text-[11px] text-muted-foreground mt-1">{FAVICON_HINT} Use só o símbolo da marca, sem texto: ele aparece bem pequeno.</p></div>
+              <BrandImageField label="Logo" mode="fit" size={480} value={settings.logo_url} onChange={v => setSettings({ ...settings, logo_url: v })}
+                placeholder="ou cole o link do logo" hint="PNG com fundo transparente, horizontal (ex.: 480×120 px). Reduzimos automaticamente." />
+              <BrandImageField label="Ícone da aba (favicon)" mode="square" size={128} value={settings.favicon_url} onChange={v => setSettings({ ...settings, favicon_url: v })}
+                placeholder="ou cole o link do ícone" hint={<>{FAVICON_HINT} Use só o símbolo da marca, sem texto: ele aparece bem pequeno.</>} />
+
               <div><Label>Título da aba do navegador</Label><Input maxLength={60} placeholder={`${brand} · Painel`} value={settings.site_title || ''} onChange={e => setSettings({ ...settings, site_title: e.target.value.slice(0, 60) || null })} /><p className="text-[11px] text-muted-foreground mt-1">Texto ao lado do ícone. Até 60 caracteres; o ideal é até 30 para aparecer inteiro.</p></div>
               <div className="sm:col-span-2">
                 <Label className="block">Prévia da aba</Label>
