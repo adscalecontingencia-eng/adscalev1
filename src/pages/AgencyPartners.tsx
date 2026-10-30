@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { AdminAgencyDomains } from '@/components/agency/AdminAgencyDomains';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -50,6 +51,8 @@ const AgencyPartners: React.FC = () => {
           <tbody>{overview.map(o => <tr key={o.id} className="border-t border-border/50"><td className="py-2">{o.name}</td><td>{o.terms_accepted_at ? 'Aceito' : <span className="text-destructive">Pendente</span>}</td><td>{o.sub_clients}</td><td>{usd(o.summary?.total_spend)}</td><td>{o.summary?.platform_tier?.name} ({o.summary?.platform_tier?.adscale_pct}%)</td><td className="text-primary font-semibold">{usd(o.summary?.adscale_due)}</td></tr>)}
             {!overview.length && <tr><td colSpan={6} className="py-4 text-muted-foreground">Nenhuma agência ativa.</td></tr>}</tbody></table>
       </CardContent></Card>
+
+      <AdminAgencyDomains agencyNames={Object.fromEntries(clients.map(c => [c.id, c.name]))} />
 
       <Card><CardHeader><CardTitle className="text-base">Tiers AD SCALE para agências</CardTitle></CardHeader><CardContent className="space-y-2">
         <div className="grid grid-cols-5 gap-2 text-xs text-muted-foreground"><span>Nome</span><span>Gasto semanal mín.</span><span>Taxa AD SCALE %</span><span>Margem sugerida %</span><span /></div>
