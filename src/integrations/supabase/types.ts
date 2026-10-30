@@ -3432,11 +3432,16 @@ export type Database = {
       }
       support_requests: {
         Row: {
+          agency_bm_id: string | null
+          agency_client_id: string | null
+          agency_notes: string | null
           assigned_to: string | null
           bm_meta_id: string | null
           client_id: string
           created_at: string
           description: string | null
+          forwarded_by: string | null
+          forwarded_to_adscale_at: string | null
           id: string
           page_names: string[] | null
           quantity: number
@@ -3446,11 +3451,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agency_bm_id?: string | null
+          agency_client_id?: string | null
+          agency_notes?: string | null
           assigned_to?: string | null
           bm_meta_id?: string | null
           client_id: string
           created_at?: string
           description?: string | null
+          forwarded_by?: string | null
+          forwarded_to_adscale_at?: string | null
           id?: string
           page_names?: string[] | null
           quantity?: number
@@ -3460,11 +3470,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agency_bm_id?: string | null
+          agency_client_id?: string | null
+          agency_notes?: string | null
           assigned_to?: string | null
           bm_meta_id?: string | null
           client_id?: string
           created_at?: string
           description?: string | null
+          forwarded_by?: string | null
+          forwarded_to_adscale_at?: string | null
           id?: string
           page_names?: string[] | null
           quantity?: number
@@ -4013,6 +4028,18 @@ export type Database = {
       }
     }
     Functions: {
+      agency_handle_support_request: {
+        Args: {
+          _agency_bm_id: string
+          _agency_notes: string
+          _forward: boolean
+          _id: string
+          _status: string
+        }
+        Returns: Json
+      }
+      agency_visible_ad_account_ids: { Args: never; Returns: string[] }
+      agency_visible_client_ids: { Args: never; Returns: string[] }
       award_referral_milestones: {
         Args: { _client_id: string }
         Returns: undefined
@@ -4048,6 +4075,13 @@ export type Database = {
           logo_url: string
           primary_color: string
           slug: string
+        }[]
+      }
+      get_agency_linked_accounts: {
+        Args: { _client_id: string }
+        Returns: {
+          ad_account_id: string
+          linked_at: string
         }[]
       }
       get_agency_week_summary: {

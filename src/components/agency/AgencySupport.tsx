@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { AgencyClientRequests } from './AgencyClientRequests';
 
 const CATEGORIES = [
   { v: 'manutencao', l: 'Manutenção' }, { v: 'nova_conta', l: 'Nova conta' }, { v: 'bloqueio', l: 'Conta bloqueada' },
@@ -22,7 +23,7 @@ const statusIcon = (s: string) => s === 'em_andamento' ? <Clock size={14} classN
   : s === 'cancelada' ? <X size={14} className="text-muted-foreground" /> : <AlertTriangle size={14} className="text-destructive" />;
 
 /** Agency support desk — same flow as AD SCALE support (tasks with category, structure and status). */
-export const AgencySupport: React.FC<{ agencyId: string; subs: any[] }> = ({ agencyId, subs }) => {
+export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: boolean }> = ({ agencyId, subs, isDemo }) => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [show, setShow] = useState(false);
   const [filter, setFilter] = useState('todos');
@@ -76,9 +77,15 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[] }> = ({ age
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-primary">✱ Suporte & estrutura</p>
           <h2 className="text-2xl font-bold mt-1">Central de <span className="text-primary">suporte</span></h2>
-          <p className="text-sm text-muted-foreground mt-1">Chamados dos seus clientes: manutenção, contas bloqueadas, pagamentos e estrutura.</p>
+          <p className="text-sm text-muted-foreground mt-1">Pedidos que seus clientes fazem pelo painel deles chegam aqui primeiro. Você completa e envia para a AD SCALE.</p>
         </div>
-        <Button className="ml-auto gap-2" onClick={() => setShow(s => !s)}><Plus size={14} />Novo chamado</Button>
+      </div>
+
+      <AgencyClientRequests agencyId={agencyId} subs={subs} isDemo={isDemo} />
+
+      <div className="flex items-center gap-2 pt-4 border-t border-border/60">
+        <h3 className="text-lg font-semibold">Chamados internos da agência</h3>
+        <Button className="ml-auto gap-2" variant="outline" onClick={() => setShow(s => !s)}><Plus size={14} />Novo chamado</Button>
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs">

@@ -190,6 +190,7 @@ const App = () => (
               <Route path="/block-log" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><BlockLog /></DashboardLayout></ProtectedRoute>} />
               <Route path="/notification-settings" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><NotificationSettings /></DashboardLayout></ProtectedRoute>} />
               <Route path="/agencia" element={<ProtectedRoute roles={['client']}><AgencyPanel /></ProtectedRoute>} />
+              <Route path="/agencia/cliente/:clientId" element={<ProtectedRoute roles={['client']}><ClientDashboard agencyView /></ProtectedRoute>} />
               <Route path="/agencias-parceiras" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AgencyPartners /></DashboardLayout></ProtectedRoute>} />
               <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
               <Route path="/dashboard-cliente" element={<Navigate to="/client-dashboard" replace />} />

@@ -138,6 +138,7 @@ export const NotificationCenter: React.FC = () => {
           .from("support_requests")
           .select("id, request_type, description, quantity, status, bm_meta_id, created_at, client:clients(name)")
           .in("status", ["pendente", "em_andamento"])
+          .or("agency_client_id.is.null,forwarded_to_adscale_at.not.is.null")
           .order("created_at", { ascending: false })
           .limit(30),
       ]);

@@ -403,11 +403,11 @@ const AgencyPanel: React.FC = () => {
 
           <TabsContent value="clientes">
             <AgencyClientsSection subs={subs} summary={summary} credits={credits} accountsOf={accountsOf} creditBalance={creditBalance}
-              onView={id => setViewSub(id)} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor} />
+              onView={id => { const cid = subs.find(s => s.id === id)?.client_id; if (cid && !isDemo) navigate(`/agencia/cliente/${cid}`); else setViewSub(id); }} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor} />
           </TabsContent>
 
           <TabsContent value="suporte">
-            <AgencySupport agencyId={agency.id} subs={subs} />
+            <AgencySupport agencyId={agency.id} subs={subs} isDemo={isDemo} />
           </TabsContent>
 
           <TabsContent value="contas" className="space-y-4">
