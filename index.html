@@ -11,6 +11,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <title>AD SCALE</title>
+    <style>html.agency-pending body{visibility:hidden}</style>
+    <script>
+      // Agency custom domain / ?agencia=: never flash AD SCALE branding.
+      // Hide the page until the agency brand is applied; reuse the last cached brand instantly.
+      (function () {
+        try {
+          var own = ['localhost', '127.0.0.1', 'lovable.app', 'lovableproject.com', 'adscalehub.com'];
+          var host = location.hostname.toLowerCase();
+          var m = /[?&]agen(?:cia|cy)=([^&#]+)/i.exec(location.href);
+          var key = m ? decodeURIComponent(m[1]).trim().toLowerCase().slice(0, 80) : null;
+          if (!key && !own.some(function (h) { return host === h || host.slice(-(h.length + 1)) === '.' + h; })) key = host;
+          if (!key) return;
+          window.__AGENCY_KEY__ = key;
+          var c = null;
+          try { c = JSON.parse(localStorage.getItem('agencyBrand:' + key) || 'null'); } catch (e) {}
+          document.title = (c && (c.site_title || c.brand_name)) || '\u200E';
+          var icon = document.querySelector('link[rel~="icon"]');
+          if (icon) { icon.removeAttribute('type'); icon.setAttribute('href', (c && c.favicon_url) || 'data:,'); }
+          if (!c) {
+            document.documentElement.classList.add('agency-pending');
+            setTimeout(function () { document.documentElement.classList.remove('agency-pending'); }, 4000);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="description" content="Elevamos o nível da sua operação" />
 
     <meta property="og:type" content="website" />
