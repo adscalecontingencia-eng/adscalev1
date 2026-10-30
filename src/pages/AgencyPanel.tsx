@@ -12,28 +12,29 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, Plus, Trash2, LogOut } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, PanelLeft } from 'lucide-react';
 import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } from '@/lib/agency-terms';
 import { isBelowFloor } from '@/lib/agency-tiers';
+import { ACCOUNT_FIELDS, DEMO_ACCOUNTS, DEMO_AGENCY_EMAIL, DEMO_LINKS } from '@/components/agency/agency-accounts';
+import { AgencyAccountsTable } from '@/components/agency/AgencyAccountsTable';
+import { SubClientView } from '@/components/agency/SubClientView';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const DEMO_AGENCY_EMAIL = 'demo.agencia@adscalehub.com';
 // Simulated week for the demo account (presentation only). AD SCALE share 2.5% (Tier 2).
+// Spend per sub-client is the sum of its demo accounts' weekly spend.
 function buildDemoSummary(subs: any[]) {
-  const presets = [
-    { spend: 22400, pct: 5, tier: 'Padrão' },
-    { spend: 16100, pct: 4.5, tier: 'VIP' },
-    { spend: 6800, pct: 5, tier: 'Padrão' },
-  ];
+  const pcts = [4.5, 5];
+  const tierNames = ['VIP', 'Padrão'];
   const adPct = 2.5;
   const rows = subs.map((s, i) => {
-    const p = presets[i % presets.length];
-    const client_fee = (p.spend * p.pct) / 100;
-    const adscale_fee = (p.spend * adPct) / 100;
-    return { sub_client_id: s.id, name: s.name, spend: p.spend, tier_name: p.tier, client_pct: p.pct, client_fee, adscale_fee, agency_margin: client_fee - adscale_fee };
+    const spend = DEMO_ACCOUNTS.filter(a => DEMO_LINKS[a.id] === i).reduce((t, a) => t + (a.week_spend || 0), 0);
+    const pct = pcts[i % 2];
+    const client_fee = (spend * pct) / 100;
+    const adscale_fee = (spend * adPct) / 100;
+    return { sub_client_id: s.id, name: s.name, spend, tier_name: tierNames[i % 2], client_pct: pct, client_fee, adscale_fee, agency_margin: client_fee - adscale_fee };
   });
-  const total = rows.reduce((a, r) => a + r.spend, 0) || 38500;
+  const total = DEMO_ACCOUNTS.reduce((t, a) => t + (a.week_spend || 0), 0);
   return {
     total_spend: total,
     adscale_due: (total * adPct) / 100,
@@ -101,7 +102,7 @@ const AgencyPanel: React.FC = () => {
     const [s, sc, as, l, t, p, c, st] = await Promise.all([
       supabase.rpc('get_agency_week_summary', { _agency: id, _week_start: week }),
       supabase.from('agency_sub_clients').select('*').eq('agency_client_id', id).order('name'),
-      supabase.from('meta_ad_account_assignments').select('ad_account_id, ad_account:meta_ad_accounts(id, name, meta_account_id)').eq('client_id', id).eq('active', true),
+      supabase.from('meta_ad_account_assignments').select(`ad_account_id, ad_account:meta_ad_accounts(${ACCOUNT_FIELDS})`).eq('client_id', id).eq('active', true),
       supabase.from('agency_sub_client_accounts').select('*').eq('agency_client_id', id),
       supabase.from('agency_tiers').select('*').eq('agency_client_id', id).order('min_weekly_spend'),
       supabase.from('agency_platform_tiers').select('*').order('min_weekly_spend'),
@@ -109,8 +110,21 @@ const AgencyPanel: React.FC = () => {
       supabase.from('agency_settings').select('*').eq('agency_client_id', id).maybeSingle(),
     ]);
     const subList = sc.data || [];
-    setSummary(isDemo ? buildDemoSummary(subList) : s.data); setSubs(subList); setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
-    setLinks(l.data || []); setTiers(t.data || []); setPlatform(p.data || []); setCredits(c.data || []);
+    setSubs(subList);
+    if (isDemo) {
+      setSummary(buildDemoSummary(subList));
+      setAccounts(DEMO_ACCOUNTS);
+      setLinks(DEMO_ACCOUNTS.map(a => ({ ad_account_id: a.id, sub_client_id: DEMO_LINKS[a.id] == null ? null : subList[DEMO_LINKS[a.id]!]?.id })).filter(x => x.sub_client_id));
+      setCredits(subList.flatMap((s: any, i: number) => [
+        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 18000 : 25000, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Pix' },
+        { id: `dc-${i}-2`, sub_client_id: s.id, amount: i === 0 ? 2000 : 1500, status: 'confirmado', date: format(addDays(new Date(), -2), 'yyyy-MM-dd'), note: 'Recarga' },
+      ]));
+    } else {
+      setSummary(s.data);
+      setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
+      setLinks(l.data || []); setCredits(c.data || []);
+    }
+    setTiers(t.data || []); setPlatform(p.data || []);
     setSettings(st.data || { agency_client_id: id, data_mode: 'adscale', primary_color: '#22c55e' });
   }, [agency?.id, week, isDemo]);
 
