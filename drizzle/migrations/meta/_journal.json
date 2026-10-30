@@ -71,6 +71,13 @@
       "when": 1793378105581,
       "tag": "0009_agency_whatsapp_and_members",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793378139686,
+      "tag": "0010_agency_week_summary_members",
+      "breakpoints": true
     }
   ]
 }
