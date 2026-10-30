@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 type Msg = { id: string; client_id: string; role: string; content: string; created_at: string };
-type Req = { id: string; client_id: string; request_type: string; description: string | null; quantity: number | null; status: string; created_at: string; bm_meta_id?: string | null; agency_client_id?: string | null; agency_bm_id?: string | null; agency_notes?: string | null; client?: { name: string } | null };
+type Req = { id: string; client_id: string; request_type: string; description: string | null; quantity: number | null; status: string; created_at: string; bm_meta_id?: string | null; agency_client_id?: string | null; agency_bm_id?: string | null; agency_notes?: string | null; client?: { name: string; company_name?: string | null } | null };
 
 const STATUSES = ['pendente', 'em_andamento', 'concluida', 'cancelada'];
 const clean = (s: string) => s.replace('[WHATSAPP]', '').trim();
