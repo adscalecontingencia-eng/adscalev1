@@ -64,6 +64,13 @@
       "when": 1793377210225,
       "tag": "0008_client_agency_branding",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793378105581,
+      "tag": "0009_agency_whatsapp_and_members",
+      "breakpoints": true
     }
   ]
 }
