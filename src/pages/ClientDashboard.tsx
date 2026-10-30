@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
+import { useClientAgencyBranding } from '@/hooks/useAgencyBranding';
 import { useCommissionTiers, getTierPctFromTiers } from '@/lib/commission-tiers';
 import { getBillingDueDate, getLastClosedBillingWeekRange, splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -48,6 +49,8 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const exitPath = isAgencyView ? '/agencia' : '/clients';
   const referralDict = useReferralDict();
   const [client, setClient] = useState<any>(null);
+  // Cliente de agência parceira: painel com logo, nome e cor da agência (sem citar a AD SCALE).
+  const { branding: agencyBrand } = useClientAgencyBranding(client?.id);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
   const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
@@ -893,7 +896,20 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
       )}
       <header className="border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur z-20">
         <div className="flex items-center gap-3 text-primary">
-          <AdScaleLogo size={28} />
+          {agencyBrand ? (
+            <div className="flex items-center gap-2 min-w-0">
+              {agencyBrand.logo_url ? (
+                <img src={agencyBrand.logo_url} alt={agencyBrand.brand_name || ''} className="h-8 w-auto max-w-[140px] object-contain" />
+              ) : null}
+              {(!agencyBrand.logo_url || agencyBrand.brand_name) && (
+                <span className="font-display font-bold text-base text-foreground truncate max-w-[180px]" translate="no">
+                  {agencyBrand.brand_name || ''}
+                </span>
+              )}
+            </div>
+          ) : (
+            <AdScaleLogo size={28} />
+          )}
           <p className="text-xs text-muted-foreground hidden sm:block border-l border-border pl-3">{t('clientDash.header')}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -1884,7 +1900,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
 
           {/* SUPORTE */}
           <TabsContent value="suporte" className="space-y-5 mt-0">
-            {!isAdminView && <SupportChat clientId={client?.id ?? null} />}
+            {!isAdminView && <SupportChat clientId={client?.id ?? null} brandName={agencyBrand?.brand_name || null} />}
             <div className="bg-card border border-border rounded-xl p-5 border-glow">
               <h3 className="font-display text-sm font-semibold mb-1 flex items-center gap-2">
                 <LifeBuoy size={16} className="text-primary" /> {t('clientDash.support.requestService')}

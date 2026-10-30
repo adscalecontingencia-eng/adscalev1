@@ -16,24 +16,8 @@ import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users,
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
-/** Hex brand color -> CSS vars so every themed element follows the agency color live. */
-function brandVars(hex?: string | null): React.CSSProperties | undefined {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return undefined;
-  const n = parseInt(m[1], 16);
-  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
-  let h = 0, s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-    h *= 60;
-  }
-  const v = `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-  const fg = l > 0.6 ? '0 0% 8%' : '0 0% 100%';
-  return { ['--primary' as any]: v, ['--ring' as any]: v, ['--accent' as any]: v, ['--primary-foreground' as any]: fg };
-}
+import { brandVars as brandVarsRaw } from '@/hooks/useAgencyBranding';
+const brandVars = (hex?: string | null) => brandVarsRaw(hex) as React.CSSProperties | undefined;
 import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } from '@/lib/agency-terms';
 import { isBelowFloor } from '@/lib/agency-tiers';
 import { ACCOUNT_FIELDS, DEMO_ACCOUNTS, DEMO_AGENCY_EMAIL, DEMO_LINKS } from '@/components/agency/agency-accounts';

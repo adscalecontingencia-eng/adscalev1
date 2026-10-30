@@ -88,6 +88,25 @@ Deno.serve(async (req) => {
 
     const whatsapp = String(settingsRes.data?.value ?? "").replace(/"/g, "").trim();
 
+    // Clientes de agência parceira veem só a marca da agência (nunca "AD SCALE").
+    const { data: agencyLink } = await admin
+      .from("agency_sub_clients")
+      .select("agency_client_id")
+      .eq("client_id", client.id)
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
+    let brand = "AD SCALE";
+    if (agencyLink?.agency_client_id) {
+      const { data: st } = await admin
+        .from("agency_settings")
+        .select("brand_name")
+        .eq("agency_client_id", agencyLink.agency_client_id)
+        .maybeSingle();
+      brand = (st?.brand_name || "").trim() || "sua agência";
+    }
+    const isAgencyClient = brand !== "AD SCALE";
+
     const context = {
       cliente: client.name,
       saldo_carteira_usd: walletRes.data?.balance ?? 0,
@@ -101,7 +120,8 @@ Deno.serve(async (req) => {
     };
 
     const instructions = [
-      "Você é o assistente de suporte da AD SCALE, uma agência de aluguel de contas de anúncio (Meta Ads).",
+      `Você é o assistente de suporte da ${brand}, uma agência de aluguel de contas de anúncio (Meta Ads).`,
+      ...(isAgencyClient ? [`Nunca mencione "AD SCALE" nem outros fornecedores; fale sempre como ${brand}.`] : []),
       "Responda sempre em português brasileiro, de forma curta, clara e amigável (máx. 3 parágrafos).",
       "Use APENAS os dados de contexto abaixo para falar sobre a conta do cliente. Nunca invente valores, saldos ou status.",
       "Você ajuda com: saldo e pagamentos (Pix semanal), faturas, contas de anúncio ativas/bloqueadas, pedidos de novas contas, programa de indicação (US$ 50 de bônus a cada US$ 10.000 gastos pelo indicado) e tickets de suporte.",
@@ -116,7 +136,7 @@ Deno.serve(async (req) => {
 
     const history = (historyRes.data ?? []).reverse().map((m: any) => ({
       role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
-      content: m.role === "agent" ? `[Equipe AD SCALE respondeu]: ${m.content}` : (m.content as string),
+      content: m.role === "agent" ? `[Equipe ${brand} respondeu]: ${m.content}` : (m.content as string),
     }));
 
     // Salva a mensagem do usuário antes de chamar a IA
