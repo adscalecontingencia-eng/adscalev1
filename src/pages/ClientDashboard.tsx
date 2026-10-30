@@ -187,6 +187,7 @@ const ClientDashboard: React.FC = () => {
         windowsByAccount.set(a.ad_account_id, list);
       });
       const belongsToClientOnDate = (adAccountId: string, dateISO: string) => {
+        if (agencyLinked.has(String(adAccountId))) return true;
         const picked = (windowsByAccount.get(adAccountId) || [])
           .filter(a => (!a.from || dateISO >= a.from) && (!a.to || dateISO <= a.to))
           .sort((a, b) => {
