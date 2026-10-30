@@ -147,6 +147,7 @@ export const AgencyClientsSection: React.FC<Props> = ({ subs, summary, credits, 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border/60"><Megaphone size={12} />{accs.filter(a => a.account_status === 1).length} ativas · {accs.filter(a => a.account_status !== 1).length} bloqueadas</span>
               <span className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border/60">Margem da agência: <b className="text-primary">{usd(row?.agency_margin)}</b></span>
+              <span className="flex items-center gap-1 px-2 py-1 rounded-lg border border-warning/40">Repasse AD SCALE: <b className="text-warning">{usd(row?.adscale_fee)}</b></span>
               <span className="px-2 py-1">{credits.filter(c => c.sub_client_id === s.id).length} lançamentos de caução</span>
             </div>
           </div>
