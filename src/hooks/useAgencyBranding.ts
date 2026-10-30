@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface AgencyBranding { agency_client_id: string; brand_name: string | null; logo_url: string | null; primary_color: string | null; slug: string | null; support_whatsapp?: string | null }
+export interface AgencyBranding { agency_client_id: string; brand_name: string | null; logo_url: string | null; primary_color: string | null; slug: string | null; support_whatsapp?: string | null; favicon_url?: string | null; site_title?: string | null }
 
 const OWN_HOSTS = ['localhost', '127.0.0.1', 'lovable.app', 'lovableproject.com', 'adscalehub.com'];
 
@@ -27,7 +27,33 @@ export function hexToHsl(hex: string): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-export function useAgencyBranding(search: URLSearchParams) {
+/** Recommended favicon: square PNG, 512×512 (min. 32×32), transparent background. */
+export const FAVICON_HINT = 'PNG quadrado (1:1), 512×512 px recomendado (mínimo 32×32), fundo transparente.';
+
+/** Swap the browser tab icon and title; returns a cleanup that restores the previous ones. */
+export function applyHeadBranding(opts: { title?: string | null; favicon?: string | null }): () => void {
+  const prevTitle = document.title;
+  const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'));
+  const prevHrefs = links.map(l => l.getAttribute('href'));
+  const prevTypes = links.map(l => l.getAttribute('type'));
+  if (opts.title) document.title = opts.title;
+  const fav = /^https?:\/\/|^\/|^data:image\//i.test(opts.favicon || '') ? opts.favicon! : null;
+  let added: HTMLLinkElement | null = null;
+  if (fav) {
+    if (links.length) links.forEach(l => { l.setAttribute('href', fav); l.removeAttribute('type'); });
+    else { added = document.createElement('link'); added.rel = 'icon'; added.href = fav; document.head.appendChild(added); }
+  }
+  return () => {
+    document.title = prevTitle;
+    if (fav) {
+      links.forEach((l, i) => { if (prevHrefs[i]) l.setAttribute('href', prevHrefs[i]!); if (prevTypes[i]) l.setAttribute('type', prevTypes[i]!); });
+      added?.remove();
+    }
+  };
+}
+
+export function useAgencyBranding(search: URLSearchParams, opts: { applyColor?: boolean } = {}) {
+  const applyColor = opts.applyColor !== false;
   const key = getAgencyKey(search);
   const [branding, setBranding] = useState<AgencyBranding | null>(null);
   const [loading, setLoading] = useState(!!key);
@@ -36,13 +62,16 @@ export function useAgencyBranding(search: URLSearchParams) {
     (supabase.rpc as any)('get_agency_branding', { _key: key }).then(({ data }: any) => {
       const row = Array.isArray(data) ? data[0] : data;
       setBranding(row || null); setLoading(false);
-      if (row?.primary_color) {
+      if (applyColor && row?.primary_color) {
         const hsl = hexToHsl(row.primary_color);
         if (hsl) { document.documentElement.style.setProperty('--primary', hsl); document.documentElement.style.setProperty('--ring', hsl); }
       }
-      if (row?.brand_name) document.title = `${row.brand_name} · Cadastro`;
     });
   }, [key]);
+  useEffect(() => {
+    if (!branding) return;
+    return applyHeadBranding({ title: branding.site_title || (branding.brand_name ? `${branding.brand_name} · Cadastro` : null), favicon: branding.favicon_url });
+  }, [branding]);
   return { key, branding, loading };
 }
 
@@ -90,11 +119,10 @@ export function useClientAgencyBranding(clientId?: string | null) {
     const vars = brandVars(branding.primary_color) || {};
     const prev: Record<string, string> = {};
     Object.entries(vars).forEach(([k, v]) => { prev[k] = root.style.getPropertyValue(k); root.style.setProperty(k, v); });
-    const prevTitle = document.title;
-    if (branding.brand_name) document.title = `${branding.brand_name} · Painel`;
+    const restoreHead = applyHeadBranding({ title: branding.site_title || (branding.brand_name ? `${branding.brand_name} · Painel` : null), favicon: branding.favicon_url });
     return () => {
       Object.keys(vars).forEach(k => { if (prev[k]) root.style.setProperty(k, prev[k]); else root.style.removeProperty(k); });
-      document.title = prevTitle;
+      restoreHead();
     };
   }, [branding]);
 
