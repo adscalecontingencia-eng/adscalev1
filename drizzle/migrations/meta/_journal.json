@@ -78,6 +78,13 @@
       "when": 1793378139686,
       "tag": "0010_agency_week_summary_members",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793379270963,
+      "tag": "0011_agency_favicon_and_site_title",
+      "breakpoints": true
     }
   ]
 }

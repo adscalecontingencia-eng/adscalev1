@@ -143,8 +143,10 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           data_mode: string
+          favicon_url: string | null
           logo_url: string | null
           primary_color: string | null
+          site_title: string | null
           slug: string | null
           support_whatsapp: string | null
           updated_at: string
@@ -158,8 +160,10 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           data_mode?: string
+          favicon_url?: string | null
           logo_url?: string | null
           primary_color?: string | null
+          site_title?: string | null
           slug?: string | null
           support_whatsapp?: string | null
           updated_at?: string
@@ -173,8 +177,10 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           data_mode?: string
+          favicon_url?: string | null
           logo_url?: string | null
           primary_color?: string | null
+          site_title?: string | null
           slug?: string | null
           support_whatsapp?: string | null
           updated_at?: string
@@ -4131,8 +4137,10 @@ export type Database = {
         Returns: {
           agency_client_id: string
           brand_name: string
+          favicon_url: string
           logo_url: string
           primary_color: string
+          site_title: string
           slug: string
         }[]
       }
@@ -4152,8 +4160,10 @@ export type Database = {
         Returns: {
           agency_client_id: string
           brand_name: string
+          favicon_url: string
           logo_url: string
           primary_color: string
+          site_title: string
           slug: string
           support_whatsapp: string
         }[]

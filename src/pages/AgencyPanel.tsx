@@ -16,7 +16,7 @@ import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users,
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
-import { brandVars as brandVarsRaw } from '@/hooks/useAgencyBranding';
+import { brandVars as brandVarsRaw, applyHeadBranding, FAVICON_HINT } from '@/hooks/useAgencyBranding';
 const brandVars = (hex?: string | null) => brandVarsRaw(hex) as React.CSSProperties | undefined;
 import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } from '@/lib/agency-terms';
 import { isBelowFloor } from '@/lib/agency-tiers';
@@ -166,6 +166,12 @@ const AgencyPanel: React.FC = () => {
     Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
     return () => { Object.keys(vars).forEach(k => root.style.removeProperty(k)); };
   }, [settings.primary_color]);
+
+  // Ícone e título da aba do navegador da agência (atualiza enquanto edita).
+  useEffect(() => {
+    const brandName = settings.brand_name || agency?.name;
+    return applyHeadBranding({ title: settings.site_title || (brandName ? `${brandName} · Painel` : null), favicon: settings.favicon_url });
+  }, [settings.site_title, settings.favicon_url, settings.brand_name, agency?.name]);
 
   const terms = useMemo(() => getAgencyTerms(lang), [lang]);
 
@@ -540,6 +546,16 @@ const AgencyPanel: React.FC = () => {
             <Card><CardHeader><CardTitle className="text-base">Identidade visual</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-2 gap-3">
               <div><Label>Nome da marca</Label><Input value={settings.brand_name || ''} onChange={e => setSettings({ ...settings, brand_name: e.target.value })} /></div>
               <div><Label>URL do logo</Label><Input value={settings.logo_url || ''} onChange={e => setSettings({ ...settings, logo_url: e.target.value })} /></div>
+              <div><Label>Ícone da aba (favicon) — URL da imagem</Label><Input placeholder="https://suaagencia.com/icone.png" value={settings.favicon_url || ''} onChange={e => setSettings({ ...settings, favicon_url: e.target.value.trim() || null })} /><p className="text-[11px] text-muted-foreground mt-1">{FAVICON_HINT} Use só o símbolo da marca, sem texto: ele aparece bem pequeno.</p></div>
+              <div><Label>Título da aba do navegador</Label><Input maxLength={60} placeholder={`${brand} · Painel`} value={settings.site_title || ''} onChange={e => setSettings({ ...settings, site_title: e.target.value.slice(0, 60) || null })} /><p className="text-[11px] text-muted-foreground mt-1">Texto ao lado do ícone. Até 60 caracteres; o ideal é até 30 para aparecer inteiro.</p></div>
+              <div className="sm:col-span-2">
+                <Label className="block">Prévia da aba</Label>
+                <div className="mt-1 inline-flex items-center gap-2 rounded-t-lg border border-b-0 border-border bg-secondary/60 px-3 py-2 min-w-[240px] max-w-[320px]">
+                  {settings.favicon_url ? <img src={settings.favicon_url} alt="" className="w-4 h-4 object-contain" onError={e => ((e.currentTarget.style.visibility = 'hidden'))} /> : <span className="w-4 h-4 rounded-sm bg-primary/40" />}
+                  <span className="text-xs text-foreground truncate">{settings.site_title || `${brand} · Painel`}</span>
+                  <span className="ml-auto text-muted-foreground text-xs">✕</span>
+                </div>
+              </div>
               <div><Label>Cor principal</Label><Input type="color" value={settings.primary_color || '#22c55e'} onChange={e => setSettings({ ...settings, primary_color: e.target.value })} /></div>
               <div><Label>Domínio personalizado</Label><Input placeholder="painel.suaagencia.com" value={settings.custom_domain || ''} onChange={e => setSettings({ ...settings, custom_domain: e.target.value.trim().toLowerCase() || null })} /></div>
               <div><Label>WhatsApp de suporte e cobrança</Label><Input placeholder="55 11 91234-5678" value={settings.support_whatsapp || ''} onChange={e => setSettings({ ...settings, support_whatsapp: e.target.value })} /><p className="text-[11px] text-muted-foreground mt-1">Seus clientes falam com este número pelo chat de suporte e nos avisos de pagamento. Use DDI + DDD.</p></div>
