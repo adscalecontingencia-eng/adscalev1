@@ -23,7 +23,7 @@ const Login: React.FC = () => {
 
   const [params] = useSearchParams();
   // Domínio/slug de agência parceira: ícone e título da aba da agência.
-  useAgencyBranding(params, { applyColor: false, titleSuffix: 'Login' });
+  const { branding: agencyBrand } = useAgencyBranding(params, { titleSuffix: 'Login' });
   const next = params.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -112,7 +112,13 @@ const Login: React.FC = () => {
               <div className="w-[260px] h-[120px] bg-primary/25 blur-[40px] rounded-full" />
             </div>
 
-            <AdScaleLogo size={typeof window !== 'undefined' && window.innerWidth < 640 ? 44 : 72} />
+            {agencyBrand ? (
+              agencyBrand.logo_url
+                ? <img src={agencyBrand.logo_url} alt={agencyBrand.brand_name || ''} className="h-14 sm:h-20 max-w-[320px] object-contain" />
+                : <span translate="no" className="notranslate font-display text-4xl sm:text-5xl font-bold text-foreground">{agencyBrand.brand_name}</span>
+            ) : (
+              <AdScaleLogo size={typeof window !== 'undefined' && window.innerWidth < 640 ? 44 : 72} />
+            )}
           </motion.div>
 
           <motion.div
@@ -123,7 +129,7 @@ const Login: React.FC = () => {
           >
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-primary/60" />
             <p className="text-primary/80 text-[10px] uppercase tracking-[0.5em] font-medium">
-              Contingency Accounts
+              {agencyBrand ? 'Client Panel' : 'Contingency Accounts'}
             </p>
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-primary/60" />
           </motion.div>
@@ -226,7 +232,7 @@ const Login: React.FC = () => {
           </a>
         </p>
         <p className="text-center text-muted-foreground/40 text-xs mt-4">
-          © {new Date().getFullYear()} AD Scale · {t('auth.rights')}
+          © {new Date().getFullYear()} {agencyBrand?.brand_name || 'AD Scale'} · {t('auth.rights')}
         </p>
       </motion.div>
     </div>
