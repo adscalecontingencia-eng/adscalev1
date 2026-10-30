@@ -56,8 +56,9 @@ const AgencyPanel: React.FC = () => {
   const [newCredit, setNewCredit] = useState({ sub: '', amount: '', note: '' });
 
   useEffect(() => {
+    if (!user?.id) return;
     (async () => {
-      const { data } = await supabase.from('clients').select('id, name, is_agency').eq('auth_user_id', user?.id ?? '').maybeSingle();
+      const { data } = await supabase.from('clients').select('id, name, is_agency').eq('auth_user_id', user.id).maybeSingle();
       setAgency(data);
       if (data?.is_agency) {
         const { data: acc } = await supabase.from('agency_terms_acceptances').select('id').eq('agency_client_id', data.id).eq('version', AGENCY_TERMS_VERSION).maybeSingle();
