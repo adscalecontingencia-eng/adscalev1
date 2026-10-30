@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 type Msg = { id: string; client_id: string; role: string; content: string; created_at: string };
-type Req = { id: string; client_id: string; request_type: string; description: string | null; quantity: number | null; status: string; created_at: string; bm_meta_id?: string | null; agency_client_id?: string | null; agency_bm_id?: string | null; agency_notes?: string | null; client?: { name: string } | null };
+type Req = { id: string; client_id: string; request_type: string; description: string | null; quantity: number | null; status: string; created_at: string; bm_meta_id?: string | null; agency_client_id?: string | null; agency_bm_id?: string | null; agency_notes?: string | null; client?: { name: string; company_name?: string | null } | null };
 
 const STATUSES = ['pendente', 'em_andamento', 'concluida', 'cancelada'];
 const clean = (s: string) => s.replace('[WHATSAPP]', '').trim();
@@ -30,7 +30,7 @@ const SupportInbox: React.FC = () => {
   const load = async () => {
     const [m, r, c] = await Promise.all([
       supabase.from('support_chat_messages').select('id, client_id, role, content, created_at').order('created_at', { ascending: true }).limit(2000),
-      supabase.from('support_requests').select('id, client_id, request_type, description, quantity, status, created_at, bm_meta_id, agency_client_id, agency_bm_id, agency_notes, client:clients(name)').or('agency_client_id.is.null,forwarded_to_adscale_at.not.is.null').order('created_at', { ascending: false }).limit(500),
+      supabase.from('support_requests').select('id, client_id, request_type, description, quantity, status, created_at, bm_meta_id, agency_client_id, agency_bm_id, agency_notes, client:clients(name, company_name)').or('agency_client_id.is.null,forwarded_to_adscale_at.not.is.null').order('created_at', { ascending: false }).limit(500),
       supabase.from('clients').select('id, name'),
     ]);
     setMsgs((m.data as Msg[]) ?? []);
@@ -142,7 +142,7 @@ const SupportInbox: React.FC = () => {
             {shownReqs.map(r => (
               <div key={r.id} className="p-4 flex flex-col md:flex-row md:items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{r.client?.name ?? clients[r.client_id] ?? '—'} · <span className="text-primary">{r.request_type}</span>{r.quantity ? ` ×${r.quantity}` : ''}</p>
+                  <p className="text-sm font-medium">{r.client?.name ?? clients[r.client_id] ?? '—'}{r.client?.company_name ? <span className="text-muted-foreground font-normal"> ({r.client.company_name})</span> : null} · <span className="text-primary">{r.request_type}</span>{r.quantity ? ` ×${r.quantity}` : ''}</p>
                   {r.description && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{r.description}</p>}
                   {r.bm_meta_id && <p className="text-xs mt-1">BM do cliente: <span className="font-mono">{r.bm_meta_id}</span></p>}
                   {r.agency_client_id && (

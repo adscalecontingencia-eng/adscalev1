@@ -37,7 +37,7 @@ const Support: React.FC = () => {
   const loadClientRequests = async () => {
     const { data } = await supabase
       .from('support_requests')
-      .select('*, client:clients(name, email)')
+      .select('*, client:clients(name, email, company_name)')
       .or('agency_client_id.is.null,forwarded_to_adscale_at.not.is.null')
       .order('created_at', { ascending: false });
     if (data) setClientRequests(data);
@@ -310,7 +310,7 @@ const Support: React.FC = () => {
                         {(r.request_type === 'add_ad_account' || r.request_type === 'add_page') && (
                           <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">x{r.quantity}</span>
                         )}
-                        <span className="text-[11px] text-primary">{r.client?.name || '—'}</span>
+                        <span className="text-[11px] text-primary">{r.client?.name || '—'}{r.client?.company_name ? <span className="text-muted-foreground"> · {r.client.company_name}</span> : null}</span>
                       </div>
                       {r.description && <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{r.description}</p>}
                       {r.bm_meta_id && (
