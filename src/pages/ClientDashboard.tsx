@@ -93,6 +93,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
+  const demoClientRef = useRef(false);
   // Período global da aba Estrutura (aplica-se a todas as contas)
   const [estruturaPeriod, setEstruturaPeriod] = useState<'today' | 'billing_week' | '7d' | '30d' | 'all' | 'custom'>('billing_week');
   const [estruturaCustomStart, setEstruturaCustomStart] = useState<Date>(new Date(Date.now() - 6 * 86400000));
