@@ -69,6 +69,7 @@ const AgencyPanel: React.FC = () => {
     })();
   }, [user?.id]);
 
+  const isDemo = user?.email?.toLowerCase() === DEMO_AGENCY_EMAIL;
   const load = useCallback(async () => {
     if (!agency?.id) return;
     const id = agency.id;
@@ -82,10 +83,11 @@ const AgencyPanel: React.FC = () => {
       supabase.from('agency_sub_client_credits').select('*').eq('agency_client_id', id).order('date', { ascending: false }),
       supabase.from('agency_settings').select('*').eq('agency_client_id', id).maybeSingle(),
     ]);
-    setSummary(s.data); setSubs(sc.data || []); setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
+    const subList = sc.data || [];
+    setSummary(isDemo ? buildDemoSummary(subList) : s.data); setSubs(subList); setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
     setLinks(l.data || []); setTiers(t.data || []); setPlatform(p.data || []); setCredits(c.data || []);
     setSettings(st.data || { agency_client_id: id, data_mode: 'adscale', primary_color: '#22c55e' });
-  }, [agency?.id, week]);
+  }, [agency?.id, week, isDemo]);
 
   useEffect(() => { if (accepted) load(); }, [accepted, load]);
 
@@ -219,6 +221,7 @@ const AgencyPanel: React.FC = () => {
               <span>Semana {format(new Date(week + 'T12:00:00'), 'dd/MM')} a {format(addDays(new Date(week + 'T12:00:00'), 6), 'dd/MM')} (sexta a quinta)</span>
               <Button size="sm" variant="outline" onClick={() => setWeek(format(addDays(new Date(week + 'T12:00:00'), 7), 'yyyy-MM-dd'))}>›</Button>
             </div>
+            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">Conta de demonstração: os gastos e comissões abaixo são simulados, só para apresentação.</div>}
             <div className="grid sm:grid-cols-3 gap-4">
               <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Gasto total da agência</p><p className="text-2xl font-bold">{usd(summary?.total_spend)}</p></CardContent></Card>
               <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Seu nível AD SCALE</p><p className="text-2xl font-bold">{pt?.name ?? '—'}</p><p className="text-xs text-primary">Taxa AD SCALE {pt?.adscale_pct ?? 0}%</p></CardContent></Card>
