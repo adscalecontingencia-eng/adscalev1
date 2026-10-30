@@ -4088,6 +4088,16 @@ export type Database = {
         Args: { _agency: string; _week_start: string }
         Returns: Json
       }
+      get_client_agency_branding: {
+        Args: { _client_id: string }
+        Returns: {
+          agency_client_id: string
+          brand_name: string
+          logo_url: string
+          primary_color: string
+          slug: string
+        }[]
+      }
       get_order_delivery_payload: {
         Args: { _delivery_id: string }
         Returns: Json
