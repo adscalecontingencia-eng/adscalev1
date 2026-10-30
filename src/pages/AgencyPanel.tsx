@@ -41,6 +41,7 @@ import { AgencyAccountsTable } from '@/components/agency/AgencyAccountsTable';
 import { SubClientView } from '@/components/agency/SubClientView';
 import { AgencyClientsSection } from '@/components/agency/AgencyClientsSection';
 import { AgencySupport } from '@/components/agency/AgencySupport';
+import { AgencyPeriodOverview } from '@/components/agency/AgencyPeriodOverview';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -380,6 +381,8 @@ const AgencyPanel: React.FC = () => {
         <Tabs value={section} onValueChange={setSection} className="space-y-5">
 
           <TabsContent value="resumo" className="space-y-4">
+            <AgencyPeriodOverview accounts={accounts} subs={subs} linkOf={linkOf} summary={summary} isDemo={isDemo} />
+            <h3 className="text-lg font-semibold pt-4 border-t border-border/60">Fechamento semanal</h3>
             <div className="flex items-center gap-2 text-sm">
               <Button size="sm" variant="outline" onClick={() => setWeek(format(addDays(new Date(week + 'T12:00:00'), -7), 'yyyy-MM-dd'))}>‹</Button>
               <span>Semana {format(new Date(week + 'T12:00:00'), 'dd/MM')} a {format(addDays(new Date(week + 'T12:00:00'), 6), 'dd/MM')} (sexta a quinta)</span>
