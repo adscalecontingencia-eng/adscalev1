@@ -17,8 +17,9 @@ function json(data: unknown, status = 200) {
 }
 
 function isTestMode() {
-  const env = (Deno.env.get("MERCADO_PAGO_ENV") || "test").trim().toLowerCase();
-  return !["live", "production", "prod"].includes(env);
+  // Fail closed: only an explicit "test"/"sandbox" setting enables simulation.
+  const env = (Deno.env.get("MERCADO_PAGO_ENV") || "").trim().toLowerCase();
+  return env === "test" || env === "sandbox";
 }
 
 Deno.serve(async (req) => {
@@ -53,7 +54,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (depErr || !dep) return json({ error: "Depósito não encontrado" }, 404);
-    if (dep.user_id !== userId) return json({ error: "Acesso negado" }, 403);
+    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userId);
+    const isAdmin = (roles ?? []).some((r: any) => r.role === "admin");
+    if (!isAdmin) return json({ error: "Acesso negado" }, 403);
     if (dep.credited_at) {
       return json({ ok: true, already_credited: true });
     }
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
 
     if (rpcErr) {
       console.error(`[wallet-sim ${reqId}] rpc error`, rpcErr);
-      return json({ error: "Falha ao creditar", details: rpcErr.message }, 500);
+      return json({ error: "Falha ao creditar" }, 500);
     }
 
     log("done", res);
