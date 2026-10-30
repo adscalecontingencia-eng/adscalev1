@@ -38,6 +38,7 @@ const Support: React.FC = () => {
     const { data } = await supabase
       .from('support_requests')
       .select('*, client:clients(name, email)')
+      .or('agency_client_id.is.null,forwarded_to_adscale_at.not.is.null')
       .order('created_at', { ascending: false });
     if (data) setClientRequests(data);
   };
@@ -316,6 +317,13 @@ const Support: React.FC = () => {
                         <p className="text-[11px] text-primary flex items-center gap-1 mt-1">
                           <CreditCard size={11} /> BM destino: <span className="font-mono">{r.bm_meta_id}</span>
                         </p>
+                      )}
+                      {r.agency_client_id && (
+                        <div className="mt-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-[11px] space-y-0.5">
+                          <p className="text-primary font-semibold">Via agência: {clients.find((c: any) => c.id === r.agency_client_id)?.name ?? '—'}</p>
+                          {r.agency_bm_id && <p>BM da agência: <span className="font-mono">{r.agency_bm_id}</span></p>}
+                          {r.agency_notes && <p className="whitespace-pre-wrap text-muted-foreground">{r.agency_notes}</p>}
+                        </div>
                       )}
                       {Array.isArray(r.page_names) && r.page_names.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
