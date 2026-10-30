@@ -44,7 +44,7 @@ const AccessLogs: React.FC = () => {
     if (actionFilter !== "all" && l.action !== actionFilter) return false;
     if (search) {
       const q = search.toLowerCase();
-      return (l.email || "").toLowerCase().includes(q) || (l.ip_address || "").includes(q);
+      return (l.email || (l as any).metadata?.reported_email || "").toLowerCase().includes(q) || (l.ip_address || "").includes(q);
     }
     return true;
   }), [logs, actionFilter, search]);
@@ -133,7 +133,7 @@ const AccessLogs: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-2">
-                        <div className="text-xs text-foreground">{l.email || "—"}</div>
+                        <div className="text-xs text-foreground">{l.email || ((l as any).metadata?.reported_email ? <span title="Informado pelo navegador, não verificado">{(l as any).metadata.reported_email} <span className="text-muted-foreground">(não verificado)</span></span> : "—")}</div>
                         {l.role && <div className="text-[10px] text-muted-foreground/70 uppercase">{l.role}</div>}
                       </td>
                       <td className="p-2 text-xs font-mono text-foreground/80">{l.ip_address || "—"}</td>

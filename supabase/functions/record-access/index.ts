@@ -53,8 +53,11 @@ Deno.serve(async (req) => {
     }
 
     // For authenticated actions, force email to the authenticated user's email
-    const finalEmail =
-      authedEmail || (action === "login_failed" ? (typeof email === "string" ? email.toLowerCase() : null) : null);
+    // Unauthenticated failed-login reports cannot be verified: never store the
+    // claimed email as a trusted identity — keep it only as flagged metadata.
+    const finalEmail = authedEmail;
+    const reportedEmail =
+      !authedEmail && action === "login_failed" && typeof email === "string" ? email.trim().toLowerCase().slice(0, 255) : null;
 
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -74,7 +77,7 @@ Deno.serve(async (req) => {
       user_agent: ua,
       country,
       city,
-      metadata: {},
+      metadata: reportedEmail ? { reported_email: reportedEmail, unverified: true } : {},
     });
 
     return json({ success: true });
