@@ -215,17 +215,19 @@ const Login: React.FC = () => {
         </motion.form>
 
         <p className="text-center text-muted-foreground text-xs mt-6">
-          {t('auth.firstAccess')} <Link to="/signup" className="text-primary hover:underline font-medium">{t('auth.signUpCta')}</Link>
+          {t('auth.firstAccess')} <Link to={agencyBrand ? `/cadastro${params.get('agencia') ? `?agencia=${encodeURIComponent(params.get('agencia')!)}` : ''}` : '/signup'} className="text-primary hover:underline font-medium">{t('auth.signUpCta')}</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
           {t('auth.forgotQuestion')} <Link to="/forgot-password" className="text-primary hover:underline font-medium">{t('auth.resetCta')}</Link>
         </p>
+        {!agencyBrand && <>
         <p className="text-center text-muted-foreground text-xs mt-2">
           <Link to="/marketplace" className="text-primary hover:underline font-medium">{t('auth.exploreMarketplace')}</Link>
         </p>
         <p className="text-center text-muted-foreground text-xs mt-2">
           {t('auth.referQuestion')} <Link to="/partner-signup" className="text-primary hover:underline font-medium">{t('auth.becomePartner')}</Link>
         </p>
+        </>}
         <p className="text-center text-muted-foreground text-xs mt-2">
           <a href={getTermsHref(i18n.language)} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
             {t('auth.termsOfUse')}
