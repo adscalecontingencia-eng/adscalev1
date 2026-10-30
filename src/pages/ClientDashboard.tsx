@@ -2387,7 +2387,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
           >
             {t('auth.termsOfUse')}
           </a>
-          <span>© {new Date().getFullYear()} AD Scale · {t('auth.rights')}</span>
+          <span>© {new Date().getFullYear()} {agencyBrand?.brand_name || 'AD Scale'} · {t('auth.rights')}</span>
         </footer>
       </div>
 
