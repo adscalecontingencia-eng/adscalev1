@@ -52,8 +52,9 @@ export function applyHeadBranding(opts: { title?: string | null; favicon?: strin
   };
 }
 
-export function useAgencyBranding(search: URLSearchParams, opts: { applyColor?: boolean } = {}) {
+export function useAgencyBranding(search: URLSearchParams, opts: { applyColor?: boolean; titleSuffix?: string } = {}) {
   const applyColor = opts.applyColor !== false;
+  const suffix = opts.titleSuffix || 'Cadastro';
   const key = getAgencyKey(search);
   const [branding, setBranding] = useState<AgencyBranding | null>(null);
   const [loading, setLoading] = useState(!!key);
@@ -70,8 +71,8 @@ export function useAgencyBranding(search: URLSearchParams, opts: { applyColor?: 
   }, [key]);
   useEffect(() => {
     if (!branding) return;
-    return applyHeadBranding({ title: branding.site_title || (branding.brand_name ? `${branding.brand_name} · Cadastro` : null), favicon: branding.favicon_url });
-  }, [branding]);
+    return applyHeadBranding({ title: branding.site_title || (branding.brand_name ? `${branding.brand_name} · ${suffix}` : null), favicon: branding.favicon_url });
+  }, [branding, suffix]);
   return { key, branding, loading };
 }
 

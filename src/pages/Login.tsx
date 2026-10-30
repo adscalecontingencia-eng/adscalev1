@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { useTranslation } from 'react-i18next';
 import { getTermsHref } from '@/lib/terms';
+import { useAgencyBranding } from '@/hooks/useAgencyBranding';
 
 
 const GoogleIcon = () => (
@@ -21,6 +22,8 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const [params] = useSearchParams();
+  // Domínio/slug de agência parceira: ícone e título da aba da agência.
+  useAgencyBranding(params, { applyColor: false, titleSuffix: 'Login' });
   const next = params.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
