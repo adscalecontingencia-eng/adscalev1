@@ -781,6 +781,12 @@ const ClientDashboard: React.FC = () => {
     );
   }
 
+  // Agencies land on their Agency Panel once per session; "Painel" button still opens this dashboard.
+  if ((client as any)?.is_agency && !isAdminView && !sessionStorage.getItem('adscale_agency_landed')) {
+    sessionStorage.setItem('adscale_agency_landed', '1');
+    return <Navigate to="/agencia" replace />;
+  }
+
   const approvalStatus = String((client as any)?.approval_status || 'approved');
   if (!isAdminView && approvalStatus !== 'approved') {
     const rejected = approvalStatus === 'rejected';
