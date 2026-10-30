@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import AdScaleLogo from '@/components/AdScaleLogo';
@@ -11,32 +11,67 @@ const ForgotPassword: React.FC = () => {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const sendCode = async () => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/`,
+    });
+    if (error) throw error;
+    setCooldown(60);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/?reset=1`,
-      });
-      if (error) {
-        const msg = error.message || 'Erro ao enviar e-mail';
-        setError(msg);
-        toast.error('Não foi possível enviar o e-mail', { description: msg });
-      } else {
-        setSent(true);
-        toast.success('E-mail enviado!', {
-          description: `Enviamos o link de recuperação para ${email}`,
-        });
-      }
-    } catch {
-      setError('Erro ao enviar e-mail');
-      toast.error('Erro ao enviar e-mail');
+      await sendCode();
+      setSent(true);
+      toast.success('Código enviado!', { description: `Enviamos um código para ${email}` });
+    } catch (err: any) {
+      const msg = /rate|seconds/i.test(err?.message || '') ? 'Aguarde um minuto antes de pedir outro código.' : (err?.message || 'Erro ao enviar e-mail');
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (password.length < 8) return setError('A senha precisa ter pelo menos 8 caracteres.');
+    if (password !== confirm) return setError('As senhas não conferem.');
+    setSubmitting(true);
+    try {
+      const { error: vErr } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: 'recovery' });
+      if (vErr) throw new Error('Código inválido ou expirado. Peça um novo código.');
+      const { error: uErr } = await supabase.auth.updateUser({ password });
+      if (uErr) {
+        const m = uErr.message || '';
+        throw new Error(/pwned|leak|weak|known/i.test(m) ? 'Essa senha é fraca ou já apareceu em vazamentos. Escolha outra, misturando letras, números e símbolos.' : m);
+      }
+      await supabase.auth.signOut();
+      toast.success('Senha alterada! Entre com a nova senha.');
+      navigate('/login');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao redefinir senha');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputCls = "w-full bg-secondary/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
@@ -59,18 +94,31 @@ const ForgotPassword: React.FC = () => {
           <div className="text-center mb-2">
             <h2 className="text-lg font-semibold text-foreground">Recuperar senha</h2>
             <p className="text-muted-foreground text-xs mt-1">
-              Digite seu e-mail e enviaremos um link para redefinir sua senha
+              {sent ? 'Digite o código recebido no e-mail e sua nova senha' : 'Digite seu e-mail e enviaremos um código para redefinir sua senha'}
             </p>
           </div>
 
           {sent ? (
-            <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <CheckCircle2 size={40} className="text-primary" />
-              <p className="text-sm text-foreground">E-mail enviado!</p>
-              <p className="text-xs text-muted-foreground">
-                Verifique sua caixa de entrada (e o spam) e clique no link para redefinir sua senha.
-              </p>
-            </div>
+            <form onSubmit={handleReset} className="space-y-4">
+              {error && (
+                <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
+                  <AlertCircle size={16} className="shrink-0" />
+                  {error}
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 size={14} className="text-primary" /> Código enviado para {email}. Veja também o spam.
+              </div>
+              <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder="Código do e-mail" className={inputCls + ' tracking-[0.4em] text-center font-mono'} required />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha" className={inputCls} required />
+              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Confirmar nova senha" className={inputCls} required />
+              <button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 shadow-md shadow-primary/20">
+                {submitting ? 'Salvando...' : 'Salvar nova senha'}
+              </button>
+              <button type="button" disabled={cooldown > 0 || submitting} onClick={async () => { setError(''); try { await sendCode(); toast.success('Novo código enviado'); } catch (err: any) { setError(err.message); } }} className="w-full text-xs text-muted-foreground hover:text-primary disabled:opacity-50">
+                {cooldown > 0 ? `Reenviar código em ${cooldown}s` : 'Reenviar código'}
+              </button>
+            </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
@@ -100,7 +148,7 @@ const ForgotPassword: React.FC = () => {
                 disabled={submitting}
                 className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none shadow-md shadow-primary/20"
               >
-                {submitting ? 'Enviando...' : 'Enviar link de recuperação'}
+                {submitting ? 'Enviando...' : 'Enviar código'}
               </button>
             </form>
           )}
