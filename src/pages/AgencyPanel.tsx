@@ -27,6 +27,7 @@ import { AgencyClientsSection } from '@/components/agency/AgencyClientsSection';
 import { AgencySupport } from '@/components/agency/AgencySupport';
 import { AgencyPeriodOverview } from '@/components/agency/AgencyPeriodOverview';
 import { AgencyUsers } from '@/components/agency/AgencyUsers';
+import { BrandImageField } from '@/components/agency/BrandImageField';
 import { visibleSections, normalizeWhatsapp } from '@/lib/agency-permissions';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
