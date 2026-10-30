@@ -571,7 +571,7 @@ const AgencyPanel: React.FC = () => {
                 {!settings.slug && <p className="text-muted-foreground">Defina o identificador e clique em Salvar.</p>}
               </div>
             </CardContent></Card>
-            {!isDemo ? <AgencyDomainSetup settings={settings} setSettings={setSettings} agencyId={agency.id} onSaved={load} /> : <AgencyDomainSetup settings={{ ...settings, custom_domain: settings.custom_domain || 'painel.agenciademo.com.br', domain_status: settings.domain_status || 'dns_pendente', domain_txt_value: settings.domain_txt_value || 'lovable_verify=exemplo123' }} setSettings={setSettings} agencyId={agency.id} onSaved={load} />}
+            {!isDemo ? <AgencyDomainSetup settings={settings} setSettings={setSettings} agencyId={agency.id} onSaved={load} /> : <AgencyDomainSetup settings={{ ...settings, custom_domain: settings.custom_domain || 'painel.agenciademo.com.br', domain_status: settings.domain_status || 'dns_pendente', domain_txt_value: settings.domain_txt_value || 'lovable_verify=exemplo123' }} setSettings={setSettings} agencyId={agency.id} onSaved={load} demo />}
             <Card><CardHeader><CardTitle className="text-base">Banco de dados & privacidade</CardTitle></CardHeader><CardContent className="space-y-3">
               <Select value={settings.data_mode || 'adscale'} onValueChange={v => setSettings({ ...settings, data_mode: v })}>
                 <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>

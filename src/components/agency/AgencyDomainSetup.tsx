@@ -35,10 +35,10 @@ async function lookup(name: string, type: 'A' | 'TXT'): Promise<string[]> {
   return (j.Answer || []).filter((a: any) => a.type === (type === 'A' ? 1 : 16)).map((a: any) => String(a.data).replace(/^"|"$/g, ''));
 }
 
-interface Props { settings: any; setSettings: (s: any) => void; agencyId: string; onSaved: () => void }
+interface Props { settings: any; setSettings: (s: any) => void; agencyId: string; onSaved: () => void; demo?: boolean }
 
 /** Step-by-step custom domain setup for the partner agency. */
-export const AgencyDomainSetup: React.FC<Props> = ({ settings, setSettings, agencyId, onSaved }) => {
+export const AgencyDomainSetup: React.FC<Props> = ({ settings, setSettings, agencyId, onSaved, demo }) => {
   const [busy, setBusy] = useState(false);
   const [check, setCheck] = useState<{ a: boolean; txt: boolean; found: string[] } | null>(null);
   const [checking, setChecking] = useState(false);
@@ -51,6 +51,7 @@ export const AgencyDomainSetup: React.FC<Props> = ({ settings, setSettings, agen
   const request = async () => {
     const d = normalizeDomain(domain);
     if (!isValidDomain(d)) return toast.error('Digite um domínio válido, ex.: painel.suaagencia.com.br');
+    if (demo) return toast.info('Conta de demonstração: este é só um exemplo do passo a passo.');
     setBusy(true);
     const { error } = await supabase.from('agency_settings').upsert({ ...settings, agency_client_id: agencyId, custom_domain: d, domain_status: 'solicitado', updated_at: new Date().toISOString() });
     setBusy(false);
