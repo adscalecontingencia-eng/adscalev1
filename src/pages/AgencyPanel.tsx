@@ -390,7 +390,7 @@ const AgencyPanel: React.FC = () => {
         </div>
       </header>
       <div className="p-4 lg:p-6">
-        <Tabs value={section} onValueChange={setSection} className="space-y-5">
+        <Tabs value={allowed.has(section) ? section : "__none"} onValueChange={setSection} className="space-y-5">
 
           <TabsContent value="resumo" className="space-y-4">
             <AgencyPeriodOverview accounts={accounts} subs={subs} linkOf={linkOf} summary={summary} isDemo={isDemo} />
