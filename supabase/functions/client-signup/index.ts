@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
       if (ag) {
         const { data: already } = await admin.from("agency_sub_clients").select("id").eq("agency_client_id", agency_client_id).ilike("email", normEmail).maybeSingle();
         if (already) await admin.from("agency_sub_clients").update({ client_id: client.id }).eq("id", already.id);
-        else await admin.from("agency_sub_clients").insert({ agency_client_id, name: client.name, email: normEmail, phone: normalizedPhone, client_id: client.id, status: "ativo", notes: companyName });
+        else await admin.from("agency_sub_clients").insert({ agency_client_id, name: client.name, email: normEmail, phone: normalizedPhone, client_id: client.id, status: "active", notes: companyName });
       }
     }
 

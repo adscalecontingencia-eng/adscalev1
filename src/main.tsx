@@ -44,4 +44,11 @@ installSystemErrorLogger();
   }
 })();
 
+// Domínio personalizado: /login e /cadastro (sem "#") viram rotas do HashRouter
+{
+  const p = window.location.pathname.replace(/\/+$/, "");
+  if (!window.location.hash && ["/login", "/cadastro"].includes(p)) {
+    window.history.replaceState(null, "", "/" + window.location.search.replace(/.*/, "") + "#" + p + window.location.search);
+  }
+}
 createRoot(document.getElementById("root")!).render(<App />);
