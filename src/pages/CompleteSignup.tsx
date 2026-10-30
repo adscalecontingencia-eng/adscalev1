@@ -7,15 +7,16 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const CompleteSignup: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, needsSignupCompletion } = useAuth();
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (loading) return;
-    if (!user) navigate("/login");
-  }, [loading, user, navigate]);
+    if (user) { navigate("/login"); return; }
+    if (!needsSignupCompletion) navigate("/login");
+  }, [loading, user, needsSignupCompletion, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
