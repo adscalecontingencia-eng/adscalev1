@@ -88,6 +88,11 @@ Deno.serve(async (req) => {
 
     if (cliErr) return json({ error: "Erro ao consultar cadastro" }, 500);
     if (existing?.auth_user_id) return json({ error: "Este e-mail já possui acesso ativo. Faça login." }, 409);
+    // Pre-registered client (created by staff) without login: never let an unverified
+    // public signup bind itself to it — staff must create the access from the admin panel.
+    if (existing) {
+      return json({ error: "Este e-mail já está cadastrado pela nossa equipe. Fale com o suporte para receber seu acesso.", code: "preregistered" }, 409);
+    }
 
     const profileFields = {
       company_name: companyName,

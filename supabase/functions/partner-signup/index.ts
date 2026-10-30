@@ -36,6 +36,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing?.auth_user_id) return json({ error: "Este e-mail já está cadastrado. Faça login." }, 409);
+    // Pre-registered partner without login: an unverified public signup may not claim it.
+    if (existing) return json({ error: "Este e-mail já está cadastrado pela nossa equipe. Fale com o suporte para receber seu acesso." }, 409);
 
     let partnerId = existing?.id as string | undefined;
 
