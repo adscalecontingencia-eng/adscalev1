@@ -28,6 +28,7 @@ import { AgencySupport } from '@/components/agency/AgencySupport';
 import { AgencyPeriodOverview } from '@/components/agency/AgencyPeriodOverview';
 import { AgencyUsers } from '@/components/agency/AgencyUsers';
 import { BrandImageField } from '@/components/agency/BrandImageField';
+import { AgencySignupTermsEditor } from '@/components/agency/AgencySignupTermsEditor';
 import { AgencyDomainSetup } from '@/components/agency/AgencyDomainSetup';
 import { visibleSections, normalizeWhatsapp } from '@/lib/agency-permissions';
 
@@ -595,7 +596,8 @@ const AgencyPanel: React.FC = () => {
             <AgencyUsers agencyId={agency.id} isDemo={isDemo} />
           </TabsContent>}
 
-          <TabsContent value="juridico">
+          <TabsContent value="juridico" className="space-y-4">
+            <AgencySignupTermsEditor agencyId={agency.id} settings={settings} setSettings={setSettings} brandName={settings.brand_name || agency?.name || ''} />
             <Card><CardContent className="pt-6 space-y-3 text-sm">
               <p>Termo de Agência Parceira aceito — versão {AGENCY_TERMS_VERSION}.</p>
               <div className="flex gap-2"><Button variant="outline" className="gap-2" onClick={() => downloadAgencyTerms('pt')}><Download size={14} />Português</Button><Button variant="outline" className="gap-2" onClick={() => downloadAgencyTerms('en')}><Download size={14} />English</Button></div>
