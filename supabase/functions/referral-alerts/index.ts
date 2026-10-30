@@ -8,10 +8,23 @@ const corsHeaders = {
 const money = (v: number) =>
   Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const esc = (v: unknown) =>
+  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+
+function jwtRole(token: string): string | null {
+  try {
+    const part = token.split('.')[1];
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '='));
+    return JSON.parse(json)?.role ?? null;
+  } catch { return null; }
+}
+
 function buildEmail(kind: string, opts: {
   partnerName: string; referredName: string; bonus: number; remaining: number; paid: number; target: number;
 }) {
   const isAwarded = kind === 'awarded';
+  const rawPartner = opts.partnerName, rawReferred = opts.referredName;
+  opts = { ...opts, partnerName: esc(opts.partnerName), referredName: esc(opts.referredName) };
   const subject = isAwarded
     ? `🎉 Você ganhou US$ ${money(opts.bonus)} em crédito de indicação`
     : `Faltam US$ ${money(opts.remaining)} para o seu próximo bônus de US$ ${money(opts.bonus)}`;
@@ -37,12 +50,22 @@ function buildEmail(kind: string, opts: {
     <p style="margin:18px 0 0;font-size:11px;color:#6d8177">Você recebeu este aviso porque participa do programa de indicação da AD Scale.</p>
   </div></body></html>`;
 
-  const text = `${headline}\n\n${body.replace(/<[^>]+>/g, '')}\n\nCrédito estimado: US$ ${money(opts.bonus)}`;
+  const textBody = isAwarded
+    ? `A meta de US$ ${money(opts.target)} pagos por ${rawReferred} foi atingida e US$ ${money(opts.bonus)} em crédito entraram no seu extrato.`
+    : `${rawReferred} já pagou US$ ${money(opts.paid)} à agência. Faltam US$ ${money(opts.remaining)} para você receber mais US$ ${money(opts.bonus)} em crédito.`;
+  const text = `${headline}\n\nOlá ${rawPartner},\n\n${textBody}\n\nCrédito estimado: US$ ${money(opts.bonus)}`;
   return { subject, html, text };
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+  // Scheduler-only: verify_jwt checks the signature; require the service role.
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  if (!bearer || jwtRole(bearer) !== 'service_role') {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

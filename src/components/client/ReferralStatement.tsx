@@ -181,7 +181,13 @@ const ReferralStatement: React.FC<{ clientId?: string | null }> = ({ clientId })
         (e.note || '').replace(/[\r\n;]+/g, ' '),
       ]),
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+    // Neutralize spreadsheet formulas in text cells (CSV injection).
+    const safeCell = (c: unknown) => {
+      let v = String(c ?? '');
+      if (/^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = `'${v}`;
+      return `"${v.replace(/"/g, '""')}"`;
+    };
+    const csv = rows.map((r) => r.map(safeCell).join(';')).join('\n');
     const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
     const a = document.createElement('a');
     a.href = url;
