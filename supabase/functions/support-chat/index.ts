@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
           .limit(20),
       ]);
 
-    const whatsapp = String(settingsRes.data?.value ?? "").replace(/"/g, "").trim();
+    let whatsapp = String(settingsRes.data?.value ?? "").replace(/"/g, "").trim();
 
     // Clientes de agência parceira veem só a marca da agência (nunca "AD SCALE").
     const { data: agencyLink } = await admin
@@ -100,10 +100,12 @@ Deno.serve(async (req) => {
     if (agencyLink?.agency_client_id) {
       const { data: st } = await admin
         .from("agency_settings")
-        .select("brand_name")
+        .select("brand_name, support_whatsapp")
         .eq("agency_client_id", agencyLink.agency_client_id)
         .maybeSingle();
       brand = (st?.brand_name || "").trim() || "sua agência";
+      // Cliente de agência fala com o WhatsApp da agência (nunca o da AD SCALE).
+      whatsapp = String(st?.support_whatsapp || "").replace(/\D/g, "");
     }
     const isAgencyClient = brand !== "AD SCALE";
 
