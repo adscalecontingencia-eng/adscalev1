@@ -62,6 +62,8 @@ import Obrigado from "./pages/Obrigado";
 import EstruturaAds from "./pages/EstruturaAds";
 import PartnerBanners from "./pages/PartnerBanners";
 import ReferralStatementPage from "./pages/ReferralStatementPage";
+import AgencyPanel from "./pages/AgencyPanel";
+import AgencyPartners from "./pages/AgencyPartners";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -186,6 +188,8 @@ const App = () => (
               <Route path="/pages" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><PagesAdmin /></DashboardLayout></ProtectedRoute>} />
               <Route path="/block-log" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><BlockLog /></DashboardLayout></ProtectedRoute>} />
               <Route path="/notification-settings" element={<ProtectedRoute roles={['admin', 'support']}><DashboardLayout><NotificationSettings /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/agencia" element={<ProtectedRoute roles={['client']}><AgencyPanel /></ProtectedRoute>} />
+              <Route path="/agencias-parceiras" element={<ProtectedRoute roles={['admin','support']}><DashboardLayout><AgencyPartners /></DashboardLayout></ProtectedRoute>} />
               <Route path="/client-dashboard" element={<ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>} />
               <Route path="/dashboard-cliente" element={<Navigate to="/client-dashboard" replace />} />
               <Route path="/painel" element={<Navigate to="/client-dashboard" replace />} />

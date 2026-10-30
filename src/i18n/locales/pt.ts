@@ -75,6 +75,8 @@ const pt = {
     weeklyInvoices: 'Faturas Semanais',
     supportInbox: 'Central de Suporte',
 
+    agencyPartners: 'Agências Parceiras',
+
     termsAudit: 'Auditoria de Termos',
     partnerBanners: 'Banners de Parceiros',
     users: 'Usuários',
