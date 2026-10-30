@@ -817,6 +817,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground text-sm">{t('common.loading')}</p></div>;
 
 
+  if (!client && user?.agencyMember && !isAdminView) return <Navigate to="/agencia" replace />;
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

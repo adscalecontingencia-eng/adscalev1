@@ -9,6 +9,8 @@ export interface User {
   name: string;
   role: UserRole;
   permissions?: string[];
+  /** Collaborator of a partner agency (no own client account; uses the Agency Panel only). */
+  agencyMember?: boolean;
 }
 
 interface AuthContextType {
@@ -79,6 +81,14 @@ async function fetchUserProfile(authUserId: string, email: string): Promise<User
         name: clientUser.name,
         role: 'client',
       };
+    }
+    const { data: member } = await supabase
+      .from('agency_members')
+      .select('name, email, permissions, active')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+    if (member?.active) {
+      return { id: authUserId, email: member.email || email, name: member.name, role: 'client', permissions: member.permissions || [], agencyMember: true };
     }
   }
 
