@@ -56,6 +56,53 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_members: {
+        Row: {
+          active: boolean
+          agency_client_id: string
+          auth_user_id: string
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          name: string
+          permissions: string[]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          agency_client_id: string
+          auth_user_id: string
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          name: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          agency_client_id?: string
+          auth_user_id?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          name?: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_members_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_platform_tiers: {
         Row: {
           adscale_pct: number
@@ -99,6 +146,7 @@ export type Database = {
           logo_url: string | null
           primary_color: string | null
           slug: string | null
+          support_whatsapp: string | null
           updated_at: string
         }
         Insert: {
@@ -113,6 +161,7 @@ export type Database = {
           logo_url?: string | null
           primary_color?: string | null
           slug?: string | null
+          support_whatsapp?: string | null
           updated_at?: string
         }
         Update: {
@@ -127,6 +176,7 @@ export type Database = {
           logo_url?: string | null
           primary_color?: string | null
           slug?: string | null
+          support_whatsapp?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4028,6 +4078,11 @@ export type Database = {
       }
     }
     Functions: {
+      agency_can: { Args: { _agency: string; _perm: string }; Returns: boolean }
+      agency_can_any: {
+        Args: { _agency: string; _perms: string[] }
+        Returns: boolean
+      }
       agency_handle_support_request: {
         Args: {
           _agency_bm_id: string
@@ -4037,6 +4092,10 @@ export type Database = {
           _status: string
         }
         Returns: Json
+      }
+      agency_member_agency_ids: {
+        Args: { _perms: string[] }
+        Returns: string[]
       }
       agency_visible_ad_account_ids: { Args: never; Returns: string[] }
       agency_visible_client_ids: { Args: never; Returns: string[] }
@@ -4096,6 +4155,17 @@ export type Database = {
           logo_url: string
           primary_color: string
           slug: string
+          support_whatsapp: string
+        }[]
+      }
+      get_my_agency_membership: {
+        Args: never
+        Returns: {
+          agency_client_id: string
+          agency_name: string
+          is_agency: boolean
+          member_name: string
+          permissions: string[]
         }[]
       }
       get_order_delivery_payload: {

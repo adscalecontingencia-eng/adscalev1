@@ -13,7 +13,7 @@ interface ChatMessage {
 
 const WHATSAPP_MARKER = '[WHATSAPP]';
 
-const SupportChat: React.FC<{ clientId: string | null; brandName?: string | null }> = ({ clientId, brandName }) => {
+const SupportChat: React.FC<{ clientId: string | null; brandName?: string | null; whatsappOverride?: string | null }> = ({ clientId, brandName, whatsappOverride }) => {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -44,8 +44,9 @@ const SupportChat: React.FC<{ clientId: string | null; brandName?: string | null
     inputRef.current?.focus();
   }, [loading]);
 
-  const whatsappUrl = whatsapp
-    ? `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Vim do chat do painel ${brandName || 'AD SCALE'} e preciso de ajuda.`)}`
+  const waNum = whatsappOverride !== undefined ? whatsappOverride : whatsapp;
+  const whatsappUrl = waNum
+    ? `https://wa.me/${waNum.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Vim do chat do painel ${brandName || 'AD SCALE'} e preciso de ajuda.`)}`
     : null;
 
   const send = async (e: React.FormEvent) => {
