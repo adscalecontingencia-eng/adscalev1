@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight, Search, LifeBuoy } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight, Search, LifeBuoy, UserCog } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -26,6 +26,8 @@ import { SubClientView } from '@/components/agency/SubClientView';
 import { AgencyClientsSection } from '@/components/agency/AgencyClientsSection';
 import { AgencySupport } from '@/components/agency/AgencySupport';
 import { AgencyPeriodOverview } from '@/components/agency/AgencyPeriodOverview';
+import { AgencyUsers } from '@/components/agency/AgencyUsers';
+import { visibleSections, normalizeWhatsapp } from '@/lib/agency-permissions';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -95,12 +97,25 @@ const AgencyPanel: React.FC = () => {
   const [accOwner, setAccOwner] = useState('all');
   const [bulkSel, setBulkSel] = useState<string[]>([]);
   const [bulkSub, setBulkSub] = useState('');
+  const [isOwner, setIsOwner] = useState(true);
+  const [memberPerms, setMemberPerms] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      const { data } = await supabase.from('clients').select('id, name, is_agency').eq('auth_user_id', authUser?.id ?? '').maybeSingle();
+      let { data } = await supabase.from('clients').select('id, name, is_agency').eq('auth_user_id', authUser?.id ?? '').maybeSingle();
+      if (!data) {
+        // Colaborador da agência: entra no painel da agência com acesso só às áreas liberadas.
+        const { data: m } = await (supabase.rpc as any)('get_my_agency_membership');
+        const row = Array.isArray(m) ? m[0] : m;
+        if (row) {
+          data = { id: row.agency_client_id, name: row.agency_name, is_agency: row.is_agency } as any;
+          setIsOwner(false); setMemberPerms(row.permissions || []);
+          const first = visibleSections(false, row.permissions)[0];
+          if (first) setSection(first);
+        }
+      }
       setAgency(data);
       if (data?.is_agency) {
         const { data: acc } = await supabase.from('agency_terms_acceptances').select('id').eq('agency_client_id', data.id).eq('version', AGENCY_TERMS_VERSION).maybeSingle();
@@ -224,6 +239,8 @@ const AgencyPanel: React.FC = () => {
   };
 
   const saveSettings = async () => {
+    settings.support_whatsapp = settings.support_whatsapp ? normalizeWhatsapp(settings.support_whatsapp) ?? settings.support_whatsapp : null;
+    if (settings.support_whatsapp && !normalizeWhatsapp(settings.support_whatsapp)) return toast.error('WhatsApp inválido. Use o número com DDI e DDD, ex.: 55 11 91234-5678.');
     const { error } = await supabase.from('agency_settings').upsert({ ...settings, agency_client_id: agency.id, updated_at: new Date().toISOString() });
     if (error) return toast.error(error.message);
     toast.success('Configurações salvas.');
@@ -244,6 +261,13 @@ const AgencyPanel: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-muted-foreground">Sua conta ainda não está habilitada como Agência Parceira.</p>
       <Button variant="outline" onClick={() => navigate('/client-dashboard')}>Voltar ao painel</Button>
+    </div>
+  );
+
+  if (!accepted && !isOwner) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+      <p className="text-muted-foreground">O dono da agência ainda precisa aceitar o Termo de Agência Parceira para liberar o painel.</p>
+      <Button variant="outline" onClick={async () => { await logout(); navigate('/login'); }}>Sair</Button>
     </div>
   );
 
@@ -308,9 +332,12 @@ const AgencyPanel: React.FC = () => {
     ] },
     { id: 'sistema', label: 'Sistema', items: [
       { v: 'marca', label: 'Marca & Dados', icon: Palette },
+      { v: 'usuarios', label: 'Usuários', icon: UserCog },
       { v: 'juridico', label: 'Jurídico', icon: Scale },
     ] },
   ];
+  const allowed = new Set(visibleSections(isOwner, memberPerms));
+  GROUPS.forEach(g => { g.items = g.items.filter(i => allowed.has(i.v)); });
   const NAV = GROUPS.flatMap(g => g.items);
 
   return (
@@ -322,7 +349,8 @@ const AgencyPanel: React.FC = () => {
           <p className="text-[9px] uppercase tracking-[0.42em] text-muted-foreground/70 mt-2 ml-0.5">Agency · Panel</p>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {GROUPS.map(g => (
+          {!NAV.length && <p className="px-3 py-4 text-xs text-muted-foreground">Seu acesso ainda não tem nenhuma área liberada. Fale com o dono da agência.</p>}
+          {GROUPS.filter(g => g.items.length).map(g => (
             <div key={g.id} className="space-y-0.5">
               {g.label && <div className="w-full flex items-center gap-2 px-3 py-1.5 mt-2 mb-0.5 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground/70">{g.label}</div>}
               {g.items.map(n => {
@@ -345,7 +373,7 @@ const AgencyPanel: React.FC = () => {
             <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold">{user?.email?.[0]?.toUpperCase() || '·'}</div>
             <div className="text-[11px] text-muted-foreground truncate flex-1">{user?.email}</div>
           </div>
-          <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"><ArrowLeft size={16} /><span translate="no" className="notranslate">Meu painel AD SCALE</span></button>
+          {isOwner && <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"><ArrowLeft size={16} /><span translate="no" className="notranslate">Meu painel AD SCALE</span></button>}
           <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"><LogOut size={16} /><span>Sair</span></button>
         </div>
       </aside>
@@ -505,6 +533,7 @@ const AgencyPanel: React.FC = () => {
               <div><Label>URL do logo</Label><Input value={settings.logo_url || ''} onChange={e => setSettings({ ...settings, logo_url: e.target.value })} /></div>
               <div><Label>Cor principal</Label><Input type="color" value={settings.primary_color || '#22c55e'} onChange={e => setSettings({ ...settings, primary_color: e.target.value })} /></div>
               <div><Label>Domínio personalizado</Label><Input placeholder="painel.suaagencia.com" value={settings.custom_domain || ''} onChange={e => setSettings({ ...settings, custom_domain: e.target.value.trim().toLowerCase() || null })} /></div>
+              <div><Label>WhatsApp de suporte e cobrança</Label><Input placeholder="55 11 91234-5678" value={settings.support_whatsapp || ''} onChange={e => setSettings({ ...settings, support_whatsapp: e.target.value })} /><p className="text-[11px] text-muted-foreground mt-1">Seus clientes falam com este número pelo chat de suporte e nos avisos de pagamento. Use DDI + DDD.</p></div>
               <div><Label>Identificador da agência (slug)</Label><Input placeholder="minha-agencia" value={settings.slug || ''} onChange={e => setSettings({ ...settings, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40) || null })} /></div>
               <div className="sm:col-span-2 rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs space-y-1">
                 <p className="font-medium">Links de acesso dos seus clientes</p>
@@ -534,6 +563,10 @@ const AgencyPanel: React.FC = () => {
             <p className="text-xs text-muted-foreground">As cores e o logo já aparecem no painel enquanto você edita. Clique em Salvar para manter.</p>
             <Button onClick={saveSettings}>Salvar</Button>
           </TabsContent>
+
+          {isOwner && <TabsContent value="usuarios">
+            <AgencyUsers agencyId={agency.id} isDemo={isDemo} />
+          </TabsContent>}
 
           <TabsContent value="juridico">
             <Card><CardContent className="pt-6 space-y-3 text-sm">
