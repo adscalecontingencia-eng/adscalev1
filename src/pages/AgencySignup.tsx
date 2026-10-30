@@ -32,7 +32,7 @@ const AgencySignup: React.FC = () => {
   const [searchParams] = useSearchParams();
   const isBR = (i18n.language || "pt").startsWith("pt");
   const { branding: agency, key: agencyKey } = useAgencyBranding(searchParams);
-  // Agency end clients accept the agency's own terms (custom text, or the default with the agency name).
+  // Agency end clients accept the agency's own terms (custom text, or the default carrying the agency name).
   const [agencyTerms, setAgencyTerms] = useState<AgencySignupTerms | null>(null);
   useEffect(() => {
     if (!agencyKey) return;
