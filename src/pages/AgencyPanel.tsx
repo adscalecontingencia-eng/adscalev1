@@ -121,7 +121,7 @@ const AgencyPanel: React.FC = () => {
   const acceptTerms = async () => {
     const content_hash = await hashTerms(terms);
     const { error } = await supabase.from('agency_terms_acceptances').insert({
-      agency_client_id: agency.id, version: AGENCY_TERMS_VERSION, language: lang, content_hash, user_agent: navigator.userAgent, accepted_by: user!.id,
+      agency_client_id: agency.id, version: AGENCY_TERMS_VERSION, language: lang, content_hash, user_agent: navigator.userAgent, accepted_by: (await supabase.auth.getUser()).data.user?.id,
     });
     if (error) return toast.error('Não foi possível registrar o aceite.');
     toast.success('Termo aceito.'); setAccepted(true);
