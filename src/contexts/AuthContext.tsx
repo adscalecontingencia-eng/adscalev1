@@ -19,6 +19,8 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
+  /** Signed in (e.g. via Google) but no AD SCALE profile yet — must finish signup. */
+  needsSignupCompletion: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -120,6 +122,7 @@ async function fetchUserProfile(authUserId: string, email: string): Promise<User
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsSignupCompletion, setNeedsSignupCompletion] = useState(false);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -135,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await withTimeout(supabase.auth.getSession(), 8000, 'Sessão');
         if (session?.user && isMounted) {
           const profile = await withTimeout(fetchUserProfile(session.user.id, session.user.email || ''), 8000, 'Perfil');
-          if (isMounted) setUser(profile);
+          if (isMounted) { setUser(profile); setNeedsSignupCompletion(!profile); }
         }
       } catch (e) {
         console.error('Error loading session:', e);
@@ -153,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (event === 'SIGNED_OUT') {
         setUser(null);
+        setNeedsSignupCompletion(false);
         setLoading(false);
         return;
       }
@@ -164,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!isMounted) return;
             try {
               const profile = await withTimeout(fetchUserProfile(session.user.id, session.user.email || ''), 8000, 'Perfil');
-              if (isMounted) setUser(profile);
+              if (isMounted) { setUser(profile); setNeedsSignupCompletion(!profile); }
             } catch (e) {
               console.error('Error refreshing profile:', e);
               if (isMounted) setUser(null);
@@ -200,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setUser(profile);
+    setNeedsSignupCompletion(false);
     return true;
   }, []);
 
@@ -208,8 +213,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   }, []);
 
+  // Google sign-in returns to the site root; send new Google users to finish signup.
+  useEffect(() => {
+    if (!loading && needsSignupCompletion && !window.location.hash.includes('completar-cadastro')) {
+      window.location.hash = '#/completar-cadastro';
+    }
+  }, [loading, needsSignupCompletion]);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading, needsSignupCompletion }}>
       {children}
     </AuthContext.Provider>
   );

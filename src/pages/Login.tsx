@@ -44,7 +44,7 @@ const Login: React.FC = () => {
   const signInWithGoogle = async () => {
     setError('');
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin + '/#/completar-cadastro',
+      redirect_uri: window.location.origin,
     });
     if (result.error) setError((result.error as any).message || 'Erro no Google Sign-In');
   };
