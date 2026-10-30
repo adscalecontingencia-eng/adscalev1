@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Gift, LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow, addDays } from 'date-fns';
 import { ptBR, enUS, es as esLocale } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR, formatDateShortBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +34,7 @@ import DailyStatement from '@/components/client/DailyStatement';
 import WeeklyInvoiceCard from '@/components/client/WeeklyInvoiceCard';
 import ChangePasswordCard from '@/components/client/ChangePasswordCard';
 import SupportChat from '@/components/client/SupportChat';
+import { isDemoSubClient, buildDemoClientData } from '@/components/agency/agency-demo-client';
 
 
 const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = false }) => {
@@ -62,7 +63,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [tourOpen, setTourOpen] = useState(false);
   // Auto-abre o tutorial no primeiro acesso do cliente (uma vez por cliente/navegador)
   useEffect(() => {
-    if (loading || !client?.id) return;
+    if (loading || !client?.id || isAgencyView) return;
     try {
       if (!localStorage.getItem(`adscale_tour_done_${client.id}`)) {
         const t = window.setTimeout(() => setTourOpen(true), 900);
@@ -92,6 +93,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const overdueDialogShownRef = useRef(false);
   const clientIdRef = useRef<string | null>(null);
+  const demoClientRef = useRef(false);
   // Período global da aba Estrutura (aplica-se a todas as contas)
   const [estruturaPeriod, setEstruturaPeriod] = useState<'today' | 'billing_week' | '7d' | '30d' | 'all' | 'custom'>('billing_week');
   const [estruturaCustomStart, setEstruturaCustomStart] = useState<Date>(new Date(Date.now() - 6 * 86400000));
@@ -133,6 +135,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   };
 
   const fetchAccounts = useCallback(async (clientId: string) => {
+    if (demoClientRef.current) return [] as string[]; // cliente demo da agência: dados simulados
     const { data: assigns } = await withTimeout<{ data: any[] | null }>(supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
@@ -327,6 +330,16 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
           setSavedAccounts(blockedRes.data || []);
           setPages((pagesRes.data || []).map((a: any) => a.page).filter(Boolean));
           setSupportRequests(reqsRes.data || []);
+          if (isDemoSubClient(clientData.email)) {
+            // Cliente de demonstração da Agência Demo: gasto/contas/cobranças simulados (nada gravado).
+            const demo = buildDemoClientData(clientData.email, clientData.id);
+            demoClientRef.current = true;
+            setActiveAccounts(demo.assignments); setArchivedAccounts([]);
+            setInsights(demo.insights); setCommissions([]);
+            setLastAccountsSync(new Date());
+            return;
+          }
+          demoClientRef.current = false;
 
           console.debug('[ClientDashboard][telemetry] dados carregados', {
             ...ctx,
@@ -640,6 +653,15 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }, [insights, client, commissionTiers]);
 
+  // Cliente demo da agência: todas as semanas fechadas aparecem pagas na sexta seguinte (simulado).
+  useEffect(() => {
+    if (!demoClientRef.current) return;
+    const current = startOfWeek(new Date(), { weekStartsOn: 5 }).getTime();
+    setCommissions(weeklyCommissionHistory
+      .filter(w => w.weekStart.getTime() < current && w.commission > 0)
+      .map((w, i) => ({ id: `demo-paid-${i}`, client_id: client?.id, type: 'paid', amount: Math.round(w.commission * 100) / 100, date: format(addDays(w.weekStart, 7), 'yyyy-MM-dd'), note: 'Pagamento semanal (demo)', created_at: w.weekStart.toISOString() })));
+  }, [weeklyCommissionHistory, client?.id]);
+
   // Credit ledger: REAL week-by-week history. Aplica plan_credit FIFO a partir
   // da semana em que o crédito foi adicionado (plan_credit_start_date) — NUNCA
   // retroativo a semanas anteriores. O crédito é aplicado uma única vez e
@@ -736,7 +758,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
 
   // Pop-up automático quando há saldo atrasado (apenas 1x por sessão)
   useEffect(() => {
-    if (loading || isAdminView) return;
+    if (loading || isAdminView || demoClientRef.current) return;
     if (billingSplit.overdue > 0 && !overdueDialogShownRef.current) {
       overdueDialogShownRef.current = true;
       setOverdueDialogOpen(true);
@@ -776,7 +798,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const loyaltyDialogShownRef = useRef(false);
   useEffect(() => {
-    if (loading || isAdminView || !client) return;
+    if (loading || isAdminView || !client || demoClientRef.current) return;
     if (client.client_type !== 'aluguel') return;
     if (loyaltyDialogShownRef.current) return;
     const storageKey = `loyalty-popup:${client.id}:${loyalty.current.id}:${loyalty.nearNext ? 'near' : 'idle'}`;
