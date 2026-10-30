@@ -335,7 +335,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
             const demo = buildDemoClientData(clientData.email, clientData.id);
             demoClientRef.current = true;
             setActiveAccounts(demo.assignments); setArchivedAccounts([]);
-            setInsights(demo.insights); setCommissions(demo.commissions);
+            setInsights(demo.insights); setCommissions([]);
             setLastAccountsSync(new Date());
             return;
           }
@@ -652,6 +652,15 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
       })
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }, [insights, client, commissionTiers]);
+
+  // Cliente demo da agência: todas as semanas fechadas aparecem pagas na sexta seguinte (simulado).
+  useEffect(() => {
+    if (!demoClientRef.current) return;
+    const current = startOfWeek(new Date(), { weekStartsOn: 5 }).getTime();
+    setCommissions(weeklyCommissionHistory
+      .filter(w => w.weekStart.getTime() < current && w.commission > 0)
+      .map((w, i) => ({ id: `demo-paid-${i}`, client_id: client?.id, type: 'paid', amount: Math.round(w.commission * 100) / 100, date: format(addDays(w.weekStart, 7), 'yyyy-MM-dd'), note: 'Pagamento semanal (demo)', created_at: w.weekStart.toISOString() })));
+  }, [weeklyCommissionHistory, client?.id]);
 
   // Credit ledger: REAL week-by-week history. Aplica plan_credit FIFO a partir
   // da semana em que o crédito foi adicionado (plan_credit_start_date) — NUNCA

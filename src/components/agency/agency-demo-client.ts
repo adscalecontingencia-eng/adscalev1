@@ -1,6 +1,6 @@
 // Simulated data for the Agência Demo end-client logins (presentation only).
 // Never seeds real rows: the ClientDashboard swaps these in client-side.
-import { format, subDays, startOfWeek, addDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { DEMO_ACCOUNTS, DEMO_LINKS } from './agency-accounts';
 
 /** demo end-client email -> index of the demo sub-client (same order as DEMO_LINKS). */
@@ -39,16 +39,5 @@ export function buildDemoClientData(email: string, clientId: string) {
       });
     }
   });
-  // Last 4 closed Friday→Thursday weeks billed and paid.
-  const commissions: any[] = [];
-  const thisWeek = startOfWeek(new Date(), { weekStartsOn: 5 });
-  for (let w = 1; w <= 4; w++) {
-    const start = addDays(thisWeek, -7 * w), end = addDays(start, 6);
-    const s = format(start, 'yyyy-MM-dd'), e = format(end, 'yyyy-MM-dd');
-    const spend = insights.filter(i => i.date >= s && i.date <= e).reduce((t, i) => t + i.spend, 0);
-    const amount = Math.round(spend * cfg.pct) / 100;
-    commissions.push({ id: `demo-wb-${w}`, client_id: clientId, date: e, amount, type: 'weekly_billing', ad_spend: spend, billing_week_start: s, billing_week_end: e, is_weekly_billing: true, percentual_aplicado: cfg.pct, valor_pago: amount, valor_pendente: 0, status: 'pago', note: 'Fechamento semanal (demo)', created_at: e });
-    commissions.push({ id: `demo-pd-${w}`, client_id: clientId, date: format(addDays(end, 1), 'yyyy-MM-dd'), amount, type: 'paid', note: 'Pagamento (demo)', created_at: e });
-  }
-  return { assignments, insights, commissions };
+  return { assignments, insights };
 }
