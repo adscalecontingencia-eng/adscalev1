@@ -11,7 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useCommissionTiers, getTierPctFromTiers, CommissionTier } from '@/lib/commission-tiers';
+import { useCommissionTiers, getTierPctFromTiers, tiersForClient, CommissionTier } from '@/lib/commission-tiers';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/lib/audit';
 import ClientKPIBar from '@/components/clients/ClientKPIBar';
@@ -105,14 +105,8 @@ const Clients: React.FC = () => {
   const { tiers: commissionTiers, reload: reloadTiers } = useCommissionTiers();
   const [tierDraft, setTierDraft] = useState<CommissionTier[] | null>(null);
   const [savingTiers, setSavingTiers] = useState(false);
-  const getClientTierPercentage = (client: Client, weekSpend: number) => {
-    const customTiers = Array.isArray(client.customTiers) && client.customTiers.length > 0
-      ? client.customTiers
-          .filter(t => Number.isFinite(Number(t?.min_spend)) && Number.isFinite(Number(t?.pct)))
-          .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
-      : commissionTiers;
-    return getTierPctFromTiers(weekSpend, client.percentageValue || 0, customTiers);
-  };
+  const getClientTierPercentage = (client: Client, weekSpend: number) =>
+    getTierPctFromTiers(weekSpend, client.percentageValue || 0, tiersForClient(client.customTiers, commissionTiers, client.percentageValue || 0));
 
   const tiersToShow = tierDraft ?? commissionTiers;
 
