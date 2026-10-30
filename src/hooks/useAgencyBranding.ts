@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface AgencyBranding { agency_client_id: string; brand_name: string | null; logo_url: string | null; primary_color: string | null; slug: string | null; support_whatsapp?: string | null; favicon_url?: string | null; site_title?: string | null }
 
-const OWN_HOSTS = ['localhost', '127.0.0.1', 'lovable.app', 'lovableproject.com', 'adscalehub.com'];
+const OWN_HOSTS = ['localhost', '127.0.0.1', 'lovable.app', 'lovableproject.com', 'adscalehub.com', 'adscalehub.com.br'];
 
 /** Resolve the partner agency from ?agencia=slug or from a custom domain hostname. */
 export function getAgencyKey(search: URLSearchParams): string | null {
