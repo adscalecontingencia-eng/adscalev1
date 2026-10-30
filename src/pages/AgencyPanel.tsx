@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight, Search, LifeBuoy } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -39,6 +39,8 @@ import { isBelowFloor } from '@/lib/agency-tiers';
 import { ACCOUNT_FIELDS, DEMO_ACCOUNTS, DEMO_AGENCY_EMAIL, DEMO_LINKS } from '@/components/agency/agency-accounts';
 import { AgencyAccountsTable } from '@/components/agency/AgencyAccountsTable';
 import { SubClientView } from '@/components/agency/SubClientView';
+import { AgencyClientsSection } from '@/components/agency/AgencyClientsSection';
+import { AgencySupport } from '@/components/agency/AgencySupport';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -104,6 +106,10 @@ const AgencyPanel: React.FC = () => {
   const [section, setSection] = useState('resumo');
   const [navOpen, setNavOpen] = useState(false);
   const [viewSub, setViewSub] = useState<string | null>(null);
+  const [accQ, setAccQ] = useState('');
+  const [accOwner, setAccOwner] = useState('all');
+  const [bulkSel, setBulkSel] = useState<string[]>([]);
+  const [bulkSub, setBulkSub] = useState('');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -173,13 +179,40 @@ const AgencyPanel: React.FC = () => {
   };
   const delSub = async (id: string) => { if (!confirm('Excluir este cliente?')) return; await supabase.from('agency_sub_clients').delete().eq('id', id); load(); };
 
-  const assign = async (accountId: string, subId: string) => {
+  const assignOne = async (accountId: string, subId: string) => {
+    if (isDemo) {
+      setLinks(p => [...p.filter(l => l.ad_account_id !== accountId), ...(subId !== 'none' ? [{ ad_account_id: accountId, sub_client_id: subId }] : [])]);
+      return true;
+    }
     await supabase.from('agency_sub_client_accounts').delete().eq('ad_account_id', accountId).eq('agency_client_id', agency.id);
     if (subId !== 'none') {
       const { error } = await supabase.from('agency_sub_client_accounts').insert({ agency_client_id: agency.id, sub_client_id: subId, ad_account_id: accountId });
-      if (error) return toast.error('Não foi possível atribuir.');
+      if (error) { toast.error('Não foi possível atribuir.'); return false; }
     }
-    toast.success('Atribuição salva.'); load();
+    return true;
+  };
+  const assign = async (accountId: string, subId: string) => {
+    if (await assignOne(accountId, subId)) { toast.success('Atribuição salva.'); if (!isDemo) load(); }
+  };
+  const bulkAssign = async () => {
+    for (const id of bulkSel) await assignOne(id, bulkSub);
+    toast.success(`${bulkSel.length} conta(s) atualizadas.`); setBulkSel([]); if (!isDemo) load();
+  };
+  const addCreditFor = async (subId: string, amount: number, note: string) => {
+    if (isDemo) {
+      setCredits(p => [{ id: `dc-${Date.now()}`, sub_client_id: subId, amount, status: 'confirmado', date: format(new Date(), 'yyyy-MM-dd'), note }, ...p]);
+      toast.success('Crédito adicionado (demonstração).'); return;
+    }
+    const { error } = await supabase.from('agency_sub_client_credits').insert({ agency_client_id: agency.id, sub_client_id: subId, amount, note: note || null });
+    if (error) return void toast.error('Não foi possível adicionar o crédito.');
+    toast.success('Crédito adicionado.'); load();
+  };
+  const createSub = async (v: { name: string; email: string; phone: string; credit: number }) => {
+    const { data, error } = await supabase.from('agency_sub_clients').insert({ agency_client_id: agency.id, name: v.name, email: v.email || null, phone: v.phone || null }).select('id').single();
+    if (error) return void toast.error('Não foi possível cadastrar o cliente.');
+    if (v.credit > 0 && !isDemo) await supabase.from('agency_sub_client_credits').insert({ agency_client_id: agency.id, sub_client_id: data.id, amount: v.credit, note: 'Crédito inicial' });
+    toast.success('Cliente cadastrado.'); await load();
+    if (v.credit > 0 && isDemo) addCreditFor(data.id, v.credit, 'Crédito inicial');
   };
 
   const platformPcts = platform.map(p => Number(p.adscale_pct));
@@ -261,6 +294,11 @@ const AgencyPanel: React.FC = () => {
     return { paid, weekUse: row ? Number(row.spend) + Number(row.client_fee) : 0 };
   };
   const brand = settings.brand_name || agency.name;
+  const filteredAccounts = accounts.filter(a => {
+    const q = accQ.trim().toLowerCase();
+    if (q && !`${a.name || ''} ${a.account_id || ''} ${a.id}`.toLowerCase().includes(q)) return false;
+    return accOwner === 'all' || linkOf(a.id) === accOwner;
+  });
 
   const brandStyle = brandVars(settings.primary_color);
   const Logo = () => settings.logo_url
@@ -282,6 +320,7 @@ const AgencyPanel: React.FC = () => {
       { v: 'contas', label: 'Contas de anúncio', icon: Megaphone },
       { v: 'tiers', label: 'Tiers & Taxas', icon: Layers },
       { v: 'creditos', label: 'Financeiro · Créditos', icon: Wallet },
+      { v: 'suporte', label: 'Suporte', icon: LifeBuoy },
     ] },
     { id: 'sistema', label: 'Sistema', items: [
       { v: 'marca', label: 'Marca & Dados', icon: Palette },
@@ -363,28 +402,13 @@ const AgencyPanel: React.FC = () => {
             </CardContent></Card>
           </TabsContent>
 
-          <TabsContent value="clientes" className="space-y-4">
-            <Card><CardHeader><CardTitle className="text-base">Novo cliente</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-4 gap-2">
-              <Input placeholder="Nome" value={newSub.name} onChange={e => setNewSub({ ...newSub, name: e.target.value })} />
-              <Input placeholder="E-mail" value={newSub.email} onChange={e => setNewSub({ ...newSub, email: e.target.value })} />
-              <Input placeholder="WhatsApp" value={newSub.phone} onChange={e => setNewSub({ ...newSub, phone: e.target.value })} />
-              <Button onClick={addSub} className="gap-2"><Plus size={14} />Adicionar</Button>
-            </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-base">Clientes ({subs.length})</CardTitle></CardHeader><CardContent className="overflow-x-auto">
-              <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">Cliente</th><th>Contas</th><th>Gasto semana</th><th>Taxa</th><th>Crédito</th><th>Sua margem</th><th></th></tr></thead>
-                <tbody>{subs.map(s => {
-                  const row = summary?.sub_clients?.find((r: any) => r.sub_client_id === s.id);
-                  const accs = accountsOf(s.id); const cb = creditBalance(s.id);
-                  return <tr key={s.id} className="border-t border-border/50">
-                    <td className="py-2"><p className="font-medium">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.email}</p></td>
-                    <td>{accs.filter(a => a.account_status === 1).length}/{accs.length}</td>
-                    <td>{usd(row?.spend)}</td><td>{row?.client_pct ?? '—'}%</td>
-                    <td className={cb.paid - cb.weekUse < 0 ? 'text-destructive' : ''}>{usd(cb.paid - cb.weekUse)}</td>
-                    <td className="text-primary">{usd(row?.agency_margin)}</td>
-                    <td className="text-right whitespace-nowrap"><Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setViewSub(s.id)}><Eye size={13} />Acessar painel</Button><Button size="icon" variant="ghost" onClick={() => delSub(s.id)}><Trash2 size={14} /></Button></td>
-                  </tr>;
-                })}{!subs.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">Nenhum cliente cadastrado.</td></tr>}</tbody></table>
-            </CardContent></Card>
+          <TabsContent value="clientes">
+            <AgencyClientsSection subs={subs} summary={summary} credits={credits} accountsOf={accountsOf} creditBalance={creditBalance}
+              onView={id => setViewSub(id)} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor} />
+          </TabsContent>
+
+          <TabsContent value="suporte">
+            <AgencySupport agencyId={agency.id} subs={subs} />
           </TabsContent>
 
           <TabsContent value="contas" className="space-y-4">
@@ -395,13 +419,38 @@ const AgencyPanel: React.FC = () => {
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Banidas / com problema</p><p className="text-2xl font-bold text-destructive">{accounts.filter(a => a.account_status !== 1).length}</p></CardContent></Card>
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Saldo somado</p><p className="text-2xl font-bold">{usd(accounts.reduce((t, a) => t + Number(a.balance || 0), 0))}</p></CardContent></Card>
             </div>
-            <AgencyAccountsTable accounts={accounts}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9 h-11" placeholder="Pesquisar conta de anúncio pelo nome ou ID..." value={accQ} onChange={e => setAccQ(e.target.value)} />
+              </div>
+              <Select value={accOwner} onValueChange={setAccOwner}>
+                <SelectTrigger className="w-56 h-11"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todos os clientes</SelectItem><SelectItem value="none">Sem cliente atribuído</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">{filteredAccounts.length} de {accounts.length}</span>
+            </div>
+            <Card><CardHeader><CardTitle className="text-base">Atribuições</CardTitle></CardHeader><CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">Escolha o cliente e marque as contas que ele vai usar. Ele passa a ver só essas contas no painel dele.</p>
+              <div className="flex flex-wrap gap-2">
+                <Select value={bulkSub} onValueChange={setBulkSub}>
+                  <SelectTrigger className="w-56"><SelectValue placeholder="Cliente" /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">Remover atribuição</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+                <Button disabled={!bulkSub || !bulkSel.length} onClick={bulkAssign}>Atribuir {bulkSel.length || ''} conta(s)</Button>
+                {!!bulkSel.length && <Button variant="ghost" onClick={() => setBulkSel([])}>Limpar seleção</Button>}
+              </div>
+            </CardContent></Card>
+            <AgencyAccountsTable accounts={filteredAccounts}
               ownerOf={id => subs.find(s => s.id === linkOf(id))?.name ?? null}
-              renderAction={a => isDemo ? null : (
-                <Select value={linkOf(a.id)} onValueChange={v => assign(a.id, v)}>
-                  <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">Sem cliente</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                </Select>)} />
+              renderAction={a => (
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={bulkSel.includes(a.id)} onCheckedChange={v => setBulkSel(p => v ? [...p, a.id] : p.filter(x => x !== a.id))} aria-label="Selecionar conta" />
+                  <Select value={linkOf(a.id)} onValueChange={v => assign(a.id, v)}>
+                    <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Sem cliente</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>)} />
           </TabsContent>
 
           <TabsContent value="tiers" className="space-y-4">
