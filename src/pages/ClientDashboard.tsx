@@ -4,7 +4,7 @@ import { getTermsHref } from '@/lib/terms';
 import MyTermsAcceptance from '@/components/clients/MyTermsAcceptance';
 import TermsUpdateNotice from '@/components/clients/TermsUpdateNotice';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Gift, LogOut, CreditCard, AlertTriangle, Shield, DollarSign, CalendarIcon, TrendingUp, Smartphone, Globe, Bitcoin, ShieldCheck, Sparkles, Ban, LayoutDashboard, FileText, Receipt, ImageIcon, Users as UsersIcon, LifeBuoy, Plus, CheckCircle2, Clock, Layers, ShieldAlert, Send, X, RefreshCw, Info, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
@@ -779,6 +779,12 @@ const ClientDashboard: React.FC = () => {
         <p className="text-muted-foreground">{t('clientDash.messages.clientNotFound')}</p>
       </div>
     );
+  }
+
+  // Agencies land on their Agency Panel once per session; "Painel" button still opens this dashboard.
+  if ((client as any)?.is_agency && !isAdminView && !sessionStorage.getItem('adscale_agency_landed')) {
+    sessionStorage.setItem('adscale_agency_landed', '1');
+    return <Navigate to="/agencia" replace />;
   }
 
   const approvalStatus = String((client as any)?.approval_status || 'approved');
