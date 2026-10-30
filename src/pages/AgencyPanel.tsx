@@ -17,6 +17,31 @@ import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } 
 import { isBelowFloor } from '@/lib/agency-tiers';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const DEMO_AGENCY_EMAIL = 'demo.agencia@adscalehub.com';
+// Simulated week for the demo account (presentation only). AD SCALE share 2.5% (Tier 2).
+function buildDemoSummary(subs: any[]) {
+  const presets = [
+    { spend: 22400, pct: 5, tier: 'Padrão' },
+    { spend: 16100, pct: 4.5, tier: 'VIP' },
+    { spend: 6800, pct: 5, tier: 'Padrão' },
+  ];
+  const adPct = 2.5;
+  const rows = subs.map((s, i) => {
+    const p = presets[i % presets.length];
+    const client_fee = (p.spend * p.pct) / 100;
+    const adscale_fee = (p.spend * adPct) / 100;
+    return { sub_client_id: s.id, name: s.name, spend: p.spend, tier_name: p.tier, client_pct: p.pct, client_fee, adscale_fee, agency_margin: client_fee - adscale_fee };
+  });
+  const total = rows.reduce((a, r) => a + r.spend, 0) || 38500;
+  return {
+    total_spend: total,
+    adscale_due: (total * adPct) / 100,
+    platform_tier: { name: 'Tier 2 · Escala', adscale_pct: adPct, min: 25000 },
+    next_tier: { name: 'Tier 3 · Elite', adscale_pct: 2, min: 75000, remaining: Math.max(0, 75000 - total) },
+    sub_clients: rows,
+  };
+}
 const weekStartOf = (d: Date) => format(startOfWeek(d, { weekStartsOn: 5 }), 'yyyy-MM-dd');
 
 const BYOD_SQL = `-- Execute no SQL editor do seu próprio projeto
