@@ -69,6 +69,19 @@ Deno.serve(async (req) => {
 
     orderRow = order;
 
+    if (!requesterId) {
+      await logAttempt(false, "unauthenticated", null);
+      return json({ error: "Faça login para baixar" }, 401);
+    }
+    if (order) {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", requesterId);
+      const isStaff = (roles ?? []).some((r: any) => r.role === "admin" || r.role === "support");
+      if (order.user_id !== requesterId && !isStaff) {
+        await logAttempt(false, "forbidden", null);
+        return json({ error: "Compra não encontrada" }, 404);
+      }
+    }
+
     if (error || !order) {
       await logAttempt(false, "Compra não encontrada", null);
       return json({ error: "Compra não encontrada" }, 404);
