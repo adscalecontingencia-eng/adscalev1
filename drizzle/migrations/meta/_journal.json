@@ -50,6 +50,13 @@
       "when": 1793369001763,
       "tag": "0006_agency_support_bm_and_slug",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793369780293,
+      "tag": "0007_agency_support_forward_and_client_view",
+      "breakpoints": true
     }
   ]
 }
