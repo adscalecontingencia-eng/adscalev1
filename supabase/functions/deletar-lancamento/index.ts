@@ -74,18 +74,27 @@ Deno.serve(async (req) => {
     }
 
     const isTransactions = tipo_tabela === "transactions";
+    // Neutralize PostgREST filter syntax: search text must stay plain data.
+    const safeBusca = descricao_busca
+      ? String(descricao_busca).slice(0, 200).replace(/[,()\\:"*%]/g, " ").replace(/\s+/g, " ").trim()
+      : "";
+    if (descricao_busca && !safeBusca) {
+      return new Response(JSON.stringify({ erro: "Critério de busca inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     let query = supabaseAdmin.from(tipo_tabela).select("*");
 
     if (isTransactions) {
-      if (descricao_busca) {
-        query = query.or(`description.ilike.%${descricao_busca}%,category.ilike.%${descricao_busca}%`);
+      if (safeBusca) {
+        query = query.or(`description.ilike."%${safeBusca}%",category.ilike."%${safeBusca}%"`);
       }
     } else {
       if (cliente_id && (valor !== undefined && valor !== null)) {
         // use only cliente_id + valor (applied below)
-      } else if (descricao_busca) {
-        query = query.or(`note.ilike.%${descricao_busca}%,type.ilike.%${descricao_busca}%`);
+      } else if (safeBusca) {
+        query = query.or(`note.ilike."%${safeBusca}%",type.ilike."%${safeBusca}%"`);
       }
     }
     if (cliente_id) {

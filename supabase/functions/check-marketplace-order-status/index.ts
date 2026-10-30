@@ -20,17 +20,27 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return json({ error: "Não autenticado" }, 401);
+    const { data: authData } = await supabase.auth.getUser(token);
+    const requesterId = authData?.user?.id;
+    if (!requesterId) return json({ error: "Não autenticado" }, 401);
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", requesterId);
+    const isStaff = (roles ?? []).some((r: any) => r.role === "admin" || r.role === "support");
+
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN_TEST");
 
     const query = supabase
       .from("marketplace_orders")
-      .select("id, status, download_released, mercado_pago_order_id, amount, paid_at, external_reference");
+      .select("id, user_id, status, download_released, mercado_pago_order_id, amount, paid_at, external_reference");
 
     const { data: order, error } = order_id
       ? await query.eq("id", order_id).maybeSingle()
       : await query.eq("external_reference", external_reference).maybeSingle();
 
     if (error || !order) return json({ error: "Compra não encontrada" }, 404);
+    if (order.user_id !== requesterId && !isStaff) return json({ error: "Compra não encontrada" }, 404);
 
     // If still pending and we have access token, query Mercado Pago to refresh
     if (order.status !== "approved" && accessToken && order.mercado_pago_order_id) {
