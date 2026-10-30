@@ -758,7 +758,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
 
   // Pop-up automático quando há saldo atrasado (apenas 1x por sessão)
   useEffect(() => {
-    if (loading || isAdminView) return;
+    if (loading || isAdminView || demoClientRef.current) return;
     if (billingSplit.overdue > 0 && !overdueDialogShownRef.current) {
       overdueDialogShownRef.current = true;
       setOverdueDialogOpen(true);
@@ -798,7 +798,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const loyaltyDialogShownRef = useRef(false);
   useEffect(() => {
-    if (loading || isAdminView || !client) return;
+    if (loading || isAdminView || !client || demoClientRef.current) return;
     if (client.client_type !== 'aluguel') return;
     if (loyaltyDialogShownRef.current) return;
     const storageKey = `loyalty-popup:${client.id}:${loyalty.current.id}:${loyalty.nearNext ? 'near' : 'idle'}`;
