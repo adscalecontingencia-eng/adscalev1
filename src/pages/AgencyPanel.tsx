@@ -80,6 +80,9 @@ const AgencyPanel: React.FC = () => {
   const [tierScope, setTierScope] = useState<string>('default');
   const [newTier, setNewTier] = useState({ name: '', min: '0', pct: '5', subsidy: false });
   const [newCredit, setNewCredit] = useState({ sub: '', amount: '', note: '' });
+  const [section, setSection] = useState('resumo');
+  const [navOpen, setNavOpen] = useState(true);
+  const [viewSub, setViewSub] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;

@@ -34,7 +34,7 @@ export const AgencyAccountsTable: React.FC<Props> = ({ accounts, ownerOf, render
               {renderAction?.(a)}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-              <Stat label="Gasto na semana" value={usd(a.week_spend)} />
+              <Stat label="Gasto na semana" value={a.week_spend == null ? '—' : usd(a.week_spend)} />
               <Stat label="Gasto total" value={usd(a.amount_spent)} />
               <Stat label="Saldo" value={usd(a.balance)} />
               <Stat label="Limite de gasto" value={Number(a.spend_cap) > 0 ? usd(a.spend_cap) : 'Sem limite'} />
