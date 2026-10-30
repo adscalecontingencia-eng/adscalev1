@@ -29,7 +29,7 @@ export const SubClientView: React.FC<Props> = ({ brand, logoUrl, sub, row, accou
         <Button size="sm" variant="secondary" className="ml-auto h-7 gap-1" onClick={onBack}><ArrowLeft size={12} />Voltar ao painel da agência</Button>
       </div>
       <header className="h-14 border-b border-border/60 flex items-center px-6 gap-3">
-        <span translate="no" className="notranslate font-display font-semibold">{brand}</span>
+        {logoUrl ? <img src={logoUrl} alt={brand} className="h-8 max-w-[160px] object-contain" /> : <span translate="no" className="notranslate font-display font-semibold text-primary">{brand}</span>}
         <span className="text-xs text-muted-foreground">Painel do cliente</span>
         <span className="ml-auto text-sm">{sub.name}</span>
       </header>
