@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Users, DollarSign, AlertTriangle, AlertCircle, CheckCircle2, Megaphone, Search, Plus, Eye, Trash2, Wallet, Building2 } from 'lucide-react';
+import { Users, DollarSign, AlertTriangle, AlertCircle, CheckCircle2, Megaphone, Search, Plus, Eye, Trash2, Wallet, Building2, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AgencyClientGoalsDialog } from './AgencyClientGoalsDialog';
 
 const usd = (n: any) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -17,6 +18,10 @@ interface Props {
   onDelete: (id: string) => void;
   onCreate: (v: { name: string; email: string; phone: string; credit: number }) => Promise<void>;
   onAddCredit: (subId: string, amount: number, note: string) => Promise<void>;
+  agencyId?: string;
+  tiers?: any[];
+  platformPcts?: number[];
+  onTiersChanged?: () => void;
 }
 
 const Kpi = ({ icon: I, label, value, hint, tone = '' }: any) => (
@@ -28,7 +33,8 @@ const Kpi = ({ icon: I, label, value, hint, tone = '' }: any) => (
 );
 
 /** Clients page for the agency, modeled on the AD SCALE "Carteira de clientes". */
-export const AgencyClientsSection: React.FC<Props> = ({ subs, summary, credits, accountsOf, creditBalance, onView, onDelete, onCreate, onAddCredit }) => {
+export const AgencyClientsSection: React.FC<Props> = ({ subs, summary, credits, accountsOf, creditBalance, onView, onDelete, onCreate, onAddCredit, agencyId, tiers = [], platformPcts = [], onTiersChanged }) => {
+  const [goalsFor, setGoalsFor] = useState<any>(null);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('todos');
   const [order, setOrder] = useState('saldo');
@@ -126,6 +132,7 @@ export const AgencyClientsSection: React.FC<Props> = ({ subs, summary, credits, 
               </div>
               <div className="flex items-center gap-1">
                 <Button size="sm" variant="outline" className="gap-1 h-8 border-primary/40 text-primary" onClick={() => onView(s.id)}><Eye size={13} />Ver como cliente</Button>
+                {agencyId && <Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setGoalsFor(s)}><Target size={13} />Metas semanais{tiers.some(t => t.sub_client_id === s.id) ? ' ★' : ''}</Button>}
                 <Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setCreditFor(s)}><Wallet size={13} />Adicionar crédito</Button>
                 <Button size="icon" variant="ghost" onClick={() => onDelete(s.id)}><Trash2 size={14} /></Button>
               </div>
@@ -154,6 +161,8 @@ export const AgencyClientsSection: React.FC<Props> = ({ subs, summary, credits, 
         ))}
         {!filtered.length && <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">Nenhum cliente encontrado.</div>}
       </div>
+
+      {agencyId && <AgencyClientGoalsDialog sub={goalsFor} agencyId={agencyId} tiers={tiers} platformPcts={platformPcts} onClose={() => setGoalsFor(null)} onSaved={() => onTiersChanged?.()} />}
 
       <Dialog open={openNew} onOpenChange={setOpenNew}>
         <DialogContent>

@@ -418,7 +418,8 @@ const AgencyPanel: React.FC = () => {
 
           <TabsContent value="clientes">
             <AgencyClientsSection subs={subs} summary={summary} credits={credits} accountsOf={accountsOf} creditBalance={creditBalance}
-              onView={id => { const cid = subs.find(s => s.id === id)?.client_id; if (cid) navigate(`/agencia/cliente/${cid}`); else setViewSub(id); }} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor} />
+              onView={id => { const cid = subs.find(s => s.id === id)?.client_id; if (cid) navigate(`/agencia/cliente/${cid}`); else setViewSub(id); }} onDelete={delSub} onCreate={createSub} onAddCredit={addCreditFor}
+              agencyId={agency.id} tiers={tiers} platformPcts={platformPcts} onTiersChanged={load} />
           </TabsContent>
 
           <TabsContent value="suporte">
