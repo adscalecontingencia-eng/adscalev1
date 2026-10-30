@@ -146,8 +146,7 @@ const AgencyPanel: React.FC = () => {
       setAccounts(DEMO_ACCOUNTS);
       setLinks(DEMO_ACCOUNTS.map(a => ({ ad_account_id: a.id, sub_client_id: DEMO_LINKS[a.id] == null ? null : subList[DEMO_LINKS[a.id]!]?.id })).filter(x => x.sub_client_id));
       setCredits(subList.flatMap((s: any, i: number) => [
-        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 18000 : 25000, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Pix' },
-        { id: `dc-${i}-2`, sub_client_id: s.id, amount: i === 0 ? 2000 : 1500, status: 'confirmado', date: format(addDays(new Date(), -2), 'yyyy-MM-dd'), note: 'Recarga' },
+        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 500 : 1500, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Caução de entrada' },
       ]));
     } else {
       setSummary(s.data);
