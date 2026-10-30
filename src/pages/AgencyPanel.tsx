@@ -549,7 +549,7 @@ const AgencyPanel: React.FC = () => {
               <div><Label>Ícone da aba (favicon) — URL da imagem</Label><Input placeholder="https://suaagencia.com/icone.png" value={settings.favicon_url || ''} onChange={e => setSettings({ ...settings, favicon_url: e.target.value.trim() || null })} /><p className="text-[11px] text-muted-foreground mt-1">{FAVICON_HINT} Use só o símbolo da marca, sem texto: ele aparece bem pequeno.</p></div>
               <div><Label>Título da aba do navegador</Label><Input maxLength={60} placeholder={`${brand} · Painel`} value={settings.site_title || ''} onChange={e => setSettings({ ...settings, site_title: e.target.value.slice(0, 60) || null })} /><p className="text-[11px] text-muted-foreground mt-1">Texto ao lado do ícone. Até 60 caracteres; o ideal é até 30 para aparecer inteiro.</p></div>
               <div className="sm:col-span-2">
-                <Label>Prévia da aba</Label>
+                <Label className="block">Prévia da aba</Label>
                 <div className="mt-1 inline-flex items-center gap-2 rounded-t-lg border border-b-0 border-border bg-secondary/60 px-3 py-2 min-w-[240px] max-w-[320px]">
                   {settings.favicon_url ? <img src={settings.favicon_url} alt="" className="w-4 h-4 object-contain" onError={e => ((e.currentTarget.style.visibility = 'hidden'))} /> : <span className="w-4 h-4 rounded-sm bg-primary/40" />}
                   <span className="text-xs text-foreground truncate">{settings.site_title || `${brand} · Painel`}</span>
