@@ -28,6 +28,7 @@ import { AgencySupport } from '@/components/agency/AgencySupport';
 import { AgencyPeriodOverview } from '@/components/agency/AgencyPeriodOverview';
 import { AgencyUsers } from '@/components/agency/AgencyUsers';
 import { BrandImageField } from '@/components/agency/BrandImageField';
+import { AgencyDomainSetup } from '@/components/agency/AgencyDomainSetup';
 import { visibleSections, normalizeWhatsapp } from '@/lib/agency-permissions';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -561,19 +562,16 @@ const AgencyPanel: React.FC = () => {
                 </div>
               </div>
               <div><Label>Cor principal</Label><Input type="color" value={settings.primary_color || '#22c55e'} onChange={e => setSettings({ ...settings, primary_color: e.target.value })} /></div>
-              <div><Label>Domínio personalizado</Label><Input placeholder="painel.suaagencia.com" value={settings.custom_domain || ''} onChange={e => setSettings({ ...settings, custom_domain: e.target.value.trim().toLowerCase() || null })} /></div>
               <div><Label>WhatsApp de suporte e cobrança</Label><Input placeholder="55 11 91234-5678" value={settings.support_whatsapp || ''} onChange={e => setSettings({ ...settings, support_whatsapp: e.target.value })} /><p className="text-[11px] text-muted-foreground mt-1">Seus clientes falam com este número pelo chat de suporte e nos avisos de pagamento. Use DDI + DDD.</p></div>
               <div><Label>Identificador da agência (slug)</Label><Input placeholder="minha-agencia" value={settings.slug || ''} onChange={e => setSettings({ ...settings, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40) || null })} /></div>
               <div className="sm:col-span-2 rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs space-y-1">
                 <p className="font-medium">Links de acesso dos seus clientes</p>
-                {settings.custom_domain && <>
-                  <p>Login: <span className="font-mono text-primary">https://{settings.custom_domain}/login</span></p>
-                  <p>Cadastro: <span className="font-mono text-primary">https://{settings.custom_domain}/cadastro</span></p>
-                </>}
-                {settings.slug && <p>Cadastro sem domínio: <span className="font-mono text-primary">{window.location.origin}/cadastro?agencia={settings.slug}</span></p>}
-                {!settings.custom_domain && !settings.slug && <p className="text-muted-foreground">Defina um domínio ou slug e clique em Salvar.</p>}
+                {settings.custom_domain && settings.domain_status === 'ativo' && <p>Login: <span className="font-mono text-primary">https://{settings.custom_domain}/login</span> · Cadastro: <span className="font-mono text-primary">https://{settings.custom_domain}/cadastro</span></p>}
+                {settings.slug && <><p>Login sem domínio: <span className="font-mono text-primary">{window.location.origin}/login?agencia={settings.slug}</span></p><p>Cadastro sem domínio: <span className="font-mono text-primary">{window.location.origin}/cadastro?agencia={settings.slug}</span></p></>}
+                {!settings.slug && <p className="text-muted-foreground">Defina o identificador e clique em Salvar.</p>}
               </div>
             </CardContent></Card>
+            {!isDemo ? <AgencyDomainSetup settings={settings} setSettings={setSettings} agencyId={agency.id} onSaved={load} /> : <AgencyDomainSetup settings={{ ...settings, custom_domain: settings.custom_domain || 'painel.agenciademo.com.br', domain_status: settings.domain_status || 'dns_pendente', domain_txt_value: settings.domain_txt_value || 'lovable_verify=exemplo123' }} setSettings={setSettings} agencyId={agency.id} onSaved={load} />}
             <Card><CardHeader><CardTitle className="text-base">Banco de dados & privacidade</CardTitle></CardHeader><CardContent className="space-y-3">
               <Select value={settings.data_mode || 'adscale'} onValueChange={v => setSettings({ ...settings, data_mode: v })}>
                 <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
