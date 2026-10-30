@@ -173,13 +173,40 @@ const AgencyPanel: React.FC = () => {
   };
   const delSub = async (id: string) => { if (!confirm('Excluir este cliente?')) return; await supabase.from('agency_sub_clients').delete().eq('id', id); load(); };
 
-  const assign = async (accountId: string, subId: string) => {
+  const assignOne = async (accountId: string, subId: string) => {
+    if (isDemo) {
+      setLinks(p => [...p.filter(l => l.ad_account_id !== accountId), ...(subId !== 'none' ? [{ ad_account_id: accountId, sub_client_id: subId }] : [])]);
+      return true;
+    }
     await supabase.from('agency_sub_client_accounts').delete().eq('ad_account_id', accountId).eq('agency_client_id', agency.id);
     if (subId !== 'none') {
       const { error } = await supabase.from('agency_sub_client_accounts').insert({ agency_client_id: agency.id, sub_client_id: subId, ad_account_id: accountId });
-      if (error) return toast.error('Não foi possível atribuir.');
+      if (error) { toast.error('Não foi possível atribuir.'); return false; }
     }
-    toast.success('Atribuição salva.'); load();
+    return true;
+  };
+  const assign = async (accountId: string, subId: string) => {
+    if (await assignOne(accountId, subId)) { toast.success('Atribuição salva.'); if (!isDemo) load(); }
+  };
+  const bulkAssign = async () => {
+    for (const id of bulkSel) await assignOne(id, bulkSub);
+    toast.success(`${bulkSel.length} conta(s) atualizadas.`); setBulkSel([]); if (!isDemo) load();
+  };
+  const addCreditFor = async (subId: string, amount: number, note: string) => {
+    if (isDemo) {
+      setCredits(p => [{ id: `dc-${Date.now()}`, sub_client_id: subId, amount, status: 'confirmado', date: format(new Date(), 'yyyy-MM-dd'), note }, ...p]);
+      toast.success('Crédito adicionado (demonstração).'); return;
+    }
+    const { error } = await supabase.from('agency_sub_client_credits').insert({ agency_client_id: agency.id, sub_client_id: subId, amount, note: note || null });
+    if (error) return void toast.error('Não foi possível adicionar o crédito.');
+    toast.success('Crédito adicionado.'); load();
+  };
+  const createSub = async (v: { name: string; email: string; phone: string; credit: number }) => {
+    const { data, error } = await supabase.from('agency_sub_clients').insert({ agency_client_id: agency.id, name: v.name, email: v.email || null, phone: v.phone || null }).select('id').single();
+    if (error) return void toast.error('Não foi possível cadastrar o cliente.');
+    if (v.credit > 0 && !isDemo) await supabase.from('agency_sub_client_credits').insert({ agency_client_id: agency.id, sub_client_id: data.id, amount: v.credit, note: 'Crédito inicial' });
+    toast.success('Cliente cadastrado.'); await load();
+    if (v.credit > 0 && isDemo) addCreditFor(data.id, v.credit, 'Crédito inicial');
   };
 
   const platformPcts = platform.map(p => Number(p.adscale_pct));
