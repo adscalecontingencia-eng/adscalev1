@@ -12,28 +12,29 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, Plus, Trash2, LogOut } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, PanelLeft } from 'lucide-react';
 import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } from '@/lib/agency-terms';
 import { isBelowFloor } from '@/lib/agency-tiers';
+import { ACCOUNT_FIELDS, DEMO_ACCOUNTS, DEMO_AGENCY_EMAIL, DEMO_LINKS } from '@/components/agency/agency-accounts';
+import { AgencyAccountsTable } from '@/components/agency/AgencyAccountsTable';
+import { SubClientView } from '@/components/agency/SubClientView';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const DEMO_AGENCY_EMAIL = 'demo.agencia@adscalehub.com';
 // Simulated week for the demo account (presentation only). AD SCALE share 2.5% (Tier 2).
+// Spend per sub-client is the sum of its demo accounts' weekly spend.
 function buildDemoSummary(subs: any[]) {
-  const presets = [
-    { spend: 22400, pct: 5, tier: 'Padrão' },
-    { spend: 16100, pct: 4.5, tier: 'VIP' },
-    { spend: 6800, pct: 5, tier: 'Padrão' },
-  ];
+  const pcts = [4.5, 5];
+  const tierNames = ['VIP', 'Padrão'];
   const adPct = 2.5;
   const rows = subs.map((s, i) => {
-    const p = presets[i % presets.length];
-    const client_fee = (p.spend * p.pct) / 100;
-    const adscale_fee = (p.spend * adPct) / 100;
-    return { sub_client_id: s.id, name: s.name, spend: p.spend, tier_name: p.tier, client_pct: p.pct, client_fee, adscale_fee, agency_margin: client_fee - adscale_fee };
+    const spend = DEMO_ACCOUNTS.filter(a => DEMO_LINKS[a.id] === i).reduce((t, a) => t + (a.week_spend || 0), 0);
+    const pct = pcts[i % 2];
+    const client_fee = (spend * pct) / 100;
+    const adscale_fee = (spend * adPct) / 100;
+    return { sub_client_id: s.id, name: s.name, spend, tier_name: tierNames[i % 2], client_pct: pct, client_fee, adscale_fee, agency_margin: client_fee - adscale_fee };
   });
-  const total = rows.reduce((a, r) => a + r.spend, 0) || 38500;
+  const total = DEMO_ACCOUNTS.reduce((t, a) => t + (a.week_spend || 0), 0);
   return {
     total_spend: total,
     adscale_due: (total * adPct) / 100,
@@ -79,6 +80,9 @@ const AgencyPanel: React.FC = () => {
   const [tierScope, setTierScope] = useState<string>('default');
   const [newTier, setNewTier] = useState({ name: '', min: '0', pct: '5', subsidy: false });
   const [newCredit, setNewCredit] = useState({ sub: '', amount: '', note: '' });
+  const [section, setSection] = useState('resumo');
+  const [navOpen, setNavOpen] = useState(true);
+  const [viewSub, setViewSub] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -101,7 +105,7 @@ const AgencyPanel: React.FC = () => {
     const [s, sc, as, l, t, p, c, st] = await Promise.all([
       supabase.rpc('get_agency_week_summary', { _agency: id, _week_start: week }),
       supabase.from('agency_sub_clients').select('*').eq('agency_client_id', id).order('name'),
-      supabase.from('meta_ad_account_assignments').select('ad_account_id, ad_account:meta_ad_accounts(id, name, meta_account_id)').eq('client_id', id).eq('active', true),
+      supabase.from('meta_ad_account_assignments').select(`ad_account_id, ad_account:meta_ad_accounts(${ACCOUNT_FIELDS})`).eq('client_id', id).eq('active', true),
       supabase.from('agency_sub_client_accounts').select('*').eq('agency_client_id', id),
       supabase.from('agency_tiers').select('*').eq('agency_client_id', id).order('min_weekly_spend'),
       supabase.from('agency_platform_tiers').select('*').order('min_weekly_spend'),
@@ -109,8 +113,21 @@ const AgencyPanel: React.FC = () => {
       supabase.from('agency_settings').select('*').eq('agency_client_id', id).maybeSingle(),
     ]);
     const subList = sc.data || [];
-    setSummary(isDemo ? buildDemoSummary(subList) : s.data); setSubs(subList); setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
-    setLinks(l.data || []); setTiers(t.data || []); setPlatform(p.data || []); setCredits(c.data || []);
+    setSubs(subList);
+    if (isDemo) {
+      setSummary(buildDemoSummary(subList));
+      setAccounts(DEMO_ACCOUNTS);
+      setLinks(DEMO_ACCOUNTS.map(a => ({ ad_account_id: a.id, sub_client_id: DEMO_LINKS[a.id] == null ? null : subList[DEMO_LINKS[a.id]!]?.id })).filter(x => x.sub_client_id));
+      setCredits(subList.flatMap((s: any, i: number) => [
+        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 18000 : 25000, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Pix' },
+        { id: `dc-${i}-2`, sub_client_id: s.id, amount: i === 0 ? 2000 : 1500, status: 'confirmado', date: format(addDays(new Date(), -2), 'yyyy-MM-dd'), note: 'Recarga' },
+      ]));
+    } else {
+      setSummary(s.data);
+      setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
+      setLinks(l.data || []); setCredits(c.data || []);
+    }
+    setTiers(t.data || []); setPlatform(p.data || []);
     setSettings(st.data || { agency_client_id: id, data_mode: 'adscale', primary_color: '#22c55e' });
   }, [agency?.id, week, isDemo]);
 
@@ -216,29 +233,59 @@ const AgencyPanel: React.FC = () => {
   const pt = summary?.platform_tier; const nt = summary?.next_tier;
   const progress = nt ? Math.min(100, ((summary.total_spend - (pt?.min || 0)) / (nt.min - (pt?.min || 0))) * 100) : 100;
   const linkOf = (accId: string) => links.find(l => l.ad_account_id === accId)?.sub_client_id ?? 'none';
+  const accountsOf = (subId: string) => accounts.filter(a => linkOf(a.id) === subId);
   const creditBalance = (subId: string) => {
     const paid = credits.filter(c => c.sub_client_id === subId && c.status === 'confirmado').reduce((a, c) => a + Number(c.amount), 0);
     const row = summary?.sub_clients?.find((r: any) => r.sub_client_id === subId);
     return { paid, weekUse: row ? Number(row.spend) + Number(row.client_fee) : 0 };
   };
+  const brand = settings.brand_name || agency.name;
+
+  if (viewSub) {
+    const sub = subs.find(s => s.id === viewSub);
+    if (sub) return <SubClientView brand={brand} sub={sub}
+      row={summary?.sub_clients?.find((r: any) => r.sub_client_id === sub.id)}
+      accounts={accountsOf(sub.id)} credits={credits.filter(c => c.sub_client_id === sub.id)}
+      onBack={() => setViewSub(null)} />;
+  }
+
+  const NAV = [
+    { v: 'resumo', label: 'Visão geral', icon: LayoutDashboard },
+    { v: 'clientes', label: 'Clientes', icon: Users },
+    { v: 'contas', label: 'Contas de anúncio', icon: Megaphone },
+    { v: 'tiers', label: 'Tiers & Taxas', icon: Layers },
+    { v: 'creditos', label: 'Créditos', icon: Wallet },
+    { v: 'marca', label: 'Marca & Dados', icon: Palette },
+    { v: 'juridico', label: 'Jurídico', icon: Scale },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center px-4 gap-3">
-        <Button size="sm" variant="ghost" onClick={() => navigate('/client-dashboard')} className="gap-2"><ArrowLeft size={14} />Painel</Button>
-        <h1 className="font-display text-sm font-semibold"><span translate="no" className="notranslate">{settings.brand_name || agency.name}</span> · Painel da Agência</h1>
-        <Button size="sm" variant="ghost" className="ml-auto gap-2" onClick={async () => { await logout(); navigate('/login'); }}><LogOut size={14} />Sair</Button>
+    <div className="min-h-screen bg-background flex w-full">
+      <aside className={`sticky top-0 h-screen shrink-0 border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col transition-all ${navOpen ? 'w-60' : 'w-16'}`}>
+        <div className="h-14 flex items-center gap-2 px-3 border-b border-border/60">
+          <Button size="icon" variant="ghost" onClick={() => setNavOpen(o => !o)} aria-label="Recolher menu"><PanelLeft size={16} /></Button>
+          {navOpen && <span translate="no" className="notranslate font-display text-sm font-semibold truncate">{brand}</span>}
+        </div>
+        <nav className="flex-1 p-2 space-y-1">
+          {NAV.map(n => (
+            <button key={n.v} onClick={() => setSection(n.v)} title={n.label}
+              className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${section === n.v ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'}`}>
+              <n.icon size={16} className="shrink-0" />{navOpen && <span className="truncate">{n.label}</span>}
+            </button>
+          ))}
+        </nav>
+        <div className="p-2 border-t border-border/60 space-y-1">
+          <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"><ArrowLeft size={16} />{navOpen && 'Meu painel AD SCALE'}</button>
+          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-destructive"><LogOut size={16} />{navOpen && 'Sair'}</button>
+        </div>
+      </aside>
+      <div className="flex-1 min-w-0">
+      <header className="sticky top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center px-6 gap-3">
+        <h1 className="font-display text-sm font-semibold">{NAV.find(n => n.v === section)?.label}</h1>
+        <span className="ml-auto text-xs text-muted-foreground">Painel da Agência</span>
       </header>
       <div className="p-4 lg:p-6 max-w-6xl mx-auto">
-        <Tabs defaultValue="resumo" className="space-y-5">
-          <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="resumo">Resumo & Repasse</TabsTrigger>
-            <TabsTrigger value="clientes">Clientes & Contas</TabsTrigger>
-            <TabsTrigger value="tiers">Tiers & Taxas</TabsTrigger>
-            <TabsTrigger value="creditos">Créditos</TabsTrigger>
-            <TabsTrigger value="marca">Marca & Dados</TabsTrigger>
-            <TabsTrigger value="juridico">Jurídico</TabsTrigger>
-          </TabsList>
+        <Tabs value={section} onValueChange={setSection} className="space-y-5">
 
           <TabsContent value="resumo" className="space-y-4">
             <div className="flex items-center gap-2 text-sm">
@@ -269,19 +316,38 @@ const AgencyPanel: React.FC = () => {
               <Input placeholder="WhatsApp" value={newSub.phone} onChange={e => setNewSub({ ...newSub, phone: e.target.value })} />
               <Button onClick={addSub} className="gap-2"><Plus size={14} />Adicionar</Button>
             </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-base">Clientes ({subs.length})</CardTitle></CardHeader><CardContent className="space-y-2">
-              {subs.map(s => <div key={s.id} className="flex items-center gap-3 border-b border-border/40 pb-2 text-sm"><span className="flex-1">{s.name}</span><span className="text-muted-foreground text-xs">{s.email}</span><Button size="icon" variant="ghost" onClick={() => delSub(s.id)}><Trash2 size={14} /></Button></div>)}
+            <Card><CardHeader><CardTitle className="text-base">Clientes ({subs.length})</CardTitle></CardHeader><CardContent className="overflow-x-auto">
+              <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">Cliente</th><th>Contas</th><th>Gasto semana</th><th>Taxa</th><th>Crédito</th><th>Sua margem</th><th></th></tr></thead>
+                <tbody>{subs.map(s => {
+                  const row = summary?.sub_clients?.find((r: any) => r.sub_client_id === s.id);
+                  const accs = accountsOf(s.id); const cb = creditBalance(s.id);
+                  return <tr key={s.id} className="border-t border-border/50">
+                    <td className="py-2"><p className="font-medium">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.email}</p></td>
+                    <td>{accs.filter(a => a.account_status === 1).length}/{accs.length}</td>
+                    <td>{usd(row?.spend)}</td><td>{row?.client_pct ?? '—'}%</td>
+                    <td className={cb.paid - cb.weekUse < 0 ? 'text-destructive' : ''}>{usd(cb.paid - cb.weekUse)}</td>
+                    <td className="text-primary">{usd(row?.agency_margin)}</td>
+                    <td className="text-right whitespace-nowrap"><Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setViewSub(s.id)}><Eye size={13} />Acessar painel</Button><Button size="icon" variant="ghost" onClick={() => delSub(s.id)}><Trash2 size={14} /></Button></td>
+                  </tr>;
+                })}{!subs.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">Nenhum cliente cadastrado.</td></tr>}</tbody></table>
             </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-base">Contas de anúncio da agência ({accounts.length})</CardTitle></CardHeader><CardContent className="space-y-2">
-              {accounts.map(a => <div key={a.id} className="flex items-center gap-3 text-sm border-b border-border/40 pb-2">
-                <div className="flex-1"><p>{a.name}</p><p className="text-xs text-muted-foreground">{a.meta_account_id}</p></div>
+          </TabsContent>
+
+          <TabsContent value="contas" className="space-y-4">
+            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">Conta de demonstração: contas e valores simulados.</div>}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Contas</p><p className="text-2xl font-bold">{accounts.length}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Ativas</p><p className="text-2xl font-bold text-primary">{accounts.filter(a => a.account_status === 1).length}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Banidas / com problema</p><p className="text-2xl font-bold text-destructive">{accounts.filter(a => a.account_status !== 1).length}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Saldo somado</p><p className="text-2xl font-bold">{usd(accounts.reduce((t, a) => t + Number(a.balance || 0), 0))}</p></CardContent></Card>
+            </div>
+            <AgencyAccountsTable accounts={accounts}
+              ownerOf={id => subs.find(s => s.id === linkOf(id))?.name ?? null}
+              renderAction={a => isDemo ? null : (
                 <Select value={linkOf(a.id)} onValueChange={v => assign(a.id, v)}>
-                  <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="none">Sem cliente</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>)}
-              {!accounts.length && <p className="text-sm text-muted-foreground">Nenhuma conta atribuída à agência ainda.</p>}
-            </CardContent></Card>
+                </Select>)} />
           </TabsContent>
 
           <TabsContent value="tiers" className="space-y-4">
@@ -353,6 +419,7 @@ const AgencyPanel: React.FC = () => {
             </CardContent></Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );
