@@ -52,21 +52,55 @@ export function applyHeadBranding(opts: { title?: string | null; favicon?: strin
   };
 }
 
+const CACHE_PREFIX = 'agencyBrand:';
+export function readBrandCache(key: string | null): AgencyBranding | null {
+  if (!key) return null;
+  try { return JSON.parse(localStorage.getItem(CACHE_PREFIX + key) || 'null'); } catch { return null; }
+}
+function writeBrandCache(key: string, row: AgencyBranding | null) {
+  try { row ? localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(row)) : localStorage.removeItem(CACHE_PREFIX + key); } catch { /* quota */ }
+}
+function applyColorVars(hex?: string | null) {
+  const hsl = hexToHsl(hex || '');
+  if (hsl) { document.documentElement.style.setProperty('--primary', hsl); document.documentElement.style.setProperty('--ring', hsl); }
+}
+/** Show the page (hidden by index.html on agency hosts until the brand is known). */
+export function revealPage() { document.documentElement.classList.remove('agency-pending'); }
+
+/** Agency key detected before React mounted (custom domain or ?agencia=). */
+export function bootKey(): string | null { return (window as any).__AGENCY_KEY__ || null; }
+
+/** Runs once at startup on agency hosts: applies cached brand instantly, then refreshes it from the server. */
+export function bootAgencyBranding() {
+  const key = bootKey();
+  if (!key) return;
+  const cached = readBrandCache(key);
+  if (cached) applyColorVars(cached.primary_color);
+  (supabase.rpc as any)('get_agency_branding', { _key: key }).then(({ data }: any) => {
+    const row = Array.isArray(data) ? data[0] : data;
+    writeBrandCache(key, row || null);
+    if (row) {
+      applyColorVars(row.primary_color);
+      applyHeadBranding({ title: row.site_title || row.brand_name, favicon: row.favicon_url });
+    }
+    revealPage();
+  }, revealPage);
+}
+
 export function useAgencyBranding(search: URLSearchParams, opts: { applyColor?: boolean; titleSuffix?: string } = {}) {
   const applyColor = opts.applyColor !== false;
   const suffix = opts.titleSuffix || 'Cadastro';
-  const key = getAgencyKey(search);
-  const [branding, setBranding] = useState<AgencyBranding | null>(null);
-  const [loading, setLoading] = useState(!!key);
+  const key = getAgencyKey(search) || bootKey();
+  const [branding, setBranding] = useState<AgencyBranding | null>(() => readBrandCache(key));
+  const [loading, setLoading] = useState(!!key && !readBrandCache(key));
   useEffect(() => {
     if (!key) { setLoading(false); return; }
     (supabase.rpc as any)('get_agency_branding', { _key: key }).then(({ data }: any) => {
       const row = Array.isArray(data) ? data[0] : data;
       setBranding(row || null); setLoading(false);
-      if (applyColor && row?.primary_color) {
-        const hsl = hexToHsl(row.primary_color);
-        if (hsl) { document.documentElement.style.setProperty('--primary', hsl); document.documentElement.style.setProperty('--ring', hsl); }
-      }
+      writeBrandCache(key, row || null);
+      if (applyColor && row?.primary_color) applyColorVars(row.primary_color);
+      revealPage();
     });
   }, [key]);
   useEffect(() => {
@@ -100,7 +134,8 @@ export function brandVars(hex?: string | null): Record<string, string> | undefin
  * Applies the agency color to the whole page (incl. dialogs) while mounted.
  */
 export function useClientAgencyBranding(clientId?: string | null) {
-  const [branding, setBranding] = useState<AgencyBranding | null>(null);
+  // On an agency host start from the cached host brand so AD SCALE never flashes.
+  const [branding, setBranding] = useState<AgencyBranding | null>(() => (clientId && bootKey() ? readBrandCache(bootKey()) : null));
   const [loading, setLoading] = useState(!!clientId);
   useEffect(() => {
     if (!clientId) { setBranding(null); setLoading(false); return; }

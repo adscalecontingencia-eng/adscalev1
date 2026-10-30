@@ -4,9 +4,11 @@ import "./index.css";
 import "./i18n";
 import { initThemeEarly } from "./hooks/useTheme";
 import { installSystemErrorLogger } from "./lib/system-error-logger";
+import { bootAgencyBranding } from "./hooks/useAgencyBranding";
 
 initThemeEarly();
 installSystemErrorLogger();
+bootAgencyBranding();
 
 // If Supabase redirects back with a password-recovery code, force the hash route
 // to /reset-password BEFORE HashRouter mounts so the default redirect to
