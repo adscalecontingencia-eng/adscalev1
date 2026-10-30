@@ -56,6 +56,316 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_platform_tiers: {
+        Row: {
+          adscale_pct: number
+          created_at: string
+          id: string
+          min_weekly_spend: number
+          name: string
+          suggested_agency_pct: number
+          updated_at: string
+        }
+        Insert: {
+          adscale_pct: number
+          created_at?: string
+          id?: string
+          min_weekly_spend?: number
+          name: string
+          suggested_agency_pct?: number
+          updated_at?: string
+        }
+        Update: {
+          adscale_pct?: number
+          created_at?: string
+          id?: string
+          min_weekly_spend?: number
+          name?: string
+          suggested_agency_pct?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agency_settings: {
+        Row: {
+          agency_client_id: string
+          brand_name: string | null
+          byod_anon_key: string | null
+          byod_initialized_at: string | null
+          byod_url: string | null
+          created_at: string
+          custom_domain: string | null
+          data_mode: string
+          logo_url: string | null
+          primary_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_client_id: string
+          brand_name?: string | null
+          byod_anon_key?: string | null
+          byod_initialized_at?: string | null
+          byod_url?: string | null
+          created_at?: string
+          custom_domain?: string | null
+          data_mode?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_client_id?: string
+          brand_name?: string | null
+          byod_anon_key?: string | null
+          byod_initialized_at?: string | null
+          byod_url?: string | null
+          created_at?: string
+          custom_domain?: string | null
+          data_mode?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_settings_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_sub_client_accounts: {
+        Row: {
+          ad_account_id: string
+          agency_client_id: string
+          created_at: string
+          id: string
+          sub_client_id: string
+        }
+        Insert: {
+          ad_account_id: string
+          agency_client_id: string
+          created_at?: string
+          id?: string
+          sub_client_id: string
+        }
+        Update: {
+          ad_account_id?: string
+          agency_client_id?: string
+          created_at?: string
+          id?: string
+          sub_client_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_sub_client_accounts_ad_account_id_fkey"
+            columns: ["ad_account_id"]
+            isOneToOne: true
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_sub_client_accounts_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_sub_client_accounts_sub_client_id_fkey"
+            columns: ["sub_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_sub_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_sub_client_credits: {
+        Row: {
+          agency_client_id: string
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          status: string
+          sub_client_id: string
+        }
+        Insert: {
+          agency_client_id: string
+          amount: number
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          status?: string
+          sub_client_id: string
+        }
+        Update: {
+          agency_client_id?: string
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          status?: string
+          sub_client_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_sub_client_credits_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_sub_client_credits_sub_client_id_fkey"
+            columns: ["sub_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_sub_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_sub_clients: {
+        Row: {
+          agency_client_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_client_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_client_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_sub_clients_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_terms_acceptances: {
+        Row: {
+          accepted_at: string
+          accepted_by: string
+          agency_client_id: string
+          content_hash: string
+          id: string
+          language: string
+          user_agent: string | null
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_by?: string
+          agency_client_id: string
+          content_hash: string
+          id?: string
+          language?: string
+          user_agent?: string | null
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          accepted_by?: string
+          agency_client_id?: string
+          content_hash?: string
+          id?: string
+          language?: string
+          user_agent?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_terms_acceptances_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_tiers: {
+        Row: {
+          agency_client_id: string
+          allow_subsidy: boolean
+          created_at: string
+          id: string
+          min_weekly_spend: number
+          name: string
+          sub_client_id: string | null
+          total_pct: number
+          updated_at: string
+        }
+        Insert: {
+          agency_client_id: string
+          allow_subsidy?: boolean
+          created_at?: string
+          id?: string
+          min_weekly_spend?: number
+          name: string
+          sub_client_id?: string | null
+          total_pct: number
+          updated_at?: string
+        }
+        Update: {
+          agency_client_id?: string
+          allow_subsidy?: boolean
+          created_at?: string
+          id?: string
+          min_weekly_spend?: number
+          name?: string
+          sub_client_id?: string | null
+          total_pct?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_tiers_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_tiers_sub_client_id_fkey"
+            columns: ["sub_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_sub_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       area_responsibles: {
         Row: {
           area: string
@@ -582,6 +892,7 @@ export type Database = {
       clients: {
         Row: {
           ad_accounts: number | null
+          agency_enabled_at: string | null
           approval_status: string
           approved_at: string | null
           approved_by: string | null
@@ -596,6 +907,7 @@ export type Database = {
           fixed_value: number | null
           how_found_us: string | null
           id: string
+          is_agency: boolean
           meta_app_id: string | null
           monthly_investment: string | null
           name: string
@@ -621,6 +933,7 @@ export type Database = {
         }
         Insert: {
           ad_accounts?: number | null
+          agency_enabled_at?: string | null
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -635,6 +948,7 @@ export type Database = {
           fixed_value?: number | null
           how_found_us?: string | null
           id?: string
+          is_agency?: boolean
           meta_app_id?: string | null
           monthly_investment?: string | null
           name: string
@@ -660,6 +974,7 @@ export type Database = {
         }
         Update: {
           ad_accounts?: number | null
+          agency_enabled_at?: string | null
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -674,6 +989,7 @@ export type Database = {
           fixed_value?: number | null
           how_found_us?: string | null
           id?: string
+          is_agency?: boolean
           meta_app_id?: string | null
           monthly_investment?: string | null
           name?: string
@@ -3654,6 +3970,11 @@ export type Database = {
         Returns: number
       }
       generate_referral_code: { Args: { _seed: string }; Returns: string }
+      get_agencies_overview: { Args: { _week_start: string }; Returns: Json }
+      get_agency_week_summary: {
+        Args: { _agency: string; _week_start: string }
+        Returns: Json
+      }
       get_order_delivery_payload: {
         Args: { _delivery_id: string }
         Returns: Json
@@ -3674,6 +3995,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_agency_owner: { Args: { _agency: string }; Returns: boolean }
+      is_staff: { Args: never; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
