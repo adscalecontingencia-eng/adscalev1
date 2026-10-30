@@ -20,7 +20,7 @@ interface Props {
 /** What the agency's end client sees — agency branding only, no AD SCALE costs. */
 export const SubClientView: React.FC<Props> = ({ brand, logoUrl, sub, row, accounts, credits, onBack }) => {
   const paid = credits.filter(c => c.status === 'confirmado').reduce((a, c) => a + Number(c.amount), 0);
-  const used = row ? Number(row.spend) + Number(row.client_fee) : 0;
+  const used = row ? Number(row.client_fee) : 0;
   const active = accounts.filter(a => a.account_status === 1).length;
   return (
     <div className="min-h-screen bg-background">
@@ -41,13 +41,13 @@ export const SubClientView: React.FC<Props> = ({ brand, logoUrl, sub, row, accou
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Kpi icon={TrendingUp} label="Gasto em anúncios (semana)" value={usd(row?.spend)} />
           <Kpi icon={Percent} label={`Taxa (${row?.client_pct ?? 0}%)`} value={usd(row?.client_fee)} sub={row?.tier_name ? `Nível ${row.tier_name}` : undefined} />
-          <Kpi icon={Wallet} label="Crédito disponível" value={usd(paid - used)} sub={`Créditos pagos ${usd(paid)}`} />
+          <Kpi icon={Wallet} label={paid - used >= 0 ? "Caução restante" : "Saldo acumulado"} value={usd(Math.abs(paid - used))} sub={`Caução paga ${usd(paid)} · abatida da comissão`} />
           <Kpi icon={ShieldCheck} label="Contas ativas" value={`${active} / ${accounts.length}`} />
         </div>
         <Card><CardHeader><CardTitle className="text-base">Contas de anúncio</CardTitle></CardHeader><CardContent><AgencyAccountsTable accounts={accounts} /></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-base">Histórico de créditos</CardTitle></CardHeader><CardContent className="text-sm space-y-2">
+        <Card><CardHeader><CardTitle className="text-base">Histórico de caução</CardTitle></CardHeader><CardContent className="text-sm space-y-2">
           {credits.map(c => <div key={c.id} className="flex justify-between border-b border-border/40 pb-2"><span>{c.date}{c.note ? ` · ${c.note}` : ''}</span><span className="text-primary">{usd(c.amount)}</span></div>)}
-          {!credits.length && <p className="text-muted-foreground">Nenhum crédito registrado.</p>}
+          {!credits.length && <p className="text-muted-foreground">Nenhuma caução registrada.</p>}
         </CardContent></Card>
       </div>
     </div>
