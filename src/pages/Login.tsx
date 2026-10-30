@@ -32,7 +32,7 @@ const Login: React.FC = () => {
 
   React.useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      if (next === 'marketplace') return navigate('/marketplace');
+      if (next === 'marketplace') { navigate('/marketplace'); return; }
       const dest = user.role === 'marketplace_client' ? '/marketplace'
         : user.role === 'client' ? (user.agencyMember ? '/agencia' : '/client-dashboard')
         : user.role === 'partner' ? '/partner-dashboard'
