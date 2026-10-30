@@ -79,7 +79,7 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: b
           <h2 className="text-2xl font-bold mt-1">Central de <span className="text-primary">suporte</span></h2>
           <p className="text-sm text-muted-foreground mt-1">Pedidos que seus clientes fazem pelo painel deles chegam aqui primeiro. Você completa e envia para a AD SCALE.</p>
         </div>
-              </div>
+      </div>
 
       <AgencyClientRequests agencyId={agencyId} subs={subs} isDemo={isDemo} />
 
