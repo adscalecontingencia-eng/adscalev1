@@ -9,6 +9,7 @@ const usd = (n: any) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumF
 
 interface Props {
   brand: string;
+  logoUrl?: string | null;
   sub: any;
   row: any; // summary row for this sub-client
   accounts: AgencyAccount[];
@@ -17,7 +18,7 @@ interface Props {
 }
 
 /** What the agency's end client sees — agency branding only, no AD SCALE costs. */
-export const SubClientView: React.FC<Props> = ({ brand, sub, row, accounts, credits, onBack }) => {
+export const SubClientView: React.FC<Props> = ({ brand, logoUrl, sub, row, accounts, credits, onBack }) => {
   const paid = credits.filter(c => c.status === 'confirmado').reduce((a, c) => a + Number(c.amount), 0);
   const used = row ? Number(row.spend) + Number(row.client_fee) : 0;
   const active = accounts.filter(a => a.account_status === 1).length;
@@ -28,7 +29,7 @@ export const SubClientView: React.FC<Props> = ({ brand, sub, row, accounts, cred
         <Button size="sm" variant="secondary" className="ml-auto h-7 gap-1" onClick={onBack}><ArrowLeft size={12} />Voltar ao painel da agência</Button>
       </div>
       <header className="h-14 border-b border-border/60 flex items-center px-6 gap-3">
-        <span translate="no" className="notranslate font-display font-semibold">{brand}</span>
+        {logoUrl ? <img src={logoUrl} alt={brand} className="h-8 max-w-[160px] object-contain" /> : <span translate="no" className="notranslate font-display font-semibold text-primary">{brand}</span>}
         <span className="text-xs text-muted-foreground">Painel do cliente</span>
         <span className="ml-auto text-sm">{sub.name}</span>
       </header>

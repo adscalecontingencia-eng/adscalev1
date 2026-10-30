@@ -12,7 +12,28 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, PanelLeft } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+/** Hex brand color -> CSS vars so every themed element follows the agency color live. */
+function brandVars(hex?: string | null): React.CSSProperties | undefined {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return undefined;
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+  }
+  const v = `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  const fg = l > 0.6 ? '0 0% 8%' : '0 0% 100%';
+  return { ['--primary' as any]: v, ['--ring' as any]: v, ['--accent' as any]: v, ['--primary-foreground' as any]: fg };
+}
 import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } from '@/lib/agency-terms';
 import { isBelowFloor } from '@/lib/agency-tiers';
 import { ACCOUNT_FIELDS, DEMO_ACCOUNTS, DEMO_AGENCY_EMAIL, DEMO_LINKS } from '@/components/agency/agency-accounts';
@@ -81,7 +102,7 @@ const AgencyPanel: React.FC = () => {
   const [newTier, setNewTier] = useState({ name: '', min: '0', pct: '5', subsidy: false });
   const [newCredit, setNewCredit] = useState({ sub: '', amount: '', note: '' });
   const [section, setSection] = useState('resumo');
-  const [navOpen, setNavOpen] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
   const [viewSub, setViewSub] = useState<string | null>(null);
 
   useEffect(() => {
@@ -241,50 +262,83 @@ const AgencyPanel: React.FC = () => {
   };
   const brand = settings.brand_name || agency.name;
 
+  const brandStyle = brandVars(settings.primary_color);
+  const Logo = () => settings.logo_url
+    ? <img src={settings.logo_url} alt={brand} className="h-8 max-w-[180px] object-contain" onError={e => ((e.currentTarget.style.display = 'none'))} />
+    : <span translate="no" className="notranslate font-display text-lg font-bold text-primary truncate">{brand}</span>;
+
   if (viewSub) {
     const sub = subs.find(s => s.id === viewSub);
-    if (sub) return <SubClientView brand={brand} sub={sub}
+    if (sub) return <div style={brandStyle}><SubClientView brand={brand} logoUrl={settings.logo_url} sub={sub}
       row={summary?.sub_clients?.find((r: any) => r.sub_client_id === sub.id)}
       accounts={accountsOf(sub.id)} credits={credits.filter(c => c.sub_client_id === sub.id)}
-      onBack={() => setViewSub(null)} />;
+      onBack={() => setViewSub(null)} /></div>;
   }
 
-  const NAV = [
-    { v: 'resumo', label: 'Visão geral', icon: LayoutDashboard },
-    { v: 'clientes', label: 'Clientes', icon: Users },
-    { v: 'contas', label: 'Contas de anúncio', icon: Megaphone },
-    { v: 'tiers', label: 'Tiers & Taxas', icon: Layers },
-    { v: 'creditos', label: 'Créditos', icon: Wallet },
-    { v: 'marca', label: 'Marca & Dados', icon: Palette },
-    { v: 'juridico', label: 'Jurídico', icon: Scale },
+  const GROUPS = [
+    { id: 'geral', label: null, items: [{ v: 'resumo', label: 'Dashboard', icon: LayoutDashboard }] },
+    { id: 'aluguel', label: 'Aluguel', items: [
+      { v: 'clientes', label: 'Clientes', icon: Users },
+      { v: 'contas', label: 'Contas de anúncio', icon: Megaphone },
+      { v: 'tiers', label: 'Tiers & Taxas', icon: Layers },
+      { v: 'creditos', label: 'Financeiro · Créditos', icon: Wallet },
+    ] },
+    { id: 'sistema', label: 'Sistema', items: [
+      { v: 'marca', label: 'Marca & Dados', icon: Palette },
+      { v: 'juridico', label: 'Jurídico', icon: Scale },
+    ] },
   ];
+  const NAV = GROUPS.flatMap(g => g.items);
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
-      <aside className={`sticky top-0 h-screen shrink-0 border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col transition-all ${navOpen ? 'w-60' : 'w-16'}`}>
-        <div className="h-14 flex items-center gap-2 px-3 border-b border-border/60">
-          <Button size="icon" variant="ghost" onClick={() => setNavOpen(o => !o)} aria-label="Recolher menu"><PanelLeft size={16} /></Button>
-          {navOpen && <span translate="no" className="notranslate font-display text-sm font-semibold truncate">{brand}</span>}
+    <div className="flex min-h-screen bg-background" style={brandStyle}>
+      {navOpen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setNavOpen(false)} />}
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card/60 backdrop-blur-xl border-r border-border/60 flex flex-col transition-transform duration-300 ${navOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="px-5 py-5 border-b border-border/60">
+          <Logo />
+          <p className="text-[9px] uppercase tracking-[0.42em] text-muted-foreground/70 mt-2 ml-0.5">Agency · Panel</p>
         </div>
-        <nav className="flex-1 p-2 space-y-1">
-          {NAV.map(n => (
-            <button key={n.v} onClick={() => setSection(n.v)} title={n.label}
-              className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${section === n.v ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'}`}>
-              <n.icon size={16} className="shrink-0" />{navOpen && <span className="truncate">{n.label}</span>}
-            </button>
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {GROUPS.map(g => (
+            <div key={g.id} className="space-y-0.5">
+              {g.label && <div className="w-full flex items-center gap-2 px-3 py-1.5 mt-2 mb-0.5 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground/70">{g.label}</div>}
+              {g.items.map(n => {
+                const active = section === n.v;
+                return (
+                  <button key={n.v} onClick={() => { setSection(n.v); if (window.innerWidth < 1024) setNavOpen(false); }}
+                    className={`group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'}`}>
+                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-full shadow-[0_0_8px_hsl(var(--primary))]" />}
+                    <n.icon size={16} className={active ? '' : 'opacity-70 group-hover:opacity-100'} />
+                    <span className="font-medium">{n.label}</span>
+                    {active && <ChevronRight size={13} className="ml-auto" />}
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </nav>
-        <div className="p-2 border-t border-border/60 space-y-1">
-          <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"><ArrowLeft size={16} />{navOpen && 'Meu painel AD SCALE'}</button>
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-destructive"><LogOut size={16} />{navOpen && 'Sair'}</button>
+        <div className="p-3 border-t border-border/60">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/40 mb-2">
+            <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold">{user?.email?.[0]?.toUpperCase() || '·'}</div>
+            <div className="text-[11px] text-muted-foreground truncate flex-1">{user?.email}</div>
+          </div>
+          <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"><ArrowLeft size={16} /><span translate="no" className="notranslate">Meu painel AD SCALE</span></button>
+          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"><LogOut size={16} /><span>Sair</span></button>
         </div>
       </aside>
-      <div className="flex-1 min-w-0">
-      <header className="sticky top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center px-6 gap-3">
-        <h1 className="font-display text-sm font-semibold">{NAV.find(n => n.v === section)?.label}</h1>
-        <span className="ml-auto text-xs text-muted-foreground">Painel da Agência</span>
+      <main className="flex-1 min-w-0 min-h-screen">
+      <header className="sticky top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center px-4 lg:px-6 gap-4">
+        <button className="lg:hidden text-muted-foreground hover:text-foreground" onClick={() => setNavOpen(true)} aria-label="Abrir menu"><Menu size={22} /></button>
+        <h1 className="font-display text-sm font-semibold text-foreground tracking-wide">{NAV.find(n => n.v === section)?.label}</h1>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />Live
+          </div>
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
       </header>
-      <div className="p-4 lg:p-6 max-w-6xl mx-auto">
+      <div className="p-4 lg:p-6">
         <Tabs value={section} onValueChange={setSection} className="space-y-5">
 
           <TabsContent value="resumo" className="space-y-4">
@@ -409,6 +463,7 @@ const AgencyPanel: React.FC = () => {
                 <div className="flex gap-2"><Button variant="outline" onClick={() => { navigator.clipboard.writeText(BYOD_SQL); toast.success('Script copiado.'); }}>Copiar script</Button><Button variant="outline" onClick={testByod}>Testar conexão</Button></div>
               </>}
             </CardContent></Card>
+            <p className="text-xs text-muted-foreground">As cores e o logo já aparecem no painel enquanto você edita. Clique em Salvar para manter.</p>
             <Button onClick={saveSettings}>Salvar</Button>
           </TabsContent>
 
@@ -420,7 +475,7 @@ const AgencyPanel: React.FC = () => {
           </TabsContent>
         </Tabs>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
