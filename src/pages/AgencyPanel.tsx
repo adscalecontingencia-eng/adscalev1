@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, LogOut, Eye, LayoutDashboard, Users, Megaphone, Layers, Wallet, Palette, Scale, Menu, ChevronRight, Search, LifeBuoy } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -39,6 +39,8 @@ import { isBelowFloor } from '@/lib/agency-tiers';
 import { ACCOUNT_FIELDS, DEMO_ACCOUNTS, DEMO_AGENCY_EMAIL, DEMO_LINKS } from '@/components/agency/agency-accounts';
 import { AgencyAccountsTable } from '@/components/agency/AgencyAccountsTable';
 import { SubClientView } from '@/components/agency/SubClientView';
+import { AgencyClientsSection } from '@/components/agency/AgencyClientsSection';
+import { AgencySupport } from '@/components/agency/AgencySupport';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -104,6 +106,10 @@ const AgencyPanel: React.FC = () => {
   const [section, setSection] = useState('resumo');
   const [navOpen, setNavOpen] = useState(false);
   const [viewSub, setViewSub] = useState<string | null>(null);
+  const [accQ, setAccQ] = useState('');
+  const [accOwner, setAccOwner] = useState('all');
+  const [bulkSel, setBulkSel] = useState<string[]>([]);
+  const [bulkSub, setBulkSub] = useState('');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -288,6 +294,11 @@ const AgencyPanel: React.FC = () => {
     return { paid, weekUse: row ? Number(row.spend) + Number(row.client_fee) : 0 };
   };
   const brand = settings.brand_name || agency.name;
+  const filteredAccounts = accounts.filter(a => {
+    const q = accQ.trim().toLowerCase();
+    if (q && !`${a.name || ''} ${a.account_id || ''} ${a.id}`.toLowerCase().includes(q)) return false;
+    return accOwner === 'all' || linkOf(a.id) === accOwner;
+  });
 
   const brandStyle = brandVars(settings.primary_color);
   const Logo = () => settings.logo_url
@@ -309,6 +320,7 @@ const AgencyPanel: React.FC = () => {
       { v: 'contas', label: 'Contas de anúncio', icon: Megaphone },
       { v: 'tiers', label: 'Tiers & Taxas', icon: Layers },
       { v: 'creditos', label: 'Financeiro · Créditos', icon: Wallet },
+      { v: 'suporte', label: 'Suporte', icon: LifeBuoy },
     ] },
     { id: 'sistema', label: 'Sistema', items: [
       { v: 'marca', label: 'Marca & Dados', icon: Palette },
