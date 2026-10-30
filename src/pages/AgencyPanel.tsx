@@ -463,6 +463,7 @@ const AgencyPanel: React.FC = () => {
                 <div className="flex gap-2"><Button variant="outline" onClick={() => { navigator.clipboard.writeText(BYOD_SQL); toast.success('Script copiado.'); }}>Copiar script</Button><Button variant="outline" onClick={testByod}>Testar conexão</Button></div>
               </>}
             </CardContent></Card>
+            <p className="text-xs text-muted-foreground">As cores e o logo já aparecem no painel enquanto você edita. Clique em Salvar para manter.</p>
             <Button onClick={saveSettings}>Salvar</Button>
           </TabsContent>
 
@@ -474,7 +475,7 @@ const AgencyPanel: React.FC = () => {
           </TabsContent>
         </Tabs>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

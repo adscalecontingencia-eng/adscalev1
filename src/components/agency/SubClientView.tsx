@@ -9,6 +9,7 @@ const usd = (n: any) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumF
 
 interface Props {
   brand: string;
+  logoUrl?: string | null;
   sub: any;
   row: any; // summary row for this sub-client
   accounts: AgencyAccount[];
@@ -17,7 +18,7 @@ interface Props {
 }
 
 /** What the agency's end client sees — agency branding only, no AD SCALE costs. */
-export const SubClientView: React.FC<Props> = ({ brand, sub, row, accounts, credits, onBack }) => {
+export const SubClientView: React.FC<Props> = ({ brand, logoUrl, sub, row, accounts, credits, onBack }) => {
   const paid = credits.filter(c => c.status === 'confirmado').reduce((a, c) => a + Number(c.amount), 0);
   const used = row ? Number(row.spend) + Number(row.client_fee) : 0;
   const active = accounts.filter(a => a.account_status === 1).length;
