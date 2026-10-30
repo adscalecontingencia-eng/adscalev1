@@ -517,7 +517,17 @@ const AgencyPanel: React.FC = () => {
               <div><Label>Nome da marca</Label><Input value={settings.brand_name || ''} onChange={e => setSettings({ ...settings, brand_name: e.target.value })} /></div>
               <div><Label>URL do logo</Label><Input value={settings.logo_url || ''} onChange={e => setSettings({ ...settings, logo_url: e.target.value })} /></div>
               <div><Label>Cor principal</Label><Input type="color" value={settings.primary_color || '#22c55e'} onChange={e => setSettings({ ...settings, primary_color: e.target.value })} /></div>
-              <div><Label>Domínio personalizado</Label><Input placeholder="painel.suaagencia.com" value={settings.custom_domain || ''} onChange={e => setSettings({ ...settings, custom_domain: e.target.value })} /></div>
+              <div><Label>Domínio personalizado</Label><Input placeholder="painel.suaagencia.com" value={settings.custom_domain || ''} onChange={e => setSettings({ ...settings, custom_domain: e.target.value.trim().toLowerCase() || null })} /></div>
+              <div><Label>Identificador da agência (slug)</Label><Input placeholder="minha-agencia" value={settings.slug || ''} onChange={e => setSettings({ ...settings, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40) || null })} /></div>
+              <div className="sm:col-span-2 rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs space-y-1">
+                <p className="font-medium">Links de acesso dos seus clientes</p>
+                {settings.custom_domain && <>
+                  <p>Login: <span className="font-mono text-primary">https://{settings.custom_domain}/login</span></p>
+                  <p>Cadastro: <span className="font-mono text-primary">https://{settings.custom_domain}/cadastro</span></p>
+                </>}
+                {settings.slug && <p>Cadastro sem domínio: <span className="font-mono text-primary">{window.location.origin}/cadastro?agencia={settings.slug}</span></p>}
+                {!settings.custom_domain && !settings.slug && <p className="text-muted-foreground">Defina um domínio ou slug e clique em Salvar.</p>}
+              </div>
             </CardContent></Card>
             <Card><CardHeader><CardTitle className="text-base">Banco de dados & privacidade</CardTitle></CardHeader><CardContent className="space-y-3">
               <Select value={settings.data_mode || 'adscale'} onValueChange={v => setSettings({ ...settings, data_mode: v })}>

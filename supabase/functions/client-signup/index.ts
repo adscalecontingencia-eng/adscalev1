@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
     const {
       email, password, accept_terms, terms_version, phone, name, referral_code, action,
       company_name, cnpj, niche, monthly_investment, how_found_us,
+      agency_client_id,
     } = body;
 
 
@@ -177,6 +178,16 @@ Deno.serve(async (req) => {
     }
 
     const uid = created.user.id;
+
+    // Cadastro vindo do link/domínio de uma agência parceira: vincula como sub-cliente
+    if (agency_client_id && typeof agency_client_id === "string" && /^[0-9a-f-]{36}$/i.test(agency_client_id)) {
+      const { data: ag } = await admin.from("agency_settings").select("agency_client_id").eq("agency_client_id", agency_client_id).maybeSingle();
+      if (ag) {
+        const { data: already } = await admin.from("agency_sub_clients").select("id").eq("agency_client_id", agency_client_id).ilike("email", normEmail).maybeSingle();
+        if (already) await admin.from("agency_sub_clients").update({ client_id: client.id }).eq("id", already.id);
+        else await admin.from("agency_sub_clients").insert({ agency_client_id, name: client.name, email: normEmail, phone: normalizedPhone, client_id: client.id, status: "ativo", notes: companyName });
+      }
+    }
 
     await admin.from("clients").update({ auth_user_id: uid }).eq("id", client.id);
     await admin.from("user_roles").insert({ user_id: uid, role: "client" });
