@@ -146,8 +146,7 @@ const AgencyPanel: React.FC = () => {
       setAccounts(DEMO_ACCOUNTS);
       setLinks(DEMO_ACCOUNTS.map(a => ({ ad_account_id: a.id, sub_client_id: DEMO_LINKS[a.id] == null ? null : subList[DEMO_LINKS[a.id]!]?.id })).filter(x => x.sub_client_id));
       setCredits(subList.flatMap((s: any, i: number) => [
-        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 18000 : 25000, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Pix' },
-        { id: `dc-${i}-2`, sub_client_id: s.id, amount: i === 0 ? 2000 : 1500, status: 'confirmado', date: format(addDays(new Date(), -2), 'yyyy-MM-dd'), note: 'Recarga' },
+        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 500 : 1500, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Caução de entrada' },
       ]));
     } else {
       setSummary(s.data);
@@ -291,7 +290,7 @@ const AgencyPanel: React.FC = () => {
   const creditBalance = (subId: string) => {
     const paid = credits.filter(c => c.sub_client_id === subId && c.status === 'confirmado').reduce((a, c) => a + Number(c.amount), 0);
     const row = summary?.sub_clients?.find((r: any) => r.sub_client_id === subId);
-    return { paid, weekUse: row ? Number(row.spend) + Number(row.client_fee) : 0 };
+    return { paid, weekUse: row ? Number(row.client_fee) : 0 }; // caução é abatida só da comissão
   };
   const brand = settings.brand_name || agency.name;
   const filteredAccounts = accounts.filter(a => {
@@ -485,8 +484,8 @@ const AgencyPanel: React.FC = () => {
               <Button onClick={addCredit}>Registrar</Button>
             </CardContent></Card>
             <Card><CardContent className="pt-6 text-sm space-y-2">
-              {subs.map(s => { const b = creditBalance(s.id); return <div key={s.id} className="flex gap-3 border-b border-border/40 pb-2"><span className="flex-1">{s.name}</span><span>Créditos: {usd(b.paid)}</span><span className="text-muted-foreground">Consumo da semana: {usd(b.weekUse)}</span></div>; })}
-              <p className="text-xs text-muted-foreground pt-2">O crédito é pago pelo cliente a você. A parte da taxa AD SCALE sobre o consumo entra na sua fatura semanal.</p>
+              {subs.map(s => { const b = creditBalance(s.id); return <div key={s.id} className="flex gap-3 border-b border-border/40 pb-2"><span className="flex-1">{s.name}</span><span>Créditos: {usd(b.paid)}</span><span className="text-muted-foreground">Comissão da semana: {usd(b.weekUse)}</span></div>; })}
+              <p className="text-xs text-muted-foreground pt-2">O crédito é uma caução paga pelo cliente ao entrar. Ela é descontada integralmente da comissão até zerar; depois disso a comissão vira saldo acumulado a cobrar.</p>
             </CardContent></Card>
           </TabsContent>
 
