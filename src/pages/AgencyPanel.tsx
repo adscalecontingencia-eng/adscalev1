@@ -17,6 +17,31 @@ import { AGENCY_TERMS_VERSION, getAgencyTerms, hashTerms, downloadAgencyTerms } 
 import { isBelowFloor } from '@/lib/agency-tiers';
 
 const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const DEMO_AGENCY_EMAIL = 'demo.agencia@adscalehub.com';
+// Simulated week for the demo account (presentation only). AD SCALE share 2.5% (Tier 2).
+function buildDemoSummary(subs: any[]) {
+  const presets = [
+    { spend: 22400, pct: 5, tier: 'Padrão' },
+    { spend: 16100, pct: 4.5, tier: 'VIP' },
+    { spend: 6800, pct: 5, tier: 'Padrão' },
+  ];
+  const adPct = 2.5;
+  const rows = subs.map((s, i) => {
+    const p = presets[i % presets.length];
+    const client_fee = (p.spend * p.pct) / 100;
+    const adscale_fee = (p.spend * adPct) / 100;
+    return { sub_client_id: s.id, name: s.name, spend: p.spend, tier_name: p.tier, client_pct: p.pct, client_fee, adscale_fee, agency_margin: client_fee - adscale_fee };
+  });
+  const total = rows.reduce((a, r) => a + r.spend, 0) || 38500;
+  return {
+    total_spend: total,
+    adscale_due: (total * adPct) / 100,
+    platform_tier: { name: 'Tier 2 · Escala', adscale_pct: adPct, min: 25000 },
+    next_tier: { name: 'Tier 3 · Elite', adscale_pct: 2, min: 75000, remaining: Math.max(0, 75000 - total) },
+    sub_clients: rows,
+  };
+}
 const weekStartOf = (d: Date) => format(startOfWeek(d, { weekStartsOn: 5 }), 'yyyy-MM-dd');
 
 const BYOD_SQL = `-- Execute no SQL editor do seu próprio projeto
@@ -69,6 +94,7 @@ const AgencyPanel: React.FC = () => {
     })();
   }, [user?.id]);
 
+  const isDemo = user?.email?.toLowerCase() === DEMO_AGENCY_EMAIL;
   const load = useCallback(async () => {
     if (!agency?.id) return;
     const id = agency.id;
@@ -82,10 +108,11 @@ const AgencyPanel: React.FC = () => {
       supabase.from('agency_sub_client_credits').select('*').eq('agency_client_id', id).order('date', { ascending: false }),
       supabase.from('agency_settings').select('*').eq('agency_client_id', id).maybeSingle(),
     ]);
-    setSummary(s.data); setSubs(sc.data || []); setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
+    const subList = sc.data || [];
+    setSummary(isDemo ? buildDemoSummary(subList) : s.data); setSubs(subList); setAccounts((as.data || []).map((x: any) => x.ad_account).filter(Boolean));
     setLinks(l.data || []); setTiers(t.data || []); setPlatform(p.data || []); setCredits(c.data || []);
     setSettings(st.data || { agency_client_id: id, data_mode: 'adscale', primary_color: '#22c55e' });
-  }, [agency?.id, week]);
+  }, [agency?.id, week, isDemo]);
 
   useEffect(() => { if (accepted) load(); }, [accepted, load]);
 
@@ -94,7 +121,7 @@ const AgencyPanel: React.FC = () => {
   const acceptTerms = async () => {
     const content_hash = await hashTerms(terms);
     const { error } = await supabase.from('agency_terms_acceptances').insert({
-      agency_client_id: agency.id, version: AGENCY_TERMS_VERSION, language: lang, content_hash, user_agent: navigator.userAgent, accepted_by: user!.id,
+      agency_client_id: agency.id, version: AGENCY_TERMS_VERSION, language: lang, content_hash, user_agent: navigator.userAgent, accepted_by: (await supabase.auth.getUser()).data.user?.id,
     });
     if (error) return toast.error('Não foi possível registrar o aceite.');
     toast.success('Termo aceito.'); setAccepted(true);
@@ -219,6 +246,7 @@ const AgencyPanel: React.FC = () => {
               <span>Semana {format(new Date(week + 'T12:00:00'), 'dd/MM')} a {format(addDays(new Date(week + 'T12:00:00'), 6), 'dd/MM')} (sexta a quinta)</span>
               <Button size="sm" variant="outline" onClick={() => setWeek(format(addDays(new Date(week + 'T12:00:00'), 7), 'yyyy-MM-dd'))}>›</Button>
             </div>
+            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">Conta de demonstração: os gastos e comissões abaixo são simulados, só para apresentação.</div>}
             <div className="grid sm:grid-cols-3 gap-4">
               <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Gasto total da agência</p><p className="text-2xl font-bold">{usd(summary?.total_spend)}</p></CardContent></Card>
               <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Seu nível AD SCALE</p><p className="text-2xl font-bold">{pt?.name ?? '—'}</p><p className="text-xs text-primary">Taxa AD SCALE {pt?.adscale_pct ?? 0}%</p></CardContent></Card>
