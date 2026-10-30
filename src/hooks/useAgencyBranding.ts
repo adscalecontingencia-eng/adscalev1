@@ -45,3 +45,58 @@ export function useAgencyBranding(search: URLSearchParams) {
   }, [key]);
   return { key, branding, loading };
 }
+
+/** Hex brand color -> CSS vars so every themed element follows the agency color. */
+export function brandVars(hex?: string | null): Record<string, string> | undefined {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return undefined;
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+  }
+  const v = `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  const fg = l > 0.6 ? '0 0% 8%' : '0 0% 100%';
+  return { '--primary': v, '--ring': v, '--accent': v, '--primary-foreground': fg };
+}
+
+/**
+ * Branding of the partner agency a client belongs to (null for AD SCALE's own clients).
+ * Applies the agency color to the whole page (incl. dialogs) while mounted.
+ */
+export function useClientAgencyBranding(clientId?: string | null) {
+  const [branding, setBranding] = useState<AgencyBranding | null>(null);
+  const [loading, setLoading] = useState(!!clientId);
+  useEffect(() => {
+    if (!clientId) { setBranding(null); setLoading(false); return; }
+    let alive = true;
+    setLoading(true);
+    (supabase.rpc as any)('get_client_agency_branding', { _client_id: clientId }).then(({ data }: any) => {
+      if (!alive) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      setBranding(row || null); setLoading(false);
+    });
+    return () => { alive = false; };
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!branding) return;
+    const root = document.documentElement;
+    const vars = brandVars(branding.primary_color) || {};
+    const prev: Record<string, string> = {};
+    Object.entries(vars).forEach(([k, v]) => { prev[k] = root.style.getPropertyValue(k); root.style.setProperty(k, v); });
+    const prevTitle = document.title;
+    if (branding.brand_name) document.title = `${branding.brand_name} · Painel`;
+    return () => {
+      Object.keys(vars).forEach(k => { if (prev[k]) root.style.setProperty(k, prev[k]); else root.style.removeProperty(k); });
+      document.title = prevTitle;
+    };
+  }, [branding]);
+
+  return { branding, loading };
+}
