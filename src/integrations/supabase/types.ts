@@ -274,6 +274,63 @@ export type Database = {
           },
         ]
       }
+      agency_support_tasks: {
+        Row: {
+          agency_client_id: string
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          resolved_at: string | null
+          status: string
+          structure_type: string
+          sub_client_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agency_client_id: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          structure_type?: string
+          sub_client_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agency_client_id?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          structure_type?: string
+          sub_client_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_support_tasks_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_support_tasks_sub_client_id_fkey"
+            columns: ["sub_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_sub_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_terms_acceptances: {
         Row: {
           accepted_at: string
