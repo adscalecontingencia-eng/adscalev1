@@ -131,8 +131,7 @@ Deno.serve(async (req) => {
       if (!ALLOWED_TABLES.has(tableName)) return genericError(403, "Tabela não permitida no allowlist");
     }
 
-    // Execute via a scoped read-only transaction. Even though the URL grants
-    // superuser, the allowlist above is what actually restricts data access.
+    // Execute in a read-only transaction under the least-privilege n8n_readonly role.
     const dbUrl = Deno.env.get("SUPABASE_DB_URL");
     if (!dbUrl) return genericError(500, "Serviço indisponível");
 
@@ -142,6 +141,10 @@ Deno.serve(async (req) => {
     try {
       const result = await pgSql.begin(async (tx: any) => {
         await tx.unsafe("SET TRANSACTION READ ONLY");
+        // Drop superuser privileges: the query runs as a role that can only
+        // SELECT the allowlisted tables, so the database itself enforces scope.
+        await tx.unsafe("SET LOCAL ROLE n8n_readonly");
+        await tx.unsafe("SET LOCAL search_path = public");
         await tx.unsafe("SET LOCAL statement_timeout = '15s'");
         return await tx.unsafe(trimmedNoTrailingSemi);
       });
