@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
+import { liveAccounts, computeMetaStats } from "@/lib/meta-account-stats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -69,22 +70,60 @@ export default function MetaConnections() {
   const [panelKey, setPanelKey] = useState(0);
 
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     const [b, a, asn, cl] = await Promise.all([
       supabase.from("meta_business_managers").select("*").neq("status", "removed").order("name"),
       fetchAllRows((f, t) => supabase.from("meta_ad_accounts").select("*").is("archived_at", null).order("score", { ascending: true }).order("id").range(f, t)),
       fetchAllRows((f, t) => supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true).order("ad_account_id").range(f, t)),
       supabase.from("clients").select("id, name, email, company_name").order("name"),
     ]);
-    setBms((b.data as BM[]) || []);
-    setAccounts(((a.data as unknown) as Account[]) || []);
-    setAssignments((asn.data as Assignment[]) || []);
-    setClients((cl.data as Client[]) || []);
+    if (!b.error) setBms((b.data as BM[]) || []);
+    if (!a.error) setAccounts(((a.data as unknown) as Account[]) || []);
+    if (!asn.error) setAssignments((asn.data as Assignment[]) || []);
+    if (!cl.error) setClients((cl.data as Client[]) || []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  // Atualiza o painel a cada sincronização — inclusive as automáticas ou
+  // iniciadas em outra aba: retoma o job em andamento, recarrega os números
+  // a cada 20s enquanto ele roda e de novo quando termina.
+  useEffect(() => {
+    let cancelled = false;
+    const attachRunning = async () => {
+      const { data } = await supabase
+        .from("meta_sync_jobs").select("*")
+        .in("status", ["pending", "running"])
+        .gte("updated_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (cancelled || !data) return;
+      setSyncing(true);
+      setJob((cur) => cur ?? {
+        id: data.id, status: data.status, progress_current: data.progress_current,
+        progress_total: data.progress_total, synced_count: data.synced_count,
+        message: data.message, errors: (data.errors as any) || [], created_at: data.created_at, updated_at: data.updated_at,
+      });
+    };
+    attachRunning();
+    const channel = supabase
+      .channel("meta-sync-jobs-watch")
+      .on("postgres_changes", { event: "*", schema: "public", table: "meta_sync_jobs" }, (payload) => {
+        const j: any = payload.new;
+        if (!j?.id) return;
+        if (j.status === "completed") load(true);
+        else if (j.status === "pending" || j.status === "running") attachRunning();
+      })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    if (!syncing) return;
+    const t = setInterval(() => load(true), 20000);
+    return () => clearInterval(t);
+  }, [syncing]);
 
   // Realtime sync job + polling fallback (caso realtime não esteja disponível)
   useEffect(() => {
@@ -240,28 +279,9 @@ export default function MetaConnections() {
     return (accId: string) => m.get(accId) || null;
   }, [assignments]);
 
-  // Contas realmente identificadas pela API: as que falharam por permissão
-  // ficam de fora dos KPIs/listagem e aparecem no painel de erros de permissão.
-  const PERMISSION_CODES = [200, 190, 10, 100];
-  // Janela da última sincronização: contas não tocadas nela não estão mais
-  // visíveis na API (sem permissão / removidas) e ficam fora dos KPIs.
-  const freshCutoff = useMemo(() => {
-    const times = accounts
-      .map((a: any) => (a.last_synced_at ? new Date(a.last_synced_at).getTime() : 0))
-      .filter(Boolean);
-    if (!times.length) return 0;
-    return Math.max(...times) - 24 * 60 * 60 * 1000;
-  }, [accounts]);
-
-  const apiAccounts = useMemo(
-    () =>
-      accounts.filter((a: any) => {
-        if (PERMISSION_CODES.includes(Number(a.last_sync_error_code))) return false;
-        if (!a.last_synced_at) return false;
-        return new Date(a.last_synced_at).getTime() >= freshCutoff;
-      }),
-    [accounts, freshCutoff],
-  );
+  // Contas realmente identificadas pela API (não arquivadas, vistas na última
+  // sincronização e sem erro de permissão) — regra em src/lib/meta-account-stats.ts.
+  const apiAccounts = useMemo(() => liveAccounts(accounts as any[]) as Account[], [accounts]);
 
   const staleCount = accounts.length - apiAccounts.length;
 
@@ -299,17 +319,7 @@ export default function MetaConnections() {
     });
   }, [apiAccounts, selectedBm, filterStatus, filterClient, filterScore, search, currentClient, filterOwnerBmId]);
 
-  const stats = useMemo(() => {
-    const ids = new Set(apiAccounts.map((a) => a.id));
-    const assigned = assignments.filter((a) => ids.has(a.ad_account_id)).length;
-    return {
-      total: apiAccounts.length,
-      active: apiAccounts.filter((a) => a.status === "active").length,
-      blocked: apiAccounts.filter((a) => a.status !== "active").length,
-      assigned,
-      unassigned: apiAccounts.length - assigned,
-    };
-  }, [apiAccounts, assignments]);
+  const stats = useMemo(() => computeMetaStats(apiAccounts as any[], assignments), [apiAccounts, assignments]);
 
 
   const lastSyncAt = useMemo(() => {

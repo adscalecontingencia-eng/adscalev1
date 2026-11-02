@@ -1304,7 +1304,8 @@ async function markBmAccountsScanned(supabase: any, bmDbId: string) {
   const { count } = await supabase
     .from("meta_ad_accounts")
     .select("id", { head: true, count: "exact" })
-    .eq("bm_id", bmDbId);
+    .eq("bm_id", bmDbId)
+    .is("archived_at", null);
   await supabase
     .from("meta_business_managers")
     .update({
