@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import AdScaleLogo from '@/components/AdScaleLogo';
 import { useClientAgencyBranding } from '@/hooks/useAgencyBranding';
 import { useCommissionTiers, getTierPctFromTiers, tiersForClient } from '@/lib/commission-tiers';
-import { getBillingDueDate, getLastClosedBillingWeekRange, splitOverdueVsCurrent } from '@/lib/billing-status';
+import { getBillingDueDate, getCurrentBillingWeekRange, getLastClosedBillingWeekRange, splitOverdueVsCurrent } from '@/lib/billing-status';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ClientNotificationCenter from '@/components/client/ClientNotificationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -61,7 +61,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const [archivedAccounts, setArchivedAccounts] = useState<any[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
+  const [periodFilter, setPeriodFilter] = useState<'today' | 'currentWeek' | 'week' | 'month' | 'custom'>('currentWeek');
   const [customStart, setCustomStart] = useState<Date>(new Date());
   const [customEnd, setCustomEnd] = useState<Date>(new Date());
   const [tab, setTab] = useState<'resumo' | 'contrato' | 'cobrancas' | 'estrutura' | 'suporte' | 'indicacao' | 'conta'>('resumo');
@@ -557,6 +557,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
     const now = new Date();
     switch (periodFilter) {
       case 'today': return { start: startOfDay(now), end: endOfDay(now) };
+      case 'currentWeek': return { start: getCurrentBillingWeekRange(now).start, end: endOfDay(now) };
       case 'week': return getLastClosedBillingWeekRange(now);
       case 'month': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom': return { start: startOfDay(customStart), end: endOfDay(customEnd) };
@@ -1090,13 +1091,13 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                 <TrendingUp size={18} className="text-sky-400" />
                 <div className="text-2xl font-bold text-sky-400 mt-2">{fmt(periodTotals.adSpend)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.adSpend')}</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? t('clientDash.periods.today') : periodFilter === 'week' ? t('clientDash.periods.closedWeek') : periodFilter === 'month' ? t('clientDash.periods.thisMonth') : t('clientDash.periods.custom')}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? t('clientDash.periods.today') : periodFilter === 'currentWeek' ? t('clientDash.periods.currentWeekDesc') : periodFilter === 'week' ? t('clientDash.periods.closedWeek') : periodFilter === 'month' ? t('clientDash.periods.thisMonth') : t('clientDash.periods.custom')}</div>
               </div>
               <div className="rounded-xl bg-card border border-border p-4">
                 <DollarSign size={18} className="text-amber-400" />
                 <div className="text-2xl font-bold text-amber-400 mt-2">{fmt(periodTotals.commission)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-0.5">{t('clientDash.kpi.agencyCommission')}</div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? t('clientDash.periods.today') : periodFilter === 'week' ? t('clientDash.periods.closedWeek') : periodFilter === 'month' ? t('clientDash.periods.thisMonth') : t('clientDash.periods.custom')}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1">{periodFilter === 'today' ? t('clientDash.periods.today') : periodFilter === 'currentWeek' ? t('clientDash.periods.currentWeekDesc') : periodFilter === 'week' ? t('clientDash.periods.closedWeek') : periodFilter === 'month' ? t('clientDash.periods.thisMonth') : t('clientDash.periods.custom')}</div>
               </div>
               <div className="rounded-xl bg-gradient-to-br from-primary/15 to-emerald-500/10 border border-primary/30 p-4">
                 <CreditCard size={18} className="text-primary" />
@@ -1117,12 +1118,12 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                   <TrendingUp size={16} className="text-primary" /> {t('clientDash.periodPanel.title')}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {(['today', 'week', 'month', 'custom'] as const).map(p => (
+                  {(['today', 'currentWeek', 'week', 'month', 'custom'] as const).map(p => (
                     <button key={p} onClick={() => setPeriodFilter(p)}
                       className={cn("px-3 py-1 rounded-lg text-xs font-medium transition-colors",
                         periodFilter === p ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
                       )}>
-                      {p === 'today' ? t('clientDash.periods.today') : p === 'week' ? t('clientDash.periods.weekClosed') : p === 'month' ? t('clientDash.periods.month') : t('clientDash.periods.customLabel')}
+                      {p === 'today' ? t('clientDash.periods.today') : p === 'currentWeek' ? t('clientDash.periods.currentWeek') : p === 'week' ? t('clientDash.periods.weekClosed') : p === 'month' ? t('clientDash.periods.month') : t('clientDash.periods.customLabel')}
                     </button>
                   ))}
                 </div>

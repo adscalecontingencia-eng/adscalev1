@@ -185,6 +185,8 @@ const pt = {
     },
     periods: {
       today: 'Hoje',
+      currentWeek: 'Semana atual',
+      currentWeekDesc: 'Sexta até hoje',
       closedWeek: 'Última semana fechada',
       thisMonth: 'Este mês',
       custom: 'Período custom',

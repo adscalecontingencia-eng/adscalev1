@@ -187,6 +187,8 @@ const es: Translations = {
     },
     periods: {
       today: 'Hoy',
+      currentWeek: 'Semana actual',
+      currentWeekDesc: 'Viernes hasta hoy',
       closedWeek: 'Última semana cerrada',
       thisMonth: 'Este mes',
       custom: 'Período personalizado',
