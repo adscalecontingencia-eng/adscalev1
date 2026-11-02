@@ -1292,6 +1292,14 @@ async function pruneRemovedBms(supabase: any, app: AppRow, state: AccountsSyncSt
   }
 }
 
+async function cleanupMissingAccounts(supabase: any) {
+  try {
+    const { data, error } = await supabase.rpc("meta_cleanup_missing_accounts", { _archive_days: 3, _delete_days: 30 });
+    if (error) console.error("cleanupMissingAccounts", error.message);
+    else console.log("cleanupMissingAccounts", JSON.stringify(data));
+  } catch (e) { console.error("cleanupMissingAccounts", (e as Error).message); }
+}
+
 async function markBmAccountsScanned(supabase: any, bmDbId: string) {
   const { count } = await supabase
     .from("meta_ad_accounts")
@@ -1498,6 +1506,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
       message: `Concluído: ${state.syncedCount} contas verificadas com sincronização leve`,
       errors: [state, ...stageEvents.slice(-MAX_STAGE_EVENTS), ...actualErrors.slice(-40)],
     });
+    if (state.syncedCount > 0) await cleanupMissingAccounts(supabase);
     return;
   }
 
@@ -1543,6 +1552,7 @@ async function runAccountsSyncJobResumable(supabase: any, jobId: string, appIds?
           : `Concluído: ${state.syncedCount} contas sincronizadas`,
         errors: [state, ...stageEvents.slice(-MAX_STAGE_EVENTS), ...actualErrors.slice(-40)],
       });
+      if (!failedWithoutAccounts && state.syncedCount > 0) await cleanupMissingAccounts(supabase);
       return;
     }
 
@@ -2015,7 +2025,7 @@ Deno.serve(async (req) => {
       }
       const { error: upErr } = await supabase
         .from("meta_ad_accounts")
-        .update({ archived_at: new Date().toISOString() })
+        .update({ archived_at: new Date().toISOString(), archived_reason: "no_permission" })
         .in("id", ids);
       if (upErr) throw upErr;
       return json({ sucesso: true, arquivadas: ids.length, min_days: minDays, contas: candidates });
@@ -2029,7 +2039,7 @@ Deno.serve(async (req) => {
       if (ids.length === 0) return json({ erro: "account_id ou account_ids obrigatório" }, 400);
       const { error } = await supabase
         .from("meta_ad_accounts")
-        .update({ archived_at: new Date().toISOString() })
+        .update({ archived_at: new Date().toISOString(), archived_reason: "manual" })
         .in("id", ids);
       if (error) throw error;
       return json({ sucesso: true, arquivadas: ids.length });
@@ -2041,7 +2051,7 @@ Deno.serve(async (req) => {
       if (!id) return json({ erro: "account_id obrigatório" }, 400);
       const { error } = await supabase
         .from("meta_ad_accounts")
-        .update({ archived_at: null, last_sync_error_code: null, last_sync_error_message: null, last_sync_error_at: null, last_sync_error_source: null, last_sync_error_attempts: null })
+        .update({ archived_at: null, archived_reason: null, last_sync_error_code: null, last_sync_error_message: null, last_sync_error_at: null, last_sync_error_source: null, last_sync_error_attempts: null })
         .eq("id", id);
       if (error) throw error;
       return json({ sucesso: true });

@@ -1947,6 +1947,7 @@ export type Database = {
           age: number | null
           amount_spent: number | null
           archived_at: string | null
+          archived_reason: string | null
           balance: number | null
           billing_cycle: string | null
           bm_id: string | null
@@ -1987,6 +1988,7 @@ export type Database = {
           age?: number | null
           amount_spent?: number | null
           archived_at?: string | null
+          archived_reason?: string | null
           balance?: number | null
           billing_cycle?: string | null
           bm_id?: string | null
@@ -2027,6 +2029,7 @@ export type Database = {
           age?: number | null
           amount_spent?: number | null
           archived_at?: string | null
+          archived_reason?: string | null
           balance?: number | null
           billing_cycle?: string | null
           bm_id?: string | null
@@ -4240,6 +4243,10 @@ export type Database = {
       }
       is_agency_owner: { Args: { _agency: string }; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      meta_cleanup_missing_accounts: {
+        Args: { _archive_days?: number; _delete_days?: number }
+        Returns: Json
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
