@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { format } from "date-fns";
 
 function toCsv(rows: (string | number | null | undefined)[][]): string {
@@ -26,13 +27,15 @@ function download(filename: string, csv: string) {
 
 export async function exportActiveAccountsCsv() {
   const [accRes, asnRes, cliRes, bmRes] = await Promise.all([
-    supabase
+    fetchAllRows((f, t) => supabase
       .from("meta_ad_accounts")
       .select(
         "id,meta_account_id,name,status,account_status,currency,amount_spent,score,score_label,owner_business_name,owner_business_id,bm_id,last_synced_at,last_sync_error_code,last_sync_error_message"
       )
       .is("archived_at", null)
-      .order("name"),
+      .order("name")
+      .order("id")
+      .range(f, t)),
     supabase
       .from("meta_ad_account_assignments")
       .select("ad_account_id, client_id, active")
@@ -112,13 +115,15 @@ export async function exportActiveAccountsCsv() {
 }
 
 export async function exportArchivedAccountsCsv() {
-  const { data } = await supabase
+  const { data } = await fetchAllRows((f, t) => supabase
     .from("meta_ad_accounts")
     .select(
       "meta_account_id,name,status,currency,amount_spent,owner_business_name,last_sync_error_code,last_sync_error_message,last_sync_error_source,last_sync_error_at,archived_at,last_synced_at"
     )
     .not("archived_at", "is", null)
-    .order("archived_at", { ascending: false });
+    .order("archived_at", { ascending: false })
+    .order("id")
+    .range(f, t));
 
   const header = [
     "Conta",

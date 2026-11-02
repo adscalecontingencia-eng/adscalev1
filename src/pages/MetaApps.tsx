@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ export default function MetaApps() {
     const [a, c, ac] = await Promise.all([
       supabase.from("meta_apps").select("*").order("is_default", { ascending: false }).order("label"),
       supabase.from("clients").select("id, name, meta_app_id").order("name"),
-      supabase.from("meta_ad_accounts").select("meta_app_id"),
+      fetchAllRows((f, t) => supabase.from("meta_ad_accounts").select("meta_app_id").order("id").range(f, t)),
     ]);
     if (a.error) toast.error(a.error.message);
     if (c.error) toast.error(c.error.message);

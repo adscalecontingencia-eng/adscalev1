@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -119,16 +120,18 @@ export default function AdsDashboard() {
   const loadMeta = async () => {
     const [b, a, c, asn] = await Promise.all([
       supabase.from("meta_business_managers").select("id, name").neq("status", "removed").order("name"),
-      supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at").order("name"),
+      fetchAllRows((f, t) => supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at").order("name").order("id").range(f, t)),
       supabase.from("clients").select("id, name").order("name"),
       // Load ALL assignments (including inactive/expired) so historical spend
       // stays attributed to the client that owned the account on that date.
       // Order by effective_from desc so resolveClientForSpend picks the most
       // recent window that contains the insight date.
-      supabase
+      fetchAllRows((f, t) => supabase
         .from("meta_ad_account_assignments")
         .select("ad_account_id, client_id, active, effective_from, effective_to")
-        .order("effective_from", { ascending: false, nullsFirst: false }),
+        .order("effective_from", { ascending: false, nullsFirst: false })
+        .order("id")
+        .range(f, t)),
     ]);
     setBms((b.data as BM[]) || []);
     setAccounts((a.data as Account[]) || []);

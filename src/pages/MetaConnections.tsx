@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -72,8 +73,8 @@ export default function MetaConnections() {
     setLoading(true);
     const [b, a, asn, cl] = await Promise.all([
       supabase.from("meta_business_managers").select("*").neq("status", "removed").order("name"),
-      supabase.from("meta_ad_accounts").select("*").is("archived_at", null).order("score", { ascending: true }),
-      supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true),
+      fetchAllRows((f, t) => supabase.from("meta_ad_accounts").select("*").is("archived_at", null).order("score", { ascending: true }).order("id").range(f, t)),
+      fetchAllRows((f, t) => supabase.from("meta_ad_account_assignments").select("ad_account_id, client_id, active").eq("active", true).order("ad_account_id").range(f, t)),
       supabase.from("clients").select("id, name, email, company_name").order("name"),
     ]);
     setBms((b.data as BM[]) || []);

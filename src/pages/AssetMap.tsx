@@ -5,6 +5,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -348,7 +349,7 @@ export default function AssetMap() {
     setLoading(true);
     const [b, a] = await Promise.all([
       supabase.from("meta_business_managers").select("*").neq("status", "removed").order("name"),
-      supabase.from("meta_ad_accounts").select("*").order("name"),
+      fetchAllRows((f, t) => supabase.from("meta_ad_accounts").select("*").order("name").order("id").range(f, t)),
     ]);
     setBms((b.data as any) || []);
     setAccounts((a.data as any) || []);

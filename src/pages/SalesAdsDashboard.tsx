@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -131,11 +132,13 @@ export default function SalesAdsDashboard() {
     if (!selectedAppId) return;
     const [b, a, c, asn] = await Promise.all([
       supabase.from("meta_business_managers").select("id, name, meta_app_id").eq("meta_app_id", selectedAppId).order("name"),
-      supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at, meta_app_id").eq("meta_app_id", selectedAppId).order("name"),
+      fetchAllRows((f, t) => supabase.from("meta_ad_accounts").select("id, name, meta_account_id, bm_id, currency, status, last_synced_at, meta_app_id").eq("meta_app_id", selectedAppId).order("name").order("id").range(f, t)),
       supabase.from("clients").select("id, name").order("name"),
-      supabase.from("meta_ad_account_assignments")
+      fetchAllRows((f, t) => supabase.from("meta_ad_account_assignments")
         .select("ad_account_id, client_id, active, effective_from, effective_to")
-        .order("effective_from", { ascending: false, nullsFirst: false }),
+        .order("effective_from", { ascending: false, nullsFirst: false })
+        .order("id")
+        .range(f, t)),
     ]);
     setBms((b.data as BM[]) || []);
     const accs = (a.data as Account[]) || [];
