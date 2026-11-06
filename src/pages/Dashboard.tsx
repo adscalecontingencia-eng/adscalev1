@@ -57,7 +57,8 @@ const Dashboard: React.FC = () => {
         supabase.from('clients').select('*'),
         supabase.from('meta_ad_accounts').select('id,status,account_status'),
       ]);
-      if (txRes.data) setTransactions(txRes.data);
+      // Só Pago/Recebido; estornos/reembolsos abatem o lançamento original; transferências ficam fora.
+      if (txRes.data) setTransactions(reportRows(txRes.data as any[]));
       if (clientRes.data) setClients(clientRes.data);
       if (accRes.data) setAdAccounts(accRes.data);
     };
