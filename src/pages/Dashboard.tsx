@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { reportRows } from '@/lib/finance-ledger';
+import { assetCategoriesForReports } from '@/lib/finance-categories';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw, Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExcelJS from 'exceljs';
@@ -166,26 +167,12 @@ const Dashboard: React.FC = () => {
     const pCost = catTx.filter((t: any) => t.type === 'receita').reduce((s: number, t: any) => s + (Number(t.custo_produto) || 0), 0);
     return rev - exp - pCost;
   };
-  const perfilCosts = structureCosts.filter((t: any) => t.category === 'Perfil').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const bmComumCosts = structureCosts.filter((t: any) => t.category === 'BM Comum').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const bmVerifCosts = structureCosts.filter((t: any) => t.category === 'BM Verificada').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const bmApiCosts = structureCosts.filter((t: any) => t.category === 'BM API').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const bmDisparoCosts = structureCosts.filter((t: any) => t.category === 'BM Disparo').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const paginaCosts = structureCosts.filter((t: any) => t.category === 'Pagina').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const perfilNet = netByCategory('Perfil');
-  const bmComumNet = netByCategory('BM Comum');
-  const bmVerifNet = netByCategory('BM Verificada');
-  const bmApiNet = netByCategory('BM API');
-  const bmDisparoNet = netByCategory('BM Disparo');
-  const paginaNet = netByCategory('Pagina');
+  // Categorias de ativo: lista oficial + categorias antigas ainda presentes nos lançamentos.
+  const assetCats = assetCategoriesForReports(filteredTransactions.map((t: any) => t.category));
+  const costByCat = (cat: string) => structureCosts.filter((t: any) => t.category === cat).reduce((s: number, t: any) => s + Number(t.amount), 0);
 
   const pieData = [
-    { name: t('adminDashboard.structures.profile'), value: perfilCosts },
-    { name: t('adminDashboard.structures.commonBm'), value: bmComumCosts },
-    { name: t('adminDashboard.structures.verifiedBm'), value: bmVerifCosts },
-    { name: t('adminDashboard.structures.apiBm'), value: bmApiCosts },
-    { name: t('adminDashboard.structures.broadcastBm'), value: bmDisparoCosts },
-    { name: t('adminDashboard.structures.page'), value: paginaCosts },
+    ...assetCats.map(c => ({ name: c, value: costByCat(c) })),
     { name: t('adminDashboard.structures.suppliers'), value: fornecedorCosts },
     { name: t('adminDashboard.structures.marketing'), value: marketingCosts },
     { name: t('adminDashboard.structures.operational'), value: operacionalCosts },
@@ -635,12 +622,7 @@ const Dashboard: React.FC = () => {
       {/* STRUCTURE BREAKDOWN MINI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           {[
-          { label: t('adminDashboard.structures.profile'), value: perfilNet, color: 'hsl(160,80%,45%)' },
-          { label: t('adminDashboard.structures.commonBm'), value: bmComumNet, color: 'hsl(212,100%,55%)' },
-          { label: t('adminDashboard.structures.verifiedBm'), value: bmVerifNet, color: 'hsl(180,100%,50%)' },
-          { label: t('adminDashboard.structures.apiBm'), value: bmApiNet, color: 'hsl(280,80%,60%)' },
-          { label: t('adminDashboard.structures.broadcastBm'), value: bmDisparoNet, color: 'hsl(45,100%,55%)' },
-          { label: t('adminDashboard.structures.page'), value: paginaNet, color: 'hsl(200,100%,55%)' },
+          ...assetCats.map((c, i) => ({ label: c, value: netByCategory(c), color: `hsl(${(i * 37 + 160) % 360},80%,55%)` })),
           { label: t('adminDashboard.structures.suppliers'), value: -fornecedorCosts, color: 'hsl(25,90%,55%)' },
           { label: t('adminDashboard.structures.marketing'), value: -marketingCosts, color: 'hsl(330,80%,60%)' },
           { label: t('adminDashboard.kpis.operationalCost'), value: -operacionalCosts, color: 'hsl(50,90%,55%)' },

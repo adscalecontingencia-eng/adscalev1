@@ -56,9 +56,7 @@ interface ClientOption {
 
 type DateFilter = 'all' | 'today' | '7days' | 'month' | 'custom' | 'range';
 
-const ASSET_CATEGORIES = ['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina'];
-const EXPENSE_EXTRA = ['Fornecedores', 'Marketing', 'Custo Operacional'];
-const CATEGORIES = [...ASSET_CATEGORIES, ...EXPENSE_EXTRA, 'Comissão Fixa', 'Comissão Semanal', 'Outros'];
+import { ASSET_CATEGORIES, CATEGORIES, withLegacy } from '@/lib/finance-categories';
 
 const Financial: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -181,6 +179,9 @@ const Financial: React.FC = () => {
     });
   }, [transactions, dateFilter, customDate, rangeFrom, rangeTo, categoryFilter, typeFilter, statusFilter]);
 
+  const filterCategories = useMemo(() => withLegacy(CATEGORIES, transactions.map(t => t.category)), [transactions]);
+  // Ao editar um lançamento com categoria antiga, mantém essa categoria disponível no formulário.
+  const keepCat = (list: string[]) => form.category && !list.includes(form.category) ? [...list, form.category] : list;
   const rawById = useMemo(() => new Map(rawTx.map(r => [r.id, r])), [rawTx]);
   const balances = useMemo(() => accountBalances(accounts, rawTx), [accounts, rawTx]);
   const payables = useMemo(() => openItems(rawTx, 'pagar'), [rawTx]);
@@ -428,7 +429,7 @@ const Financial: React.FC = () => {
         <div className="flex flex-wrap gap-2 items-center">
           <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
             <option value="all">Todas categorias</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {filterCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
             <option value="all">Todos tipos</option>
@@ -569,7 +570,7 @@ const Financial: React.FC = () => {
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
-                    {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {keepCat(ASSET_CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               )}
@@ -577,7 +578,7 @@ const Financial: React.FC = () => {
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {keepCat(CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               )}
