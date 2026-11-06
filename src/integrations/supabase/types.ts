@@ -1460,6 +1460,39 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_accounts: {
+        Row: {
+          account_type: string
+          active: boolean
+          created_at: string
+          currency: string
+          id: string
+          initial_balance: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_type?: string
+          active?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          initial_balance?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          active?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          initial_balance?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       internal_tasks: {
         Row: {
           assigned_to: string | null
@@ -3772,8 +3805,39 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_history: {
+        Row: {
+          action: string
+          changed_by: string | null
+          changed_by_email: string | null
+          changes: Json
+          created_at: string
+          id: string
+          transaction_id: string
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          changes?: Json
+          created_at?: string
+          id?: string
+          transaction_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          changes?: Json
+          created_at?: string
+          id?: string
+          transaction_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
+          account_id: string | null
           amount: number
           category: string
           client_id: string | null
@@ -3781,17 +3845,25 @@ export type Database = {
           custo_produto: number | null
           date: string
           description: string
+          destination_account_id: string | null
+          due_date: string | null
           id: string
+          notes: string | null
+          paid_at: string | null
+          payment_method: string | null
           quantidade: number
+          related_transaction_id: string | null
           source_id: string | null
           source_type: string | null
           status: string
           subcategory: string | null
           supplier_id: string | null
           type: string
+          updated_at: string | null
           valor_venda: number | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           category?: string
           client_id?: string | null
@@ -3799,17 +3871,25 @@ export type Database = {
           custo_produto?: number | null
           date: string
           description: string
+          destination_account_id?: string | null
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
           quantidade?: number
+          related_transaction_id?: string | null
           source_id?: string | null
           source_type?: string | null
           status?: string
           subcategory?: string | null
           supplier_id?: string | null
           type?: string
+          updated_at?: string | null
           valor_venda?: number | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           category?: string
           client_id?: string | null
@@ -3817,22 +3897,50 @@ export type Database = {
           custo_produto?: number | null
           date?: string
           description?: string
+          destination_account_id?: string | null
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
           quantidade?: number
+          related_transaction_id?: string | null
           source_id?: string | null
           source_type?: string | null
           status?: string
           subcategory?: string | null
           supplier_id?: string | null
           type?: string
+          updated_at?: string | null
           valor_venda?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_destination_account_id_fkey"
+            columns: ["destination_account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
           {
@@ -4243,6 +4351,7 @@ export type Database = {
       }
       is_agency_owner: { Args: { _agency: string }; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      mark_overdue_transactions: { Args: never; Returns: number }
       meta_cleanup_missing_accounts: {
         Args: { _archive_days?: number; _delete_days?: number }
         Returns: Json

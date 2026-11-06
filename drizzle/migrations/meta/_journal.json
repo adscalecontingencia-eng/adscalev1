@@ -120,6 +120,13 @@
       "when": 1793647795630,
       "tag": "0016_meta_accounts_auto_archive_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793932065053,
+      "tag": "0017_financial_status_accounts_history",
+      "breakpoints": true
     }
   ]
 }
