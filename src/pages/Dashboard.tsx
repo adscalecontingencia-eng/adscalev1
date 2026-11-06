@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { reportRows } from '@/lib/finance-ledger';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Users, Server, CalendarIcon, Activity, Sparkles, ArrowUpRight, ArrowDownRight, Download, RefreshCw, Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExcelJS from 'exceljs';
@@ -57,7 +58,8 @@ const Dashboard: React.FC = () => {
         supabase.from('clients').select('*'),
         supabase.from('meta_ad_accounts').select('id,status,account_status'),
       ]);
-      if (txRes.data) setTransactions(txRes.data);
+      // Só Pago/Recebido; estornos/reembolsos abatem o lançamento original; transferências ficam fora.
+      if (txRes.data) setTransactions(reportRows(txRes.data as any[]));
       if (clientRes.data) setClients(clientRes.data);
       if (accRes.data) setAdAccounts(accRes.data);
     };
