@@ -107,6 +107,8 @@ export function estimateCommissionInRange(
   start: Date,
   end: Date,
   rateForWeekSpend: (weekSpend: number) => number,
+  /** Linhas usadas para o total da semana (ex.: todas as contas do cliente ao estimar uma só conta). */
+  weekBasis?: { date: string; spend: number }[],
 ): { commission: number; rates: number[] } {
   const weekKey = (iso: string) => {
     const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
@@ -124,10 +126,16 @@ export function estimateCommissionInRange(
     if (!iso) continue;
     const k = weekKey(iso);
     const spend = Number(r.spend || 0);
-    weekTotal.set(k, (weekTotal.get(k) || 0) + spend);
+    if (!weekBasis) weekTotal.set(k, (weekTotal.get(k) || 0) + spend);
     const [y, m, d] = iso.split('-').map(Number);
     const ts = new Date(y, m - 1, d).getTime();
     if (ts >= startTs && ts <= endTs) weekInRange.set(k, (weekInRange.get(k) || 0) + spend);
+  }
+  for (const r of weekBasis || []) {
+    const iso = String(r.date || '').slice(0, 10);
+    if (!iso) continue;
+    const k = weekKey(iso);
+    weekTotal.set(k, (weekTotal.get(k) || 0) + Number(r.spend || 0));
   }
   let commission = 0;
   const rates = new Set<number>();

@@ -39,3 +39,13 @@ describe('estimated commission uses the week goal, not the flat base', () => {
     expect(r.commission).toBeCloseTo(400, 2);
   });
 });
+
+describe('one account inside a week that hit the goal', () => {
+  it('uses the client week total to pick the %', () => {
+    const rate = (s: number) => getTierPctFromTiers(s, 5, [{ min_spend: 20000, pct: 4 }]);
+    const all = [{ date: '2026-11-06', spend: 15000 }, { date: '2026-11-07', spend: 10000 }];
+    const acct = [{ date: '2026-11-07', spend: 10000 }];
+    const r = estimateCommissionInRange(acct, new Date(2026, 10, 6), new Date(2026, 10, 12, 23, 59), rate, all);
+    expect(r.commission).toBeCloseTo(400, 2);
+  });
+});

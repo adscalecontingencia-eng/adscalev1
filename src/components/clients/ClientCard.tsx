@@ -305,6 +305,12 @@ export const ClientCard: React.FC<Props> = (props) => {
       .sort((a, b) => b.spendPeriod - a.spendPeriod);
   }, [accounts, periodRange?.start, periodRange?.end]);
 
+  const acctCommissionOf = (a: { spendByDay: { date: string; spend: number }[]; spendPeriod: number }) => {
+    if (!periodRange) return 0;
+    if (!rateForWeekSpend) return a.spendPeriod * (basePct / 100);
+    return estimateCommissionInRange(a.spendByDay, periodRange.start, periodRange.end, rateForWeekSpend, spendByDay).commission;
+  };
+
   const PeriodPill: React.FC<{ id: PeriodKey; label: string }> = ({ id, label }) => (
     <button
       onClick={() => setPeriod(id)}
@@ -664,9 +670,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                       <tbody>
                         {accountsWithPeriodSpend.map((a) => {
                           const isActive = a.status === 'active';
-                          const acctCommission = c.clientType === 'aluguel'
-                            ? a.spendPeriod * (basePct / 100)
-                            : 0;
+                          const acctCommission = c.clientType === 'aluguel' ? acctCommissionOf(a) : 0;
                           return (
                             <tr key={a.id} className="border-b border-border/40 last:border-0 hover:bg-secondary/40">
                               <td className="py-2 pr-2 font-medium text-foreground truncate max-w-[180px]">{a.name}</td>
@@ -708,7 +712,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                             {fmt(accountsWithPeriodSpend.reduce((s, a) => s + a.spendPeriod, 0))}
                           </td>
                           <td className="py-2 text-right tabular-nums text-primary">
-                            {fmt(accountsWithPeriodSpend.reduce((s, a) => s + a.spendPeriod * (basePct / 100), 0))}
+                            {fmt(c.clientType === 'aluguel' ? accountsWithPeriodSpend.reduce((s, a) => s + acctCommissionOf(a), 0) : 0)}
                           </td>
                           <td className="py-2 text-right tabular-nums text-muted-foreground">
                             {fmt(accountsWithPeriodSpend.reduce((s, a) => s + a.spendTotal, 0))}
@@ -720,8 +724,8 @@ export const ClientCard: React.FC<Props> = (props) => {
                 )}
 
                 <p className="text-[10px] text-muted-foreground/80 mt-2 leading-relaxed">
-                  Comissão estimada usa o percentual base ({basePct}%) do cliente sobre o gasto por conta no período.
-                  O valor final considera tiers de desconto por gasto semanal — ver Histórico ou Dashboard do cliente.
+                  Comissão estimada usa a % da meta semanal atingida pelo cliente em cada semana (sexta→quinta),
+                  a mesma regra do Saldo Acumulado. Sem meta atingida vale o percentual base ({basePct}%).
                 </p>
               </div>
             </motion.div>
