@@ -73,3 +73,76 @@ export function useCommissionTiers() {
   useEffect(() => { reload(); }, []);
   return { tiers, loading, reload };
 }
+
+/**
+ * Detects misconfigured weekly goals: once sorted by spend, each higher goal must charge a
+ * lower % than the previous one (and never more than the client's base %). A typo such as
+ * 10,000 instead of 100,000 makes a lower spend get a smaller fee than a higher one.
+ * Returns a human-readable message or null when the goals are consistent.
+ */
+export function tierOrderProblem(tiers: CommissionTier[], basePct?: number): string | null {
+  const clean = tiers
+    .filter(t => Number.isFinite(Number(t.min_spend)) && Number.isFinite(Number(t.pct)))
+    .map(t => ({ min_spend: Number(t.min_spend), pct: Number(t.pct) }))
+    .sort((a, b) => a.min_spend - b.min_spend);
+  const usd = (v: number) => `US$ ${v.toLocaleString('en-US')}`;
+  for (let i = 0; i < clean.length; i++) {
+    const t = clean[i];
+    if (t.min_spend <= 0 || t.pct <= 0) return 'Cada meta precisa de gasto e % maiores que zero.';
+    if (i > 0 && t.min_spend === clean[i - 1].min_spend) return `Há duas metas com o mesmo gasto (${usd(t.min_spend)}).`;
+    if (i > 0 && t.pct >= clean[i - 1].pct) {
+      return `A meta de ${usd(t.min_spend)} (${t.pct}%) precisa ter % menor que a meta de ${usd(clean[i - 1].min_spend)} (${clean[i - 1].pct}%).`;
+    }
+    if (i === 0 && basePct && t.pct > basePct) return `A primeira meta (${t.pct}%) não pode ser maior que a % base do cliente (${basePct}%).`;
+  }
+  return null;
+}
+
+/**
+ * Estimated commission for the spend inside [start, end], using the weekly-goal rate of each
+ * Friday→Thursday week (the rate depends on the WHOLE week's spend, like the billing engine).
+ */
+export function estimateCommissionInRange(
+  spendByDay: { date: string; spend: number }[],
+  start: Date,
+  end: Date,
+  rateForWeekSpend: (weekSpend: number) => number,
+  /** Linhas usadas para o total da semana (ex.: todas as contas do cliente ao estimar uma só conta). */
+  weekBasis?: { date: string; spend: number }[],
+): { commission: number; rates: number[] } {
+  const weekKey = (iso: string) => {
+    const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+    const day = new Date(y, m - 1, d);
+    const back = (day.getDay() - 5 + 7) % 7; // Friday = 5
+    day.setDate(day.getDate() - back);
+    return day.getTime();
+  };
+  const weekTotal = new Map<number, number>();
+  const weekInRange = new Map<number, number>();
+  const startTs = start.getTime();
+  const endTs = end.getTime();
+  for (const r of spendByDay) {
+    const iso = String(r.date || '').slice(0, 10);
+    if (!iso) continue;
+    const k = weekKey(iso);
+    const spend = Number(r.spend || 0);
+    if (!weekBasis) weekTotal.set(k, (weekTotal.get(k) || 0) + spend);
+    const [y, m, d] = iso.split('-').map(Number);
+    const ts = new Date(y, m - 1, d).getTime();
+    if (ts >= startTs && ts <= endTs) weekInRange.set(k, (weekInRange.get(k) || 0) + spend);
+  }
+  for (const r of weekBasis || []) {
+    const iso = String(r.date || '').slice(0, 10);
+    if (!iso) continue;
+    const k = weekKey(iso);
+    weekTotal.set(k, (weekTotal.get(k) || 0) + Number(r.spend || 0));
+  }
+  let commission = 0;
+  const rates = new Set<number>();
+  weekInRange.forEach((spend, k) => {
+    const rate = rateForWeekSpend(weekTotal.get(k) || 0);
+    if (spend > 0) rates.add(rate);
+    commission += spend * (rate / 100);
+  });
+  return { commission, rates: Array.from(rates).sort((a, b) => b - a) };
+}

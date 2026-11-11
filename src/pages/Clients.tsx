@@ -11,7 +11,8 @@ import { ptBR } from 'date-fns/locale';
 import { parseDateLocal, formatDateBR } from '@/lib/date-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useCommissionTiers, getTierPctFromTiers, tiersForClient, CommissionTier } from '@/lib/commission-tiers';
+import { useCommissionTiers, getTierPctFromTiers, tiersForClient, CommissionTier, tierOrderProblem } from '@/lib/commission-tiers';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/lib/audit';
 import ClientKPIBar from '@/components/clients/ClientKPIBar';
@@ -125,6 +126,8 @@ const Clients: React.FC = () => {
   };
   const saveTiers = async () => {
     if (!tierDraft) return;
+    const tierProblem = tierOrderProblem(tierDraft);
+    if (tierProblem) { toast.error(tierProblem); return; }
     setSavingTiers(true);
     try {
       // Replace all: delete then insert
@@ -174,7 +177,8 @@ const Clients: React.FC = () => {
   };
 
   const fetchCommissions = async () => {
-    const { data, error } = await supabase.from('commissions').select('*').order('date', { ascending: false });
+    const { data, error } = await fetchAllRows<any>((from, to) =>
+      supabase.from('commissions').select('*').order('date', { ascending: false }).order('id').range(from, to));
     if (error) return;
     setCommissions((data || []).map(c => ({
       id: c.id, clientId: c.client_id, date: c.date, amount: Number(c.amount),
@@ -207,30 +211,26 @@ const Clients: React.FC = () => {
     return `${y}-${m}-${day}`;
   };
   const fetchInsightsByClient = async () => {
-    const [assignRes, accRes] = await Promise.all([
-      supabase
+    // A API limita cada resposta em 1000 linhas. Contas Meta já passam disso, e
+    // sem paginar as contas do fim da lista sumiam do gasto semanal (e do saldo).
+    // Ordem estável (id) evita linhas puladas/repetidas entre páginas.
+    const [assignRes, accRes, insRes] = await Promise.all([
+      fetchAllRows<any>((from, to) => supabase
         .from('meta_ad_account_assignments')
-        .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at'),
-      supabase
+        .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at')
+        .order('id').range(from, to)),
+      fetchAllRows<any>((from, to) => supabase
         .from('meta_ad_accounts')
-        .select('id, meta_account_id, name, status, account_status'),
-    ]);
-    if (assignRes.error) return;
-
-    // A API limita cada resposta em 1000 linhas mesmo com range maior.
-    // Paginar garante que semanas recentes (sexta→quinta) não fiquem fora do admin.
-    const allInsights: any[] = [];
-    const pageSize = 1000;
-    for (let from = 0; ; from += pageSize) {
-      const { data, error } = await supabase
+        .select('id, meta_account_id, name, status, account_status')
+        .order('id').range(from, to)),
+      fetchAllRows<any>((from, to) => supabase
         .from('meta_ad_insights')
         .select('ad_account_id, date, spend')
-        .order('date', { ascending: true })
-        .range(from, from + pageSize - 1);
-      if (error) return;
-      allInsights.push(...(data || []));
-      if (!data || data.length < pageSize) break;
-    }
+        .order('date', { ascending: true }).order('id')
+        .range(from, to), 1000, 200),
+    ]);
+    if (assignRes.error || accRes.error || insRes.error) return;
+    const allInsights: any[] = insRes.data;
     type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
     const assignmentsByAccount = new Map<string, AssignmentWindow[]>();
     (assignRes.data || []).forEach((a: any) => {
@@ -421,6 +421,11 @@ const Clients: React.FC = () => {
     const planCredit = clientType === 'aluguel' ? (form.planCredit || 0) : 0;
 
     // Delta de crédito p/ lançar como receita (faturamento)
+    if (clientType === 'aluguel' && Array.isArray(form.customTiers) && form.customTiers.length > 0) {
+      const tierProblem = tierOrderProblem(form.customTiers, percentageValue);
+      if (tierProblem) { toast.error(`Metas personalizadas: ${tierProblem}`); setSaving(false); return; }
+    }
+
     const previousCredit = editing ? (editing.planCredit || 0) : 0;
     const creditDelta = clientType === 'aluguel' ? Math.max(0, planCredit - previousCredit) : 0;
 
@@ -1157,9 +1162,11 @@ const Clients: React.FC = () => {
           spendByDay: spendByClient[c.id] || [],
           accounts: accountsByClient[c.id] || [],
           percentage: c.clientType === 'aluguel' ? (c.percentageValue || 0) : 0,
+          rateForWeekSpend: (weekSpend: number) => getClientTierPercentage(c, weekSpend),
         })),
       ),
-    [clients, spendByClient, accountsByClient],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clients, spendByClient, accountsByClient, commissionTiers],
   );
 
   const historyClient = historyClientId ? clients.find(c => c.id === historyClientId) : null;
@@ -1536,6 +1543,7 @@ const Clients: React.FC = () => {
               status={getClientStatus(c.id)}
               spendByDay={spendByClient[c.id] || []}
               accounts={accountsByClient[c.id] || []}
+              rateForWeekSpend={(weekSpend) => getClientTierPercentage(c, weekSpend)}
               isAdmin={isAdmin}
               showPayForm={showPaidForm === c.id}
               isSubmittingPayment={validatingPaymentClientId === c.id}
