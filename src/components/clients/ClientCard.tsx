@@ -32,6 +32,7 @@ import { ptBR } from 'date-fns/locale';
 import { parseDateLocal } from '@/lib/date-utils';
 import { computeLoyaltyProgress } from '@/lib/loyalty-tiers';
 import { computeClientWeekCompare } from '@/lib/week-compare';
+import { estimateCommissionInRange } from '@/lib/commission-tiers';
 import WeekComparisonCard from './WeekComparisonCard';
 import { toast } from 'sonner';
 
@@ -75,6 +76,8 @@ interface Props {
   status: ClientStatus;
   spendByDay: { date: string; spend: number }[];
   accounts?: AccountBreakdown[];
+  /** % da meta semanal do cliente para o gasto total da semana (mesma regra do saldo). */
+  rateForWeekSpend?: (weekSpend: number) => number;
   isAdmin: boolean;
   showPayForm: boolean;
   isSubmittingPayment?: boolean;
@@ -217,6 +220,7 @@ export const ClientCard: React.FC<Props> = (props) => {
     status,
     spendByDay,
     accounts = [],
+    rateForWeekSpend,
     isAdmin,
     showPayForm,
     isSubmittingPayment = false,
@@ -260,9 +264,18 @@ export const ClientCard: React.FC<Props> = (props) => {
   }, [spendByDay, periodRange?.start, periodRange?.end]);
 
   const basePct = c.percentageValue || 0;
-  const estCommissionPeriod = c.clientType === 'aluguel' && spendPeriod !== null
-    ? spendPeriod * (basePct / 100)
-    : null;
+  // Comissão estimada usa a % da meta semanal de cada semana (sexta→quinta),
+  // a mesma regra do Saldo Acumulado — antes usava só a % base e divergia.
+  const estimate = useMemo(() => {
+    if (c.clientType !== 'aluguel' || !periodRange) return null;
+    if (!rateForWeekSpend) return { commission: (spendPeriod ?? 0) * (basePct / 100), rates: [basePct] };
+    return estimateCommissionInRange(spendByDay, periodRange.start, periodRange.end, rateForWeekSpend);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.clientType, spendByDay, periodRange?.start, periodRange?.end, rateForWeekSpend, basePct, spendPeriod]);
+  const estCommissionPeriod = estimate ? estimate.commission : null;
+  const estRateLabel = !estimate || estimate.rates.length === 0
+    ? `${basePct}%`
+    : estimate.rates.length === 1 ? `${estimate.rates[0]}%` : 'por meta';
 
   const planCredit = c.planCredit || 0;
   const availableAccounts = c.adAccounts - c.usedAccounts - c.blockedAccounts;
@@ -277,7 +290,9 @@ export const ClientCard: React.FC<Props> = (props) => {
         spendByDay,
         accounts,
         percentage: c.clientType === 'aluguel' ? basePct : 0,
+        rateForWeekSpend,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [spendByDay, accounts, c.clientType, basePct],
   );
   const accountsWithPeriodSpend = useMemo(() => {
@@ -479,7 +494,7 @@ export const ClientCard: React.FC<Props> = (props) => {
           />
           <Stat
             icon={<Zap size={11} />}
-            label={c.clientType === 'aluguel' ? `Comissão est. (${basePct}%)` : 'Comissão fixa'}
+            label={c.clientType === 'aluguel' ? `Comissão est. (${estRateLabel})` : 'Comissão fixa'}
             value={fmt(
               c.clientType === 'aluguel'
                 ? (estCommissionPeriod ?? 0)

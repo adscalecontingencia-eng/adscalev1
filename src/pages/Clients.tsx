@@ -1162,9 +1162,11 @@ const Clients: React.FC = () => {
           spendByDay: spendByClient[c.id] || [],
           accounts: accountsByClient[c.id] || [],
           percentage: c.clientType === 'aluguel' ? (c.percentageValue || 0) : 0,
+          rateForWeekSpend: (weekSpend: number) => getClientTierPercentage(c, weekSpend),
         })),
       ),
-    [clients, spendByClient, accountsByClient],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clients, spendByClient, accountsByClient, commissionTiers],
   );
 
   const historyClient = historyClientId ? clients.find(c => c.id === historyClientId) : null;

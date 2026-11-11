@@ -1,5 +1,6 @@
 import { startOfDay, endOfDay, startOfWeek, subDays, isWithinInterval } from 'date-fns';
 import { parseDateLocal } from '@/lib/date-utils';
+import { estimateCommissionInRange } from '@/lib/commission-tiers';
 
 export interface SpendPoint { date: string; spend: number }
 export interface AccountLike { id: string; spendByDay: SpendPoint[] }
@@ -52,24 +53,30 @@ export function computeClientWeekCompare(params: {
   spendByDay: SpendPoint[];
   accounts: AccountLike[];
   percentage: number; // 0 quando não for aluguel
+  /** % da meta semanal para o gasto total da semana; quando ausente usa `percentage` fixo. */
+  rateForWeekSpend?: (weekSpend: number) => number;
   now?: Date;
 }): WeekCompareResult {
-  const { spendByDay, accounts, percentage } = params;
+  const { spendByDay, accounts, percentage, rateForWeekSpend } = params;
   const ranges = getPartialWeekRanges(params.now);
   const pct = (percentage || 0) / 100;
 
   const curSpend = sumInRange(spendByDay, ranges.current.start, ranges.current.end);
   const prevSpend = sumInRange(spendByDay, ranges.previous.start, ranges.previous.end);
+  const commissionFor = (start: Date, end: Date, spend: number) =>
+    percentage > 0 && rateForWeekSpend
+      ? estimateCommissionInRange(spendByDay, start, end, rateForWeekSpend).commission
+      : spend * pct;
 
   return {
     current: {
       spend: curSpend,
-      commission: curSpend * pct,
+      commission: commissionFor(ranges.current.start, ranges.current.end, curSpend),
       activeAccounts: countActiveAccounts(accounts, ranges.current.start, ranges.current.end),
     },
     previous: {
       spend: prevSpend,
-      commission: prevSpend * pct,
+      commission: commissionFor(ranges.previous.start, ranges.previous.end, prevSpend),
       activeAccounts: countActiveAccounts(accounts, ranges.previous.start, ranges.previous.end),
     },
     ranges,
@@ -78,7 +85,7 @@ export function computeClientWeekCompare(params: {
 
 /** Comparação agregada para vários clientes. */
 export function computeAggregateWeekCompare(
-  entries: Array<{ spendByDay: SpendPoint[]; accounts: AccountLike[]; percentage: number }>,
+  entries: Array<{ spendByDay: SpendPoint[]; accounts: AccountLike[]; percentage: number; rateForWeekSpend?: (weekSpend: number) => number }>,
   now?: Date,
 ): WeekCompareResult {
   const ranges = getPartialWeekRanges(now);
