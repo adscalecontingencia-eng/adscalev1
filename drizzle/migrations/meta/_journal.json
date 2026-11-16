@@ -127,6 +127,13 @@
       "when": 1793932065053,
       "tag": "0017_financial_status_accounts_history",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794872318984,
+      "tag": "0018_migration",
+      "breakpoints": true
     }
   ]
 }

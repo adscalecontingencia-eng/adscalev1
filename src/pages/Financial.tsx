@@ -335,10 +335,15 @@ const Financial: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Apagar este lançamento? A exclusão fica registrada no histórico.')) return;
+    const linked = transactions.filter((t: any) => t.related_transaction_id === id);
+    const msg = linked.length
+      ? `Este lançamento tem ${linked.length} estorno/reembolso ligado. Apagar também remove ${linked.length === 1 ? 'esse estorno/reembolso' : 'esses estornos/reembolsos'}. A exclusão fica registrada no histórico. Continuar?`
+      : 'Apagar este lançamento? A exclusão fica registrada no histórico.';
+    if (!confirm(msg)) return;
     const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) { toast.error('Erro ao remover'); return; }
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    if (error) { toast.error(`Erro ao remover: ${error.message}`); return; }
+    const removed = new Set([id, ...linked.map((t: any) => t.id)]);
+    setTransactions(prev => prev.filter(t => !removed.has(t.id)));
   };
 
   const fmt = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
