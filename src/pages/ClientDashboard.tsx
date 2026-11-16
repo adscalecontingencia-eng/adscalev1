@@ -1424,15 +1424,18 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
             </div>
 
             {client.client_type !== 'venda' && (() => {
+              // Semana de cobrança em andamento (sexta até agora) — acompanha o gasto em tempo real.
               const now = new Date();
-                const { start: ws, end: we } = getLastClosedBillingWeekRange(now);
+              const ws = getCurrentBillingWeekRange(now).start;
+              const we = endOfDay(now);
               const weekSpend = insights
                 .filter((i: any) => isWithinInterval(parseDateLocal(i.date), { start: ws, end: we }))
                 .reduce((s: number, i: any) => s + Number(i.spend || 0), 0);
               const tiers = [...commissionTiers]
                 .map(t => ({ min: t.min_spend, pct: t.pct }))
                 .sort((a, b) => a.min - b.min);
-              const currentRate = [...tiers].reverse().find(t => weekSpend > t.min)?.pct ?? (Number(client.percentage_value) || 0);
+              const currentRate = getTierPct(weekSpend, Number(client.percentage_value) || 0);
+              const weekCommission = weekSpend * (currentRate / 100);
               const nextTier = tiers.find(t => weekSpend <= t.min);
               const remaining = nextTier ? Math.max(0, nextTier.min - weekSpend) : 0;
               const topTier = tiers[tiers.length - 1];
@@ -1446,14 +1449,20 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                   <p className="text-xs text-muted-foreground mb-4">
                     {t('clientDash.contract.weeklyGoalsDesc')}
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                     <div className="bg-secondary/60 rounded-lg p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.lastClosedSpend')}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.currentWeekSpend')}</p>
                       <p className="font-bold text-lg text-foreground mt-1">{fmt(weekSpend)}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{t('clientDash.contract.fridayToToday')}</p>
                     </div>
                     <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.currentPct')}</p>
                       <p className="font-bold text-lg text-primary mt-1">{currentRate}%</p>
+                    </div>
+                    <div className="bg-secondary/60 rounded-lg p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('clientDash.contract.weekCommission')}</p>
+                      <p className="font-bold text-lg text-foreground mt-1">{fmt(weekCommission)}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{t('clientDash.contract.weekCommissionHint', { pct: currentRate })}</p>
                     </div>
                   </div>
                   <div className="mb-4">

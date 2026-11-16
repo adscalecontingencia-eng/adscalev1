@@ -276,6 +276,7 @@ const pt = {
       observations: 'Observações',
       weeklyGoals: 'Metas semanais de desconto',
       weeklyGoalsDesc: 'Quanto mais sua conta gastar na semana, menor o percentual cobrado pela agência.',
+      currentWeekSpend: 'Gasto da semana atual', fridayToToday: 'Sexta até hoje — atualiza a cada sincronização', weekCommission: 'Comissão estimada da semana', weekCommissionHint: '{{pct}}% sobre o gasto da semana',
       lastClosedSpend: 'Gasto última semana fechada',
       currentPct: 'Percentual atual',
       remainingToReach: 'Faltam {{amount}} para atingir {{pct}}% (acima de {{min}}).',

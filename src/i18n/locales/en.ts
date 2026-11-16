@@ -230,7 +230,7 @@ const en: Translations = {
     contract: {
       details: 'Contract Details', clientType: 'Client Type', fixedSale: 'Sale (Fixed Value)', rentalSpend: 'Rental (% of Spend)', fixedValue: 'Fixed Value', basePct: 'Base percentage',
       basePctDesc: 'Percentage defined in the contract. As weekly spend goals are reached, the rate decreases progressively.', billing: 'Billing', weeklyFriday: 'Weekly — every Friday', observations: 'Notes',
-      weeklyGoals: 'Weekly discount goals', weeklyGoalsDesc: 'The more your account spends during the week, the lower the agency percentage.', lastClosedSpend: 'Last closed week spend', currentPct: 'Current percentage',
+      weeklyGoals: 'Weekly discount goals', weeklyGoalsDesc: 'The more your account spends during the week, the lower the agency percentage.', currentWeekSpend: 'Current week spend', fridayToToday: 'Friday to today — updates on every sync', weekCommission: 'Estimated week commission', weekCommissionHint: '{{pct}}% on this week\'s spend', lastClosedSpend: 'Last closed week spend', currentPct: 'Current percentage',
       remainingToReach: '{{amount}} left to reach {{pct}}% (above {{min}}).', topGoalReached: 'You reached the maximum goal — {{pct}}% on spend.', above: 'Above {{amount}}',
       accumulatedHistory: 'Accumulated History', totalAdSpend: 'Total Ad Spend', totalCommission: 'Total Commission', totalPaid: 'Total Paid',
     },
