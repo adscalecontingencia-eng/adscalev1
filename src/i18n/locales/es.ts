@@ -230,7 +230,7 @@ const es: Translations = {
     contract: {
       details: 'Detalles del Contrato', clientType: 'Tipo de Cliente', fixedSale: 'Venta (Valor Fijo)', rentalSpend: 'Alquiler (% sobre Gasto)', fixedValue: 'Valor Fijo', basePct: 'Porcentaje base',
       basePctDesc: 'Porcentaje definido en el contrato. A medida que se alcanzan las metas de gasto semanal, la tarifa disminuye progresivamente.', billing: 'Cobro', weeklyFriday: 'Semanal — todos los viernes', observations: 'Observaciones',
-      weeklyGoals: 'Metas semanales de descuento', weeklyGoalsDesc: 'Cuanto más gaste tu cuenta en la semana, menor será el porcentaje cobrado por la agencia.', lastClosedSpend: 'Gasto última semana cerrada', currentPct: 'Porcentaje actual',
+      weeklyGoals: 'Metas semanales de descuento', weeklyGoalsDesc: 'Cuanto más gaste tu cuenta en la semana, menor será el porcentaje cobrado por la agencia.', currentWeekSpend: 'Gasto de la semana actual', fridayToToday: 'Viernes hasta hoy — se actualiza en cada sincronización', weekCommission: 'Comisión estimada de la semana', weekCommissionHint: '{{pct}}% sobre el gasto de la semana', lastClosedSpend: 'Gasto última semana cerrada', currentPct: 'Porcentaje actual',
       remainingToReach: 'Faltan {{amount}} para alcanzar {{pct}}% (por encima de {{min}}).', topGoalReached: 'Alcanzaste la meta máxima — {{pct}}% sobre el gasto.', above: 'Por encima de {{amount}}',
       accumulatedHistory: 'Historial Acumulado', totalAdSpend: 'Gasto Total Ads', totalCommission: 'Comisión Total', totalPaid: 'Total Pagado',
     },
