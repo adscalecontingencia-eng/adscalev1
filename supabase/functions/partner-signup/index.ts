@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
     if (existing) return json({ error: "Este e-mail já está cadastrado pela nossa equipe. Fale com o suporte para receber seu acesso." }, 409);
 
     let partnerId = existing?.id as string | undefined;
+    let createdNow = false;
 
     if (!partnerId) {
       const { data: created, error: insErr } = await admin
@@ -56,6 +57,7 @@ Deno.serve(async (req) => {
         .single();
       if (insErr || !created) return json({ error: insErr?.message || "Erro ao registrar parceiro" }, 500);
       partnerId = created.id;
+      createdNow = true;
     }
 
     const { data: createdUser, error: authErr } = await admin.auth.admin.createUser({
@@ -64,7 +66,11 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { name, role: "partner" },
     });
-    if (authErr || !createdUser.user) return json({ error: authErr?.message || "Erro ao criar usuário" }, 400);
+    if (authErr || !createdUser.user) {
+      // Undo the row created by this attempt so the person can retry with another password.
+      if (createdNow) await admin.from("partners").delete().eq("id", partnerId).is("auth_user_id", null);
+      return json({ error: authErr?.message || "Erro ao criar usuário" }, 400);
+    }
 
     const uid = createdUser.user.id;
 

@@ -82,18 +82,20 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
 
       // Create profile in the right table
+      let profileErr: unknown = null;
       if (role === "support") {
-        await supabaseAdmin.from("support_users").insert({
+        const { error: pErr } = await supabaseAdmin.from("support_users").insert({
           auth_user_id: userId,
           name,
           email,
           permissions: permissions || ["support"],
         });
+        profileErr = pErr;
       } else if (role === "client") {
         const cd = client_data || {};
         const clientType = cd.clientType === "venda" ? "venda" : "aluguel";
         const paymentType = clientType === "venda" ? "fixed" : "percentage";
-        await supabaseAdmin.from("clients").insert({
+        const { error: pErr } = await supabaseAdmin.from("clients").insert({
           auth_user_id: userId,
           name,
           email,
@@ -110,6 +112,16 @@ Deno.serve(async (req) => {
           blocked_accounts: cd.blockedAccounts || 0,
           whatsapp_phone: cd.whatsappPhone || null,
           whatsapp_group_link: cd.whatsappGroupLink || null,
+        });
+        profileErr = pErr;
+      }
+      if (profileErr) {
+        // Don't leave a login without its profile: it would block retrying with the same e-mail.
+        console.error("create_user profile insert failed", profileErr);
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+        return new Response(JSON.stringify({ error: "Falha ao salvar o cadastro" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
