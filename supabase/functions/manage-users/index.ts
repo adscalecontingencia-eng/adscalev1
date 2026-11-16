@@ -118,6 +118,55 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "create_client_login") {
+      // Creates a login for an existing client row that has no auth user yet.
+      const { client_id, password } = body;
+      if (!client_id || !password || typeof password !== "string" || password.length < 6) {
+        return new Response(JSON.stringify({ error: "Informe o cliente e uma senha de ao menos 6 caracteres" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: cli } = await supabaseAdmin
+        .from("clients")
+        .select("id, name, email, auth_user_id")
+        .eq("id", client_id)
+        .maybeSingle();
+      if (!cli) {
+        return new Response(JSON.stringify({ error: "Cliente não encontrado" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (cli.auth_user_id) {
+        return new Response(JSON.stringify({ error: "Cliente já possui login" }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const email = String(cli.email || "").trim().toLowerCase();
+      if (!email.includes("@")) {
+        return new Response(JSON.stringify({ error: "Cliente sem e-mail válido" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { name: cli.name, role: "client" },
+      });
+      if (cErr || !created?.user) {
+        console.error("create_client_login failed", cErr);
+        return new Response(JSON.stringify({ error: "Falha ao criar login" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const newId = created.user.id;
+      await supabaseAdmin.from("user_roles").insert({ user_id: newId, role: "client" });
+      await supabaseAdmin.from("clients").update({ auth_user_id: newId, email }).eq("id", client_id);
+      return new Response(JSON.stringify({ success: true, user_id: newId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "reset_password") {
       const { client_id, user_id, new_password } = body;
       if (!new_password || typeof new_password !== "string" || new_password.length < 6) {
