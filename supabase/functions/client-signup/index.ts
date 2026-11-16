@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     const { data: existing, error: cliErr } = await admin
       .from("clients")
-      .select("id, email, auth_user_id, name")
+      .select("id, email, auth_user_id, name, approval_status, how_found_us")
       .ilike("email", normEmail)
       .maybeSingle();
 
@@ -90,7 +90,10 @@ Deno.serve(async (req) => {
     if (existing?.auth_user_id) return json({ error: "Este e-mail já possui acesso ativo. Faça login." }, 409);
     // Pre-registered client (created by staff) without login: never let an unverified
     // public signup bind itself to it — staff must create the access from the admin panel.
-    if (existing) {
+    // A row left behind by an earlier failed self-signup (pending, filled by this form) may be reused.
+    const isSignupLeftover = !!existing && !existing.auth_user_id
+      && existing.approval_status === "pending" && !!existing.how_found_us;
+    if (existing && !isSignupLeftover) {
       return json({ error: "Este e-mail já está cadastrado pela nossa equipe. Fale com o suporte para receber seu acesso.", code: "preregistered" }, 409);
     }
 
@@ -106,7 +109,8 @@ Deno.serve(async (req) => {
       rejection_reason: null,
     };
 
-    let client = existing;
+    let client: { id: string; email: string; auth_user_id: string | null; name: string } | null = existing;
+    let createdNow = false;
     if (!client) {
       const defaultName = (name && String(name).trim()) || normEmail.split("@")[0];
       const { data: created, error: insErr } = await admin
@@ -128,6 +132,7 @@ Deno.serve(async (req) => {
         .single();
       if (insErr || !created) return json({ error: "Erro ao registrar cliente" }, 500);
       client = created;
+      createdNow = true;
     } else {
       await admin
         .from("clients")
@@ -135,6 +140,30 @@ Deno.serve(async (req) => {
         .eq("id", client.id);
     }
 
+
+    const { data: created, error: authErr } = await admin.auth.admin.createUser({
+      email: normEmail,
+      password,
+      email_confirm: true,
+      user_metadata: { name: client.name, role: "client", phone: normalizedPhone },
+    });
+    if (authErr || !created.user) {
+      const raw = (authErr?.message || "").toLowerCase();
+      let msg = "Erro ao criar usuário. Tente novamente.";
+      if (raw.includes("weak") || raw.includes("pwned") || raw.includes("easy to guess")) {
+        msg = "Essa senha é muito comum e já apareceu em vazamentos na internet. Escolha uma senha mais forte, misturando letras maiúsculas, minúsculas, números e símbolos (ex.: Agencia#2026Pedro). / This password is too common. Please choose a stronger one.";
+      } else if (raw.includes("already") || raw.includes("registered")) {
+        msg = "Este e-mail já possui acesso. Faça login ou use 'Esqueceu sua senha'.";
+      } else if (raw.includes("password")) {
+        msg = "Senha inválida. Use pelo menos 8 caracteres com letras, números e símbolos.";
+      }
+      console.error("createUser failed", authErr?.message);
+      // Undo the row created by this attempt so the person can retry with another password.
+      if (createdNow) await admin.from("clients").delete().eq("id", client.id).is("auth_user_id", null);
+      return json({ error: msg, code: "auth_error" }, 400);
+    }
+
+    const uid = created.user.id;
 
     // Vincula ao parceiro que indicou (programa de afiliados)
     let referrerId: string | null = null;
@@ -162,27 +191,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: created, error: authErr } = await admin.auth.admin.createUser({
-      email: normEmail,
-      password,
-      email_confirm: true,
-      user_metadata: { name: client.name, role: "client", phone: normalizedPhone },
-    });
-    if (authErr || !created.user) {
-      const raw = (authErr?.message || "").toLowerCase();
-      let msg = "Erro ao criar usuário. Tente novamente.";
-      if (raw.includes("weak") || raw.includes("pwned") || raw.includes("easy to guess")) {
-        msg = "Essa senha é muito comum e já apareceu em vazamentos na internet. Escolha uma senha mais forte, misturando letras maiúsculas, minúsculas, números e símbolos (ex.: Agencia#2026Pedro). / This password is too common. Please choose a stronger one.";
-      } else if (raw.includes("already") || raw.includes("registered")) {
-        msg = "Este e-mail já possui acesso. Faça login ou use 'Esqueceu sua senha'.";
-      } else if (raw.includes("password")) {
-        msg = "Senha inválida. Use pelo menos 8 caracteres com letras, números e símbolos.";
-      }
-      console.error("createUser failed", authErr?.message);
-      return json({ error: msg, code: "auth_error" }, 400);
-    }
-
-    const uid = created.user.id;
 
     // Cadastro vindo do link/domínio de uma agência parceira: vincula como sub-cliente
     if (agency_client_id && typeof agency_client_id === "string" && /^[0-9a-f-]{36}$/i.test(agency_client_id)) {

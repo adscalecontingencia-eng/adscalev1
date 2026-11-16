@@ -143,34 +143,47 @@ Deno.serve(async (req) => {
     const endpointErrors: Array<{ endpoint: string; error: string }> = [];
     const allAccounts: any[] = [];
 
-    for (const bm of bms) {
+    // Rate limit handling: wait at most once per request; app/user-level limits (4/17)
+    // stop further BM calls so the accounts already found are saved right away.
+    const RATE_RE = /"code":(4|17|32|613)\b/;
+    const GLOBAL_RATE_RE = /"code":(4|17)\b/;
+    let rateWaitUsed = false;
+    let rateLimited = false;
+    const fetchEdge = (bmId: string, edge: string, tag = "") => paginateMeta(
+      `${META_API}/${bmId}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
+      (m, x) => log(`biz ${bmId} ${edge}:${tag}${m}`, x),
+    );
+
+    outer: for (const bm of bms) {
       for (const edge of ["owned_ad_accounts", "client_ad_accounts"]) {
+        if (rateLimited) {
+          endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: "skipped: Meta rate limit" });
+          continue;
+        }
         try {
-          const items = await paginateMeta(
-            `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
-            (m, x) => log(`biz ${bm.id} ${edge}:${m}`, x),
-          );
+          const items = await fetchEdge(bm.id, edge);
           sources[`biz/${bm.id}/${edge}`] = items.length;
           for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
         } catch (e: any) {
-          const msg = String(e?.message || "");
-          if (/"code":(4|17|32|613)\b/.test(msg)) {
-            // limite temporário: espera e tenta 1x antes de desistir da BM
+          let msg = String(e?.message || "");
+          if (RATE_RE.test(msg) && !rateWaitUsed) {
+            rateWaitUsed = true;
             await new Promise((res) => setTimeout(res, 15000));
             try {
-              const items = await paginateMeta(
-                `${META_API}/${bm.id}/${edge}?access_token=${encodeURIComponent(token)}&fields=${ACCOUNT_FIELDS}&limit=200`,
-                (m, x) => log(`biz ${bm.id} ${edge}:retry:${m}`, x),
-              );
+              const items = await fetchEdge(bm.id, edge, "retry:");
               sources[`biz/${bm.id}/${edge}`] = items.length;
               for (const acc of items) allAccounts.push({ ...acc, _bm_meta_id: bm.id });
               continue;
             } catch (e2: any) {
-              endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: e2?.message });
-              continue;
+              msg = String(e2?.message || "");
             }
           }
           endpointErrors.push({ endpoint: `biz/${bm.id}/${edge}`, error: msg });
+          if (GLOBAL_RATE_RE.test(msg) && rateWaitUsed) {
+            rateLimited = true;
+            log("rate_limited_stop", { at_bm: bm.id, edge });
+            continue outer;
+          }
         }
       }
     }
