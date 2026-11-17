@@ -1,3 +1,4 @@
+import { formatAccountMoney } from '@/lib/account-money';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getTermsHref } from '@/lib/terms';
@@ -1679,7 +1680,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                                   <p className="text-sm font-semibold truncate">{acc.name}</p>
                                   <p className="text-[11px] text-muted-foreground font-mono truncate">ID: {acc.meta_account_id}</p>
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
-                                    <span>{t('clientDash.structure.balance')} <span className="text-foreground/80">{fmt(Number(acc.balance) || 0)}</span></span>
+                                    <span>{t('clientDash.structure.balance')} <span className="text-foreground/80">{formatAccountMoney(acc.balance, acc.currency)}</span></span>
                                     {acc.currency && <span>{t('clientDash.structure.currency')} <span className="text-foreground/80">{acc.currency}</span></span>}
                                     {acc.timezone_name && <span>Fuso: <span className="text-foreground/80">{acc.timezone_name}</span></span>}
                                     {acc.last_synced_at && (

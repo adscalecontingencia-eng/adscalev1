@@ -1,3 +1,4 @@
+import { formatSumByCurrency } from '@/lib/account-money';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek, addDays, format } from 'date-fns';
@@ -449,7 +450,7 @@ const AgencyPanel: React.FC = () => {
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Contas</p><p className="text-2xl font-bold">{accounts.length}</p></CardContent></Card>
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Ativas</p><p className="text-2xl font-bold text-primary">{accounts.filter(a => a.account_status === 1).length}</p></CardContent></Card>
               <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Banidas / com problema</p><p className="text-2xl font-bold text-destructive">{accounts.filter(a => a.account_status !== 1).length}</p></CardContent></Card>
-              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Saldo somado</p><p className="text-2xl font-bold">{usd(accounts.reduce((t, a) => t + Number(a.balance || 0), 0))}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Saldo somado</p><p className="text-2xl font-bold">{formatSumByCurrency(accounts.map(a => ({ value: a.balance, currency: a.currency })))}</p></CardContent></Card>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[240px]">

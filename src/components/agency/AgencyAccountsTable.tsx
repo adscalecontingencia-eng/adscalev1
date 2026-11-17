@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import { Ban, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AgencyAccount, accountState, healthOf, toneClass } from './agency-accounts';
+import { formatAccountMoney } from '@/lib/account-money';
 
 const usd = (n: any) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -35,9 +36,9 @@ export const AgencyAccountsTable: React.FC<Props> = ({ accounts, ownerOf, render
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
               <Stat label="Gasto na semana" value={a.week_spend == null ? '—' : usd(a.week_spend)} />
-              <Stat label="Gasto total" value={usd(a.amount_spent)} />
-              <Stat label="Saldo" value={usd(a.balance)} />
-              <Stat label="Limite de gasto" value={Number(a.spend_cap) > 0 ? usd(a.spend_cap) : 'Sem limite'} />
+              <Stat label="Gasto total" value={formatAccountMoney(a.amount_spent, a.currency)} />
+              <Stat label="Saldo" value={formatAccountMoney(a.balance, a.currency)} />
+              <Stat label="Limite de gasto" value={Number(a.spend_cap) > 0 ? formatAccountMoney(a.spend_cap, a.currency) : 'Sem limite'} />
               <div className="rounded-lg bg-background/40 border border-border/60 p-2">
                 <p className="text-muted-foreground">Saúde</p>
                 <div className="flex items-center gap-2 mt-1">
