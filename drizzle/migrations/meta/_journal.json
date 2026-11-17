@@ -134,6 +134,13 @@
       "when": 1794872318984,
       "tag": "0018_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794939510661,
+      "tag": "0019_meta_insights_original_currency",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@
 //
 // Optional: { app_ids: ["uuid", ...] } restricts the run to a subset of apps.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createFxConverter, convertInsightRow } from "./fx.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2245,7 +2246,7 @@ Deno.serve(async (req) => {
       const PERMANENT_DISABLE_REASONS = [1, 4, 7, 11, 12, 13, 15];
       const { data: accountsRaw, error: accErr } = await supabase
         .from("meta_ad_accounts")
-        .select("id, meta_account_id, name, meta_app_id, status, account_status, disable_reason, last_synced_at")
+        .select("id, meta_account_id, name, meta_app_id, status, account_status, disable_reason, last_synced_at, currency")
         .eq("status", "active")
         .eq("account_status", 1)
         .or(
@@ -2332,6 +2333,8 @@ Deno.serve(async (req) => {
       const allRows: any[] = [];
       let idx = 0;
       const list = accounts || [];
+      // Cotações do período para contas que não estão em dólar.
+      const fx = await createFxConverter(list.map((a: any) => a.currency || "USD"), since, until);
 
       const worker = async () => {
         while (true) {
@@ -2388,7 +2391,11 @@ Deno.serve(async (req) => {
             if (!data) throw lastError || new Error("Nenhum token conseguiu ler insights");
             const perAccount: any[] = [];
             for (const row of data.data || []) {
-              const rowObj = {
+              const rate = fx.usdPerUnit(acc.currency, row.date_start);
+              if (rate == null) {
+                throw new Error(`Cotação ${acc.currency}→USD indisponível para ${row.date_start}; gasto não salvo para não contar a moeda local como dólar`);
+              }
+              const rowObj = convertInsightRow({
                 ad_account_id: acc.id,
                 date: row.date_start,
                 spend: Number(row.spend || 0),
@@ -2401,7 +2408,7 @@ Deno.serve(async (req) => {
                 actions: row.actions || null,
                 purchases: pickByPriority(row.actions),
                 revenue: pickByPriority(row.action_values),
-              };
+              }, acc.currency, rate);
               allRows.push(rowObj);
               perAccount.push(rowObj);
             }
@@ -2420,10 +2427,11 @@ Deno.serve(async (req) => {
             try {
               const { data: sumRows } = await supabase
                 .from("meta_ad_insights")
-                .select("spend")
+                .select("spend, spend_original")
                 .eq("ad_account_id", acc.id);
               if (Array.isArray(sumRows)) {
-                lifetimeSpend = sumRows.reduce((t: number, r: any) => t + Number(r.spend || 0), 0);
+                // amount_spent da conta fica na moeda da própria conta (igual ao Meta).
+                lifetimeSpend = sumRows.reduce((t: number, r: any) => t + Number(r.spend_original ?? r.spend ?? 0), 0);
               }
             } catch { /* opcional */ }
             const updatePayload: Record<string, unknown> = {

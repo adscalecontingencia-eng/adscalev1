@@ -2123,13 +2123,16 @@ export type Database = {
           cpm: number | null
           created_at: string
           ctr: number | null
+          currency: string | null
           date: string
+          fx_rate: number | null
           id: string
           impressions: number | null
           purchases: number | null
           reach: number | null
           revenue: number | null
           spend: number | null
+          spend_original: number | null
         }
         Insert: {
           actions?: Json | null
@@ -2139,13 +2142,16 @@ export type Database = {
           cpm?: number | null
           created_at?: string
           ctr?: number | null
+          currency?: string | null
           date: string
+          fx_rate?: number | null
           id?: string
           impressions?: number | null
           purchases?: number | null
           reach?: number | null
           revenue?: number | null
           spend?: number | null
+          spend_original?: number | null
         }
         Update: {
           actions?: Json | null
@@ -2155,13 +2161,16 @@ export type Database = {
           cpm?: number | null
           created_at?: string
           ctr?: number | null
+          currency?: string | null
           date?: string
+          fx_rate?: number | null
           id?: string
           impressions?: number | null
           purchases?: number | null
           reach?: number | null
           revenue?: number | null
           spend?: number | null
+          spend_original?: number | null
         }
         Relationships: [
           {
