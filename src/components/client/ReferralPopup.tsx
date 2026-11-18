@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Gift, X, Sparkles, Target, Copy, Check, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -167,7 +168,7 @@ const ReferralPopup: React.FC<Props & { blocked?: boolean }> = ({ clientId, forc
                 </button>
                 <button onClick={close}
                   className="sm:w-32 bg-secondary/60 border border-border text-sm font-medium py-3 rounded-xl hover:bg-secondary transition-all">
-                  {d.statusPending === 'Pendente' ? 'Depois' : d.statusPending === 'Pendiente' ? 'Después' : 'Later'}
+                  {tr('client.referral.later')}
                 </button>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { tr } from '@/i18n';
 import { useTranslation } from 'react-i18next';
 import { Bot, Send, MessageCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,7 +47,7 @@ const SupportChat: React.FC<{ clientId: string | null; brandName?: string | null
 
   const waNum = whatsappOverride !== undefined ? whatsappOverride : whatsapp;
   const whatsappUrl = waNum
-    ? `https://wa.me/${waNum.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Vim do chat do painel ${brandName || 'AD SCALE'} e preciso de ajuda.`)}`
+    ? `https://wa.me/${waNum.replace(/\D/g, '')}?text=${encodeURIComponent(tr('client.chat.waMessage', { brand: brandName || 'AD SCALE' }))}`
     : null;
 
   const send = async (e: React.FormEvent) => {
@@ -131,7 +132,7 @@ const SupportChat: React.FC<{ clientId: string | null; brandName?: string | null
                     : 'max-w-[80%] text-foreground rounded-2xl rounded-bl-md px-4 py-2.5 text-sm whitespace-pre-wrap border border-border/60'
                 }
               >
-                {m.role === 'agent' && <p className="text-[10px] text-primary font-semibold mb-1">{brandName ? t('supportChat.teamOf', { name: brandName, defaultValue: `Equipe ${brandName}` }) : t('supportInbox.agentLabel')}</p>}
+                {m.role === 'agent' && <p className="text-[10px] text-primary font-semibold mb-1">{brandName ? t('client.chat.teamOf', { name: brandName }) : t('supportInbox.agentLabel')}</p>}
                 {m.content.replace(WHATSAPP_MARKER, '').trim()}
               </div>
             </div>

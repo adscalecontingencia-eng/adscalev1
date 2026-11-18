@@ -1,4 +1,6 @@
 // Shared helpers for agency ad-account display (status, health) and demo data.
+import { scoreLabel } from '@/lib/meta-labels';
+import { tr } from '@/i18n';
 
 export type AgencyAccount = {
   id: string;
@@ -21,20 +23,20 @@ export const ACCOUNT_FIELDS =
 
 export function accountState(status: number | null | undefined): { label: string; tone: 'ok' | 'warn' | 'bad' } {
   switch (status) {
-    case 1: return { label: 'Ativa', tone: 'ok' };
-    case 2: return { label: 'Banida', tone: 'bad' };
-    case 3: return { label: 'Pendência de pagamento', tone: 'warn' };
-    case 7: return { label: 'Em análise', tone: 'warn' };
-    case 9: return { label: 'Período de carência', tone: 'warn' };
-    case 101: return { label: 'Encerrada', tone: 'bad' };
-    default: return { label: 'Desconhecida', tone: 'warn' };
+    case 1: return { label: tr('agency.acc.st.active'), tone: 'ok' };
+    case 2: return { label: tr('agency.acc.st.banned'), tone: 'bad' };
+    case 3: return { label: tr('agency.acc.st.payment'), tone: 'warn' };
+    case 7: return { label: tr('agency.acc.st.review'), tone: 'warn' };
+    case 9: return { label: tr('agency.acc.st.grace'), tone: 'warn' };
+    case 101: return { label: tr('agency.acc.st.closed'), tone: 'bad' };
+    default: return { label: tr('agency.acc.st.unknown'), tone: 'warn' };
   }
 }
 
 export function healthOf(a: AgencyAccount): { score: number; label: string; tone: 'ok' | 'warn' | 'bad' } {
   const s = a.account_status === 2 || a.account_status === 101 ? 0 : Number(a.score ?? (a.account_status === 1 ? 80 : 40));
   const tone = s >= 70 ? 'ok' : s >= 40 ? 'warn' : 'bad';
-  const label = a.score_label || (tone === 'ok' ? 'Saudável' : tone === 'warn' ? 'Atenção' : 'Crítico');
+  const label = scoreLabel(a.score_label || (tone === 'ok' ? 'Saudável' : tone === 'warn' ? 'Atenção' : 'Crítico'));
   return { score: s, label, tone };
 }
 

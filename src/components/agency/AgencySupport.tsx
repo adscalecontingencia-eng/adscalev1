@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { format } from 'date-fns';
 import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,14 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { AgencyClientRequests } from './AgencyClientRequests';
 
+// `pt` stays Portuguese: it goes into the ticket text pasted to AD SCALE's WhatsApp.
 const CATEGORIES = [
-  { v: 'manutencao', l: 'Manutenção' }, { v: 'nova_conta', l: 'Nova conta' }, { v: 'bloqueio', l: 'Conta bloqueada' },
-  { v: 'pagamento', l: 'Pagamento / limite' }, { v: 'paginas', l: 'Páginas' }, { v: 'outro', l: 'Outro' },
-];
+  { v: 'manutencao', pt: 'Manutenção' }, { v: 'nova_conta', pt: 'Nova conta' }, { v: 'bloqueio', pt: 'Conta bloqueada' },
+  { v: 'pagamento', pt: 'Pagamento / limite' }, { v: 'paginas', pt: 'Páginas' }, { v: 'outro', pt: 'Outro' },
+].map(c => ({ ...c, get l() { return tr(`agency.support.cat.${c.v}`); } }));
 const STRUCTURES = ['BM Comum', 'BM Verificada', 'Perfil', 'Proxy', 'Multilogin'];
-const STATUSES = [
-  { v: 'pendente', l: 'Pendente' }, { v: 'em_andamento', l: 'Em andamento' }, { v: 'concluida', l: 'Concluída' }, { v: 'cancelada', l: 'Cancelada' },
-];
+const STATUSES = ['pendente', 'em_andamento', 'concluida', 'cancelada'].map(v => ({ v, get l() { return tr(`agency.req.st.${v}`); } }));
 
 const statusIcon = (s: string) => s === 'em_andamento' ? <Clock size={14} className="text-warning" />
   : s === 'concluida' ? <CheckCircle2 size={14} className="text-primary" />
@@ -38,35 +38,35 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: b
 
   const create = async () => {
     const title = form.title.trim();
-    if (!title || title.length > 200) return toast.error('Informe um título (até 200 caracteres).');
+    if (!title || title.length > 200) return toast.error(tr('agency.support.needTitle'));
     const { error } = await supabase.from('agency_support_tasks').insert({
       agency_client_id: agencyId, title, description: form.description.trim().slice(0, 2000) || null,
       category: form.category, structure_type: form.structure_type,
       sub_client_id: form.sub_client_id === 'none' ? null : form.sub_client_id,
       bm_id: form.bm_id.trim() || null, account_naming: form.account_naming.trim().slice(0, 200) || null,
     } as any);
-    if (error) return toast.error('Não foi possível criar o chamado.');
-    toast.success('Chamado criado.');
+    if (error) return toast.error(tr('agency.support.createError'));
+    toast.success(tr('agency.support.created'));
     setForm(EMPTY); setShow(false); load();
   };
   const copyTicket = async (t: any) => {
     const lines = [
       `Chamado: ${t.title}`,
-      `Categoria: ${CATEGORIES.find(c => c.v === t.category)?.l ?? t.category}`,
+      `Categoria: ${CATEGORIES.find(c => c.v === t.category)?.pt ?? t.category}`,
       `Estrutura: ${t.structure_type}`,
       `Cliente: ${subs.find(s => s.id === t.sub_client_id)?.name ?? 'Interno'}`,
       `ID da BM: ${t.bm_id || '—'}`,
       `Nomenclatura das contas: ${t.account_naming || '—'}`,
       t.description ? `Descrição: ${t.description}` : '',
     ].filter(Boolean).join('\n');
-    try { await navigator.clipboard.writeText(lines); toast.success('Chamado copiado. Cole no WhatsApp da AD SCALE.'); }
-    catch { toast.error('Não foi possível copiar.'); }
+    try { await navigator.clipboard.writeText(lines); toast.success(tr('agency.support.copied')); }
+    catch { toast.error(tr('agency.support.copyError')); }
   };
   const setStatus = async (id: string, status: string) => {
     const patch: any = { status, resolved_at: status === 'concluida' || status === 'cancelada' ? new Date().toISOString() : null };
     await supabase.from('agency_support_tasks').update(patch).eq('id', id); load();
   };
-  const del = async (id: string) => { if (!confirm('Excluir este chamado?')) return; await supabase.from('agency_support_tasks').delete().eq('id', id); load(); };
+  const del = async (id: string) => { if (!confirm(tr('agency.support.confirmDelete'))) return; await supabase.from('agency_support_tasks').delete().eq('id', id); load(); };
 
   const count = (s: string) => tasks.filter(t => t.status === s).length;
   const list = filter === 'todos' ? tasks : tasks.filter(t => t.status === filter);
@@ -75,31 +75,31 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: b
     <div className="space-y-5">
       <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-6 flex flex-wrap items-center gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">✱ Suporte & estrutura</p>
-          <h2 className="text-2xl font-bold mt-1">Central de <span className="text-primary">suporte</span></h2>
-          <p className="text-sm text-muted-foreground mt-1">Pedidos que seus clientes fazem pelo painel deles chegam aqui primeiro. Você completa e envia para a AD SCALE.</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">{tr('agency.support.eyebrow')}</p>
+          <h2 className="text-2xl font-bold mt-1" dangerouslySetInnerHTML={{ __html: tr('agency.support.title').replace('<span>', '<span class="text-primary">') }} />
+          <p className="text-sm text-muted-foreground mt-1">{tr('agency.support.intro')}</p>
         </div>
       </div>
 
       <AgencyClientRequests agencyId={agencyId} subs={subs} isDemo={isDemo} />
 
       <div className="flex items-center gap-2 pt-4 border-t border-border/60">
-        <h3 className="text-lg font-semibold">Chamados internos da agência</h3>
-        <Button className="ml-auto gap-2" variant="outline" onClick={() => setShow(s => !s)}><Plus size={14} />Novo chamado</Button>
+        <h3 className="text-lg font-semibold">{tr('agency.support.internal')}</h3>
+        <Button className="ml-auto gap-2" variant="outline" onClick={() => setShow(s => !s)}><Plus size={14} />{tr('agency.support.newTicket')}</Button>
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs">
-        {[{ v: 'todos', l: `Todos · ${tasks.length}` }, ...STATUSES.map(s => ({ v: s.v, l: `${s.l} · ${count(s.v)}` }))].map(f => (
+        {[{ v: 'todos', l: tr('agency.support.allN', { n: tasks.length }) }, ...STATUSES.map(s => ({ v: s.v, l: `${s.l} · ${count(s.v)}` }))].map(f => (
           <button key={f.v} onClick={() => setFilter(f.v)} className={`px-3 py-1.5 rounded-full border transition-colors ${filter === f.v ? 'bg-primary text-primary-foreground border-primary' : 'border-border/60 text-muted-foreground hover:text-foreground'}`}>{f.l}</button>
         ))}
       </div>
 
       {show && (
         <div className="rounded-xl border border-primary/30 bg-card/60 p-4 grid sm:grid-cols-2 gap-3">
-          <Input placeholder="Título do chamado" maxLength={200} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+          <Input placeholder={tr('agency.support.titlePh')} maxLength={200} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
           <Select value={form.sub_client_id} onValueChange={v => setForm({ ...form, sub_client_id: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="none">Sem cliente (interno)</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="none">{tr('agency.support.noClientInternal')}</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
           </Select>
           <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map(c => <SelectItem key={c.v} value={c.v}>{c.l}</SelectItem>)}</SelectContent>
@@ -107,10 +107,10 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: b
           <Select value={form.structure_type} onValueChange={v => setForm({ ...form, structure_type: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STRUCTURES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
-          <Input placeholder="ID da BM da agência (ex.: 1234567890)" maxLength={40} value={form.bm_id} onChange={e => setForm({ ...form, bm_id: e.target.value.replace(/[^\d]/g, '') })} />
-          <Input placeholder="Nomenclatura das contas (ex.: LOJA-CA-01)" maxLength={200} value={form.account_naming} onChange={e => setForm({ ...form, account_naming: e.target.value })} />
-          <Textarea className="sm:col-span-2" placeholder="Descrição" maxLength={2000} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-          <div className="sm:col-span-2 flex gap-2 justify-end"><Button variant="ghost" onClick={() => setShow(false)}>Cancelar</Button><Button onClick={create}>Criar chamado</Button></div>
+          <Input placeholder={tr('agency.support.bmPh')} maxLength={40} value={form.bm_id} onChange={e => setForm({ ...form, bm_id: e.target.value.replace(/[^\d]/g, '') })} />
+          <Input placeholder={tr('agency.support.namingPh')} maxLength={200} value={form.account_naming} onChange={e => setForm({ ...form, account_naming: e.target.value })} />
+          <Textarea className="sm:col-span-2" placeholder={tr('agency.support.description')} maxLength={2000} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          <div className="sm:col-span-2 flex gap-2 justify-end"><Button variant="ghost" onClick={() => setShow(false)}>{tr('agency.support.cancel')}</Button><Button onClick={create}>{tr('agency.support.createTicket')}</Button></div>
         </div>
       )}
 
@@ -123,17 +123,17 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: b
               <div className="flex flex-wrap gap-2 mt-1 text-[11px] text-muted-foreground">
                 <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{CATEGORIES.find(c => c.v === t.category)?.l ?? t.category}</span>
                 <span className="px-2 py-0.5 rounded-full bg-secondary">{t.structure_type}</span>
-                <span>{subs.find(s => s.id === t.sub_client_id)?.name ?? 'Interno'}</span>
+                <span>{subs.find(s => s.id === t.sub_client_id)?.name ?? tr('agency.support.internalLabel')}</span>
                 <span>· {format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</span>
               </div>
               {(t.bm_id || t.account_naming) && (
                 <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                  {t.bm_id && <span>ID da BM: <b className="font-mono">{t.bm_id}</b></span>}
-                  {t.account_naming && <span>Nomenclatura: <b>{t.account_naming}</b></span>}
+                  {t.bm_id && <span>{tr('agency.support.bmId')} <b className="font-mono">{t.bm_id}</b></span>}
+                  {t.account_naming && <span>{tr('agency.support.naming')} <b>{t.account_naming}</b></span>}
                 </div>
               )}
               {t.description && <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{t.description}</p>}
-              <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => copyTicket(t)}>Copiar para repassar à AD SCALE</Button>
+              <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => copyTicket(t)}>{tr('agency.support.copyForward')}</Button>
             </div>
             <Select value={t.status} onValueChange={v => setStatus(t.id, v)}>
               <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
@@ -142,7 +142,7 @@ export const AgencySupport: React.FC<{ agencyId: string; subs: any[]; isDemo?: b
             <Button size="icon" variant="ghost" onClick={() => del(t.id)}><Trash2 size={14} /></Button>
           </div>
         ))}
-        {!list.length && <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground"><LifeBuoy className="mx-auto mb-2 opacity-60" />Nenhum chamado aqui.</div>}
+        {!list.length && <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground"><LifeBuoy className="mx-auto mb-2 opacity-60" />{tr('agency.support.empty')}</div>}
       </div>
     </div>
   );

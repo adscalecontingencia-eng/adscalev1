@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { UserPlus, KeyRound, Trash2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,7 @@ interface Member { id: string; name: string; email: string; permissions: string[
 const call = async (body: Record<string, unknown>) => {
   const { data, error } = await supabase.functions.invoke('agency-members', { body });
   if (error) {
-    let msg = 'Não foi possível concluir.';
+    let msg = tr('agency.users.cantFinish');
     try { const j = await (error as any).context?.json?.(); if (j?.error) msg = j.error; } catch { /* ignore */ }
     throw new Error(msg);
   }
@@ -59,73 +60,73 @@ export const AgencyUsers: React.FC<{ agencyId: string; isDemo: boolean }> = ({ a
   };
 
   const create = async () => {
-    if (!form.name.trim() || !form.email.trim() || form.password.length < 8) return toast.error('Preencha nome, e-mail e uma senha com pelo menos 8 caracteres.');
-    if (!form.permissions.length) return toast.error('Escolha pelo menos uma área que o colaborador pode acessar.');
-    if (await run({ action: 'create', ...form }, 'Colaborador criado.')) { setOpen(false); setForm({ name: '', email: '', password: '', permissions: ['suporte'] }); }
+    if (!form.name.trim() || !form.email.trim() || form.password.length < 8) return toast.error(tr('agency.users.fillAll'));
+    if (!form.permissions.length) return toast.error(tr('agency.users.pickArea'));
+    if (await run({ action: 'create', ...form }, tr('agency.users.created'))) { setOpen(false); setForm({ name: '', email: '', password: '', permissions: ['suporte'] }); }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[220px]">
-          <p className="text-sm text-muted-foreground">Adicione pessoas da sua equipe e escolha quais áreas do painel cada uma pode abrir. Só você, dono da agência, vê esta página.</p>
+          <p className="text-sm text-muted-foreground">{tr('agency.users.intro')}</p>
         </div>
-        <Button className="gap-2" onClick={() => setOpen(true)}><UserPlus size={15} />Novo colaborador</Button>
+        <Button className="gap-2" onClick={() => setOpen(true)}><UserPlus size={15} />{tr('agency.users.newMember')}</Button>
       </div>
 
-      <Card><CardHeader><CardTitle className="text-base">Colaboradores ({members.length})</CardTitle></CardHeader><CardContent className="space-y-2">
+      <Card><CardHeader><CardTitle className="text-base">{tr('agency.users.members', { n: members.length })}</CardTitle></CardHeader><CardContent className="space-y-2">
         {members.map(m => (
           <div key={m.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 p-3">
             <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary text-sm font-bold">{m.name[0]?.toUpperCase()}</div>
             <div className="flex-1 min-w-[180px]">
-              <p className="text-sm font-medium">{m.name} {!m.active && <span className="text-[10px] uppercase text-destructive ml-1">bloqueado</span>}</p>
+              <p className="text-sm font-medium">{m.name} {!m.active && <span className="text-[10px] uppercase text-destructive ml-1">{tr('agency.users.blocked')}</span>}</p>
               <p className="text-xs text-muted-foreground">{m.email}</p>
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {AGENCY_PERMISSIONS.filter(p => m.permissions.includes(p.key)).map(p => <span key={p.key} className="text-[10px] rounded-full bg-primary/10 border border-primary/30 text-primary px-2 py-0.5">{p.label}</span>)}
-                {!m.permissions.length && <span className="text-[10px] text-muted-foreground">Sem acesso a nenhuma área</span>}
+                {!m.permissions.length && <span className="text-[10px] text-muted-foreground">{tr('agency.users.noAccess')}</span>}
               </div>
             </div>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">Ativo
-              <Switch checked={m.active} disabled={busy} onCheckedChange={v => run({ action: 'update', member_id: m.id, active: v }, v ? 'Acesso liberado.' : 'Acesso bloqueado.')} />
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">{tr('agency.users.active')}
+              <Switch checked={m.active} disabled={busy} onCheckedChange={v => run({ action: 'update', member_id: m.id, active: v }, v ? tr('agency.users.accessOn') : tr('agency.users.accessOff'))} />
             </label>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEdit({ ...m })}><ShieldCheck size={13} />Permissões</Button>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPwFor(m); setNewPw(''); }}><KeyRound size={13} />Senha</Button>
-            <Button size="icon" variant="ghost" disabled={busy} onClick={() => { if (confirm(`Remover o acesso de ${m.name}?`)) run({ action: 'delete', member_id: m.id }, 'Colaborador removido.'); }}><Trash2 size={14} /></Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEdit({ ...m })}><ShieldCheck size={13} />{tr('agency.users.permissions')}</Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPwFor(m); setNewPw(''); }}><KeyRound size={13} />{tr('agency.users.password')}</Button>
+            <Button size="icon" variant="ghost" disabled={busy} onClick={() => { if (confirm(tr('agency.users.confirmRemove', { name: m.name }))) run({ action: 'delete', member_id: m.id }, tr('agency.users.removed')); }}><Trash2 size={14} /></Button>
           </div>
         ))}
-        {!members.length && <p className="text-sm text-muted-foreground py-4">Nenhum colaborador ainda.</p>}
+        {!members.length && <p className="text-sm text-muted-foreground py-4">{tr('agency.users.none')}</p>}
       </CardContent></Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Novo colaborador</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr('agency.users.newMember')}</DialogTitle></DialogHeader>
           <div className="grid sm:grid-cols-3 gap-3">
-            <div><Label>Nome</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-            <div><Label>E-mail de acesso</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-            <div><Label>Senha inicial</Label><Input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="mín. 8 caracteres" /></div>
+            <div><Label>{tr('agency.users.name')}</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+            <div><Label>{tr('agency.users.loginEmail')}</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>{tr('agency.users.initialPw')}</Label><Input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder={tr('agency.users.minPw')} /></div>
           </div>
-          <Label className="mt-2">O que ele pode acessar</Label>
+          <Label className="mt-2">{tr('agency.users.canAccess')}</Label>
           <PermPicker value={form.permissions} onChange={v => setForm({ ...form, permissions: v })} />
-          <p className="text-[11px] text-muted-foreground">Ele entra pela mesma página de login do painel e vê só as áreas marcadas.</p>
-          <DialogFooter><Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button><Button disabled={busy} onClick={create}>Criar acesso</Button></DialogFooter>
+          <p className="text-[11px] text-muted-foreground">{tr('agency.users.loginHint')}</p>
+          <DialogFooter><Button variant="ghost" onClick={() => setOpen(false)}>{tr('agency.users.cancel')}</Button><Button disabled={busy} onClick={create}>{tr('agency.users.createAccess')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!edit} onOpenChange={v => !v && setEdit(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Permissões de {edit?.name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr('agency.users.permsOf', { name: edit?.name })}</DialogTitle></DialogHeader>
           {edit && <PermPicker value={edit.permissions} onChange={v => setEdit({ ...edit, permissions: v })} />}
-          <DialogFooter><Button variant="ghost" onClick={() => setEdit(null)}>Cancelar</Button>
-            <Button disabled={busy} onClick={async () => { if (edit && await run({ action: 'update', member_id: edit.id, permissions: edit.permissions }, 'Permissões salvas.')) setEdit(null); }}>Salvar</Button></DialogFooter>
+          <DialogFooter><Button variant="ghost" onClick={() => setEdit(null)}>{tr('agency.users.cancel')}</Button>
+            <Button disabled={busy} onClick={async () => { if (edit && await run({ action: 'update', member_id: edit.id, permissions: edit.permissions }, tr('agency.users.permsSaved'))) setEdit(null); }}>{tr('agency.users.save')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!pwFor} onOpenChange={v => !v && setPwFor(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Nova senha para {pwFor?.name}</DialogTitle></DialogHeader>
-          <Input type="text" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="mín. 8 caracteres" />
-          <DialogFooter><Button variant="ghost" onClick={() => setPwFor(null)}>Cancelar</Button>
-            <Button disabled={busy || newPw.length < 8} onClick={async () => { if (pwFor && await run({ action: 'reset_password', member_id: pwFor.id, password: newPw }, 'Senha alterada.')) setPwFor(null); }}>Salvar senha</Button></DialogFooter>
+          <DialogHeader><DialogTitle>{tr('agency.users.newPwFor', { name: pwFor?.name })}</DialogTitle></DialogHeader>
+          <Input type="text" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder={tr('agency.users.minPw')} />
+          <DialogFooter><Button variant="ghost" onClick={() => setPwFor(null)}>{tr('agency.users.cancel')}</Button>
+            <Button disabled={busy || newPw.length < 8} onClick={async () => { if (pwFor && await run({ action: 'reset_password', member_id: pwFor.id, password: newPw }, tr('agency.users.pwChanged'))) setPwFor(null); }}>{tr('agency.users.savePw')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -37,21 +38,21 @@ export const AgencyClientGoalsDialog: React.FC<Props> = ({ sub, agencyId, tiers,
 
   const save = async () => {
     for (const r of rows) {
-      if (!r.name.trim() || isNaN(num(r.min)) || isNaN(num(r.pct)) || num(r.pct) <= 0) return toast.error('Preencha nome, meta e taxa de todas as linhas.');
-      if (isBelowFloor(num(r.pct), platformPcts, r.subsidy)) return toast.error(`A taxa ${r.pct}% fica abaixo do seu custo. Marque "vou subsidiar" para confirmar.`);
+      if (!r.name.trim() || isNaN(num(r.min)) || isNaN(num(r.pct)) || num(r.pct) <= 0) return toast.error(tr('agency.goals.fillAll'));
+      if (isBelowFloor(num(r.pct), platformPcts, r.subsidy)) return toast.error(tr('agency.goals.belowCost', { pct: r.pct }));
     }
     setSaving(true);
     const { error: delErr } = await supabase.from('agency_tiers').delete().eq('agency_client_id', agencyId).eq('sub_client_id', sub.id);
-    if (delErr) { setSaving(false); return toast.error('Não foi possível salvar as metas.'); }
+    if (delErr) { setSaving(false); return toast.error(tr('agency.goals.saveError')); }
     if (rows.length) {
       const { error } = await supabase.from('agency_tiers').insert(rows.map(r => ({
         agency_client_id: agencyId, sub_client_id: sub.id, name: r.name.trim().slice(0, 60),
         min_weekly_spend: num(r.min), total_pct: num(r.pct), allow_subsidy: r.subsidy,
       })));
-      if (error) { setSaving(false); return toast.error('Não foi possível salvar as metas.'); }
+      if (error) { setSaving(false); return toast.error(tr('agency.goals.saveError')); }
     }
     setSaving(false);
-    toast.success(rows.length ? 'Metas do cliente salvas.' : 'Cliente voltou a usar as metas padrão.');
+    toast.success(rows.length ? tr('agency.goals.saved') : tr('agency.goals.backToDefault'));
     onSaved(); onClose();
   };
 
@@ -59,9 +60,9 @@ export const AgencyClientGoalsDialog: React.FC<Props> = ({ sub, agencyId, tiers,
     <Dialog open={!!sub} onOpenChange={v => !v && onClose()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Metas semanais · {sub?.name}</DialogTitle>
+          <DialogTitle>{tr('agency.goals.title', { name: sub?.name })}</DialogTitle>
           <DialogDescription className="text-xs">
-            Defina a taxa que este cliente paga conforme o gasto da semana (sexta a quinta). Se não houver metas próprias, ele usa as metas padrão da agência.
+            {tr('agency.goals.desc')}
           </DialogDescription>
         </DialogHeader>
 
@@ -71,30 +72,30 @@ export const AgencyClientGoalsDialog: React.FC<Props> = ({ sub, agencyId, tiers,
             return (
               <div key={i} className="rounded-lg border border-border/60 bg-secondary/30 p-2 space-y-1.5">
                 <div className="flex items-end gap-2">
-                  <div className="flex-1"><label className="text-[10px] text-muted-foreground">Nome</label><Input value={r.name} placeholder="Ex.: Prata" onChange={e => upd(i, { name: e.target.value })} /></div>
-                  <div className="w-36"><label className="text-[10px] text-muted-foreground">Gasto semanal a partir de (US$)</label><Input type="number" value={r.min} onChange={e => upd(i, { min: e.target.value })} /></div>
-                  <div className="w-20"><label className="text-[10px] text-muted-foreground">Taxa %</label><Input value={r.pct} onChange={e => upd(i, { pct: e.target.value })} /></div>
+                  <div className="flex-1"><label className="text-[10px] text-muted-foreground">{tr('agency.goals.name')}</label><Input value={r.name} placeholder={tr('agency.goals.namePh')} onChange={e => upd(i, { name: e.target.value })} /></div>
+                  <div className="w-36"><label className="text-[10px] text-muted-foreground">{tr('agency.goals.fromSpend')}</label><Input type="number" value={r.min} onChange={e => upd(i, { min: e.target.value })} /></div>
+                  <div className="w-20"><label className="text-[10px] text-muted-foreground">{tr('agency.goals.rate')}</label><Input value={r.pct} onChange={e => upd(i, { pct: e.target.value })} /></div>
                   <Button size="icon" variant="ghost" onClick={() => setRows(x => x.filter((_, j) => j !== i))}><Trash2 size={14} /></Button>
                 </div>
-                {below && <label className="flex items-center gap-2 text-[11px] text-destructive"><Checkbox checked={r.subsidy} onCheckedChange={v => upd(i, { subsidy: !!v })} />Taxa abaixo do seu custo. Vou subsidiar a diferença.</label>}
+                {below && <label className="flex items-center gap-2 text-[11px] text-destructive"><Checkbox checked={r.subsidy} onCheckedChange={v => upd(i, { subsidy: !!v })} />{tr('agency.goals.subsidy')}</label>}
               </div>
             );
           })}
           {!rows.length && (
             <div className="rounded-lg border border-dashed border-border/60 p-4 text-xs text-muted-foreground space-y-1">
-              <p>Este cliente usa as metas padrão:</p>
-              {defaults.length ? defaults.map(d => <p key={d.id}>• {d.name}: a partir de {usd(d.min_weekly_spend)} → <b className="text-primary">{d.total_pct}%</b></p>)
-                : <p>• Taxa sugerida (seu custo + margem sugerida).</p>}
+              <p>{tr('agency.goals.usesDefault')}</p>
+              {defaults.length ? defaults.map(d => <p key={d.id}>• {d.name}: {tr('agency.goals.defaultRow', { amount: usd(d.min_weekly_spend) })} <b className="text-primary">{d.total_pct}%</b></p>)
+                : <p>{tr('agency.goals.suggested')}</p>}
             </div>
           )}
         </div>
 
-        <Button variant="outline" className="gap-2 w-full" onClick={() => setRows(r => [...r, { name: r.length ? `Meta ${r.length + 1}` : 'Base', min: r.length ? String(num(r[r.length - 1].min) + 10000) : '0', pct: '5', subsidy: false }])}>
-          <Plus size={14} />Adicionar meta
+        <Button variant="outline" className="gap-2 w-full" onClick={() => setRows(r => [...r, { name: r.length ? tr('agency.goals.goalN', { n: r.length + 1 }) : 'Base', min: r.length ? String(num(r[r.length - 1].min) + 10000) : '0', pct: '5', subsidy: false }])}>
+          <Plus size={14} />{tr('agency.goals.addGoal')}
         </Button>
         <DialogFooter className="gap-2">
-          {rows.length > 0 && <Button variant="ghost" onClick={() => setRows([])}>Usar metas padrão</Button>}
-          <Button disabled={saving} onClick={save}>{saving ? 'Salvando…' : 'Salvar metas'}</Button>
+          {rows.length > 0 && <Button variant="ghost" onClick={() => setRows([])}>{tr('agency.goals.useDefault')}</Button>}
+          <Button disabled={saving} onClick={save}>{saving ? tr('agency.goals.saving') : tr('agency.goals.saveGoals')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

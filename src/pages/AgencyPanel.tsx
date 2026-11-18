@@ -1,4 +1,5 @@
 import { formatSumByCurrency } from '@/lib/account-money';
+import { tr } from '@/i18n';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek, addDays, format } from 'date-fns';
@@ -32,14 +33,16 @@ import { BrandImageField } from '@/components/agency/BrandImageField';
 import { AgencySignupTermsEditor } from '@/components/agency/AgencySignupTermsEditor';
 import { AgencyDomainSetup } from '@/components/agency/AgencyDomainSetup';
 import { visibleSections, normalizeWhatsapp } from '@/lib/agency-permissions';
+import { getNumberLocale } from '@/i18n/format';
+import { getLanguage } from '@/i18n';
 
-const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const usd = (n: number) => `US$ ${Number(n || 0).toLocaleString(getNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // Simulated week for the demo account (presentation only). AD SCALE share 2.5% (Tier 2).
 // Spend per sub-client is the sum of its demo accounts' weekly spend.
 function buildDemoSummary(subs: any[]) {
   const pcts = [4.5, 5];
-  const tierNames = ['VIP', 'Padrão'];
+  const tierNames = ['VIP', tr('agency.panel.default')];
   const adPct = 2.5;
   const rows = subs.map((s, i) => {
     const spend = DEMO_ACCOUNTS.filter(a => DEMO_LINKS[a.id] === i).reduce((t, a) => t + (a.week_spend || 0), 0);
@@ -79,7 +82,7 @@ const AgencyPanel: React.FC = () => {
   const [agency, setAgency] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [accepted, setAccepted] = useState<boolean | null>(null);
-  const [lang, setLang] = useState<'pt' | 'en'>('pt');
+  const [lang, setLang] = useState<'pt' | 'en'>(() => (getLanguage() === 'pt' ? 'pt' : 'en'));
   const [agree, setAgree] = useState(false);
   const [week, setWeek] = useState(weekStartOf(new Date()));
   const [summary, setSummary] = useState<any>(null);
@@ -150,7 +153,7 @@ const AgencyPanel: React.FC = () => {
       setAccounts(DEMO_ACCOUNTS);
       setLinks(DEMO_ACCOUNTS.map(a => ({ ad_account_id: a.id, sub_client_id: DEMO_LINKS[a.id] == null ? null : subList[DEMO_LINKS[a.id]!]?.id })).filter(x => x.sub_client_id));
       setCredits(subList.flatMap((s: any, i: number) => [
-        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 500 : 1500, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: 'Caução de entrada' },
+        { id: `dc-${i}-1`, sub_client_id: s.id, amount: i === 0 ? 500 : 1500, status: 'confirmado', date: format(addDays(new Date(), -6), 'yyyy-MM-dd'), note: tr('agency.panel.demoDepositNote') },
       ]));
     } else {
       setSummary(s.data);
@@ -174,7 +177,7 @@ const AgencyPanel: React.FC = () => {
   // Ícone e título da aba do navegador da agência (atualiza enquanto edita).
   useEffect(() => {
     const brandName = settings.brand_name || agency?.name;
-    return applyHeadBranding({ title: settings.site_title || (brandName ? `${brandName} · Painel` : null), favicon: settings.favicon_url });
+    return applyHeadBranding({ title: settings.site_title || (brandName ? tr('agency.panel.tabTitle', { brand: brandName }) : null), favicon: settings.favicon_url });
   }, [settings.site_title, settings.favicon_url, settings.brand_name, agency?.name]);
 
   const terms = useMemo(() => getAgencyTerms(lang), [lang]);
@@ -184,8 +187,8 @@ const AgencyPanel: React.FC = () => {
     const { error } = await supabase.from('agency_terms_acceptances').insert({
       agency_client_id: agency.id, version: AGENCY_TERMS_VERSION, language: lang, content_hash, user_agent: navigator.userAgent, accepted_by: (await supabase.auth.getUser()).data.user?.id,
     });
-    if (error) return toast.error('Não foi possível registrar o aceite.');
-    toast.success('Termo aceito.'); setAccepted(true);
+    if (error) return toast.error(tr('agency.panel.acceptError'));
+    toast.success(tr('agency.panel.accepted')); setAccepted(true);
   };
 
   const addSub = async () => {
@@ -194,7 +197,7 @@ const AgencyPanel: React.FC = () => {
     if (error) return toast.error(error.message);
     setNewSub({ name: '', email: '', phone: '' }); load();
   };
-  const delSub = async (id: string) => { if (!confirm('Excluir este cliente?')) return; await supabase.from('agency_sub_clients').delete().eq('id', id); load(); };
+  const delSub = async (id: string) => { if (!confirm(tr('agency.panel.confirmDelete'))) return; await supabase.from('agency_sub_clients').delete().eq('id', id); load(); };
 
   const assignOne = async (accountId: string, subId: string) => {
     if (isDemo) {
@@ -204,32 +207,32 @@ const AgencyPanel: React.FC = () => {
     await supabase.from('agency_sub_client_accounts').delete().eq('ad_account_id', accountId).eq('agency_client_id', agency.id);
     if (subId !== 'none') {
       const { error } = await supabase.from('agency_sub_client_accounts').insert({ agency_client_id: agency.id, sub_client_id: subId, ad_account_id: accountId });
-      if (error) { toast.error('Não foi possível atribuir.'); return false; }
+      if (error) { toast.error(tr('agency.panel.assignError')); return false; }
     }
     return true;
   };
   const assign = async (accountId: string, subId: string) => {
-    if (await assignOne(accountId, subId)) { toast.success('Atribuição salva.'); if (!isDemo) load(); }
+    if (await assignOne(accountId, subId)) { toast.success(tr('agency.panel.assignSaved')); if (!isDemo) load(); }
   };
   const bulkAssign = async () => {
     for (const id of bulkSel) await assignOne(id, bulkSub);
-    toast.success(`${bulkSel.length} conta(s) atualizadas.`); setBulkSel([]); if (!isDemo) load();
+    toast.success(tr('agency.panel.bulkUpdated', { count: bulkSel.length })); setBulkSel([]); if (!isDemo) load();
   };
   const addCreditFor = async (subId: string, amount: number, note: string) => {
     if (isDemo) {
       setCredits(p => [{ id: `dc-${Date.now()}`, sub_client_id: subId, amount, status: 'confirmado', date: format(new Date(), 'yyyy-MM-dd'), note }, ...p]);
-      toast.success('Crédito adicionado (demonstração).'); return;
+      toast.success(tr('agency.panel.creditAddedDemo')); return;
     }
     const { error } = await supabase.from('agency_sub_client_credits').insert({ agency_client_id: agency.id, sub_client_id: subId, amount, note: note || null });
-    if (error) return void toast.error('Não foi possível adicionar o crédito.');
-    toast.success('Crédito adicionado.'); load();
+    if (error) return void toast.error(tr('agency.panel.creditError'));
+    toast.success(tr('agency.panel.creditAdded')); load();
   };
   const createSub = async (v: { name: string; email: string; phone: string; credit: number }) => {
     const { data, error } = await supabase.from('agency_sub_clients').insert({ agency_client_id: agency.id, name: v.name, email: v.email || null, phone: v.phone || null }).select('id').single();
-    if (error) return void toast.error('Não foi possível cadastrar o cliente.');
+    if (error) return void toast.error(tr('agency.panel.createError'));
     if (v.credit > 0 && !isDemo) await supabase.from('agency_sub_client_credits').insert({ agency_client_id: agency.id, sub_client_id: data.id, amount: v.credit, note: 'Crédito inicial' });
-    toast.success('Cliente cadastrado.'); await load();
-    if (v.credit > 0 && isDemo) addCreditFor(data.id, v.credit, 'Crédito inicial');
+    toast.success(tr('agency.panel.created')); await load();
+    if (v.credit > 0 && isDemo) addCreditFor(data.id, v.credit, tr('agency.panel.initialCredit'));
   };
 
   const platformPcts = platform.map(p => Number(p.adscale_pct));
@@ -238,7 +241,7 @@ const AgencyPanel: React.FC = () => {
 
   const addTier = async () => {
     if (!newTier.name.trim() || isNaN(tierPct)) return;
-    if (belowFloor) return toast.error('Taxa abaixo do custo AD SCALE. Marque subsídio para confirmar.');
+    if (belowFloor) return toast.error(tr('agency.panel.belowFloor'));
     const { error } = await supabase.from('agency_tiers').insert({
       agency_client_id: agency.id, sub_client_id: tierScope === 'default' ? null : tierScope,
       name: newTier.name, min_weekly_spend: Number(newTier.min) || 0, total_pct: tierPct, allow_subsidy: newTier.subsidy,
@@ -258,53 +261,53 @@ const AgencyPanel: React.FC = () => {
 
   const saveSettings = async () => {
     settings.support_whatsapp = settings.support_whatsapp ? normalizeWhatsapp(settings.support_whatsapp) ?? settings.support_whatsapp : null;
-    if (settings.support_whatsapp && !normalizeWhatsapp(settings.support_whatsapp)) return toast.error('WhatsApp inválido. Use o número com DDI e DDD, ex.: 55 11 91234-5678.');
+    if (settings.support_whatsapp && !normalizeWhatsapp(settings.support_whatsapp)) return toast.error(tr('agency.panel.waInvalid'));
     const { error } = await supabase.from('agency_settings').upsert({ ...settings, agency_client_id: agency.id, updated_at: new Date().toISOString() });
     if (error) return toast.error(error.message);
-    toast.success('Configurações salvas.');
+    toast.success(tr('agency.panel.saved'));
   };
 
   const testByod = async () => {
-    if (!settings.byod_url || !settings.byod_anon_key) return toast.error('Preencha URL e chave pública.');
+    if (!settings.byod_url || !settings.byod_anon_key) return toast.error(tr('agency.panel.byodFill'));
     try {
       const r = await fetch(`${settings.byod_url.replace(/\/$/, '')}/rest/v1/sub_clients?select=id&limit=1`, { headers: { apikey: settings.byod_anon_key, Authorization: `Bearer ${settings.byod_anon_key}` } });
-      if (r.ok || r.status === 401 || r.status === 403) { toast.success('Conexão OK — tabelas encontradas.'); setSettings({ ...settings, byod_initialized_at: new Date().toISOString() }); }
-      else if (r.status === 404) toast.error('Conectou, mas as tabelas ainda não existem. Rode o script.');
-      else toast.error(`Falha na conexão (${r.status}).`);
-    } catch { toast.error('Não foi possível alcançar o banco informado.'); }
+      if (r.ok || r.status === 401 || r.status === 403) { toast.success(tr('agency.panel.byodOk')); setSettings({ ...settings, byod_initialized_at: new Date().toISOString() }); }
+      else if (r.status === 404) toast.error(tr('agency.panel.byodNoTables'));
+      else toast.error(tr('agency.panel.byodFail', { status: r.status }));
+    } catch { toast.error(tr('agency.panel.byodUnreachable')); }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando…</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">{tr('agency.panel.loading')}</div>;
   if (!agency?.is_agency) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
-      <p className="text-muted-foreground">Sua conta ainda não está habilitada como Agência Parceira.</p>
-      <Button variant="outline" onClick={() => navigate('/client-dashboard')}>Voltar ao painel</Button>
+      <p className="text-muted-foreground">{tr('agency.panel.notAgency')}</p>
+      <Button variant="outline" onClick={() => navigate('/client-dashboard')}>{tr('agency.panel.backToPanel')}</Button>
     </div>
   );
 
   if (!accepted && !isOwner) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
-      <p className="text-muted-foreground">O dono da agência ainda precisa aceitar o Termo de Agência Parceira para liberar o painel.</p>
-      <Button variant="outline" onClick={async () => { await logout(); navigate('/login'); }}>Sair</Button>
+      <p className="text-muted-foreground">{tr('agency.panel.ownerMustAccept')}</p>
+      <Button variant="outline" onClick={async () => { await logout(); navigate('/login'); }}>{tr('agency.panel.logout')}</Button>
     </div>
   );
 
   if (!accepted) return (
     <div className="min-h-screen bg-background p-4 lg:p-8">
       <Card className="max-w-3xl mx-auto">
-        <CardHeader><CardTitle>Termo de Agência Parceira & Whitelabel</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{tr('agency.panel.termsTitle')}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Button size="sm" variant={lang === 'pt' ? 'default' : 'outline'} onClick={() => setLang('pt')}>Português</Button>
             <Button size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => setLang('en')}>English</Button>
-            <Button size="sm" variant="ghost" className="ml-auto gap-2" onClick={() => downloadAgencyTerms(lang)}><Download size={14} />Baixar</Button>
+            <Button size="sm" variant="ghost" className="ml-auto gap-2" onClick={() => downloadAgencyTerms(lang)}><Download size={14} />{tr('agency.panel.download')}</Button>
           </div>
           <pre className="whitespace-pre-wrap text-xs leading-relaxed max-h-[55vh] overflow-y-auto rounded-md border border-border bg-secondary/40 p-4 font-sans">{terms}</pre>
           <label className="flex items-start gap-2 text-sm">
             <Checkbox checked={agree} onCheckedChange={v => setAgree(!!v)} />
-            <span>Li e aceito integralmente o Termo de Agência Parceira (versão {AGENCY_TERMS_VERSION}).</span>
+            <span>{tr('agency.panel.agreeTerms', { version: AGENCY_TERMS_VERSION })}</span>
           </label>
-          <Button disabled={!agree} onClick={acceptTerms} className="w-full">Aceitar e continuar</Button>
+          <Button disabled={!agree} onClick={acceptTerms} className="w-full">{tr('agency.panel.acceptContinue')}</Button>
         </CardContent>
       </Card>
     </div>
@@ -341,17 +344,17 @@ const AgencyPanel: React.FC = () => {
 
   const GROUPS = [
     { id: 'geral', label: null, items: [{ v: 'resumo', label: 'Dashboard', icon: LayoutDashboard }] },
-    { id: 'aluguel', label: 'Aluguel', items: [
-      { v: 'clientes', label: 'Clientes', icon: Users },
-      { v: 'contas', label: 'Contas de anúncio', icon: Megaphone },
-      { v: 'tiers', label: 'Tiers & Taxas', icon: Layers },
-      { v: 'creditos', label: 'Financeiro · Créditos', icon: Wallet },
-      { v: 'suporte', label: 'Suporte', icon: LifeBuoy },
+    { id: 'aluguel', label: tr('agency.panel.nav.rental'), items: [
+      { v: 'clientes', label: tr('agency.panel.nav.clients'), icon: Users },
+      { v: 'contas', label: tr('agency.panel.nav.accounts'), icon: Megaphone },
+      { v: 'tiers', label: tr('agency.panel.nav.tiers'), icon: Layers },
+      { v: 'creditos', label: tr('agency.panel.nav.credits'), icon: Wallet },
+      { v: 'suporte', label: tr('agency.panel.nav.support'), icon: LifeBuoy },
     ] },
-    { id: 'sistema', label: 'Sistema', items: [
-      { v: 'marca', label: 'Marca & Dados', icon: Palette },
-      { v: 'usuarios', label: 'Usuários', icon: UserCog },
-      { v: 'juridico', label: 'Jurídico', icon: Scale },
+    { id: 'sistema', label: tr('agency.panel.nav.system'), items: [
+      { v: 'marca', label: tr('agency.panel.nav.brand'), icon: Palette },
+      { v: 'usuarios', label: tr('agency.panel.nav.users'), icon: UserCog },
+      { v: 'juridico', label: tr('agency.panel.nav.legal'), icon: Scale },
     ] },
   ];
   const allowed = new Set(visibleSections(isOwner, memberPerms));
@@ -367,7 +370,7 @@ const AgencyPanel: React.FC = () => {
           <p className="text-[9px] uppercase tracking-[0.42em] text-muted-foreground/70 mt-2 ml-0.5">Agency · Panel</p>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {!NAV.length && <p className="px-3 py-4 text-xs text-muted-foreground">Seu acesso ainda não tem nenhuma área liberada. Fale com o dono da agência.</p>}
+          {!NAV.length && <p className="px-3 py-4 text-xs text-muted-foreground">{tr('agency.panel.noAreas')}</p>}
           {GROUPS.filter(g => g.items.length).map(g => (
             <div key={g.id} className="space-y-0.5">
               {g.label && <div className="w-full flex items-center gap-2 px-3 py-1.5 mt-2 mb-0.5 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground/70">{g.label}</div>}
@@ -391,13 +394,13 @@ const AgencyPanel: React.FC = () => {
             <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold">{user?.email?.[0]?.toUpperCase() || '·'}</div>
             <div className="text-[11px] text-muted-foreground truncate flex-1">{user?.email}</div>
           </div>
-          {isOwner && <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"><ArrowLeft size={16} /><span translate="no" className="notranslate">Meu painel AD SCALE</span></button>}
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"><LogOut size={16} /><span>Sair</span></button>
+          {isOwner && <button onClick={() => navigate('/client-dashboard')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"><ArrowLeft size={16} /><span translate="no" className="notranslate">{tr('agency.panel.myAdscale')}</span></button>}
+          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"><LogOut size={16} /><span>{tr('agency.panel.logout')}</span></button>
         </div>
       </aside>
       <main className="flex-1 min-w-0 min-h-screen">
       <header className="sticky top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-xl flex items-center px-4 lg:px-6 gap-4">
-        <button className="lg:hidden text-muted-foreground hover:text-foreground" onClick={() => setNavOpen(true)} aria-label="Abrir menu"><Menu size={22} /></button>
+        <button className="lg:hidden text-muted-foreground hover:text-foreground" onClick={() => setNavOpen(true)} aria-label={tr('agency.panel.openMenu')}><Menu size={22} /></button>
         <h1 className="font-display text-sm font-semibold text-foreground tracking-wide">{NAV.find(n => n.v === section)?.label}</h1>
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
@@ -412,25 +415,25 @@ const AgencyPanel: React.FC = () => {
 
           <TabsContent value="resumo" className="space-y-4">
             <AgencyPeriodOverview accounts={accounts} subs={subs} linkOf={linkOf} summary={summary} isDemo={isDemo} />
-            <h3 className="text-lg font-semibold pt-4 border-t border-border/60">Fechamento semanal</h3>
+            <h3 className="text-lg font-semibold pt-4 border-t border-border/60">{tr('agency.panel.weeklyClosing')}</h3>
             <div className="flex items-center gap-2 text-sm">
               <Button size="sm" variant="outline" onClick={() => setWeek(format(addDays(new Date(week + 'T12:00:00'), -7), 'yyyy-MM-dd'))}>‹</Button>
-              <span>Semana {format(new Date(week + 'T12:00:00'), 'dd/MM')} a {format(addDays(new Date(week + 'T12:00:00'), 6), 'dd/MM')} (sexta a quinta)</span>
+              <span>{tr('agency.panel.weekRange', { from: format(new Date(week + 'T12:00:00'), 'dd/MM'), to: format(addDays(new Date(week + 'T12:00:00'), 6), 'dd/MM') })}</span>
               <Button size="sm" variant="outline" onClick={() => setWeek(format(addDays(new Date(week + 'T12:00:00'), 7), 'yyyy-MM-dd'))}>›</Button>
             </div>
-            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">Conta de demonstração: os gastos e comissões abaixo são simulados, só para apresentação.</div>}
+            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">{tr('agency.panel.demoSummary')}</div>}
             <div className="grid sm:grid-cols-3 gap-4">
-              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Gasto total da agência</p><p className="text-2xl font-bold">{usd(summary?.total_spend)}</p></CardContent></Card>
-              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Seu nível AD SCALE</p><p className="text-2xl font-bold">{pt?.name ?? '—'}</p><p className="text-xs text-primary">Taxa AD SCALE {pt?.adscale_pct ?? 0}%</p></CardContent></Card>
-              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Repasse devido à AD SCALE</p><p className="text-2xl font-bold text-primary">{usd(summary?.adscale_due)}</p><p className="text-xs text-muted-foreground">Pago na sexta seguinte ao fechamento</p></CardContent></Card>
+              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.totalSpend')}</p><p className="text-2xl font-bold">{usd(summary?.total_spend)}</p></CardContent></Card>
+              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.yourLevel')}</p><p className="text-2xl font-bold">{pt?.name ?? '—'}</p><p className="text-xs text-primary">{tr('agency.panel.adscaleRate', { pct: pt?.adscale_pct ?? 0 })}</p></CardContent></Card>
+              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.dueToAdscale')}</p><p className="text-2xl font-bold text-primary">{usd(summary?.adscale_due)}</p><p className="text-xs text-muted-foreground">{tr('agency.panel.paidNextFriday')}</p></CardContent></Card>
             </div>
-            {nt && <Card><CardContent className="pt-6 space-y-2"><p className="text-sm">Faltam <b>{usd(nt.remaining)}</b> nesta semana para sua taxa AD SCALE cair para <b>{nt.adscale_pct}%</b> ({nt.name}).</p><Progress value={progress} /></CardContent></Card>}
-            <Card><CardHeader><CardTitle className="text-base">Por cliente</CardTitle></CardHeader><CardContent className="overflow-x-auto">
-              <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">Cliente</th><th>Gasto</th><th>Tier</th><th>Taxa</th><th>Cobrado</th><th>AD SCALE</th><th>Sua margem</th></tr></thead>
+            {nt && <Card><CardContent className="pt-6 space-y-2"><p className="text-sm" dangerouslySetInnerHTML={{ __html: tr('agency.panel.remainingTier', { amount: usd(nt.remaining), pct: nt.adscale_pct, name: nt.name }) }} /><Progress value={progress} /></CardContent></Card>}
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.byClient')}</CardTitle></CardHeader><CardContent className="overflow-x-auto">
+              <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">{tr('agency.panel.th.client')}</th><th>{tr('agency.panel.th.spend')}</th><th>Tier</th><th>{tr('agency.panel.th.rate')}</th><th>{tr('agency.panel.th.charged')}</th><th>AD SCALE</th><th>{tr('agency.panel.th.margin')}</th></tr></thead>
                 <tbody>{(summary?.sub_clients || []).map((r: any) => (
-                  <tr key={r.sub_client_id} className="border-t border-border/50"><td className="py-2">{r.name}</td><td>{usd(r.spend)}</td><td>{r.tier_name ?? 'Padrão'}</td><td>{r.client_pct}%</td><td>{usd(r.client_fee)}</td><td>{usd(r.adscale_fee)}</td><td className={r.agency_margin < 0 ? 'text-destructive' : 'text-primary'}>{usd(r.agency_margin)}</td></tr>
-                ))}{!summary?.sub_clients?.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">Cadastre clientes e atribua contas para ver o detalhamento.</td></tr>}</tbody></table>
-              <p className="text-xs text-muted-foreground mt-3">O repasse à AD SCALE é calculado sobre o gasto total de todas as contas atribuídas à agência, inclusive as que não estão com nenhum cliente.</p>
+                  <tr key={r.sub_client_id} className="border-t border-border/50"><td className="py-2">{r.name}</td><td>{usd(r.spend)}</td><td>{r.tier_name ?? tr('agency.panel.default')}</td><td>{r.client_pct}%</td><td>{usd(r.client_fee)}</td><td>{usd(r.adscale_fee)}</td><td className={r.agency_margin < 0 ? 'text-destructive' : 'text-primary'}>{usd(r.agency_margin)}</td></tr>
+                ))}{!summary?.sub_clients?.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">{tr('agency.panel.emptySummary')}</td></tr>}</tbody></table>
+              <p className="text-xs text-muted-foreground mt-3">{tr('agency.panel.dueNote')}</p>
             </CardContent></Card>
           </TabsContent>
 
@@ -445,77 +448,77 @@ const AgencyPanel: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="contas" className="space-y-4">
-            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">Conta de demonstração: contas e valores simulados.</div>}
+            {isDemo && <div className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs text-primary">{tr('agency.panel.demoAccounts')}</div>}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Contas</p><p className="text-2xl font-bold">{accounts.length}</p></CardContent></Card>
-              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Ativas</p><p className="text-2xl font-bold text-primary">{accounts.filter(a => a.account_status === 1).length}</p></CardContent></Card>
-              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Banidas / com problema</p><p className="text-2xl font-bold text-destructive">{accounts.filter(a => a.account_status !== 1).length}</p></CardContent></Card>
-              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Saldo somado</p><p className="text-2xl font-bold">{formatSumByCurrency(accounts.map(a => ({ value: a.balance, currency: a.currency })))}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">{tr('agency.panel.kAccounts')}</p><p className="text-2xl font-bold">{accounts.length}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">{tr('agency.panel.kActive')}</p><p className="text-2xl font-bold text-primary">{accounts.filter(a => a.account_status === 1).length}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">{tr('agency.panel.kBanned')}</p><p className="text-2xl font-bold text-destructive">{accounts.filter(a => a.account_status !== 1).length}</p></CardContent></Card>
+              <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">{tr('agency.panel.kBalance')}</p><p className="text-2xl font-bold">{formatSumByCurrency(accounts.map(a => ({ value: a.balance, currency: a.currency })))}</p></CardContent></Card>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[240px]">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-9 h-11" placeholder="Pesquisar conta de anúncio pelo nome ou ID..." value={accQ} onChange={e => setAccQ(e.target.value)} />
+                <Input className="pl-9 h-11" placeholder={tr('agency.panel.searchAccounts')} value={accQ} onChange={e => setAccQ(e.target.value)} />
               </div>
               <Select value={accOwner} onValueChange={setAccOwner}>
                 <SelectTrigger className="w-56 h-11"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="all">Todos os clientes</SelectItem><SelectItem value="none">Sem cliente atribuído</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                <SelectContent><SelectItem value="all">{tr('agency.panel.allClients')}</SelectItem><SelectItem value="none">{tr('agency.panel.noClientAssigned')}</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
               </Select>
-              <span className="text-xs text-muted-foreground">{filteredAccounts.length} de {accounts.length}</span>
+              <span className="text-xs text-muted-foreground">{tr('agency.panel.ofTotal', { n: filteredAccounts.length, total: accounts.length })}</span>
             </div>
-            <Card><CardHeader><CardTitle className="text-base">Atribuições</CardTitle></CardHeader><CardContent className="space-y-3">
-              <p className="text-xs text-muted-foreground">Escolha o cliente e marque as contas que ele vai usar. Ele passa a ver só essas contas no painel dele.</p>
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.assignments')}</CardTitle></CardHeader><CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">{tr('agency.panel.assignHint')}</p>
               <div className="flex flex-wrap gap-2">
                 <Select value={bulkSub} onValueChange={setBulkSub}>
-                  <SelectTrigger className="w-56"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">Remover atribuição</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="w-56"><SelectValue placeholder={tr('agency.panel.th.client')} /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">{tr('agency.panel.removeAssignment')}</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
-                <Button disabled={!bulkSub || !bulkSel.length} onClick={bulkAssign}>Atribuir {bulkSel.length || ''} conta(s)</Button>
-                {!!bulkSel.length && <Button variant="ghost" onClick={() => setBulkSel([])}>Limpar seleção</Button>}
+                <Button disabled={!bulkSub || !bulkSel.length} onClick={bulkAssign}>{tr('agency.panel.assignN', { n: bulkSel.length || '' })}</Button>
+                {!!bulkSel.length && <Button variant="ghost" onClick={() => setBulkSel([])}>{tr('agency.panel.clearSelection')}</Button>}
               </div>
             </CardContent></Card>
             <AgencyAccountsTable accounts={filteredAccounts}
               ownerOf={id => subs.find(s => s.id === linkOf(id))?.name ?? null}
               renderAction={a => (
                 <div className="flex items-center gap-2">
-                  <Checkbox checked={bulkSel.includes(a.id)} onCheckedChange={v => setBulkSel(p => v ? [...p, a.id] : p.filter(x => x !== a.id))} aria-label="Selecionar conta" />
+                  <Checkbox checked={bulkSel.includes(a.id)} onCheckedChange={v => setBulkSel(p => v ? [...p, a.id] : p.filter(x => x !== a.id))} aria-label={tr('agency.panel.selectAccount')} />
                   <Select value={linkOf(a.id)} onValueChange={v => assign(a.id, v)}>
                     <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="none">Sem cliente</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                    <SelectContent><SelectItem value="none">{tr('agency.panel.noClient')}</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>)} />
           </TabsContent>
 
           <TabsContent value="tiers" className="space-y-4">
-            <Card><CardHeader><CardTitle className="text-base">Seu custo AD SCALE por volume semanal</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-4 gap-2 text-sm">
-              {platform.map(p => <div key={p.id} className="rounded-md border border-border p-3"><p className="font-medium">{p.name}</p><p className="text-xs text-muted-foreground">a partir de {usd(p.min_weekly_spend)}</p><p className="text-primary">{p.adscale_pct}%</p></div>)}
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.platformCost')}</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-4 gap-2 text-sm">
+              {platform.map(p => <div key={p.id} className="rounded-md border border-border p-3"><p className="font-medium">{p.name}</p><p className="text-xs text-muted-foreground">{tr('agency.panel.fromAmount', { amount: usd(p.min_weekly_spend) })}</p><p className="text-primary">{p.adscale_pct}%</p></div>)}
             </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-base">Criar tier para seus clientes</CardTitle></CardHeader><CardContent className="space-y-3">
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.createTier')}</CardTitle></CardHeader><CardContent className="space-y-3">
               <div className="grid sm:grid-cols-5 gap-2">
-                <Select value={tierScope} onValueChange={setTierScope}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">Padrão (todos)</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>Só: {s.name}</SelectItem>)}</SelectContent></Select>
-                <Input placeholder="Nome (ex: Prata)" value={newTier.name} onChange={e => setNewTier({ ...newTier, name: e.target.value })} />
-                <Input placeholder="Meta semanal US$" type="number" value={newTier.min} onChange={e => setNewTier({ ...newTier, min: e.target.value })} />
-                <Input placeholder="Taxa %" value={newTier.pct} onChange={e => setNewTier({ ...newTier, pct: e.target.value })} />
-                <Button onClick={addTier} className="gap-2"><Plus size={14} />Criar</Button>
+                <Select value={tierScope} onValueChange={setTierScope}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">{tr('agency.panel.defaultAll')}</SelectItem>{subs.map(s => <SelectItem key={s.id} value={s.id}>{tr('agency.panel.onlyClient', { name: s.name })}</SelectItem>)}</SelectContent></Select>
+                <Input placeholder={tr('agency.panel.tierName')} value={newTier.name} onChange={e => setNewTier({ ...newTier, name: e.target.value })} />
+                <Input placeholder={tr('agency.panel.weeklyGoal')} type="number" value={newTier.min} onChange={e => setNewTier({ ...newTier, min: e.target.value })} />
+                <Input placeholder={tr('agency.panel.ratePct')} value={newTier.pct} onChange={e => setNewTier({ ...newTier, pct: e.target.value })} />
+                <Button onClick={addTier} className="gap-2"><Plus size={14} />{tr('agency.panel.create')}</Button>
               </div>
-              {isBelowFloor(tierPct, platformPcts, false) && <label className="flex items-center gap-2 text-xs text-destructive"><Checkbox checked={newTier.subsidy} onCheckedChange={v => setNewTier({ ...newTier, subsidy: !!v })} />Essa taxa é menor que o custo AD SCALE. Confirmo que vou subsidiar a diferença.</label>}
-              <p className="text-xs text-muted-foreground">Se um cliente tiver tiers próprios, eles substituem os padrão. Sem nenhum tier, usamos a taxa sugerida (custo AD SCALE + margem sugerida).</p>
+              {isBelowFloor(tierPct, platformPcts, false) && <label className="flex items-center gap-2 text-xs text-destructive"><Checkbox checked={newTier.subsidy} onCheckedChange={v => setNewTier({ ...newTier, subsidy: !!v })} />{tr('agency.panel.subsidyConfirm')}</label>}
+              <p className="text-xs text-muted-foreground">{tr('agency.panel.tierHint')}</p>
             </CardContent></Card>
             <Card><CardContent className="pt-6 space-y-2 text-sm">
               {tiers.map(t => <div key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
-                <span className="w-40 text-xs text-muted-foreground">{t.sub_client_id ? subs.find(s => s.id === t.sub_client_id)?.name : 'Padrão'}</span>
+                <span className="w-40 text-xs text-muted-foreground">{t.sub_client_id ? subs.find(s => s.id === t.sub_client_id)?.name : tr('agency.panel.default')}</span>
                 <span className="flex-1">{t.name}</span><span>≥ {usd(t.min_weekly_spend)}</span><span className="w-16 text-primary">{t.total_pct}%</span>
                 <Button size="icon" variant="ghost" onClick={() => delTier(t.id)}><Trash2 size={14} /></Button></div>)}
-              {!tiers.length && <p className="text-muted-foreground">Nenhum tier criado.</p>}
+              {!tiers.length && <p className="text-muted-foreground">{tr('agency.panel.noTiers')}</p>}
             </CardContent></Card>
           </TabsContent>
 
           <TabsContent value="creditos" className="space-y-4">
-            <Card><CardHeader><CardTitle className="text-base">Registrar crédito recebido do cliente</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-4 gap-2">
-              <Select value={newCredit.sub} onValueChange={v => setNewCredit({ ...newCredit, sub: v })}><SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger><SelectContent>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select>
-              <Input placeholder="Valor US$" value={newCredit.amount} onChange={e => setNewCredit({ ...newCredit, amount: e.target.value })} />
-              <Input placeholder="Observação" value={newCredit.note} onChange={e => setNewCredit({ ...newCredit, note: e.target.value })} />
-              <Button onClick={addCredit}>Registrar</Button>
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.registerCredit')}</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-4 gap-2">
+              <Select value={newCredit.sub} onValueChange={v => setNewCredit({ ...newCredit, sub: v })}><SelectTrigger><SelectValue placeholder={tr('agency.panel.th.client')} /></SelectTrigger><SelectContent>{subs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select>
+              <Input placeholder={tr('agency.panel.amountUsd')} value={newCredit.amount} onChange={e => setNewCredit({ ...newCredit, amount: e.target.value })} />
+              <Input placeholder={tr('agency.panel.note')} value={newCredit.note} onChange={e => setNewCredit({ ...newCredit, note: e.target.value })} />
+              <Button onClick={addCredit}>{tr('agency.panel.register')}</Button>
             </CardContent></Card>
             {(() => {
               const rows = subs.map(s => {
@@ -531,66 +534,66 @@ const AgencyPanel: React.FC = () => {
               const coveredByCaucao = rows.reduce((t, r) => t + Math.min(r.fromCaucao, r.ad), 0);
               return <>
                 <div className="grid sm:grid-cols-3 gap-4">
-                  <Card className="border-primary/40"><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total a pagar à AD SCALE (semana)</p><p className="text-2xl font-bold text-primary">{usd(due)}</p><p className="text-xs text-muted-foreground">Pago na sexta seguinte ao fechamento</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Parte coberta por caução que ficou com você</p><p className="text-2xl font-bold text-warning">{usd(coveredByCaucao)}</p><p className="text-xs text-muted-foreground">Você recebeu esse valor na caução — repasse à AD SCALE</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Contas sem cliente atribuído</p><p className="text-2xl font-bold">{usd(unassigned)}</p><p className="text-xs text-muted-foreground">Repasse sobre gasto de contas não atribuídas</p></CardContent></Card>
+                  <Card className="border-primary/40"><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.totalDue')}</p><p className="text-2xl font-bold text-primary">{usd(due)}</p><p className="text-xs text-muted-foreground">{tr('agency.panel.paidNextFriday')}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.coveredByDeposit')}</p><p className="text-2xl font-bold text-warning">{usd(coveredByCaucao)}</p><p className="text-xs text-muted-foreground">{tr('agency.panel.coveredHint')}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.unassignedAccounts')}</p><p className="text-2xl font-bold">{usd(unassigned)}</p><p className="text-xs text-muted-foreground">{tr('agency.panel.unassignedHint')}</p></CardContent></Card>
                 </div>
-                <Card><CardHeader><CardTitle className="text-base">Repasse ao fornecedor AD SCALE por cliente</CardTitle></CardHeader><CardContent className="overflow-x-auto">
-                  <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">Cliente</th><th>Caução</th><th>Comissão</th><th>Abatido da caução</th><th>A cobrar do cliente</th><th>Repasse AD SCALE</th><th>Sua margem</th></tr></thead>
+                <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.shareByClient')}</CardTitle></CardHeader><CardContent className="overflow-x-auto">
+                  <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">{tr('agency.panel.th.client')}</th><th>{tr('agency.panel.th.deposit')}</th><th>{tr('agency.panel.th.commission')}</th><th>{tr('agency.panel.th.fromDeposit')}</th><th>{tr('agency.panel.th.toCharge')}</th><th>{tr('agency.panel.th.adscaleShare')}</th><th>{tr('agency.panel.th.margin')}</th></tr></thead>
                     <tbody>{rows.map(r => <tr key={r.s.id} className="border-t border-border/50">
                       <td className="py-2">{r.s.name}</td><td>{usd(r.caucao)}</td><td>{usd(r.fee)}</td><td className="text-warning">{usd(r.fromCaucao)}</td><td>{usd(r.toCharge)}</td><td className="text-primary font-semibold">{usd(r.ad)}</td><td>{usd(r.margin)}</td>
-                    </tr>)}{!rows.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">Nenhum cliente cadastrado.</td></tr>}</tbody></table>
-                  <p className="text-xs text-muted-foreground mt-3">A caução fica com a agência e não é paga à AD SCALE. Mesmo quando a comissão do cliente é abatida da caução, a parte AD SCALE dessa comissão (taxa do seu nível sobre o gasto) continua devida e entra na fatura semanal.</p>
+                    </tr>)}{!rows.length && <tr><td colSpan={7} className="py-4 text-muted-foreground">{tr('agency.panel.noClients')}</td></tr>}</tbody></table>
+                  <p className="text-xs text-muted-foreground mt-3">{tr('agency.panel.depositNote')}</p>
                 </CardContent></Card>
               </>;
             })()}
           </TabsContent>
 
           <TabsContent value="marca" className="space-y-4">
-            <Card><CardHeader><CardTitle className="text-base">Identidade visual</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-2 gap-3">
-              <div><Label>Nome da marca</Label><Input value={settings.brand_name || ''} onChange={e => setSettings({ ...settings, brand_name: e.target.value })} /></div>
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.visualIdentity')}</CardTitle></CardHeader><CardContent className="grid sm:grid-cols-2 gap-3">
+              <div><Label>{tr('agency.panel.brandName')}</Label><Input value={settings.brand_name || ''} onChange={e => setSettings({ ...settings, brand_name: e.target.value })} /></div>
               <BrandImageField label="Logo" mode="fit" size={480} value={settings.logo_url} onChange={v => setSettings({ ...settings, logo_url: v })}
-                placeholder="ou cole o link do logo" hint="PNG com fundo transparente, horizontal (ex.: 480×120 px). Reduzimos automaticamente." />
-              <BrandImageField label="Ícone da aba (favicon)" mode="square" size={128} value={settings.favicon_url} onChange={v => setSettings({ ...settings, favicon_url: v })}
-                placeholder="ou cole o link do ícone" hint={<>{FAVICON_HINT} Use só o símbolo da marca, sem texto: ele aparece bem pequeno.</>} />
+                placeholder={tr('agency.panel.logoPh')} hint={tr('agency.panel.logoHint')} />
+              <BrandImageField label={tr('agency.panel.faviconLabel')} mode="square" size={128} value={settings.favicon_url} onChange={v => setSettings({ ...settings, favicon_url: v })}
+                placeholder={tr('agency.panel.faviconPh')} hint={<>{tr('agency.panel.faviconHint')} {tr('agency.panel.faviconExtra')}</>} />
 
-              <div><Label>Título da aba do navegador</Label><Input maxLength={60} placeholder={`${brand} · Painel`} value={settings.site_title || ''} onChange={e => setSettings({ ...settings, site_title: e.target.value.slice(0, 60) || null })} /><p className="text-[11px] text-muted-foreground mt-1">Texto ao lado do ícone. Até 60 caracteres; o ideal é até 30 para aparecer inteiro.</p></div>
+              <div><Label>{tr('agency.panel.tabTitleLabel')}</Label><Input maxLength={60} placeholder={tr('agency.panel.tabTitle', { brand })} value={settings.site_title || ''} onChange={e => setSettings({ ...settings, site_title: e.target.value.slice(0, 60) || null })} /><p className="text-[11px] text-muted-foreground mt-1">{tr('agency.panel.tabTitleHint')}</p></div>
               <div className="sm:col-span-2">
-                <Label className="block">Prévia da aba</Label>
+                <Label className="block">{tr('agency.panel.tabPreview')}</Label>
                 <div className="mt-1 inline-flex items-center gap-2 rounded-t-lg border border-b-0 border-border bg-secondary/60 px-3 py-2 min-w-[240px] max-w-[320px]">
                   {settings.favicon_url ? <img src={settings.favicon_url} alt="" className="w-4 h-4 object-contain" onError={e => ((e.currentTarget.style.visibility = 'hidden'))} /> : <span className="w-4 h-4 rounded-sm bg-primary/40" />}
-                  <span className="text-xs text-foreground truncate">{settings.site_title || `${brand} · Painel`}</span>
+                  <span className="text-xs text-foreground truncate">{settings.site_title || tr('agency.panel.tabTitle', { brand })}</span>
                   <span className="ml-auto text-muted-foreground text-xs">✕</span>
                 </div>
               </div>
-              <div><Label>Cor principal</Label><Input type="color" value={settings.primary_color || '#22c55e'} onChange={e => setSettings({ ...settings, primary_color: e.target.value })} /></div>
-              <div><Label>WhatsApp de suporte e cobrança</Label><Input placeholder="55 11 91234-5678" value={settings.support_whatsapp || ''} onChange={e => setSettings({ ...settings, support_whatsapp: e.target.value })} /><p className="text-[11px] text-muted-foreground mt-1">Seus clientes falam com este número pelo chat de suporte e nos avisos de pagamento. Use DDI + DDD.</p></div>
-              <div><Label>Identificador da agência (slug)</Label><Input placeholder="minha-agencia" value={settings.slug || ''} onChange={e => setSettings({ ...settings, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40) || null })} /></div>
+              <div><Label>{tr('agency.panel.mainColor')}</Label><Input type="color" value={settings.primary_color || '#22c55e'} onChange={e => setSettings({ ...settings, primary_color: e.target.value })} /></div>
+              <div><Label>{tr('agency.panel.waLabel')}</Label><Input placeholder="55 11 91234-5678" value={settings.support_whatsapp || ''} onChange={e => setSettings({ ...settings, support_whatsapp: e.target.value })} /><p className="text-[11px] text-muted-foreground mt-1">{tr('agency.panel.waHint')}</p></div>
+              <div><Label>{tr('agency.panel.slugLabel')}</Label><Input placeholder={tr('agency.panel.slugPh')} value={settings.slug || ''} onChange={e => setSettings({ ...settings, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40) || null })} /></div>
               <div className="sm:col-span-2 rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs space-y-1">
-                <p className="font-medium">Links de acesso dos seus clientes</p>
-                {settings.custom_domain && settings.domain_status === 'ativo' && <p>Login: <span className="font-mono text-primary">https://{settings.custom_domain}/login</span> · Cadastro: <span className="font-mono text-primary">https://{settings.custom_domain}/cadastro</span></p>}
-                {settings.slug && <><p>Login sem domínio: <span className="font-mono text-primary">{window.location.origin}/login?agencia={settings.slug}</span></p><p>Cadastro sem domínio: <span className="font-mono text-primary">{window.location.origin}/cadastro?agencia={settings.slug}</span></p></>}
-                {!settings.slug && <p className="text-muted-foreground">Defina o identificador e clique em Salvar.</p>}
+                <p className="font-medium">{tr('agency.panel.accessLinks')}</p>
+                {settings.custom_domain && settings.domain_status === 'ativo' && <p>{tr('agency.panel.loginLabel')} <span className="font-mono text-primary">https://{settings.custom_domain}/login</span> · {tr('agency.panel.signupLabel')} <span className="font-mono text-primary">https://{settings.custom_domain}/cadastro</span></p>}
+                {settings.slug && <><p>{tr('agency.panel.loginNoDomain')} <span className="font-mono text-primary">{window.location.origin}/login?agencia={settings.slug}</span></p><p>{tr('agency.panel.signupNoDomain')} <span className="font-mono text-primary">{window.location.origin}/cadastro?agencia={settings.slug}</span></p></>}
+                {!settings.slug && <p className="text-muted-foreground">{tr('agency.panel.defineSlug')}</p>}
               </div>
             </CardContent></Card>
             <AgencyDomainSetup settings={settings} setSettings={setSettings} agencyId={agency.id} onSaved={load} />
-            <Card><CardHeader><CardTitle className="text-base">Banco de dados & privacidade</CardTitle></CardHeader><CardContent className="space-y-3">
+            <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.dbPrivacy')}</CardTitle></CardHeader><CardContent className="space-y-3">
               <Select value={settings.data_mode || 'adscale'} onValueChange={v => setSettings({ ...settings, data_mode: v })}>
                 <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="adscale">Banco padrão AD SCALE (isolado)</SelectItem><SelectItem value="byod">Banco próprio (privacidade máxima)</SelectItem></SelectContent>
+                <SelectContent><SelectItem value="adscale">{tr('agency.panel.dbDefault')}</SelectItem><SelectItem value="byod">{tr('agency.panel.dbOwn')}</SelectItem></SelectContent>
               </Select>
               {settings.data_mode === 'byod' && <>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <div><Label>URL do projeto</Label><Input placeholder="https://xxxx.supabase.co" value={settings.byod_url || ''} onChange={e => setSettings({ ...settings, byod_url: e.target.value })} /></div>
-                  <div><Label>Chave pública (anon)</Label><Input value={settings.byod_anon_key || ''} onChange={e => setSettings({ ...settings, byod_anon_key: e.target.value })} /></div>
+                  <div><Label>{tr('agency.panel.projectUrl')}</Label><Input placeholder="https://xxxx.supabase.co" value={settings.byod_url || ''} onChange={e => setSettings({ ...settings, byod_url: e.target.value })} /></div>
+                  <div><Label>{tr('agency.panel.anonKey')}</Label><Input value={settings.byod_anon_key || ''} onChange={e => setSettings({ ...settings, byod_anon_key: e.target.value })} /></div>
                 </div>
-                <p className="text-xs text-muted-foreground">1) Crie um projeto gratuito. 2) Rode o script abaixo no editor SQL dele. 3) Cole URL e chave e teste.</p>
+                <p className="text-xs text-muted-foreground">{tr('agency.panel.byodSteps')}</p>
                 <pre className="text-[11px] bg-secondary/40 border border-border rounded-md p-3 overflow-x-auto">{BYOD_SQL}</pre>
-                <div className="flex gap-2"><Button variant="outline" onClick={() => { navigator.clipboard.writeText(BYOD_SQL); toast.success('Script copiado.'); }}>Copiar script</Button><Button variant="outline" onClick={testByod}>Testar conexão</Button></div>
+                <div className="flex gap-2"><Button variant="outline" onClick={() => { navigator.clipboard.writeText(BYOD_SQL); toast.success(tr('agency.panel.scriptCopied')); }}>{tr('agency.panel.copyScript')}</Button><Button variant="outline" onClick={testByod}>{tr('agency.panel.testConnection')}</Button></div>
               </>}
             </CardContent></Card>
-            <p className="text-xs text-muted-foreground">As cores e o logo já aparecem no painel enquanto você edita. Clique em Salvar para manter.</p>
-            <Button onClick={saveSettings}>Salvar</Button>
+            <p className="text-xs text-muted-foreground">{tr('agency.panel.livePreview')}</p>
+            <Button onClick={saveSettings}>{tr('agency.panel.save')}</Button>
           </TabsContent>
 
           {isOwner && <TabsContent value="usuarios">
@@ -600,7 +603,7 @@ const AgencyPanel: React.FC = () => {
           <TabsContent value="juridico" className="space-y-4">
             <AgencySignupTermsEditor agencyId={agency.id} settings={settings} setSettings={setSettings} brandName={settings.brand_name || agency?.name || ''} />
             <Card><CardContent className="pt-6 space-y-3 text-sm">
-              <p>Termo de Agência Parceira aceito — versão {AGENCY_TERMS_VERSION}.</p>
+              <p>{tr('agency.panel.termsAccepted', { version: AGENCY_TERMS_VERSION })}</p>
               <div className="flex gap-2"><Button variant="outline" className="gap-2" onClick={() => downloadAgencyTerms('pt')}><Download size={14} />Português</Button><Button variant="outline" className="gap-2" onClick={() => downloadAgencyTerms('en')}><Download size={14} />English</Button></div>
             </CardContent></Card>
           </TabsContent>

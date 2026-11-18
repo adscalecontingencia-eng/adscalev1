@@ -1,4 +1,5 @@
 import React from 'react';
+import { tr } from '@/i18n';
 import { Crown, Gem, Sparkles, TrendingUp, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LoyaltyProgress, LOYALTY_TIERS } from '@/lib/loyalty-tiers';
@@ -50,24 +51,24 @@ export const LoyaltyTierCard: React.FC<Props> = ({ progress, compact, className 
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">Nível de fidelidade</span>
+              <span className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">{tr('client.loyalty.title')}</span>
               {nearNext && next && (
                 <span className="text-[9px] uppercase tracking-wider bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-                  Perto do próximo!
+                  {tr('client.loyalty.nearNext')}
                 </span>
               )}
             </div>
             <h3 className={cn('font-display text-xl sm:text-2xl font-bold leading-tight', current.accent)}>
-              {current.label} · {current.basePct}% base
+              {current.label} · {current.basePct}% {tr('client.loyalty.base')}
             </h3>
             {!compact && (
-              <p className="text-[11px] text-muted-foreground mt-0.5 max-w-md">{current.tagline}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 max-w-md">{tr(`client.loyalty.tagline.${current.id}`, { defaultValue: current.tagline })}</p>
             )}
           </div>
         </div>
 
         <div className="text-right">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Comissão paga acumulada</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{tr('client.loyalty.paidTotal')}</div>
           <div className={cn('font-display font-bold text-lg', current.accent)}>{fmt(totalPaid)}</div>
         </div>
       </div>
@@ -76,15 +77,15 @@ export const LoyaltyTierCard: React.FC<Props> = ({ progress, compact, className 
       <div className="relative mt-4">
         {achievedTop ? (
           <div className="flex items-center gap-2 text-[11px] text-amber-300">
-            <Trophy size={13} /> Você está no topo — nível máximo desbloqueado.
+            <Trophy size={13} /> {tr('client.loyalty.top')}
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
               <span className="flex items-center gap-1">
-                <TrendingUp size={11} /> Próximo: <strong className="text-foreground">{next?.label}</strong> · {next?.basePct}% base
+                <TrendingUp size={11} /> {tr('client.loyalty.next')} <strong className="text-foreground">{next?.label}</strong> · {next?.basePct}% {tr('client.loyalty.base')}
               </span>
-              <span>Faltam <strong className="text-foreground">{fmt(remainingToNext)}</strong></span>
+              <span>{tr('client.loyalty.remaining')} <strong className="text-foreground">{fmt(remainingToNext)}</strong></span>
             </div>
             <div className="h-2 rounded-full bg-secondary/60 overflow-hidden">
               <div
@@ -109,7 +110,7 @@ export const LoyaltyTierCard: React.FC<Props> = ({ progress, compact, className 
       {/* Roadmap chips (não-compact) */}
       {!compact && (
         <div className="relative mt-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">Jornada de níveis</div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">{tr('client.loyalty.journey')}</div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {LOYALTY_TIERS.map(t => {
               const reached = totalPaid >= t.threshold;
@@ -134,7 +135,7 @@ export const LoyaltyTierCard: React.FC<Props> = ({ progress, compact, className 
                 >
                   {isCurrent && (
                     <span className={cn('absolute top-1 right-1 text-[8px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-background/80 border', t.accent, 'border-current')}>
-                      Atual
+                      {tr('client.loyalty.current')}
                     </span>
                   )}
                   <div className="flex items-center gap-2 mb-1">

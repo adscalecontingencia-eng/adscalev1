@@ -1,4 +1,5 @@
 import { formatAccountMoney } from '@/lib/account-money';
+import { tr } from '@/i18n';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getTermsHref } from '@/lib/terms';
@@ -115,7 +116,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${label} demorou demais para responder`)), ms);
+      timer = setTimeout(() => reject(new Error(tr('client.dash.timeout', { label }))), ms);
     });
     try {
       return await Promise.race([Promise.resolve(promise), timeout]);
@@ -145,7 +146,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
     const { data: assigns } = await withTimeout<{ data: any[] | null }>(supabase
       .from('meta_ad_account_assignments')
       .select('*, ad_account:meta_ad_accounts(*)')
-      .eq('client_id', clientId) as any, 10000, 'Contas de anúncio');
+      .eq('client_id', clientId) as any, 10000, tr('client.dash.loadAccounts'));
     const assignments = [...(assigns || [])];
     // Clientes de agência parceira: contas que a agência atribuiu a eles.
     const agencyLinked = new Set<string>();
@@ -184,7 +185,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
       const { data: allAccountAssignments } = await withTimeout<{ data: any[] | null }>(supabase
         .from('meta_ad_account_assignments')
         .select('ad_account_id, client_id, active, effective_from, effective_to, assigned_at')
-        .in('ad_account_id', accountIds) as any, 10000, 'Atribuições de contas');
+        .in('ad_account_id', accountIds) as any, 10000, tr('client.dash.loadAssignments'));
       type AssignmentWindow = { client_id: string; active: boolean; from: string | null; to: string | null; assigned_at: string | null };
       const windowsByAccount = new Map<string, AssignmentWindow[]>();
       (allAccountAssignments || []).forEach((a: any) => {
@@ -231,7 +232,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
           .in('ad_account_id', accountIds)
           .gte('date', globalSince)
           .order('date', { ascending: false })
-          .range(from, from + PAGE - 1) as any, 15000, 'Insights de anúncio');
+          .range(from, from + PAGE - 1) as any, 15000, tr('client.dash.loadInsights'));
         if (error) throw error;
         const rows = data || [];
         fetchedRows.push(...rows);
@@ -887,7 +888,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
         <div className="sticky top-0 z-50 bg-primary text-primary-foreground border-b border-primary/60 px-4 lg:px-8 py-2.5 flex items-center justify-between text-xs shadow-lg">
           <div className="flex items-center gap-2">
             <Shield size={14} />
-            <span className="font-semibold uppercase tracking-wider">{isAgencyView ? 'Visão da agência' : t('clientDash.adminView.mode')}</span>
+            <span className="font-semibold uppercase tracking-wider">{isAgencyView ? tr('client.dash.agencyView') : t('clientDash.adminView.mode')}</span>
             <span className="opacity-90 hidden sm:inline">— {t('clientDash.adminView.viewingAs', { name: client.name })}</span>
           </div>
           <button onClick={() => navigate(exitPath)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 text-primary-foreground font-medium border border-background/30">
@@ -932,7 +933,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
             />
           )}
           {isAdminView ? (
-            <button onClick={() => navigate(exitPath)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title="Voltar para Clientes">
+            <button onClick={() => navigate(exitPath)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary" title={tr('client.dash.backToClients')}>
               <X size={16} />
             </button>
           ) : (
@@ -977,7 +978,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
               </span>
               {client.is_agency && !isAdminView && (
                 <button onClick={() => navigate('/agencia')} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary-foreground bg-primary rounded-full px-3 py-1 font-semibold">
-                  Painel da Agência →
+                  {tr('client.dash.agencyPanel')}
                 </button>
               )}
             </div>
@@ -2482,7 +2483,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                     ? t('clientDash.loyalty.topReached')
                     : loyalty.nearNext
                       ? t('clientDash.loyalty.continueToReduce', { amount: fmt(loyalty.remainingToNext), pct: loyalty.next?.basePct })
-                      : loyalty.current.tagline}
+                      : tr(`client.loyalty.tagline.${loyalty.current.id}`, { defaultValue: loyalty.current.tagline })}
                 </DialogDescription>
               </DialogHeader>
 

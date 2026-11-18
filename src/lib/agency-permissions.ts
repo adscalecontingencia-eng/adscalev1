@@ -1,13 +1,15 @@
+import { tr } from '@/i18n';
+
 /** Sections of the Agency Panel a collaborator can be granted. The owner always has all of them. */
 export const AGENCY_PERMISSIONS = [
-  { key: 'resumo', label: 'Dashboard', hint: 'Gastos, comissões e fechamento semanal' },
-  { key: 'clientes', label: 'Clientes', hint: 'Cadastrar clientes, caução e abrir o painel do cliente' },
-  { key: 'contas', label: 'Contas de anúncio', hint: 'Ver contas e atribuir aos clientes' },
-  { key: 'tiers', label: 'Tiers & Taxas', hint: 'Criar e excluir faixas de comissão' },
-  { key: 'creditos', label: 'Financeiro · Créditos', hint: 'Cauções e repasse à fornecedora' },
-  { key: 'suporte', label: 'Suporte', hint: 'Pedidos dos clientes e chamados' },
-  { key: 'marca', label: 'Marca & Dados', hint: 'Logo, cor, domínio e WhatsApp' },
-  { key: 'juridico', label: 'Jurídico', hint: 'Baixar o termo aceito' },
+  { key: 'resumo', get label() { return tr('agency.perm.resumo.label'); }, get hint() { return tr('agency.perm.resumo.hint'); } },
+  { key: 'clientes', get label() { return tr('agency.perm.clientes.label'); }, get hint() { return tr('agency.perm.clientes.hint'); } },
+  { key: 'contas', get label() { return tr('agency.perm.contas.label'); }, get hint() { return tr('agency.perm.contas.hint'); } },
+  { key: 'tiers', get label() { return tr('agency.perm.tiers.label'); }, get hint() { return tr('agency.perm.tiers.hint'); } },
+  { key: 'creditos', get label() { return tr('agency.perm.creditos.label'); }, get hint() { return tr('agency.perm.creditos.hint'); } },
+  { key: 'suporte', get label() { return tr('agency.perm.suporte.label'); }, get hint() { return tr('agency.perm.suporte.hint'); } },
+  { key: 'marca', get label() { return tr('agency.perm.marca.label'); }, get hint() { return tr('agency.perm.marca.hint'); } },
+  { key: 'juridico', get label() { return tr('agency.perm.juridico.label'); }, get hint() { return tr('agency.perm.juridico.hint'); } },
 ] as const;
 
 export type AgencyPermission = typeof AGENCY_PERMISSIONS[number]['key'];

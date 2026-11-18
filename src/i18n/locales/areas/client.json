@@ -1,0 +1,110 @@
+{
+ "pt": {
+  "client": {
+   "loyalty": {
+    "title": "Nível de fidelidade",
+    "nearNext": "Perto do próximo!",
+    "paidTotal": "Comissão paga acumulada",
+    "top": "Você está no topo — nível máximo desbloqueado.",
+    "next": "Próximo:",
+    "remaining": "Faltam",
+    "journey": "Jornada de níveis",
+    "current": "Atual",
+    "tagline": {
+     "standard": "Todo cliente começa aqui — evolua pagando sua comissão em dia.",
+     "premium": "Você desbloqueou o benefício Premium — comissão base reduzida.",
+     "elite": "Nível Elite — o menor percentual da agência. Bem-vindo ao topo."
+    },
+    "base": "base"
+   },
+   "dash": {
+    "timeout": "{{label}} demorou demais para responder",
+    "loadAccounts": "Contas de anúncio",
+    "loadAssignments": "Atribuições de contas",
+    "loadInsights": "Insights de anúncio",
+    "agencyView": "Visão da agência",
+    "backToClients": "Voltar para Clientes",
+    "agencyPanel": "Painel da Agência →"
+   },
+   "referral": {
+    "later": "Depois"
+   },
+   "chat": {
+    "waMessage": "Olá! Vim do chat do painel {{brand}} e preciso de ajuda.",
+    "teamOf": "Equipe {{name}}"
+   }
+  }
+ },
+ "en": {
+  "client": {
+   "loyalty": {
+    "title": "Loyalty level",
+    "nearNext": "Almost at the next one!",
+    "paidTotal": "Total commission paid",
+    "top": "You're at the top — highest level unlocked.",
+    "next": "Next:",
+    "remaining": "Remaining",
+    "journey": "Level journey",
+    "current": "Current",
+    "tagline": {
+     "standard": "Every client starts here — level up by paying your commission on time.",
+     "premium": "You unlocked the Premium benefit — reduced base commission.",
+     "elite": "Elite level — our lowest rate. Welcome to the top."
+    },
+    "base": "base"
+   },
+   "dash": {
+    "timeout": "{{label}} took too long to respond",
+    "loadAccounts": "Ad accounts",
+    "loadAssignments": "Account assignments",
+    "loadInsights": "Ad insights",
+    "agencyView": "Agency view",
+    "backToClients": "Back to Clients",
+    "agencyPanel": "Agency Panel →"
+   },
+   "referral": {
+    "later": "Later"
+   },
+   "chat": {
+    "waMessage": "Hi! I came from the {{brand}} dashboard chat and need help.",
+    "teamOf": "{{name}} team"
+   }
+  }
+ },
+ "es": {
+  "client": {
+   "loyalty": {
+    "title": "Nivel de fidelidad",
+    "nearNext": "¡Cerca del próximo!",
+    "paidTotal": "Comisión pagada acumulada",
+    "top": "Estás en la cima — nivel máximo desbloqueado.",
+    "next": "Próximo:",
+    "remaining": "Faltan",
+    "journey": "Recorrido de niveles",
+    "current": "Actual",
+    "tagline": {
+     "standard": "Todo cliente empieza aquí — sube de nivel pagando tu comisión a tiempo.",
+     "premium": "Desbloqueaste el beneficio Premium — comisión base reducida.",
+     "elite": "Nivel Elite — el porcentaje más bajo. Bienvenido a la cima."
+    },
+    "base": "base"
+   },
+   "dash": {
+    "timeout": "{{label}} tardó demasiado en responder",
+    "loadAccounts": "Cuentas publicitarias",
+    "loadAssignments": "Asignaciones de cuentas",
+    "loadInsights": "Insights de anuncios",
+    "agencyView": "Vista de la agencia",
+    "backToClients": "Volver a Clientes",
+    "agencyPanel": "Panel de la Agencia →"
+   },
+   "referral": {
+    "later": "Después"
+   },
+   "chat": {
+    "waMessage": "¡Hola! Vengo del chat del panel {{brand}} y necesito ayuda.",
+    "teamOf": "Equipo {{name}}"
+   }
+  }
+ }
+}
