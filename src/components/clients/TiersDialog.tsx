@@ -1,4 +1,5 @@
 import React from 'react';
+import { tr } from '@/i18n';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Trash2 } from 'lucide-react';
 import type { CommissionTier } from '@/lib/commission-tiers';
@@ -37,7 +38,7 @@ export const TiersDialog: React.FC<Props> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display">Metas semanais de desconto</DialogTitle>
+          <DialogTitle className="font-display">{tr('admin.tiers.title')}</DialogTitle>
           <DialogDescription className="text-xs">
             Configuração <strong className="text-foreground">global</strong>. Define o percentual aplicado conforme o
             gasto semanal acumulado de cada cliente de aluguel. As metas acompanham o nível de fidelidade: clientes
@@ -52,7 +53,7 @@ export const TiersDialog: React.FC<Props> = ({
               onClick={addTier}
               className="text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
             >
-              + Adicionar meta
+              {tr('admin.clients.addGoal')}
             </button>
           </div>
 
@@ -69,7 +70,7 @@ export const TiersDialog: React.FC<Props> = ({
                     className="flex items-end gap-2 bg-secondary/40 border border-border rounded-lg p-2"
                   >
                     <div className="flex-1">
-                      <label className="block text-[10px] text-muted-foreground mb-1">Gasto acima de (USD)</label>
+                      <label className="block text-[10px] text-muted-foreground mb-1">{tr('admin.clients.spendAbove')}</label>
                       <input
                         type="number"
                         value={t.min_spend}
@@ -91,7 +92,7 @@ export const TiersDialog: React.FC<Props> = ({
                       type="button"
                       onClick={() => removeTier(i)}
                       className="p-2 rounded hover:bg-destructive/10 text-destructive"
-                      title="Remover meta"
+                      title={tr('admin.clients.removeGoal')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -100,7 +101,7 @@ export const TiersDialog: React.FC<Props> = ({
               })}
             {tiersToShow.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-6">
-                Nenhuma meta configurada. Será usado o percentual base de cada cliente.
+                {tr('admin.tiers.none')}
               </p>
             )}
           </div>
@@ -112,14 +113,14 @@ export const TiersDialog: React.FC<Props> = ({
               disabled={savingTiers || !tierDraft}
               className="flex-1 bg-primary text-primary-foreground text-sm font-semibold py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40"
             >
-              {savingTiers ? 'Salvando...' : tierDraft ? 'Salvar metas' : 'Sem alterações'}
+              {savingTiers ? tr('admin.clients.saving') : tierDraft ? tr('admin.tiers.save') : tr('admin.tiers.noChanges')}
             </button>
             <button
               type="button"
               onClick={tierDraft ? cancelDraft : () => onOpenChange(false)}
               className="px-4 text-sm text-muted-foreground border border-border rounded-lg hover:bg-secondary"
             >
-              {tierDraft ? 'Descartar' : 'Fechar'}
+              {tierDraft ? tr('admin.tiers.discard') : tr('admin.tiers.close')}
             </button>
           </div>
         </div>

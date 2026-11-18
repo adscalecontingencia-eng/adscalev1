@@ -1,4 +1,5 @@
 import React from 'react';
+import { tr } from '@/i18n';
 import { Users, DollarSign, AlertTriangle, CheckCircle2, Wallet, AlertOctagon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -46,42 +47,42 @@ export const ClientKPIBar: React.FC<{ kpi: KPI }> = ({ kpi }) => {
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <Card
         icon={<Users size={14} />}
-        label="Clientes"
+        label={tr('admin.kpi.clients')}
         value={String(kpi.totalClients)}
-        hint={`${kpi.aluguelCount} aluguel · ${kpi.vendaCount} venda`}
+        hint={tr('admin.kpi.mix', { r: kpi.aluguelCount, s: kpi.vendaCount })}
       />
       <Card
         icon={<DollarSign size={14} />}
-        label="Gasto em Ads"
+        label={tr('admin.kpi.adSpend')}
         value={fmt(kpi.totalAdSpend)}
-        hint="no período selecionado"
+        hint={tr('admin.kpi.inSelected')}
       />
       <Card
         icon={<AlertTriangle size={14} />}
-        label="Saldo Acumulado"
+        label={tr('admin.card.accumulated')}
         value={fmt(kpi.totalPendente)}
-        hint="total em aberto"
+        hint={tr('admin.kpi.totalOpen')}
         tone="warning"
       />
       <Card
         icon={<AlertOctagon size={14} />}
-        label="Saldo Atrasado"
+        label={tr('admin.card.overdue')}
         value={fmt(kpi.totalAtrasado)}
-        hint="vencido após sexta"
+        hint={tr('admin.kpi.overdueAfterFri')}
         tone={kpi.totalAtrasado > 0 ? 'destructive' : 'success'}
       />
       <Card
         icon={<CheckCircle2 size={14} />}
-        label="Comissão Paga"
+        label={tr('admin.card.paidComm')}
         value={fmt(kpi.totalPaga)}
-        hint="no período"
+        hint={tr('admin.kpi.inPeriod')}
         tone="success"
       />
       <Card
         icon={<Wallet size={14} />}
-        label="Inadimplentes"
+        label={tr('admin.kpi.delinquent')}
         value={String(kpi.inadimplentes)}
-        hint="clientes com atraso"
+        hint={tr('admin.kpi.withDelay')}
         tone={kpi.inadimplentes > 0 ? 'destructive' : 'success'}
       />
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { tr } from '@/i18n';
+import { tr, trHtml } from '@/i18n';
 import { Globe, Copy, CheckCircle2, XCircle, Loader2, Send, ExternalLink, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,7 +121,7 @@ export const AgencyDomainSetup: React.FC<Props> = ({ settings, setSettings, agen
             {PROVIDERS.map(p => (
               <div key={p.n} className="border-b border-border/40 last:border-0">
                 <button type="button" className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-secondary/40" onClick={() => setOpenProv(openProv === p.n ? null : p.n)}>
-                  <span dangerouslySetInnerHTML={{ __html: tr('agency.domain.howTo', { name: p.n }) }} /><ChevronDown size={13} className={openProv === p.n ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                  <span dangerouslySetInnerHTML={{ __html: trHtml('agency.domain.howTo', { name: p.n }) }} /><ChevronDown size={13} className={openProv === p.n ? 'rotate-180 transition-transform' : 'transition-transform'} />
                 </button>
                 {openProv === p.n && <p className="px-3 pb-3 text-[11px] text-muted-foreground">{tr(`agency.domain.prov.${p.k}`)}</p>}
               </div>

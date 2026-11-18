@@ -57,3 +57,10 @@ export default i18n;
 
 /** Translate outside of hooks (render code, toasts, helpers). Screens re-render on language change via AppRoutes. */
 export const tr = (key: string, options?: Record<string, unknown>): string => String(i18n.t(key, options as never));
+
+const escapeHtml = (v: unknown) =>
+  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+/** Like `tr`, but HTML-escapes every interpolated value. Use this (never `tr`) inside dangerouslySetInnerHTML. */
+export const trHtml = (key: string, options: Record<string, unknown> = {}): string =>
+  tr(key, Object.fromEntries(Object.entries(options).map(([k, v]) => [k, escapeHtml(v)])));

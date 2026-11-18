@@ -1,5 +1,5 @@
 import React from 'react';
-import { tr } from '@/i18n';
+import { tr, trHtml } from '@/i18n';
 import { Eye, ArrowLeft, Wallet, TrendingUp, Percent, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +27,7 @@ export const SubClientView: React.FC<Props> = ({ brand, logoUrl, sub, row, accou
   return (
     <div className="min-h-screen bg-background">
       <div className="bg-primary text-primary-foreground text-xs px-4 py-2 flex items-center gap-2">
-        <Eye size={14} /> <span dangerouslySetInnerHTML={{ __html: tr('agency.subview.viewing', { name: sub.name }) }} />
+        <Eye size={14} /> <span dangerouslySetInnerHTML={{ __html: trHtml('agency.subview.viewing', { name: sub.name }) }} />
         <Button size="sm" variant="secondary" className="ml-auto h-7 gap-1" onClick={onBack}><ArrowLeft size={12} />{tr('agency.subview.backAgency')}</Button>
       </div>
       <header className="h-14 border-b border-border/60 flex items-center px-6 gap-3">

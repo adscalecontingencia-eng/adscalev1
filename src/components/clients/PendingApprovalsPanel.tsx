@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle2, XCircle, UserPlus, RefreshCw, Building2, Mail, Phone, Target, DollarSign, Compass } from 'lucide-react';
 
@@ -56,7 +57,7 @@ const PendingApprovalsPanel: React.FC<{ onChanged?: () => void }> = ({ onChanged
   const decide = async (id: string, approve: boolean) => {
     let reason: string | null = null;
     if (!approve) {
-      reason = window.prompt('Motivo da recusa (visível para o cliente):', '') || '';
+      reason = window.prompt(tr('admin.approvals.rejectPrompt'), '') || '';
       if (!reason.trim()) return;
     }
     setBusyId(id);
@@ -85,11 +86,11 @@ const PendingApprovalsPanel: React.FC<{ onChanged?: () => void }> = ({ onChanged
             <UserPlus size={16} className="text-primary" />
           </div>
           <div>
-            <h3 className="font-display text-sm font-semibold text-foreground">Cadastros aguardando aprovação</h3>
+            <h3 className="font-display text-sm font-semibold text-foreground">{tr('admin.approvals.title')}</h3>
             <p className="text-xs text-muted-foreground">{rows.length} pendente(s)</p>
           </div>
         </div>
-        <button onClick={load} className="p-2 rounded-lg border border-border hover:bg-secondary/60" title="Atualizar">
+        <button onClick={load} className="p-2 rounded-lg border border-border hover:bg-secondary/60" title={tr('admin.approvals.refresh')}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -105,7 +106,7 @@ const PendingApprovalsPanel: React.FC<{ onChanged?: () => void }> = ({ onChanged
                 </p>
               </div>
               <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/30">
-                Pendente
+                {tr('admin.approvals.pending')}
               </span>
             </div>
 
@@ -124,14 +125,14 @@ const PendingApprovalsPanel: React.FC<{ onChanged?: () => void }> = ({ onChanged
                 onClick={() => decide(r.id, true)}
                 className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg bg-primary text-primary-foreground hover:brightness-110 disabled:opacity-50"
               >
-                <CheckCircle2 size={14} /> Aprovar
+                <CheckCircle2 size={14} /> {tr('admin.approvals.approve')}
               </button>
               <button
                 disabled={busyId === r.id}
                 onClick={() => decide(r.id, false)}
                 className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-50"
               >
-                <XCircle size={14} /> Recusar
+                <XCircle size={14} /> {tr('admin.approvals.reject')}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { tr } from '@/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
 import { Plus, Search, Edit2, Trash2, X, DollarSign, CheckCircle, ChevronDown, ChevronUp, CalendarIcon, Receipt, Pencil, CalendarClock, Eye, UserPlus, RefreshCw } from 'lucide-react';
@@ -140,11 +141,11 @@ const Clients: React.FC = () => {
         const { error: insErr } = await supabase.from('commission_tiers').insert(clean);
         if (insErr) throw insErr;
       }
-      toast.success('Metas semanais atualizadas');
+      toast.success(tr('admin.clients.goalsUpdated'));
       setTierDraft(null);
       await reloadTiers();
     } catch (e: any) {
-      toast.error('Falha ao salvar metas: ' + (e?.message || ''));
+      toast.error(tr('admin.clients.goalsSaveFail') + ' ' + (e?.message || ''));
     } finally {
       setSavingTiers(false);
     }
@@ -159,7 +160,7 @@ const Clients: React.FC = () => {
 
   const fetchClients = async () => {
     const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-    if (error) { toast.error('Erro ao carregar clientes'); return; }
+    if (error) { toast.error(tr('admin.clients.loadError')); return; }
     setClients((data || []).map(c => ({
       id: c.id, number: c.number || '', name: c.name, companyName: c.company_name || '',
       email: c.email, password: '', observations: c.observations || '',
@@ -325,7 +326,7 @@ const Clients: React.FC = () => {
   const handleManualAdsSync = async () => {
     if (syncingAds) return;
     setSyncingAds(true);
-    const toastId = toast.loading('Sincronizando contas de anúncio com a Meta...');
+    const toastId = toast.loading(tr('admin.clients.syncing'));
     try {
       const today = new Date();
       const closed = getLastClosedBillingWeekRange(today);
@@ -342,12 +343,12 @@ const Clients: React.FC = () => {
       await fetchCommissions();
       setLastAdsSyncAt(new Date());
       if (errs.length > 0) {
-        toast.warning(`Sincronizado com avisos: ${rows} registro(s), ${errs.length} conta(s) com erro na Meta.`, { id: toastId });
+        toast.warning(tr('admin.clients.syncWarn', { rows, errs: errs.length }), { id: toastId });
       } else {
-        toast.success(`Sincronizado: ${rows} registro(s) atualizado(s).`, { id: toastId });
+        toast.success(tr('admin.clients.syncOk', { rows }), { id: toastId });
       }
     } catch (e: any) {
-      toast.error(`Falha ao sincronizar: ${e?.message || e}`, { id: toastId });
+      toast.error(tr('admin.clients.syncFail', { msg: e?.message || e }), { id: toastId });
     } finally {
       setSyncingAds(false);
     }
@@ -398,12 +399,12 @@ const Clients: React.FC = () => {
 
     if (clientType === 'venda') {
       if (!form.name || !form.number) {
-        toast.error('Preencha os campos obrigatórios: Nome e Número');
+        toast.error(tr('admin.clients.reqSale'));
         return;
       }
     } else {
       if (!form.name || !form.email || !form.number) {
-        toast.error('Preencha os campos obrigatórios: Número, Nome e E-mail');
+        toast.error(tr('admin.clients.reqRental'));
         return;
       }
     }
@@ -423,7 +424,7 @@ const Clients: React.FC = () => {
     // Delta de crédito p/ lançar como receita (faturamento)
     if (clientType === 'aluguel' && Array.isArray(form.customTiers) && form.customTiers.length > 0) {
       const tierProblem = tierOrderProblem(form.customTiers, percentageValue);
-      if (tierProblem) { toast.error(`Metas personalizadas: ${tierProblem}`); setSaving(false); return; }
+      if (tierProblem) { toast.error(tr('admin.clients.customGoals', { problem: tierProblem })); setSaving(false); return; }
     }
 
     const previousCredit = editing ? (editing.planCredit || 0) : 0;
@@ -451,7 +452,7 @@ const Clients: React.FC = () => {
       const newPwd = (form.password || '').trim();
       const emailChanged = clientType === 'aluguel' && (effectiveEmail || '').toLowerCase() !== (editing.email || '').toLowerCase();
       if (newPwd || emailChanged) {
-        if (newPwd && newPwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); setSaving(false); return; }
+        if (newPwd && newPwd.length < 6) { toast.error(tr('admin.clients.pw6')); setSaving(false); return; }
         const res = await supabase.functions.invoke('manage-users', {
           body: {
             action: 'reset_login', client_id: editing.id,
@@ -460,14 +461,14 @@ const Clients: React.FC = () => {
           },
         });
         if (res.error || (res.data as any)?.error) {
-          toast.error((res.data as any)?.error || res.error?.message || 'Erro ao atualizar login do cliente');
+          toast.error((res.data as any)?.error || res.error?.message || tr('admin.clients.loginUpdateError'));
           setSaving(false); return;
         }
         logAudit({ action: 'client_login_reset', entity: 'client', entity_id: editing.id, after: { email_changed: emailChanged, password_changed: !!newPwd } as any });
       }
       const { error } = await supabase.from('clients').update(payload).eq('id', editing.id);
-      if (error) { toast.error('Erro ao atualizar cliente'); setSaving(false); return; }
-      toast.success(newPwd ? 'Cliente atualizado e senha alterada!' : 'Cliente atualizado!');
+      if (error) { toast.error(tr('admin.clients.updateError')); setSaving(false); return; }
+      toast.success(newPwd ? tr('admin.clients.updatedPw') : tr('admin.clients.updated'));
     } else if (clientType === 'venda') {
       // Cliente de venda: cadastro simples, sem usuário de auth/login
       const { error } = await supabase.from('clients').insert({
@@ -482,12 +483,12 @@ const Clients: React.FC = () => {
         whatsapp_group_link: form.whatsappGroupLink || null,
         partner_id: form.partnerId || null,
       } as any);
-      if (error) { toast.error('Erro ao cadastrar cliente: ' + error.message); setSaving(false); return; }
-      toast.success('Cliente de venda cadastrado!');
+      if (error) { toast.error(tr('admin.clients.createErrorMsg') + ' ' + error.message); setSaving(false); return; }
+      toast.success(tr('admin.clients.saleCreated'));
     } else {
       const password = (form.password || '').trim();
       if (password.length < 8) {
-        toast.error('Defina uma senha com pelo menos 8 caracteres para o cliente.');
+        toast.error(tr('admin.clients.pw8'));
         setSaving(false);
         return;
       }
@@ -504,10 +505,10 @@ const Clients: React.FC = () => {
         },
       });
       if (res.error || res.data?.error) {
-        toast.error(res.data?.error || res.error?.message || 'Erro ao cadastrar cliente');
+        toast.error(res.data?.error || res.error?.message || tr('admin.clients.createError'));
         setSaving(false); return;
       }
-      toast.success('Cliente cadastrado!');
+      toast.success(tr('admin.clients.created'));
       savedClientId = (res.data as any)?.client_id || null;
       // fallback: busca pelo email criado
       if (!savedClientId) {
@@ -575,7 +576,7 @@ const Clients: React.FC = () => {
       }
 
       if (liquidated > 0) {
-        toast.success(`Crédito ${fmt(creditDelta)} • liquidou ${fmt(liquidated)} em comissões pendentes${receitaCredito > 0 ? ` • saldo ${fmt(receitaCredito)}` : ''}`);
+        toast.success(`${tr('admin.clients.creditToast', { credit: fmt(creditDelta), liq: fmt(liquidated) })}${receitaCredito > 0 ? ` ${tr('admin.clients.creditBalance', { amount: fmt(receitaCredito) })}` : ''}`);
       }
     }
 
@@ -594,13 +595,13 @@ const Clients: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     const c = clients.find(x => x.id === id);
-    if (!confirm(`Excluir definitivamente o cliente "${c?.name}"?\n\nIsso removerá o login, comissões, lançamentos e atribuições deste cliente do banco de dados. Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(tr('admin.clients.confirmDelete', { name: c?.name }))) return;
     const res = await supabase.functions.invoke('manage-users', { body: { action: 'delete_client', client_id: id } });
     if (res.error || (res.data as any)?.error) {
-      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao remover cliente');
+      toast.error((res.data as any)?.error || res.error?.message || tr('admin.clients.removeError'));
       return;
     }
-    toast.success('Cliente removido do banco de dados');
+    toast.success(tr('admin.clients.removed'));
     setClients(prev => prev.filter(c => c.id !== id));
     fetchCommissions();
     logAudit({ action: 'client_deleted', entity: 'client', entity_id: id, before: c as any });
@@ -610,40 +611,40 @@ const Clients: React.FC = () => {
     const c = clients.find(x => x.id === id);
     if (!c) return;
     const choice = window.confirm(
-      `Redefinir LOGIN COMPLETO de "${c.name}" (e-mail + senha)?\n\nOK = alterar e-mail e/ou senha\nCancelar = alterar somente a senha`
+      tr('admin.clients.resetLoginConfirm', { name: c.name })
     );
 
     if (!choice) {
-      const newPwd = window.prompt(`Definir nova senha para "${c.name}" (${c.email}).\n\nMínimo 6 caracteres:`);
+      const newPwd = window.prompt(tr('admin.clients.newPwPrompt', { name: c.name, email: c.email }));
       if (!newPwd) return;
-      if (newPwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); return; }
+      if (newPwd.length < 6) { toast.error(tr('admin.clients.pw6')); return; }
       const res = await supabase.functions.invoke('manage-users', {
         body: { action: 'reset_password', client_id: id, new_password: newPwd },
       });
       if (res.error || (res.data as any)?.error) {
-        toast.error((res.data as any)?.error || res.error?.message || 'Erro ao redefinir senha');
+        toast.error((res.data as any)?.error || res.error?.message || tr('admin.clients.resetPwError'));
         return;
       }
-      toast.success(`Senha de ${c.name} redefinida com sucesso`);
+      toast.success(tr('admin.clients.pwReset', { name: c.name }));
       logAudit({ action: 'client_password_reset', entity: 'client', entity_id: id });
       return;
     }
 
     const newEmail = window.prompt(
-      `Novo e-mail de login para "${c.name}" (deixe igual para manter):`,
+      tr('admin.clients.newEmailPrompt', { name: c.name }),
       c.email || ''
     );
     if (newEmail === null) return;
     const emailTrim = newEmail.trim();
-    if (!emailTrim || !emailTrim.includes('@')) { toast.error('E-mail inválido'); return; }
+    if (!emailTrim || !emailTrim.includes('@')) { toast.error(tr('admin.clients.invalidEmail')); return; }
 
-    const newPwd = window.prompt(`Nova senha para "${c.name}".\n\nDeixe em branco para manter. Mínimo 6 caracteres:`);
+    const newPwd = window.prompt(tr('admin.clients.newPwOptPrompt', { name: c.name }));
     if (newPwd === null) return;
     const pwd = newPwd.trim();
-    if (pwd && pwd.length < 6) { toast.error('Senha precisa ter ao menos 6 caracteres'); return; }
+    if (pwd && pwd.length < 6) { toast.error(tr('admin.clients.pw6')); return; }
 
     const emailChanged = emailTrim.toLowerCase() !== (c.email || '').toLowerCase();
-    if (!emailChanged && !pwd) { toast.info?.('Nada para alterar'); return; }
+    if (!emailChanged && !pwd) { toast.info?.(tr('admin.clients.nothing')); return; }
 
     const res = await supabase.functions.invoke('manage-users', {
       body: {
@@ -654,10 +655,10 @@ const Clients: React.FC = () => {
       },
     });
     if (res.error || (res.data as any)?.error) {
-      toast.error((res.data as any)?.error || res.error?.message || 'Erro ao redefinir login');
+      toast.error((res.data as any)?.error || res.error?.message || tr('admin.clients.resetLoginError'));
       return;
     }
-    toast.success(`Login de ${c.name} redefinido com sucesso`);
+    toast.success(tr('admin.clients.loginReset', { name: c.name }));
     if (emailChanged) {
       setClients(prev => prev.map(x => x.id === id ? { ...x, email: emailTrim } : x));
     }
@@ -669,7 +670,7 @@ const Clients: React.FC = () => {
   // "Lançar Gastos em Ads" — inserts ad spend, auto-calculates commission as PENDING
   const handleAddAdSpend = async (clientId: string) => {
     const adSpend = parseFloat(adSpendAmount);
-    if (isNaN(adSpend) || adSpend <= 0) { toast.error('Informe um valor de gasto válido'); return; }
+    if (isNaN(adSpend) || adSpend <= 0) { toast.error(tr('admin.clients.invalidSpend')); return; }
     
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
@@ -698,7 +699,7 @@ const Clients: React.FC = () => {
       valor_pendente: commission,
       status: 'pendente',
     } as any);
-    if (commError) { toast.error('Erro ao lançar gasto em ads'); return; }
+    if (commError) { toast.error(tr('admin.clients.spendError')); return; }
 
     // Abate o crédito do plano (se aluguel) — a parte abatida NÃO gera receita,
     // pois o crédito já foi lançado como faturamento no cadastro do cliente.
@@ -735,7 +736,7 @@ const Clients: React.FC = () => {
 
   // "Comissão Paga" — subtracts from pending commissions AND books revenue in Faturamento
   const handleAddPaid = async (clientId: string) => {
-    if (!isAdmin) { toast.error('Apenas administradores podem validar pagamentos'); return; }
+    if (!isAdmin) { toast.error(tr('admin.clients.onlyAdmins')); return; }
     if (paymentValidationInFlight.current) return;
     const amount = parseFloat(paidAmount);
     if (isNaN(amount) || amount <= 0) return;
@@ -751,7 +752,7 @@ const Clients: React.FC = () => {
         client_id: clientId, date: dateISO, amount, type: 'paid',
         valor_pago: amount, valor_pendente: 0, status: 'pago',
       } as any);
-      if (error) { toast.error('Erro ao registrar pagamento'); return; }
+      if (error) { toast.error(tr('admin.clients.payError')); return; }
 
       // Lança também em transactions p/ aparecer no Faturamento
       const { error: txError } = await supabase.from('transactions').insert({
@@ -763,7 +764,7 @@ const Clients: React.FC = () => {
         description: `Pagamento de comissão — ${client?.name || 'cliente'}`,
       } as any);
       if (txError) {
-        toast.error('Pagamento salvo, mas falhou ao lançar no Faturamento: ' + txError.message);
+        toast.error(tr('admin.clients.paySavedTxFail') + ' ' + txError.message);
       }
 
       logAudit({ action: 'commission_payment_validated', entity: 'client', entity_id: clientId, after: { amount, date: dateISO } });
@@ -790,7 +791,7 @@ const Clients: React.FC = () => {
         remaining -= payThis;
       }
 
-      toast.success('Pagamento registrado e lançado no Faturamento!');
+      toast.success(tr('admin.clients.paid'));
       setPaidAmount(''); setPaidDate(new Date()); setShowPaidForm(null);
       fetchCommissions();
     } finally {
@@ -811,7 +812,7 @@ const Clients: React.FC = () => {
       c.billingWeekStart === format(weekStart, 'yyyy-MM-dd') 
     );
     if (existing) {
-      toast.error('Cobrança semanal já gerada para esta semana!');
+      toast.error(tr('admin.clients.billingExists'));
       return;
     }
 
@@ -823,7 +824,7 @@ const Clients: React.FC = () => {
     const totalCommission = weeklyCommissions.reduce((s, c) => s + c.amount, 0);
 
     if (totalCommission <= 0) {
-      toast.error('Nenhum gasto em ads lançado nesta semana para gerar cobrança');
+      toast.error(tr('admin.clients.noSpendWeek'));
       return;
     }
 
@@ -838,8 +839,8 @@ const Clients: React.FC = () => {
       valor_pendente: totalCommission,
       status: 'pendente',
     } as any);
-    if (error) { toast.error('Erro ao gerar cobrança'); return; }
-    toast.success(`Cobrança semanal de ${fmt(totalCommission)} gerada!`);
+    if (error) { toast.error(tr('admin.clients.billingError')); return; }
+    toast.success(tr('admin.clients.billingCreated', { amount: fmt(totalCommission) }));
     fetchCommissions();
   };
 
@@ -856,7 +857,7 @@ const Clients: React.FC = () => {
     if (!editingCommission) return;
     const newAmount = parseFloat(editCommAmount);
     const newAdSpend = parseFloat(editCommAdSpend) || 0;
-    if (isNaN(newAmount) || newAmount < 0) { toast.error('Valor inválido'); return; }
+    if (isNaN(newAmount) || newAmount < 0) { toast.error(tr('admin.clients.invalidValue')); return; }
 
     // If it's a daily/weekly type and we're editing ad_spend, recalculate commission
     let finalAmount = newAmount;
@@ -881,23 +882,23 @@ const Clients: React.FC = () => {
     }
 
     const { error } = await supabase.from('commissions').update(updatePayload).eq('id', editingCommission.id);
-    if (error) { toast.error('Erro ao editar lançamento'); return; }
-    toast.success('Lançamento atualizado!');
+    if (error) { toast.error(tr('admin.clients.editEntryError')); return; }
+    toast.success(tr('admin.clients.entryUpdated'));
     setEditingCommission(null);
     fetchCommissions();
   };
 
   const handleDeleteCommission = async (commId: string) => {
     const { error } = await supabase.from('commissions').delete().eq('id', commId);
-    if (error) { toast.error('Erro ao remover lançamento'); return; }
-    toast.success('Lançamento removido!');
+    if (error) { toast.error(tr('admin.clients.removeEntryError')); return; }
+    toast.success(tr('admin.clients.entryRemoved'));
     fetchCommissions();
   };
 
   // Mark a weekly billing as paid (creates a 'paid' record and liquidates pending)
   const handleMarkBillingPaid = async (billing: Commission) => {
     const pendente = billing.valorPendente ?? billing.amount;
-    if (pendente <= 0) { toast.info('Cobrança já está paga'); return; }
+    if (pendente <= 0) { toast.info(tr('admin.clients.alreadyPaid')); return; }
     const client = clients.find(c => c.id === billing.clientId);
     const now = new Date();
     const { error } = await supabase.from('commissions').insert({
@@ -910,7 +911,7 @@ const Clients: React.FC = () => {
       valor_pendente: 0,
       status: 'pago',
     } as any);
-    if (error) { toast.error('Erro ao marcar como pago'); return; }
+    if (error) { toast.error(tr('admin.clients.markPaidError')); return; }
 
     // Lança também em transactions p/ aparecer no Faturamento
     const { error: txError } = await supabase.from('transactions').insert({
@@ -921,7 +922,7 @@ const Clients: React.FC = () => {
       amount: pendente,
       description: `Pagamento de cobrança semanal — ${client?.name || 'cliente'}`,
     } as any);
-    if (txError) toast.error('Pagamento salvo, mas falhou ao lançar no Faturamento: ' + txError.message);
+    if (txError) toast.error(tr('admin.clients.paySavedTxFail') + ' ' + txError.message);
 
     // Liquidate pending commissions FIFO (mirrors handleAddPaid)
     const clientDailyComms = commissions
@@ -938,7 +939,7 @@ const Clients: React.FC = () => {
       await supabase.from('commissions').update({ valor_pago: newPago, valor_pendente: Math.max(0, newPendente), status: newStatus } as any).eq('id', comm.id);
       remaining -= payThis;
     }
-    toast.success('Cobrança paga e lançada no Faturamento!');
+    toast.success(tr('admin.clients.billingPaid'));
     fetchCommissions();
   };
 
@@ -1174,23 +1175,23 @@ const Clients: React.FC = () => {
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Clientes & Comissões"
-        title={<>Carteira de <span className="text-primary glow-text">clientes</span></>}
-        description="Gestão completa de clientes, comissões diárias e fechamento semanal de Ad Spend."
+        eyebrow={tr('admin.clients.eyebrow')}
+        title={<span dangerouslySetInnerHTML={{ __html: tr('admin.clients.title').replace('<span>', '<span class="text-primary glow-text">') }} />}
+        description={tr('admin.clients.subtitle')}
         actions={
           <div className="flex flex-col items-end gap-1">
             <button
               onClick={handleManualAdsSync}
               disabled={syncingAds}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary text-sm font-medium hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Puxa os gastos das contas Meta para a semana atual e a última semana fechada"
+              title={tr('admin.clients.syncTitle')}
             >
               <RefreshCw size={14} className={syncingAds ? 'animate-spin' : ''} />
-              {syncingAds ? 'Sincronizando...' : 'Sincronizar contas de anúncio'}
+              {syncingAds ? tr('admin.clients.syncingShort') : tr('admin.clients.syncBtn')}
             </button>
             {lastAdsSyncAt && (
               <span className="text-[10px] text-muted-foreground">
-                Última sincronização: {format(lastAdsSyncAt, "HH:mm:ss")}
+                {tr('admin.clients.lastSync')} {format(lastAdsSyncAt, "HH:mm:ss")}
               </span>
             )}
           </div>
@@ -1204,8 +1205,8 @@ const Clients: React.FC = () => {
 
       <WeekComparisonCard
         data={weekCompareAgg}
-        title="Comparativo semanal — carteira"
-        subtitle="Somatório de todos os clientes: semana atual (parcial) vs mesmo intervalo da semana anterior"
+        title={tr('admin.clients.weekCompare')}
+        subtitle={tr('admin.clients.weekCompareSub')}
       />
 
       <ClientFiltersBar
@@ -1234,12 +1235,12 @@ const Clients: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">{editing ? 'Editar Cliente' : 'Novo Cliente'}</h3>
+              <h3 className="font-display text-sm font-semibold">{editing ? tr('admin.clients.editClient') : tr('admin.clients.newClient')}</h3>
               <button onClick={resetForm} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Tipo de Cliente</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.clientType')}</label>
                 <select
                   value={form.clientType || 'aluguel'}
                   onChange={e => {
@@ -1255,18 +1256,18 @@ const Clients: React.FC = () => {
                   className={inputClass}
                   disabled={!!editing}
                 >
-                  <option value="aluguel">Aluguel (acesso ao portal + comissão %)</option>
-                  <option value="venda">Venda (cadastro simples — só Nome e Número)</option>
+                  <option value="aluguel">{tr('admin.clients.typeRental')}</option>
+                  <option value="venda">{tr('admin.clients.typeSale')}</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Número</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.number')}</label>
                   <input value={form.number || ''} onChange={e => setForm(p => ({ ...p, number: e.target.value }))} className={inputClass} required />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Nome</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.name')}</label>
                   <input value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputClass} required />
                 </div>
               </div>
@@ -1274,66 +1275,66 @@ const Clients: React.FC = () => {
               {form.clientType !== 'venda' && (
                 <>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Empresa</label>
+                    <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.company')}</label>
                     <input value={form.companyName || ''} onChange={e => setForm(p => ({ ...p, companyName: e.target.value }))} className={inputClass} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">E-mail (login)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.emailLogin')}</label>
                       <input type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputClass} required />
                     </div>
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Senha</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.password')}</label>
                       <input value={form.password || ''} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Observações (contrato)</label>
+                    <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.notes')}</label>
                     <textarea value={form.observations || ''} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} className={`${inputClass} h-24 resize-none`} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">WhatsApp (cliente)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.waClient')}</label>
                       <input value={form.whatsappPhone || ''} onChange={e => setForm(p => ({ ...p, whatsappPhone: e.target.value }))} placeholder="5511999999999" className={inputClass} />
                     </div>
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Link do Grupo WhatsApp</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.waGroup')}</label>
                       <input value={form.whatsappGroupLink || ''} onChange={e => setForm(p => ({ ...p, whatsappGroupLink: e.target.value }))} placeholder="https://chat.whatsapp.com/..." className={inputClass} />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Parceiro indicador (opcional)</label>
+                    <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.partner')}</label>
                     <select
                       value={form.partnerId || ''}
                       onChange={e => setForm(p => ({ ...p, partnerId: e.target.value || null }))}
                       className={inputClass}
                     >
-                      <option value="">— Sem parceiro —</option>
+                      <option value="">{tr('admin.clients.noPartner')}</option>
                       {partners.map(pt => (
                         <option key={pt.id} value={pt.id}>{pt.name} ({pt.email})</option>
                       ))}
                     </select>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Vincula este cliente a um parceiro. A comissão do parceiro é gerada automaticamente a cada pagamento recebido.
+                      {tr('admin.clients.partnerHint')}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Percentual base (%)</label>
+                    <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.basePct')}</label>
                     <input type="number" value={form.percentageValue || ''} onChange={e => setForm(p => ({ ...p, percentageValue: +e.target.value }))} className={inputClass} />
-                    <p className="text-[10px] text-muted-foreground mt-1">Aplicado quando o gasto semanal for menor que $20k.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{tr('admin.clients.basePctHint')}</p>
                   </div>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Crédito do Plano (USD)</label>
+                    <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.planCredit')}</label>
                     <input type="number" step="0.01" value={form.planCredit ?? ''} onChange={e => setForm(p => ({ ...p, planCredit: parseFloat(e.target.value) || 0 }))} placeholder="0.00" className={inputClass} />
-                    <p className="text-[10px] text-muted-foreground mt-1">Crédito pré-pago que será abatido automaticamente das próximas comissões semanais. Não entra como faturamento.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{tr('admin.clients.planCreditHint')}</p>
                   </div>
                   {/* Metas semanais personalizadas (sobrescrevem os tiers globais) */}
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-semibold text-primary">Metas semanais personalizadas</p>
+                        <p className="text-xs font-semibold text-primary">{tr('admin.clients.customWeekly')}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          Se vazio, usa os tiers globais (configurados em "Metas de Desconto").
+                          {tr('admin.clients.customHint')}
                         </p>
                       </div>
                       <button
@@ -1344,7 +1345,7 @@ const Clients: React.FC = () => {
                         }))}
                         className="text-[11px] px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 shrink-0"
                       >
-                        + Adicionar meta
+                        {tr('admin.clients.addGoal')}
                       </button>
                     </div>
                     {(form.customTiers && form.customTiers.length > 0) ? (
@@ -1352,7 +1353,7 @@ const Clients: React.FC = () => {
                         {form.customTiers.map((t, idx) => (
                           <div key={idx} className="flex items-end gap-2 bg-background/40 border border-border rounded-md p-2">
                             <div className="flex-1">
-                              <label className="block text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Gasto acima de (USD)</label>
+                              <label className="block text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">{tr('admin.clients.spendAbove')}</label>
                               <input
                                 type="number"
                                 value={t.min_spend}
@@ -1389,7 +1390,7 @@ const Clients: React.FC = () => {
                                 customTiers: (p.customTiers || []).filter((_, i) => i !== idx),
                               }))}
                               className="p-2 rounded hover:bg-destructive/10 text-destructive"
-                              title="Remover meta"
+                              title={tr('admin.clients.removeGoal')}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1398,29 +1399,29 @@ const Clients: React.FC = () => {
                       </div>
                     ) : (
                       <p className="text-[11px] text-muted-foreground italic">
-                        Nenhuma meta personalizada — este cliente usa os tiers globais.
+                        {tr('admin.clients.noCustom')}
                       </p>
                     )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Contas disponíveis</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.accAvailable')}</label>
                       <input type="number" value={form.adAccounts || 0} onChange={e => setForm(p => ({ ...p, adAccounts: +e.target.value }))} className={inputClass} />
                     </div>
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Contas usadas</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.accUsed')}</label>
                       <input type="number" value={form.usedAccounts || 0} onChange={e => setForm(p => ({ ...p, usedAccounts: +e.target.value }))} className={inputClass} />
                     </div>
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Contas bloqueadas</label>
+                      <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.accBlocked')}</label>
                       <input type="number" value={form.blockedAccounts || 0} onChange={e => setForm(p => ({ ...p, blockedAccounts: +e.target.value }))} className={inputClass} />
                     </div>
                   </div>
                 </>
               )}
               <button onClick={handleSave} disabled={saving} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
-                {saving ? 'Salvando...' : editing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                {saving ? tr('admin.clients.saving') : editing ? tr('admin.clients.saveChanges') : tr('admin.clients.register')}
               </button>
             </div>
           </motion.div>
@@ -1433,13 +1434,13 @@ const Clients: React.FC = () => {
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-sm font-semibold">
-                Editar {editingCommission.type === 'paid' ? 'Pagamento' : 'Lançamento'}
+                {tr('admin.clients.edit')} {editingCommission.type === 'paid' ? tr('admin.clients.payment') : tr('admin.clients.entry')}
               </h3>
               <button onClick={() => setEditingCommission(null)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Data</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.date')}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <button className={cn("flex items-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
@@ -1454,7 +1455,7 @@ const Clients: React.FC = () => {
               </div>
               {editingCommission.type !== 'paid' && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Gasto em Ads ($)</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.adSpend')}</label>
                   <input type="number" value={editCommAdSpend} onChange={e => {
                     setEditCommAdSpend(e.target.value);
                     const client = clients.find(c => c.id === editingCommission.clientId);
@@ -1467,20 +1468,20 @@ const Clients: React.FC = () => {
               )}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">
-                  {editingCommission.type === 'paid' ? 'Valor Pago ($)' : 'Comissão ($)'}
+                  {editingCommission.type === 'paid' ? tr('admin.clients.paidValue') : tr('admin.clients.commission')}
                 </label>
                 <input type="number" value={editCommAmount} onChange={e => setEditCommAmount(e.target.value)} className={inputClass} readOnly={editingCommission.type !== 'paid'} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Nota</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.clients.note')}</label>
                 <input value={editCommNote} onChange={e => setEditCommNote(e.target.value)} className={inputClass} />
               </div>
               <div className="flex gap-2">
                 <button onClick={handleSaveEditCommission} className="flex-1 bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90">
-                  Salvar
+                  {tr('admin.clients.save')}
                 </button>
                 <button onClick={() => setEditingCommission(null)} className="px-4 py-2.5 rounded-lg border border-border text-muted-foreground hover:text-foreground">
-                  Cancelar
+                  {tr('admin.clients.cancel')}
                 </button>
               </div>
             </div>
@@ -1507,10 +1508,10 @@ const Clients: React.FC = () => {
         {!loading && clients.length === 0 && (
           <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
             <UserPlus size={36} className="mx-auto text-muted-foreground/60 mb-3" />
-            <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente cadastrado ainda</p>
-            <p className="text-xs text-muted-foreground mb-4">Adicione seu primeiro cliente para começar a gerenciar comissões.</p>
+            <p className="text-sm font-medium text-foreground mb-1">{tr('admin.clients.emptyTitle')}</p>
+            <p className="text-xs text-muted-foreground mb-4">{tr('admin.clients.emptyDesc')}</p>
             <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
-              <Plus size={14} /> Cadastrar primeiro cliente
+              <Plus size={14} /> {tr('admin.clients.registerFirst')}
             </button>
           </div>
         )}
@@ -1518,12 +1519,12 @@ const Clients: React.FC = () => {
         {!loading && clients.length > 0 && filteredClients.length === 0 && (
           <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
             <Search size={32} className="mx-auto text-muted-foreground/60 mb-3" />
-            <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente bate com os filtros atuais</p>
+            <p className="text-sm font-medium text-foreground mb-1">{tr('admin.clients.noMatch')}</p>
             <button
               onClick={() => { setSearch(''); setTypeFilter('all'); setStatusFilter('all'); }}
               className="text-xs text-primary hover:underline mt-2"
             >
-              Limpar filtros
+              {tr('admin.clients.clearFilters')}
             </button>
           </div>
         )}

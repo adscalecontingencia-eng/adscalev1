@@ -1,3 +1,5 @@
+import { getNumberLocale } from '@/i18n/format';
+
 // Saldo, gasto total e limite de gasto vêm do Meta na moeda da própria conta
 // (BRL, EUR...). Só os gastos diários (meta_ad_insights) são convertidos para USD.
 // Use estes helpers para nunca mostrar reais com o símbolo de dólar.
@@ -6,7 +8,7 @@ export function formatAccountMoney(value: unknown, currency?: string | null) {
   const cur = String(currency || 'USD').toUpperCase();
   const n = Number(value || 0);
   try {
-    return n.toLocaleString('pt-BR', { style: 'currency', currency: cur });
+    return n.toLocaleString(getNumberLocale(), { style: 'currency', currency: cur });
   } catch {
     return `${cur} ${n.toFixed(2)}`;
   }

@@ -1,5 +1,5 @@
 import { formatSumByCurrency } from '@/lib/account-money';
-import { tr } from '@/i18n';
+import { tr, trHtml } from '@/i18n';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek, addDays, format } from 'date-fns';
@@ -427,7 +427,7 @@ const AgencyPanel: React.FC = () => {
               <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.yourLevel')}</p><p className="text-2xl font-bold">{pt?.name ?? '—'}</p><p className="text-xs text-primary">{tr('agency.panel.adscaleRate', { pct: pt?.adscale_pct ?? 0 })}</p></CardContent></Card>
               <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">{tr('agency.panel.dueToAdscale')}</p><p className="text-2xl font-bold text-primary">{usd(summary?.adscale_due)}</p><p className="text-xs text-muted-foreground">{tr('agency.panel.paidNextFriday')}</p></CardContent></Card>
             </div>
-            {nt && <Card><CardContent className="pt-6 space-y-2"><p className="text-sm" dangerouslySetInnerHTML={{ __html: tr('agency.panel.remainingTier', { amount: usd(nt.remaining), pct: nt.adscale_pct, name: nt.name }) }} /><Progress value={progress} /></CardContent></Card>}
+            {nt && <Card><CardContent className="pt-6 space-y-2"><p className="text-sm" dangerouslySetInnerHTML={{ __html: trHtml('agency.panel.remainingTier', { amount: usd(nt.remaining), pct: nt.adscale_pct, name: nt.name }) }} /><Progress value={progress} /></CardContent></Card>}
             <Card><CardHeader><CardTitle className="text-base">{tr('agency.panel.byClient')}</CardTitle></CardHeader><CardContent className="overflow-x-auto">
               <table className="w-full text-sm"><thead className="text-xs text-muted-foreground text-left"><tr><th className="py-2">{tr('agency.panel.th.client')}</th><th>{tr('agency.panel.th.spend')}</th><th>Tier</th><th>{tr('agency.panel.th.rate')}</th><th>{tr('agency.panel.th.charged')}</th><th>AD SCALE</th><th>{tr('agency.panel.th.margin')}</th></tr></thead>
                 <tbody>{(summary?.sub_clients || []).map((r: any) => (

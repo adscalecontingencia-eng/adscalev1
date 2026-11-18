@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye,
@@ -101,10 +102,10 @@ const inputClass =
 
 const StatusBadge: React.FC<{ status: ClientStatus }> = ({ status }) => {
   const cfg = {
-    em_dia: { label: 'Em dia', cls: 'bg-success/15 text-success border-success/30', dot: 'bg-success' },
-    pendente: { label: 'Pendente', cls: 'bg-warning/15 text-warning border-warning/30', dot: 'bg-warning' },
-    atrasado: { label: 'Atrasado', cls: 'bg-destructive/15 text-destructive border-destructive/30', dot: 'bg-destructive' },
-    sem_gasto: { label: 'Sem gasto', cls: 'bg-muted/40 text-muted-foreground border-border', dot: 'bg-muted-foreground' },
+    em_dia: { label: tr('admin.card.st.ok'), cls: 'bg-success/15 text-success border-success/30', dot: 'bg-success' },
+    pendente: { label: tr('admin.card.st.pending'), cls: 'bg-warning/15 text-warning border-warning/30', dot: 'bg-warning' },
+    atrasado: { label: tr('admin.card.st.late'), cls: 'bg-destructive/15 text-destructive border-destructive/30', dot: 'bg-destructive' },
+    sem_gasto: { label: tr('admin.card.st.noSpend'), cls: 'bg-muted/40 text-muted-foreground border-border', dot: 'bg-muted-foreground' },
   }[status];
   return (
     <span
@@ -275,7 +276,7 @@ export const ClientCard: React.FC<Props> = (props) => {
   const estCommissionPeriod = estimate ? estimate.commission : null;
   const estRateLabel = !estimate || estimate.rates.length === 0
     ? `${basePct}%`
-    : estimate.rates.length === 1 ? `${estimate.rates[0]}%` : 'por meta';
+    : estimate.rates.length === 1 ? `${estimate.rates[0]}%` : tr('admin.card.perGoal');
 
   const planCredit = c.planCredit || 0;
   const availableAccounts = c.adAccounts - c.usedAccounts - c.blockedAccounts;
@@ -344,7 +345,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                   c.clientType === 'venda' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'
                 )}
               >
-                {c.clientType === 'venda' ? 'Venda' : 'Aluguel'}
+                {c.clientType === 'venda' ? tr('admin.card.sale') : tr('admin.card.rental')}
               </span>
               <StatusBadge status={status} />
               {c.clientType === 'aluguel' && (() => {
@@ -359,7 +360,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                         ? 'border-amber-400/50 text-amber-300 bg-amber-400/10 shadow-[0_0_10px_rgba(251,191,36,0.35)]'
                         : 'border-violet-400/50 text-violet-300 bg-violet-500/10 shadow-[0_0_10px_rgba(167,139,250,0.35)]',
                     )}
-                    title={`Nível ${lp.current.label} · comissão base ${lp.current.basePct}%`}
+                    title={tr('admin.card.levelTitle', { level: lp.current.label, pct: lp.current.basePct })}
                   >
                     <Icon size={10} /> {lp.current.label}
                   </span>
@@ -382,19 +383,19 @@ export const ClientCard: React.FC<Props> = (props) => {
               {c.email && <span className="truncate max-w-[240px]">{c.email}</span>}
               <span className="text-primary/90">
                 {c.clientType === 'venda'
-                  ? `Fixo ${fmt(c.fixedValue || 0)}`
-                  : `${basePct}% base`}
+                  ? tr('admin.card.fixed', { amount: fmt(c.fixedValue || 0) })
+                  : tr('admin.card.basePct', { pct: basePct })}
               </span>
               {c.clientType === 'aluguel' && (
                 <span>
-                  {availableAccounts} {availableAccounts === 1 ? 'conta disponível' : 'contas disponíveis'}
+                  {availableAccounts} {availableAccounts === 1 ? tr('admin.card.accAvail1') : tr('admin.card.accAvailN')}
                 </span>
               )}
               {planCredit > 0 && (
                 <span className="text-success">
-                  Crédito {fmt(planCredit)}
+                  {tr('admin.card.credit')} {fmt(planCredit)}
                   {typeof creditRemaining === 'number' && (
-                    <span className="text-muted-foreground"> · restante <span className="text-success">{fmt(creditRemaining)}</span></span>
+                    <span className="text-muted-foreground"> {tr('admin.card.remaining')} <span className="text-success">{fmt(creditRemaining)}</span></span>
                   )}
                 </span>
               )}
@@ -404,14 +405,14 @@ export const ClientCard: React.FC<Props> = (props) => {
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={onView}
-              title="Ver dashboard do cliente"
+              title={tr('admin.card.viewDash')}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium"
             >
-              <Eye size={13} /> <span className="hidden sm:inline">Ver como cliente</span>
+              <Eye size={13} /> <span className="hidden sm:inline">{tr('admin.card.viewAs')}</span>
             </button>
             <button
               onClick={onEdit}
-              title="Editar"
+              title={tr('admin.card.edit')}
               className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"
             >
               <Edit2 size={14} />
@@ -419,7 +420,7 @@ export const ClientCard: React.FC<Props> = (props) => {
             {onResetPassword && (
               <button
                 onClick={onResetPassword}
-                title="Redefinir senha do cliente"
+                title={tr('admin.card.resetPw')}
                 className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"
               >
                 <KeyRound size={14} />
@@ -427,7 +428,7 @@ export const ClientCard: React.FC<Props> = (props) => {
             )}
             <button
               onClick={onDelete}
-              title="Excluir"
+              title={tr('admin.card.delete')}
               className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
             >
               <Trash2 size={14} />
@@ -437,13 +438,13 @@ export const ClientCard: React.FC<Props> = (props) => {
 
         {/* Seletor de período do card */}
         <div className="mt-4 flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Detalhar por período:</span>
-          <PeriodPill id="today" label="Hoje" />
-          <PeriodPill id="current_billing_week" label="Semana atual" />
-          <PeriodPill id="billing_week" label="Última semana fechada" />
-          <PeriodPill id="last_billing_week" label="Semana fechada anterior" />
-          <PeriodPill id="7d" label="7 dias corridos" />
-          <PeriodPill id="30d" label="30 dias" />
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">{tr('admin.card.detailBy')}</span>
+          <PeriodPill id="today" label={tr('admin.card.p.today')} />
+          <PeriodPill id="current_billing_week" label={tr('admin.card.p.current')} />
+          <PeriodPill id="billing_week" label={tr('admin.card.p.lastClosed')} />
+          <PeriodPill id="last_billing_week" label={tr('admin.card.p.prevClosed')} />
+          <PeriodPill id="7d" label={tr('admin.card.p.7d')} />
+          <PeriodPill id="30d" label={tr('admin.card.p.30d')} />
           <Popover>
             <PopoverTrigger asChild>
               <button
@@ -458,11 +459,11 @@ export const ClientCard: React.FC<Props> = (props) => {
                 <CalendarIcon size={11} />
                 {period === 'custom' && customStart && customEnd
                   ? `${format(customStart, 'dd/MM')} — ${format(customEnd, 'dd/MM')}`
-                  : 'Personalizado'}
+                  : tr('admin.card.p.custom')}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <div className="p-2 border-b border-border text-[11px] text-muted-foreground">Selecione início e fim</div>
+              <div className="p-2 border-b border-border text-[11px] text-muted-foreground">{tr('admin.card.pickRange')}</div>
               <div className="flex flex-col sm:flex-row">
                 <Calendar
                   mode="single"
@@ -487,20 +488,20 @@ export const ClientCard: React.FC<Props> = (props) => {
           <Stat
             icon={<DollarSign size={11} />}
             label={
-              period === 'today' ? 'Gasto hoje' :
-              period === 'current_billing_week' ? 'Gasto semana atual' :
-              period === 'billing_week' ? 'Gasto última semana fechada' :
-              period === 'last_billing_week' ? 'Gasto semana fechada anterior' :
-              period === '7d' ? 'Gasto 7d corridos' :
-              period === '30d' ? 'Gasto 30d' :
-              'Gasto período'
+              period === 'today' ? tr('admin.card.s.today') :
+              period === 'current_billing_week' ? tr('admin.card.s.current') :
+              period === 'billing_week' ? tr('admin.card.s.lastClosed') :
+              period === 'last_billing_week' ? tr('admin.card.s.prevClosed') :
+              period === '7d' ? tr('admin.card.s.7d') :
+              period === '30d' ? tr('admin.card.s.30d') :
+              tr('admin.card.s.period')
             }
             value={fmt(spendPeriod ?? totalAdSpend)}
             right={<Sparkline data={last14} />}
           />
           <Stat
             icon={<Zap size={11} />}
-            label={c.clientType === 'aluguel' ? `Comissão est. (${estRateLabel})` : 'Comissão fixa'}
+            label={c.clientType === 'aluguel' ? tr('admin.card.estComm', { rate: estRateLabel }) : tr('admin.card.fixedComm')}
             value={fmt(
               c.clientType === 'aluguel'
                 ? (estCommissionPeriod ?? 0)
@@ -508,17 +509,17 @@ export const ClientCard: React.FC<Props> = (props) => {
             )}
             tone="primary"
           />
-          <Stat icon={<CheckCircle size={11} />} label="Comissão Paga" value={fmt(comissaoPaga)} tone="success" />
+          <Stat icon={<CheckCircle size={11} />} label={tr('admin.card.paidComm')} value={fmt(comissaoPaga)} tone="success" />
           <Stat
             icon={saldoPendente > 0 ? <AlertTriangle size={11} /> : <CircleDot size={11} />}
-            label="Saldo Acumulado"
+            label={tr('admin.card.accumulated')}
             value={fmt(saldoPendente)}
             tone={saldoPendente > 0 ? 'warning' : 'success'}
             highlight={saldoPendente > 0}
           />
           <Stat
             icon={saldoAtrasado > 0 ? <AlertTriangle size={11} /> : <CircleDot size={11} />}
-            label="Saldo Atrasado"
+            label={tr('admin.card.overdue')}
             value={fmt(saldoAtrasado)}
             tone={saldoAtrasado > 0 ? 'destructive' : 'success'}
             highlight={saldoAtrasado > 0}
@@ -531,7 +532,7 @@ export const ClientCard: React.FC<Props> = (props) => {
             data={weekCompare}
             compact
             showCommission={c.clientType === 'aluguel'}
-            subtitle="Semana atual (parcial) vs mesmo intervalo da semana anterior"
+            subtitle={tr('admin.card.weekSub')}
           />
         </div>
 
@@ -542,7 +543,7 @@ export const ClientCard: React.FC<Props> = (props) => {
               onClick={onTogglePayForm}
               className="flex items-center gap-1.5 text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg hover:bg-success/20 border border-success/20 transition-colors"
             >
-              <CheckCircle size={12} /> Validar Pagamento
+              <CheckCircle size={12} /> {tr('admin.card.validatePay')}
             </button>
           )}
           {c.clientType === 'aluguel' && accounts.length > 0 && (
@@ -555,9 +556,9 @@ export const ClientCard: React.FC<Props> = (props) => {
                   : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
               )}
             >
-              <Layers size={12} /> Ver estrutura
+              <Layers size={12} /> {tr('admin.card.viewStructure')}
               <span className="text-[10px] opacity-70">
-                ({activeAccts.length} ativas · {blockedAccts.length} bloqueadas)
+                {tr('admin.card.activeBlocked', { a: activeAccts.length, b: blockedAccts.length })}
               </span>
               <ChevronDown size={12} className={cn('transition-transform', showStructure && 'rotate-180')} />
             </button>
@@ -567,9 +568,9 @@ export const ClientCard: React.FC<Props> = (props) => {
               onClick={() => setShowAudit(true)}
               disabled={!audit}
               className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 border border-primary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
-              title="Ver como cada saldo foi calculado por semana"
+              title={tr('admin.card.auditTitle')}
             >
-              <Search size={12} /> Auditar cálculo
+              <Search size={12} /> {tr('admin.card.audit')}
             </button>
           )}
           <button
@@ -579,7 +580,7 @@ export const ClientCard: React.FC<Props> = (props) => {
               c.clientType !== 'aluguel' && 'ml-auto'
             )}
           >
-            <History size={12} /> Histórico
+            <History size={12} /> {tr('admin.card.history')}
           </button>
         </div>
 
@@ -608,7 +609,7 @@ export const ClientCard: React.FC<Props> = (props) => {
             </Popover>
             <input
               type="number"
-              placeholder="Valor pago $"
+              placeholder={tr('admin.card.paidPh')}
               value={paidAmount}
               onChange={(e) => setPaidAmount(e.target.value)}
               className={`${inputClass} flex-1`}
@@ -618,7 +619,7 @@ export const ClientCard: React.FC<Props> = (props) => {
               disabled={isSubmittingPayment}
               className="bg-success text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 whitespace-nowrap"
             >
-              {isSubmittingPayment ? 'Registrando...' : 'Registrar'}
+              {isSubmittingPayment ? tr('admin.card.registering') : tr('admin.card.register')}
             </button>
           </motion.div>
         )}
@@ -637,7 +638,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                 <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <Layers size={14} className="text-primary" />
-                    <span className="text-xs font-semibold text-foreground">Estrutura de contas de anúncio</span>
+                    <span className="text-xs font-semibold text-foreground">{tr('admin.card.structure')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider">
                     <span className="text-success flex items-center gap-1">
@@ -646,25 +647,25 @@ export const ClientCard: React.FC<Props> = (props) => {
                     <span className="text-destructive flex items-center gap-1">
                       <Ban size={10} /> {blockedAccts.length} bloqueadas
                     </span>
-                    <span className="text-muted-foreground">Total {accounts.length}</span>
+                    <span className="text-muted-foreground">{tr('admin.card.total')} {accounts.length}</span>
                   </div>
                 </div>
 
                 {accountsWithPeriodSpend.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic py-4 text-center">
-                    Nenhuma conta atribuída a este cliente.
+                    {tr('admin.card.noAccounts')}
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
-                          <th className="text-left py-1.5 font-medium">Conta</th>
-                          <th className="text-left py-1.5 font-medium">ID Meta</th>
-                          <th className="text-left py-1.5 font-medium">Status</th>
-                          <th className="text-right py-1.5 font-medium">Gasto período</th>
-                          <th className="text-right py-1.5 font-medium">Comissão est.</th>
-                          <th className="text-right py-1.5 font-medium">Gasto total</th>
+                          <th className="text-left py-1.5 font-medium">{tr('admin.card.th.account')}</th>
+                          <th className="text-left py-1.5 font-medium">{tr('admin.card.th.metaId')}</th>
+                          <th className="text-left py-1.5 font-medium">{tr('admin.card.th.status')}</th>
+                          <th className="text-right py-1.5 font-medium">{tr('admin.card.s.period')}</th>
+                          <th className="text-right py-1.5 font-medium">{tr('admin.card.th.estComm')}</th>
+                          <th className="text-right py-1.5 font-medium">{tr('admin.card.th.totalSpend')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -678,10 +679,10 @@ export const ClientCard: React.FC<Props> = (props) => {
                                 <button
                                   onClick={() => {
                                     navigator.clipboard.writeText(a.meta_account_id);
-                                    toast.success('ID copiado');
+                                    toast.success(tr('admin.card.idCopied'));
                                   }}
                                   className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors"
-                                  title="Copiar ID"
+                                  title={tr('admin.card.copyId')}
                                 >
                                   {a.meta_account_id}
                                   <Copy size={9} className="opacity-50" />
@@ -695,7 +696,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                                     : 'bg-destructive/10 text-destructive border-destructive/30'
                                 )}>
                                   {isActive ? <CheckCircle size={9} /> : <Ban size={9} />}
-                                  {isActive ? 'Ativa' : (a.status || 'bloqueada')}
+                                  {isActive ? tr('admin.card.active') : (a.status || tr('admin.card.blocked'))}
                                 </span>
                               </td>
                               <td className="py-2 text-right tabular-nums font-semibold text-foreground">{fmt(a.spendPeriod)}</td>
@@ -707,7 +708,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-border font-semibold text-foreground">
-                          <td colSpan={3} className="py-2 text-[10px] uppercase tracking-wider text-muted-foreground">Total</td>
+                          <td colSpan={3} className="py-2 text-[10px] uppercase tracking-wider text-muted-foreground">{tr('admin.card.total')}</td>
                           <td className="py-2 text-right tabular-nums">
                             {fmt(accountsWithPeriodSpend.reduce((s, a) => s + a.spendPeriod, 0))}
                           </td>
@@ -724,8 +725,7 @@ export const ClientCard: React.FC<Props> = (props) => {
                 )}
 
                 <p className="text-[10px] text-muted-foreground/80 mt-2 leading-relaxed">
-                  Comissão estimada usa a % da meta semanal atingida pelo cliente em cada semana (sexta→quinta),
-                  a mesma regra do Saldo Acumulado. Sem meta atingida vale o percentual base ({basePct}%).
+                  {tr('admin.card.estNote', { pct: basePct })}
                 </p>
               </div>
             </motion.div>
@@ -733,7 +733,7 @@ export const ClientCard: React.FC<Props> = (props) => {
         </AnimatePresence>
 
         <p className="text-[10px] text-muted-foreground/70 mt-2">
-          Comissões geradas automaticamente a partir dos gastos sincronizados das contas de anúncio.
+          {tr('admin.card.autoComm')}
         </p>
       </div>
       <BillingAuditDialog

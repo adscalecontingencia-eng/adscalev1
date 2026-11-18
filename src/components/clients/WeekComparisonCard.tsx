@@ -1,4 +1,5 @@
 import React from 'react';
+import { tr } from '@/i18n';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowDownRight, ArrowUpRight, Minus, CalendarRange, DollarSign, Zap, Layers } from 'lucide-react';
@@ -73,7 +74,7 @@ const Metric: React.FC<{
       </div>
       <div className={cn('text-base font-bold leading-tight', toneClass)}>{current}</div>
       <div className="text-[10px] text-muted-foreground mt-0.5">
-        Semana anterior: <span className="text-foreground/80">{previous}</span>
+        {tr('admin.week.prev')} <span className="text-foreground/80">{previous}</span>
       </div>
     </div>
   );
@@ -81,7 +82,7 @@ const Metric: React.FC<{
 
 export const WeekComparisonCard: React.FC<Props> = ({
   data,
-  title = 'Comparativo semanal',
+  title = tr('admin.week.title'),
   subtitle,
   showCommission = true,
   compact = false,
@@ -111,7 +112,7 @@ export const WeekComparisonCard: React.FC<Props> = ({
       <div className={cn('grid gap-2', showCommission ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2')}>
         <Metric
           icon={<DollarSign size={12} />}
-          label="Gasto em Ads"
+          label={tr('admin.kpi.adSpend')}
           current={fmtUSD(current.spend)}
           previous={fmtUSD(previous.spend)}
           currentNum={current.spend}
@@ -120,7 +121,7 @@ export const WeekComparisonCard: React.FC<Props> = ({
         {showCommission && (
           <Metric
             icon={<Zap size={12} />}
-            label="Comissão est."
+            label={tr('admin.card.th.estComm')}
             current={fmtUSD(current.commission)}
             previous={fmtUSD(previous.commission)}
             currentNum={current.commission}
@@ -130,7 +131,7 @@ export const WeekComparisonCard: React.FC<Props> = ({
         )}
         <Metric
           icon={<Layers size={12} />}
-          label="Contas com gasto"
+          label={tr('admin.week.withSpend')}
           current={String(current.activeAccounts)}
           previous={String(previous.activeAccounts)}
           currentNum={current.activeAccounts}

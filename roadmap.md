@@ -4,8 +4,8 @@
 - [x] Colaboradores da agência com permissões por seção (aba Usuários no painel da agência)
 
 ## Tradução 100% PT/EN/ES (pedido 18/11)
-- [ ] Painel do cliente (inclui clientes das agências)
-- [ ] Painel da agência
+- [x] Painel do cliente (inclui clientes das agências)
+- [x] Painel da agência
 - [ ] Painel admin/suporte: núcleo (menu, dashboard, clientes, usuários, notificações)
 - [ ] Painel admin/suporte: financeiro, faturas, auditorias, parceiros
 - [ ] Painel admin/suporte: Conexões Meta, apps, anúncios, estoque, mapa de ativos

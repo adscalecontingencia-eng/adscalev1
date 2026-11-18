@@ -17,6 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def jpath(area): return os.path.join(ROOT, 'src/i18n/locales/areas', area + '.json')
 
 def setk(d, key, val):
+    val = val.replace('\\n', '\n')
     parts = key.split('.')
     for p in parts[:-1]:
         d = d.setdefault(p, OrderedDict())
@@ -77,7 +78,9 @@ def main(path):
         if line.startswith('!raw '):
             a, b = raw.rstrip('\r')[5:].split(' ==>', 1)
             b = b[1:] if b.startswith(' ') else b
-            a = a.replace('\\n', '\n'); b = b.replace('\\n', '\n')
+            # \\n = literal backslash-n kept in source; \n = real newline
+            a = a.replace('\\\\n', '\0').replace('\\n', '\n').replace('\0', '\\n')
+            b = b.replace('\\\\n', '\0').replace('\\n', '\n').replace('\0', '\\n')
             ops.append(('raw', a, b)); continue
         only_key = line.startswith('+')
         if only_key: line = line[1:]
@@ -89,7 +92,11 @@ def main(path):
         setk(d['pt'], key, pt); setk(d['en'], key, en); setk(d['es'], key, es)
         if not only_key: ops.append(('tr', pt, key))
     flush()
+    def nl(o):
+        if isinstance(o, dict): return OrderedDict((k, nl(v)) for k, v in o.items())
+        return o.replace('\\n', '\n') if isinstance(o, str) else o
     for a, d in areas.items():
+        d = nl(d)
         json.dump(d, open(jpath(a), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     print('\n'.join(report) or 'ok')
 
