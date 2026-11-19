@@ -1,4 +1,5 @@
 import { formatAccountMoney } from '@/lib/account-money';
+import { disableReasonLabel } from '@/lib/meta-labels';
 import { tr } from '@/i18n';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1694,7 +1695,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                                 isBlocked ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                               )}>
                                 {isBlocked ? <Ban size={10} /> : <ShieldCheck size={10} />}
-                                {isBlocked ? (acc.disable_reason_label || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
+                                {isBlocked ? (disableReasonLabel(acc.disable_reason_label) || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
                               </span>
                             </div>
 
@@ -1830,7 +1831,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
                                     : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                                 )}>
                                   {r.isBlocked ? <Ban size={9} /> : <ShieldCheck size={9} />}
-                                  {r.isBlocked ? (r.disableLabel || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
+                                  {r.isBlocked ? (disableReasonLabel(r.disableLabel) || t('clientDash.structure.bannedStatus')) : t('clientDash.structure.activeStatus')}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-right font-semibold text-foreground">{fmt(r.spend)}</td>

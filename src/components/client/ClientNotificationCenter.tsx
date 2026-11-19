@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { disableReasonLabel } from '@/lib/meta-labels';
 import { Bell, AlertOctagon, ShieldAlert, ImageIcon, CheckCircle2, RefreshCw, X, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
@@ -92,7 +93,7 @@ const ClientNotificationCenter: React.FC<Props> = ({ clientId, authUserId, ads, 
           event_type: 'account_blocked',
           entity_type: 'account',
           entity_name: acc.name,
-          reason: acc.disable_reason_label || t('clientDash.notifications.accountBlockedReason'),
+          reason: disableReasonLabel(acc.disable_reason_label) || t('clientDash.notifications.accountBlockedReason'),
           detected_at: acc.updated_at || acc.last_synced_at || new Date().toISOString(),
         });
       }

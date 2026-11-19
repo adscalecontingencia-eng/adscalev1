@@ -605,7 +605,9 @@
    "alerts": "{{n}} alerta(s) encontrado(s)",
    "allGood": "Tudo certo! Nenhum alerta.",
    "noAssets": "Nenhum ativo conectado",
-   "syncHint": "Sincronize suas BMs em Conexões Meta."
+   "syncHint": "Sincronize suas BMs em Conexões Meta.",
+   "activeN": "{{n}} ativas",
+   "inactiveN": "{{n}} inativas"
   },
   "blocklog": {
    "code": {
@@ -1261,7 +1263,9 @@
    "alerts": "{{n}} alert(s) found",
    "allGood": "All good! No alerts.",
    "noAssets": "No connected assets",
-   "syncHint": "Sync your BMs in Meta Connections."
+   "syncHint": "Sync your BMs in Meta Connections.",
+   "activeN": "{{n}} active",
+   "inactiveN": "{{n}} inactive"
   },
   "blocklog": {
    "code": {
@@ -1917,7 +1921,9 @@
    "alerts": "{{n}} alerta(s) encontrada(s)",
    "allGood": "¡Todo bien! Ninguna alerta.",
    "noAssets": "Ningún activo conectado",
-   "syncHint": "Sincroniza tus BMs en Conexiones Meta."
+   "syncHint": "Sincroniza tus BMs en Conexiones Meta.",
+   "activeN": "{{n}} activas",
+   "inactiveN": "{{n}} inactivas"
   },
   "blocklog": {
    "code": {

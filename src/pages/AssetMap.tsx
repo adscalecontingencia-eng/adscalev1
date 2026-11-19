@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { tr } from '@/i18n';
+import { disableReasonLabel } from '@/lib/meta-labels';
 import ReactFlow, {
   Background, Controls, MiniMap, MarkerType,
   type Node, type Edge, useNodesState, useEdgesState, Handle, Position,
@@ -44,8 +45,8 @@ function ProfileNode({ data }: any) {
       {data.id && <div className="text-[9px] text-cyan-300/60 font-mono truncate">ID: {data.id}</div>}
       {(data.activeAccounts != null || data.inactiveAccounts != null) && (
         <div className="flex gap-2 mt-1.5 text-[9px]">
-          <span className="text-primary">{data.activeAccounts ?? 0} ativas</span>
-          <span className="text-destructive">{data.inactiveAccounts ?? 0} inativas</span>
+          <span className="text-primary">{tr('assets.activeN', { n: data.activeAccounts ?? 0 })}</span>
+          <span className="text-destructive">{tr('assets.inactiveN', { n: data.inactiveAccounts ?? 0 })}</span>
         </div>
       )}
       <Handle type="source" position={Position.Bottom} className="!bg-cyan-500" />
@@ -66,8 +67,8 @@ function BMNode({ data }: any) {
       <div className="text-[9px] text-purple-300/60 font-mono truncate">ID: {data.id}</div>
       <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5 text-[9px] text-purple-200/80">
         <span>{data.accounts}c</span>
-        <span className="text-primary">{data.activeAccounts ?? 0} ativas</span>
-        <span className="text-destructive">{data.inactiveAccounts ?? 0} inativas</span>
+        <span className="text-primary">{tr('assets.activeN', { n: data.activeAccounts ?? 0 })}</span>
+        <span className="text-destructive">{tr('assets.inactiveN', { n: data.inactiveAccounts ?? 0 })}</span>
         <span>{data.pixels}px</span>
         <span>{data.pages}pg</span>
       </div>
@@ -96,7 +97,7 @@ function AccountNode({ data }: any) {
         <div><span className="text-muted-foreground">{tr('assets.balanceLbl')}</span> {fmt(data.balance, data.currency)}</div>
         <div className="col-span-2"><span className="text-muted-foreground">{tr('assets.spendLbl')}</span> {fmt(data.spent, data.currency)}</div>
       </div>
-      {!active && data.reason && <div className="mt-1 text-[9px] text-destructive truncate">{data.reason}</div>}
+      {!active && data.reason && <div className="mt-1 text-[9px] text-destructive truncate">{disableReasonLabel(data.reason)}</div>}
       <Handle type="source" position={Position.Bottom} className={active ? "!bg-primary" : "!bg-destructive"} />
     </div>
   );
