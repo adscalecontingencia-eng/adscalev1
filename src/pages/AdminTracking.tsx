@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr, localizedMap } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,11 @@ const PROVIDER_LABEL: Record<Pixel["provider"], string> = {
   google_analytics: "Google Analytics 4",
 };
 
-const PROVIDER_HINT: Record<Pixel["provider"], string> = {
+const PROVIDER_HINT: Record<Pixel["provider"], string> = localizedMap('trk.hint', {
   meta: "ID numérico do Pixel (ex: 1234567890123456)",
   google_ads: "ID de conversão AW-XXXXXXXXX (preencha também o rótulo)",
   google_analytics: "ID de medição G-XXXXXXXXXX",
-};
+}) as Record<Pixel["provider"], string>;
 
 export default function AdminTracking() {
   const { toast } = useToast();
@@ -46,7 +47,7 @@ export default function AdminTracking() {
       .from("tracking_pixels")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) toast({ title: "Erro ao carregar pixels", description: error.message, variant: "destructive" });
+    if (error) toast({ title: tr('trk.loadError'), description: error.message, variant: "destructive" });
     setRows((data ?? []) as Pixel[]);
     setLoading(false);
   };
@@ -55,7 +56,7 @@ export default function AdminTracking() {
 
   const submit = async () => {
     if (!form.pixel_id.trim()) {
-      toast({ title: "Informe o ID do pixel", variant: "destructive" });
+      toast({ title: tr('trk.needId'), variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -68,24 +69,24 @@ export default function AdminTracking() {
     });
     setSaving(false);
     if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast({ title: tr('trk.saveError'), description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Pixel cadastrado" });
+    toast({ title: tr('trk.saved') });
     setForm({ provider: "meta", pixel_id: "", conversion_label: "", enabled: true });
     load();
   };
 
   const toggleEnabled = async (id: string, enabled: boolean) => {
     const { error } = await supabase.from("tracking_pixels").update({ enabled }).eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) toast({ title: tr('trk.error'), description: error.message, variant: "destructive" });
     else load();
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Remover este pixel?")) return;
+    if (!confirm(tr('trk.confirmRemove'))) return;
     const { error } = await supabase.from("tracking_pixels").delete().eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) toast({ title: tr('trk.error'), description: error.message, variant: "destructive" });
     else load();
   };
 
@@ -99,25 +100,25 @@ export default function AdminTracking() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-            <Activity size={22} /> Tracking & Pixels
+            <Activity size={22} /> {tr('trk.title')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Configure os pixels do Meta e do Google que carregam no marketplace. A conversão é disparada quando um depósito PIX é confirmado.
+            {tr('trk.desc')}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
+          <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> {tr('trk.refresh')}
         </Button>
       </div>
 
       {/* Form */}
       <div className="rounded-2xl border border-border/60 bg-card/60 p-5 space-y-4">
         <h2 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
-          <Plus size={16} /> Adicionar pixel
+          <Plus size={16} /> {tr('trk.add')}
         </h2>
         <div className="grid md:grid-cols-12 gap-3">
           <div className="md:col-span-3 space-y-1.5">
-            <Label className="text-xs">Provedor</Label>
+            <Label className="text-xs">{tr('trk.provider')}</Label>
             <Select value={form.provider} onValueChange={(v) => setForm(f => ({ ...f, provider: v as Pixel["provider"] }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -128,7 +129,7 @@ export default function AdminTracking() {
             </Select>
           </div>
           <div className="md:col-span-4 space-y-1.5">
-            <Label className="text-xs">ID do pixel</Label>
+            <Label className="text-xs">{tr('trk.pixelId')}</Label>
             <Input
               value={form.pixel_id}
               onChange={(e) => setForm(f => ({ ...f, pixel_id: e.target.value }))}
@@ -137,36 +138,34 @@ export default function AdminTracking() {
           </div>
           {form.provider === "google_ads" && (
             <div className="md:col-span-3 space-y-1.5">
-              <Label className="text-xs">Rótulo de conversão</Label>
+              <Label className="text-xs">{tr('trk.convLabel')}</Label>
               <Input
                 value={form.conversion_label}
                 onChange={(e) => setForm(f => ({ ...f, conversion_label: e.target.value }))}
-                placeholder="ex: abcDEF123"
+                placeholder={tr('trk.labelPh')}
               />
             </div>
           )}
           <div className="md:col-span-2 flex items-end gap-3">
             <div className="flex items-center gap-2">
               <Switch checked={form.enabled} onCheckedChange={(v) => setForm(f => ({ ...f, enabled: v }))} />
-              <span className="text-xs text-muted-foreground">Ativo</span>
+              <span className="text-xs text-muted-foreground">{tr('trk.active')}</span>
             </div>
           </div>
           <div className="md:col-span-12 flex justify-end">
             <Button onClick={submit} disabled={saving}>
-              <Save size={14} className="mr-1.5" /> Salvar pixel
+              <Save size={14} className="mr-1.5" /> {tr('trk.savePixel')}
             </Button>
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Dica: para Google Ads, copie o ID (<code>AW-XXXXXXXXX</code>) e o rótulo da ação de conversão criada na conta Google Ads.
-        </p>
+        <p className="text-[11px] text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('trk.tip') }} />
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Stat label="Total cadastrados" value={stats.total.toString()} />
-        <Stat label="Ativos" value={stats.ativos.toString()} />
-        <Stat label="Conversão" value="Depósito PIX confirmado" />
+        <Stat label={tr('trk.total')} value={stats.total.toString()} />
+        <Stat label={tr('trk.activeN')} value={stats.ativos.toString()} />
+        <Stat label={tr('trk.conversion')} value="Depósito PIX confirmado" />
       </div>
 
       {/* List */}
@@ -175,11 +174,11 @@ export default function AdminTracking() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Provedor</TableHead>
+                <TableHead>{tr('trk.provider')}</TableHead>
                 <TableHead>ID</TableHead>
-                <TableHead>Rótulo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>{tr('trk.label')}</TableHead>
+                <TableHead>{tr('trk.status')}</TableHead>
+                <TableHead className="text-right">{tr('trk.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,7 +194,7 @@ export default function AdminTracking() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Switch checked={p.enabled} onCheckedChange={(v) => toggleEnabled(p.id, v)} />
-                      <span className="text-xs text-muted-foreground">{p.enabled ? "Ativo" : "Pausado"}</span>
+                      <span className="text-xs text-muted-foreground">{p.enabled ? tr('trk.active') : tr('trk.paused')}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -206,7 +205,7 @@ export default function AdminTracking() {
                 </TableRow>
               ))}
               {rows.length === 0 && !loading && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Nenhum pixel cadastrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">{tr('trk.none')}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

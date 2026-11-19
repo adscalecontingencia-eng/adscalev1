@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -144,11 +145,11 @@ const SupportInbox: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{r.client?.name ?? clients[r.client_id] ?? '—'}{r.client?.company_name ? <span className="text-muted-foreground font-normal"> ({r.client.company_name})</span> : null} · <span className="text-primary">{r.request_type}</span>{r.quantity ? ` ×${r.quantity}` : ''}</p>
                   {r.description && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{r.description}</p>}
-                  {r.bm_meta_id && <p className="text-xs mt-1">BM do cliente: <span className="font-mono">{r.bm_meta_id}</span></p>}
+                  {r.bm_meta_id && <p className="text-xs mt-1">{tr('sup.page.clientBm')} <span className="font-mono">{r.bm_meta_id}</span></p>}
                   {r.agency_client_id && (
                     <div className="mt-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs space-y-0.5">
-                      <p className="text-primary font-semibold">Via agência: {clients[r.agency_client_id] ?? '—'}</p>
-                      {r.agency_bm_id && <p>BM da agência: <span className="font-mono">{r.agency_bm_id}</span></p>}
+                      <p className="text-primary font-semibold">{tr('sup.page.viaAgency')} {clients[r.agency_client_id] ?? '—'}</p>
+                      {r.agency_bm_id && <p>{tr('sup.page.agencyBm')} <span className="font-mono">{r.agency_bm_id}</span></p>}
                       {r.agency_notes && <p className="whitespace-pre-wrap text-muted-foreground">{r.agency_notes}</p>}
                     </div>
                   )}

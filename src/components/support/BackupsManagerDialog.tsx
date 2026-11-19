@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { X, Plus, Trash2, HardDrive, Save, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -53,11 +54,11 @@ const BackupsManagerDialog: React.FC<{ open: boolean; onClose: () => void; onCha
     if (error) { toast.error(error.message); return; }
     setBackups(p => [...p, data as Backup]);
     setNewBackup({ name: '', kind: 'HD', description: '' });
-    toast.success('Backup criado');
+    toast.success(tr('sup.bk.created'));
   };
 
   const deleteBackup = async (id: string) => {
-    if (!confirm('Excluir este backup? Todas as marcações de BMs nele serão removidas.')) return;
+    if (!confirm(tr('sup.bk.confirmDel'))) return;
     await supabase.from('bm_backups').delete().eq('id', id);
     setBackups(p => p.filter(b => b.id !== id));
     setAssignments(p => p.filter(a => a.backup_id !== id));
@@ -66,7 +67,7 @@ const BackupsManagerDialog: React.FC<{ open: boolean; onClose: () => void; onCha
 
   const saveMin = async () => {
     await supabase.from('support_settings').upsert({ key: 'min_backups_per_bm', value: minBackups as any });
-    toast.success('Regra mínima atualizada');
+    toast.success(tr('sup.bk.ruleUpdated'));
     onChange?.();
   };
 
@@ -83,24 +84,24 @@ const BackupsManagerDialog: React.FC<{ open: boolean; onClose: () => void; onCha
     <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="font-display text-base font-semibold flex items-center gap-2"><HardDrive size={18} className="text-primary" /> Backups manuais das BMs</h3>
+          <h3 className="font-display text-base font-semibold flex items-center gap-2"><HardDrive size={18} className="text-primary" /> {tr('sup.bk.title')}</h3>
           <button onClick={onClose}><X size={20} /></button>
         </div>
 
         <div className="p-4 space-y-4 overflow-y-auto">
           {/* Regra mínima */}
           <div className="bg-secondary/40 border border-border rounded-lg p-3 flex flex-wrap items-center gap-3">
-            <span className="text-sm">Mínimo de backups por BM:</span>
+            <span className="text-sm">{tr('sup.bk.min')}</span>
             <input type="number" min={0} value={minBackups} onChange={e => setMinBackups(Number(e.target.value))} className={cn(inputCls, "w-20")} />
-            <button onClick={saveMin} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold inline-flex items-center gap-1"><Save size={12} /> Salvar</button>
+            <button onClick={saveMin} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold inline-flex items-center gap-1"><Save size={12} /> {tr('sup.bk.save')}</button>
             {outOfRule.length > 0 && (
-              <span className="ml-auto text-xs text-red-400">⚠️ {outOfRule.length} BM(s) fora da regra</span>
+              <span className="ml-auto text-xs text-red-400">{tr('sup.bk.outRule', { n: outOfRule.length })}</span>
             )}
           </div>
 
           {/* Catálogo */}
           <div>
-            <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Catálogo de backups</div>
+            <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">{tr('sup.bk.catalog')}</div>
             <div className="grid sm:grid-cols-2 gap-2 mb-3">
               {backups.map(b => (
                 <div key={b.id} className="bg-secondary/40 border border-border rounded-lg p-2 flex items-center justify-between">
@@ -113,12 +114,12 @@ const BackupsManagerDialog: React.FC<{ open: boolean; onClose: () => void; onCha
               ))}
             </div>
             <div className="flex flex-wrap gap-2 items-center bg-secondary/40 border border-border rounded-lg p-2">
-              <input placeholder="Nome (ex: HD Externo 01)" value={newBackup.name} onChange={e => setNewBackup(p => ({ ...p, name: e.target.value }))} className={cn(inputCls, "flex-1 min-w-[150px]")} />
+              <input placeholder={tr('sup.bk.namePh')} value={newBackup.name} onChange={e => setNewBackup(p => ({ ...p, name: e.target.value }))} className={cn(inputCls, "flex-1 min-w-[150px]")} />
               <select value={newBackup.kind} onChange={e => setNewBackup(p => ({ ...p, kind: e.target.value }))} className={inputCls}>
-                {['HD', 'Drive', 'Cofre', 'Nuvem', 'Outro'].map(k => <option key={k} value={k}>{k}</option>)}
+                {['HD', 'Drive', 'Cofre', 'Nuvem', 'Outro'].map(k => <option key={k} value={k}>{k === 'HD' ? 'HD' : tr(`sup.bk.kind.${k}`)}</option>)}
               </select>
-              <input placeholder="Descrição (opcional)" value={newBackup.description} onChange={e => setNewBackup(p => ({ ...p, description: e.target.value }))} className={cn(inputCls, "flex-1 min-w-[150px]")} />
-              <button onClick={addBackup} className="bg-primary text-primary-foreground px-3 py-2 rounded text-xs font-semibold inline-flex items-center gap-1"><Plus size={12} /> Adicionar</button>
+              <input placeholder={tr('sup.bk.descPh')} value={newBackup.description} onChange={e => setNewBackup(p => ({ ...p, description: e.target.value }))} className={cn(inputCls, "flex-1 min-w-[150px]")} />
+              <button onClick={addBackup} className="bg-primary text-primary-foreground px-3 py-2 rounded text-xs font-semibold inline-flex items-center gap-1"><Plus size={12} /> {tr('sup.bk.add')}</button>
             </div>
           </div>
 
@@ -126,8 +127,8 @@ const BackupsManagerDialog: React.FC<{ open: boolean; onClose: () => void; onCha
           {backups.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Matriz BM × Backup</div>
-                <input placeholder="Buscar BM..." value={search} onChange={e => setSearch(e.target.value)} className={cn(inputCls, "text-xs w-48")} />
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr('sup.bk.matrix')}</div>
+                <input placeholder={tr('sup.bk.search')} value={search} onChange={e => setSearch(e.target.value)} className={cn(inputCls, "text-xs w-48")} />
               </div>
               <div className="overflow-x-auto border border-border rounded-lg">
                 <table className="w-full text-xs">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -49,9 +50,9 @@ const BMDetailDrawer: React.FC<{
       const { data, error } = await supabase.functions.invoke('meta-bm-users', { body: { meta_bm_id: bm.meta_bm_id } });
       if (error || data?.erro) throw new Error(error?.message || data?.erro);
       setMetaUsers((data?.usuarios || []) as MetaUser[]);
-      toast.success(`${data?.usuarios?.length || 0} usuário(s) carregado(s)`);
+      toast.success(tr('sup.bmd.loaded', { n: data?.usuarios?.length || 0 }));
     } catch (e: any) {
-      toast.error('Erro Meta: ' + e.message);
+      toast.error(tr('sup.bma.metaErr') + ' ' + e.message);
     } finally {
       setLoadingMeta(false);
     }
@@ -78,7 +79,7 @@ const BMDetailDrawer: React.FC<{
       created_by: user?.id,
     });
     if (error) { toast.error(error.message); return; }
-    toast.success(`"${u.name}" adicionado à whitelist`);
+    toast.success(tr('sup.bmd.whitelisted', { name: u.name }));
     load();
     onChanged?.();
   };
@@ -97,7 +98,7 @@ const BMDetailDrawer: React.FC<{
       created_by: user?.id,
     });
     if (error) { toast.error(error.message); return; }
-    toast.success('Pendência criada em "Agência"');
+    toast.success(tr('sup.bmd.taskCreated'));
   };
 
   const toggleBackup = async (backupId: string) => {
@@ -113,7 +114,7 @@ const BMDetailDrawer: React.FC<{
   };
 
   const removeProfile = async (id: string) => {
-    if (!confirm('Remover da whitelist?')) return;
+    if (!confirm(tr('sup.bmd.confirmRemove'))) return;
     await supabase.from('bm_profiles').delete().eq('id', id);
     load();
     onChanged?.();
@@ -134,7 +135,7 @@ const BMDetailDrawer: React.FC<{
           </SheetTitle>
           <div className="flex flex-wrap gap-2 text-xs">
             <span className={cn("px-2 py-0.5 rounded border", bm.status === 'active' ? "bg-primary/15 text-primary border-primary/40" : "bg-destructive/15 text-destructive border-destructive/40")}>
-              {bm.status === 'active' ? 'Ativa' : 'Bloqueada'}
+              {bm.status === 'active' ? tr('sup.bmd.active') : tr('sup.bmd.blocked')}
             </span>
             {bm.verification_status && (
               <span className="px-2 py-0.5 rounded bg-secondary text-muted-foreground border border-border">{bm.verification_status}</span>
@@ -144,9 +145,9 @@ const BMDetailDrawer: React.FC<{
 
         <Tabs defaultValue="users">
           <TabsList className="grid grid-cols-3 w-full">
-            <TabsTrigger value="users"><Users size={14} className="mr-1" /> Usuários</TabsTrigger>
+            <TabsTrigger value="users"><Users size={14} className="mr-1" /> {tr('sup.bmd.users')}</TabsTrigger>
             <TabsTrigger value="backups"><HardDrive size={14} className="mr-1" /> Backups</TabsTrigger>
-            <TabsTrigger value="accounts"><CreditCard size={14} className="mr-1" /> Contas</TabsTrigger>
+            <TabsTrigger value="accounts"><CreditCard size={14} className="mr-1" /> {tr('sup.bmd.accounts')}</TabsTrigger>
           </TabsList>
 
           {/* USUÁRIOS */}
@@ -154,18 +155,18 @@ const BMDetailDrawer: React.FC<{
             <div className="flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
                 Whitelist: <span className="text-primary font-semibold">{profiles.filter(p => p.is_whitelisted).length}</span>
-                {metaUsers.length > 0 && <> · Terceiros detectados: <span className={cn("font-semibold", thirdParties.length > 0 ? "text-red-400" : "text-primary")}>{thirdParties.length}</span></>}
+                {metaUsers.length > 0 && <> · {tr('sup.bmd.thirdDetected')} <span className={cn("font-semibold", thirdParties.length > 0 ? "text-red-400" : "text-primary")}>{thirdParties.length}</span></>}
               </div>
               <button onClick={fetchMetaUsers} disabled={loadingMeta} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs inline-flex items-center gap-1 hover:border-primary/50">
-                <RefreshCw size={12} className={loadingMeta ? 'animate-spin' : ''} /> Buscar na Meta
+                <RefreshCw size={12} className={loadingMeta ? 'animate-spin' : ''} /> {tr('sup.bmd.searchMeta')}
               </button>
             </div>
 
             {/* Whitelist atual */}
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Whitelist (perfis próprios)</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{tr('sup.bmd.wlTitle')}</div>
               {profiles.length === 0 ? (
-                <p className="text-xs text-muted-foreground/60">Nenhum perfil. Busque na Meta e adicione.</p>
+                <p className="text-xs text-muted-foreground/60">{tr('sup.bmd.noProfile')}</p>
               ) : (
                 <div className="space-y-1">
                   {profiles.map(p => (
@@ -184,7 +185,7 @@ const BMDetailDrawer: React.FC<{
             {/* Usuários Meta */}
             {metaUsers.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Usuários atuais na Meta</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{tr('sup.bmd.current')}</div>
                 <div className="space-y-1">
                   {metaUsers.map(u => {
                     const wl = isWhitelisted(u);
@@ -210,7 +211,7 @@ const BMDetailDrawer: React.FC<{
                                 <Plus size={10} /> Whitelist
                               </button>
                               <button onClick={() => createRemovalTask(u)} className="bg-destructive/10 text-destructive border border-destructive/30 rounded px-2 py-0.5 text-[10px] inline-flex items-center gap-1">
-                                <AlertTriangle size={10} /> Remover
+                                <AlertTriangle size={10} /> {tr('sup.bmd.remove')}
                               </button>
                             </>
                           )}
@@ -230,13 +231,13 @@ const BMDetailDrawer: React.FC<{
               backupViolates ? "bg-red-500/10 border-red-500/40 text-red-300" : "bg-primary/10 border-primary/30 text-primary"
             )}>
               {backupViolates ? (
-                <>⚠️ Esta BM está em <b>{backupCount}</b> backup(s), abaixo do mínimo de <b>{minBackups}</b>.</>
+                <span dangerouslySetInnerHTML={{ __html: tr('sup.bmd.below', { n: backupCount, min: minBackups }) }} />
               ) : (
-                <>✅ Esta BM está em {backupCount} backup(s) (mínimo: {minBackups}).</>
+                <>{tr('sup.bmd.ok', { n: backupCount, min: minBackups })}</>
               )}
             </div>
             {backups.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60">Nenhum backup cadastrado. Vá em "Gerenciar backups" para criar.</p>
+              <p className="text-xs text-muted-foreground/60">{tr('sup.bmd.noBackups')}</p>
             ) : (
               <div className="space-y-1">
                 {backups.map(b => {
@@ -257,7 +258,7 @@ const BMDetailDrawer: React.FC<{
           {/* CONTAS */}
           <TabsContent value="accounts" className="space-y-2 mt-4">
             {accounts.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60">Nenhuma conta nesta BM.</p>
+              <p className="text-xs text-muted-foreground/60">{tr('sup.bmd.noAccounts')}</p>
             ) : accounts.map(a => (
               <div key={a.id} className="bg-secondary/40 border border-border rounded p-2 flex items-center justify-between text-xs">
                 <div>
@@ -265,12 +266,12 @@ const BMDetailDrawer: React.FC<{
                   <div className="text-[10px] font-mono text-muted-foreground">{a.meta_account_id}</div>
                 </div>
                 <span className={cn("text-[10px] px-1.5 py-0.5 rounded border", a.status === 'active' ? "bg-primary/10 text-primary border-primary/30" : "bg-destructive/10 text-destructive border-destructive/30")}>
-                  {a.status === 'active' ? 'Ativa' : 'Bloqueada'}
+                  {a.status === 'active' ? tr('sup.bmd.active') : tr('sup.bmd.blocked')}
                 </span>
               </div>
             ))}
             <a href="#/meta-connections" className="block text-xs text-primary hover:underline mt-2 inline-flex items-center gap-1">
-              <ExternalLink size={11} /> Abrir em Conexões Meta
+              <ExternalLink size={11} /> {tr('sup.bmd.openConn')}
             </a>
           </TabsContent>
         </Tabs>

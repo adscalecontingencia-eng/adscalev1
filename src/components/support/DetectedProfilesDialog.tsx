@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { X, Search, ShieldCheck, ShieldAlert, RefreshCw, Save, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
@@ -57,11 +58,11 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
         finished = true;
         setScanning(false);
         if (j.status === 'completed') {
-          toast.success(j.message || 'Scan concluído');
+          toast.success(j.message || tr('sup.detect.scanDone'));
           load();
           onChanged?.();
         } else {
-          toast.error(j.message || 'Scan falhou — veja a Auditoria');
+          toast.error(j.message || tr('sup.detect.scanFail'));
         }
         setTimeout(() => setJob(null), 6000);
       }
@@ -85,7 +86,7 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
   const grouped = useMemo(() => {
     const m = new Map<string, { meta_user_id: string; name: string; email: string | null; kind: string | null; bms: string[] }>();
     for (const d of detected) {
-      const cur = m.get(d.meta_user_id) || { meta_user_id: d.meta_user_id, name: d.user_name || '(sem nome)', email: d.user_email, kind: d.user_kind, bms: [] };
+      const cur = m.get(d.meta_user_id) || { meta_user_id: d.meta_user_id, name: d.user_name || tr('sup.detect.noName'), email: d.user_email, kind: d.user_kind, bms: [] };
       cur.bms.push(d.bm_id);
       if (d.user_name && !cur.name.startsWith(d.user_name)) cur.name = d.user_name;
       m.set(d.meta_user_id, cur);
@@ -126,15 +127,15 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
       const { data, error } = await supabase.functions.invoke('scan-bm-backups', { body: { action: 'start' } });
       if (error) throw error;
       if (data?.job_id) {
-        setJob({ id: data.job_id, status: 'pending', progress_current: 0, progress_total: 0, synced_count: 0, message: 'Iniciando...', errors: [] });
-        toast.info('Scan iniciado em segundo plano');
+        setJob({ id: data.job_id, status: 'pending', progress_current: 0, progress_total: 0, synced_count: 0, message: tr('sup.detect.starting'), errors: [] });
+        toast.info(tr('sup.detect.started'));
       } else {
         setScanning(false);
-        toast.error('Falha ao iniciar scan');
+        toast.error(tr('sup.detect.startFail'));
       }
     } catch (e: any) {
       setScanning(false);
-      toast.error(e.message || 'Falha no scan');
+      toast.error(e.message || tr('sup.detect.fail'));
     }
   };
 
@@ -152,13 +153,13 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
           await supabase.from('meta_user_whitelist').delete().eq('meta_user_id', id);
         }
       }
-      toast.success('Whitelist salva. Re-escaneando em segundo plano...');
+      toast.success(tr('sup.detect.whitelistSaved'));
       await supabase.functions.invoke('scan-bm-backups', { body: { action: 'start' } });
       await load();
       setDirty(new Set());
       onChanged?.();
     } catch (e: any) {
-      toast.error(e.message || 'Falha ao salvar');
+      toast.error(e.message || tr('sup.detect.saveFail'));
     } finally { setSaving(false); }
   };
 
@@ -168,27 +169,27 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
       <div className="bg-card border border-border rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
-            <h3 className="font-display text-base font-semibold flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /> Perfis detectados nas BMs</h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Marque "É meu" e vincule a um backup. O sistema vai detectar automaticamente quais BMs cada backup cobre.</p>
+            <h3 className="font-display text-base font-semibold flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /> {tr('sup.detect.title')}</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{tr('sup.detect.desc')}</p>
           </div>
           <button onClick={onClose}><X size={20} /></button>
         </div>
 
         <div className="p-4 border-b border-border flex flex-wrap items-center gap-2">
           <button onClick={runScan} disabled={scanning} className="bg-primary text-primary-foreground px-3 py-2 rounded text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-60">
-            <RefreshCw size={12} className={scanning ? 'animate-spin' : ''} /> {scanning ? 'Escaneando...' : 'Escanear BMs agora'}
+            <RefreshCw size={12} className={scanning ? 'animate-spin' : ''} /> {scanning ? tr('sup.detect.scanning') : tr('sup.detect.scanNow')}
           </button>
           <button onClick={save} disabled={saving || dirty.size === 0} className="bg-secondary border border-border hover:border-primary/50 px-3 py-2 rounded text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-50">
-            <Save size={12} /> Salvar ({dirty.size})
+            <Save size={12} /> {tr('sup.detect.save', { n: dirty.size })}
           </button>
           <div className="relative flex-1 min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar nome, email ou ID..." className={cn(inputCls, "w-full pl-9")} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tr('sup.detect.search')} className={cn(inputCls, "w-full pl-9")} />
           </div>
           <div className="flex border border-border rounded-lg overflow-hidden">
             {(['all', 'mine', 'third'] as const).map(f => (
               <button key={f} onClick={() => setFilter(f)} className={cn("px-3 py-2 text-xs", filter === f ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                {f === 'all' ? 'Todos' : f === 'mine' ? 'Meus' : 'Terceiros'}
+                {f === 'all' ? tr('sup.detect.all') : f === 'mine' ? tr('sup.detect.mine') : tr('sup.detect.third')}
               </button>
             ))}
           </div>
@@ -198,10 +199,10 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
           <div className="px-4 py-2 border-b border-border bg-primary/5">
             <div className="flex items-center justify-between text-[11px] mb-1">
               <span className="text-primary font-semibold">
-                {job.status === 'running' ? 'Escaneando BMs...' : job.status === 'completed' ? 'Concluído' : job.status === 'failed' ? 'Falhou' : 'Aguardando...'}
+                {job.status === 'running' ? tr('sup.detect.jsRunning') : job.status === 'completed' ? tr('sup.detect.jsDone') : job.status === 'failed' ? tr('sup.detect.jsFailed') : tr('sup.detect.jsWaiting')}
               </span>
               <span className="text-muted-foreground">
-                {job.progress_total > 0 ? `${job.progress_current}/${job.progress_total}` : ''} · {job.synced_count} usuários
+                {job.progress_total > 0 ? `${job.progress_current}/${job.progress_total}` : ''} · {tr('sup.detect.users', { n: job.synced_count })}
               </span>
             </div>
             <div className="h-1.5 bg-secondary rounded overflow-hidden">
@@ -215,17 +216,17 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
           {grouped.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               <ShieldAlert size={28} className="mx-auto mb-2 text-muted-foreground/50" />
-              Nenhum perfil detectado ainda. Clique em <strong className="text-primary">Escanear BMs agora</strong>.
+              <span dangerouslySetInnerHTML={{ __html: tr('sup.detect.empty') }} />
             </div>
           ) : (
             <table className="w-full text-xs">
               <thead className="bg-secondary/60 sticky top-0">
                 <tr>
-                  <th className="text-left px-2 py-2">Perfil</th>
+                  <th className="text-left px-2 py-2">{tr('sup.detect.profile')}</th>
                   <th className="text-left px-2 py-2">Meta ID</th>
-                  <th className="text-center px-2 py-2">Em # BMs</th>
-                  <th className="text-center px-2 py-2">É meu?</th>
-                  <th className="text-left px-2 py-2 min-w-[160px]">Vincular ao backup</th>
+                  <th className="text-center px-2 py-2">{tr('sup.detect.inBms')}</th>
+                  <th className="text-center px-2 py-2">{tr('sup.detect.isMine')}</th>
+                  <th className="text-left px-2 py-2 min-w-[160px]">{tr('sup.detect.linkBackup')}</th>
                   <th className="text-left px-2 py-2">BMs</th>
                 </tr>
               </thead>
@@ -249,7 +250,7 @@ const DetectedProfilesDialog: React.FC<{ open: boolean; onClose: () => void; onC
                           <div className="flex items-center gap-1">
                             <HardDrive size={11} className="text-primary shrink-0" />
                             <select value={wl?.backup_id || ''} onChange={e => update(g.meta_user_id, { backup_id: e.target.value || null }, g.name)} className={cn(inputCls, "text-xs py-1 flex-1")}>
-                              <option value="">— sem backup —</option>
+                              <option value="">{tr('sup.detect.noBackup')}</option>
                               {backups.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                             </select>
                           </div>
