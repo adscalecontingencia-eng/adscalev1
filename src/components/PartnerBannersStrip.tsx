@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 
 type Banner = {
@@ -41,7 +42,7 @@ const PartnerBannersStrip: React.FC<Props> = ({ placement, className }) => {
     <section className={className ?? 'w-full'} aria-label="Partner banners">
       <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
         <span className="h-px flex-1 bg-border/60" />
-        <span>Parceiros</span>
+        <span>{tr('pbs.partners')}</span>
         <span className="h-px flex-1 bg-border/60" />
       </div>
       <div className={`grid gap-3 ${banners.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
@@ -67,7 +68,7 @@ const PartnerBannersStrip: React.FC<Props> = ({ placement, className }) => {
                     </div>
                     {b.link_url && (
                       <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
-                        {b.cta_label?.trim() || 'Saiba mais'}
+                        {b.cta_label?.trim() || tr('pbs.more')}
                         <span aria-hidden>→</span>
                       </span>
                     )}

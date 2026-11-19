@@ -10,4 +10,5 @@
 - [x] Painel admin/suporte: financeiro, faturas, auditorias, parceiros
 - [x] Painel admin/suporte: Conexões Meta, apps, anúncios, estoque, mapa de ativos
 - [x] Painel admin/suporte: suporte, central de suporte, BMs
-- [ ] Fora do escopo por ora: marketplace, cadastros públicos, painel de parceiro
+- [x] Marketplace (loja, perfil, carteira, pedidos, admin), login, cadastros, redefinição de senha e painel de parceiro em PT/EN/ES
+- Landings de aluguel (/rental-accounts em inglês, /aluguel-de-contas em português) ficam em idioma único por decisão de produto

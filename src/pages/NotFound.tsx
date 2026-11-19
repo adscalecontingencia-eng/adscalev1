@@ -1,4 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
+import { tr } from '@/i18n';
 import { useEffect, useState } from "react";
 
 // Rotas conhecidas do app — usadas para recuperar links antigos/sem hash
@@ -52,7 +53,7 @@ const NotFound = () => {
   if (recovering) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Redirecionando…</p>
+        <p className="text-sm text-muted-foreground">{tr('nf.redirecting')}</p>
       </div>
     );
   }
@@ -61,19 +62,19 @@ const NotFound = () => {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center px-6">
         <h1 className="mb-3 text-4xl font-bold text-foreground">404</h1>
-        <p className="mb-6 text-lg text-muted-foreground">Página não encontrada</p>
+        <p className="mb-6 text-lg text-muted-foreground">{tr('nf.title')}</p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link
             to="/client-dashboard"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
-            Painel do cliente
+            {tr('nf.client')}
           </Link>
           <Link
             to="/login"
             className="rounded-lg border border-border px-4 py-2 text-sm text-foreground hover:bg-secondary"
           >
-            Entrar
+            {tr('nf.login')}
           </Link>
         </div>
       </div>

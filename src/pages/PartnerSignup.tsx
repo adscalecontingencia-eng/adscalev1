@@ -1,3 +1,6 @@
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { tr } from '@/i18n';
+import { trHtml } from "@/i18n";
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,9 +17,9 @@ const PartnerSignup: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (form.password !== form.confirm) return setError("As senhas não coincidem");
-    if (form.password.length < 8) return setError("Senha precisa de pelo menos 8 caracteres");
-    if (form.name.trim().length < 2) return setError("Informe o seu nome completo");
+    if (form.password !== form.confirm) return setError(tr('ptn.pwMismatch'));
+    if (form.password.length < 8) return setError(tr('ptn.pwMin'));
+    if (form.name.trim().length < 2) return setError(tr('ptn.nameReq'));
 
     setSubmitting(true);
     try {
@@ -32,11 +35,11 @@ const PartnerSignup: React.FC = () => {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
+      if (!res.ok || data?.error) throw new Error(data?.error || tr('ptn.httpErr', { status: res.status }));
       setDone(true);
       setTimeout(() => navigate("/login"), 2500);
     } catch (e: any) {
-      setError(e.message || "Erro no cadastro");
+      setError(e.message || tr('ptn.signupErr'));
     } finally {
       setSubmitting(false);
     }
@@ -49,8 +52,8 @@ const PartnerSignup: React.FC = () => {
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mb-4">
             <CheckCircle2 size={32} className="text-primary" />
           </div>
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">Cadastro concluído</h2>
-          <p className="text-sm text-muted-foreground">Redirecionando para o login…</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">{tr('ptn.done')}</h2>
+          <p className="text-sm text-muted-foreground">{tr('ptn.redirecting')}</p>
         </motion.div>
       </div>
     );
@@ -60,6 +63,7 @@ const PartnerSignup: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4 py-10">
+      <LanguageSwitcher variant="solid" className="absolute top-4 right-4 z-20" />
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-primary/[0.03] blur-3xl" />
@@ -69,16 +73,14 @@ const PartnerSignup: React.FC = () => {
         <div className="flex flex-col items-center mb-6 text-primary">
           <AdScaleLogo size={48} />
           <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
-            <Handshake size={12} /> Programa de Parceiros
+            <Handshake size={12} /> {tr('ptn.program')}
           </p>
         </div>
 
         <form onSubmit={submit} className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl shadow-black/30">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Torne-se um parceiro</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Indique clientes e receba <strong className="text-primary">5% de comissão</strong> sobre cada pagamento gerado.
-            </p>
+            <h2 className="font-display text-lg font-semibold text-foreground">{tr('ptn.become')}</h2>
+            <p className="text-xs text-muted-foreground mt-1" dangerouslySetInnerHTML={{ __html: trHtml('ptn.pitch') }} />
           </div>
 
           {error && (
@@ -89,10 +91,10 @@ const PartnerSignup: React.FC = () => {
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Nome completo</label>
+            <label className="text-xs font-medium text-muted-foreground">{tr('ptn.fullName')}</label>
             <div className="relative">
               <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required maxLength={120} className={inputClass} placeholder="Seu nome" />
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required maxLength={120} className={inputClass} placeholder={tr('ptn.namePh')} />
             </div>
           </div>
 
@@ -100,47 +102,47 @@ const PartnerSignup: React.FC = () => {
             <label className="text-xs font-medium text-muted-foreground">E-mail</label>
             <div className="relative">
               <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required className={inputClass} placeholder="seu@email.com" />
+              <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required className={inputClass} placeholder={tr('auth.emailPh')} />
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Senha</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('ptn.password')}</label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required minLength={8} className={inputClass} placeholder="mín. 8 caracteres" />
+                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required minLength={8} className={inputClass} placeholder={tr('ptn.pwPh')} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Confirmar senha</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('ptn.confirmPw')}</label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input type="password" value={form.confirm} onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))} required minLength={8} className={inputClass} placeholder="repita" />
+                <input type="password" value={form.confirm} onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))} required minLength={8} className={inputClass} placeholder={tr('auth.repeatPh')} />
               </div>
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">WhatsApp (opcional)</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('ptn.wa')}</label>
               <div className="relative">
                 <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input value={form.whatsapp_phone} onChange={e => setForm(p => ({ ...p, whatsapp_phone: e.target.value }))} className={inputClass} placeholder="5511999999999" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Chave Pix (opcional)</label>
-              <input value={form.pix_key} onChange={e => setForm(p => ({ ...p, pix_key: e.target.value }))} className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary" placeholder="CPF, e-mail, telefone…" />
+              <label className="text-xs font-medium text-muted-foreground">{tr('ptn.pix')}</label>
+              <input value={form.pix_key} onChange={e => setForm(p => ({ ...p, pix_key: e.target.value }))} className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary" placeholder={tr('ptn.pixPh')} />
             </div>
           </div>
 
           <button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50">
-            {submitting ? "Criando cadastro…" : "Quero ser parceiro"}
+            {submitting ? tr('ptn.creating') : tr('ptn.want')}
           </button>
 
           <p className="text-center text-xs text-muted-foreground">
-            Já é parceiro? <Link to="/login" className="text-primary hover:underline">Fazer login</Link>
+            {tr('ptn.already')} <Link to="/login" className="text-primary hover:underline">{tr('ptn.login')}</Link>
           </p>
         </form>
       </motion.div>

@@ -111,7 +111,7 @@ const MarketplaceSignup: React.FC = () => {
                   <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="seu@email.com" maxLength={255} />
+                    placeholder={tr('auth.emailPh')} maxLength={255} />
                 </div>
               </div>
 
