@@ -1,3 +1,4 @@
+import { tr, trHtml, getLanguage } from "@/i18n";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -133,16 +134,16 @@ const MarketplaceAssets: React.FC = () => {
 
           <nav className="hidden md:flex items-center gap-1 mx-auto">
             <button onClick={() => navigate("/marketplace")} className={navBtn(false)}>
-              <Home size={15} /> Início
+              <Home size={15} /> {tr('mk.home')}
             </button>
             <button onClick={() => navigate("/marketplace")} className={navBtn(false)}>
-              <ShoppingCart size={15} /> Produtos
+              <ShoppingCart size={15} /> {tr('mk.products')}
             </button>
             <button className={navBtn(true)}>
-              <TrendingUp size={15} /> Ativos c/ Gastos
+              <TrendingUp size={15} /> {tr('mk.withSpend')}
             </button>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={navBtn(false)}>
-              <MessageCircle size={15} /> Contato
+              <MessageCircle size={15} /> {tr('mk.contact')}
             </a>
           </nav>
 
@@ -162,19 +163,19 @@ const MarketplaceAssets: React.FC = () => {
                         {(user?.name || "U").split(" ").map(w => w[0]).slice(0, 2).join("")}
                       </span>
                       <span className="flex flex-col items-start leading-tight">
-                        <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">{user?.name || "Usuário"}</span>
-                        <span className="text-[10px] text-muted-foreground">Meu perfil</span>
+                        <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">{user?.name || tr('mk.user')}</span>
+                        <span className="text-[10px] text-muted-foreground">{tr('mk.myProfile')}</span>
                       </span>
                       <ChevronDown size={14} className="text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => navigate("/perfil")}>Perfil</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>Meus Pedidos</DropdownMenuItem>
-                    <DropdownMenuItem onClick={goPainel}>Ir para o painel</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/perfil")}>{tr('mk.profile')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>{tr('mk.myOrders')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={goPainel}>{tr('mk.goPanel')}</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => { await supabase.auth.signOut(); navigate("/marketplace"); }} className="text-destructive">
-                      Sair
+                      {tr('mk.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -182,10 +183,10 @@ const MarketplaceAssets: React.FC = () => {
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")}>
-                  <LogIn size={14} className="mr-1" /> Entrar
+                  <LogIn size={14} className="mr-1" /> {tr('mk.login')}
                 </Button>
                 <Button size="sm" onClick={() => navigate("/marketplace-signup")}>
-                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                  <UserPlus size={14} className="mr-1" /> {tr('mk.signup')}
                 </Button>
               </>
             )}
@@ -198,12 +199,10 @@ const MarketplaceAssets: React.FC = () => {
       {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-10 pb-6">
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Premium</p>
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
-            Ativos com <span className="text-primary">Gastos</span>
-          </h1>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">{tr('mk.premium')}</p>
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground" dangerouslySetInnerHTML={{ __html: tr('mk.assets.title') }} />
           <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl mx-auto">
-            BMs com histórico de gastos, limites elevados e contas prontas para escalar imediatamente.
+            {tr('mk.assets.desc')}
           </p>
         </div>
       </section>
@@ -214,21 +213,21 @@ const MarketplaceAssets: React.FC = () => {
           {/* Como comprar */}
           <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8">
             <div className="text-center mb-6">
-              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Como comprar?</h3>
-              <p className="text-sm text-muted-foreground mt-2">Adquira seu ativo em apenas 3 etapas simples</p>
+              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">{tr('mk.assets.how')}</h3>
+              <p className="text-sm text-muted-foreground mt-2">{tr('mk.assets.howSub')}</p>
             </div>
             <div className="space-y-3">
-              <Step n={1} title="Encontre o que te interessa" text="Curtiu algum ativo? Salve o nome ou tire um print para não perder!" />
-              <Step n={2} title="Fale com a gente pelo chat" text="Clique no botão ao lado do ativo que se interessou e fale com a gente pelo chat." />
-              <Step n={3} title="Conclua a compra na hora" text="Se estiver disponível, você recebe a chave PIX imediatamente e finaliza sua compra com agilidade e segurança." />
+              <Step n={1} title={tr('mk.assets.s1')} text={tr('mk.assets.s1t')} />
+              <Step n={2} title={tr('mk.assets.s2')} text={tr('mk.assets.s2t')} />
+              <Step n={3} title={tr('mk.assets.s3')} text={tr('mk.assets.s3t')} />
             </div>
           </div>
 
           {/* Suporte */}
           <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8">
             <div className="text-center mb-6">
-              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Suporte e Comunidade</h3>
-              <p className="text-sm text-muted-foreground mt-2">Estamos aqui para te ajudar</p>
+              <h3 className="font-display text-2xl sm:text-3xl font-bold text-foreground">{tr('mk.assets.supportCommunity')}</h3>
+              <p className="text-sm text-muted-foreground mt-2">{tr('mk.assets.hereToHelp')}</p>
             </div>
             <div className="space-y-3">
               <div className="rounded-xl border border-border/40 bg-background/40 p-5">
@@ -237,13 +236,13 @@ const MarketplaceAssets: React.FC = () => {
                     <Headphones size={18} />
                   </div>
                   <div>
-                    <p className="font-display font-bold text-foreground">Suporte</p>
-                    <p className="text-xs text-muted-foreground">Precisa de ajuda? Nossa equipe está pronta para te atender!</p>
+                    <p className="font-display font-bold text-foreground">{tr('mk.assets.support')}</p>
+                    <p className="text-xs text-muted-foreground">{tr('mk.assets.needHelp')}</p>
                   </div>
                 </div>
                 <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
                   className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm transition-colors">
-                  <MessageCircle size={14} /> Falar com Suporte
+                  <MessageCircle size={14} /> {tr('mk.assets.talkSupport')}
                 </a>
               </div>
 
@@ -253,13 +252,13 @@ const MarketplaceAssets: React.FC = () => {
                     <Users size={18} />
                   </div>
                   <div>
-                    <p className="font-display font-bold text-foreground">Comunidade</p>
-                    <p className="text-xs text-muted-foreground">Seja avisado de promoções e participe de sorteios exclusivos!</p>
+                    <p className="font-display font-bold text-foreground">{tr('mk.assets.community')}</p>
+                    <p className="text-xs text-muted-foreground">{tr('mk.assets.communityDesc')}</p>
                   </div>
                 </div>
                 <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer"
                   className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-colors">
-                  <Users size={14} /> Entrar na Comunidade
+                  <Users size={14} /> {tr('mk.assets.joinCommunity')}
                 </a>
               </div>
             </div>
@@ -274,19 +273,19 @@ const MarketplaceAssets: React.FC = () => {
             <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
               <Filter size={16} />
             </div>
-            <h2 className="font-display text-xl font-bold text-foreground">Filtrar Ativos</h2>
+            <h2 className="font-display text-xl font-bold text-foreground">{tr('mk.assets.filter')}</h2>
           </div>
 
           <div className="rounded-xl border border-border/40 bg-background/40 p-4 sm:p-5 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                  <Globe size={13} /> Plataforma
+                  <Globe size={13} /> {tr('mk.assets.platform')}
                 </label>
                 <Select value={platform} onValueChange={setPlatform}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="all">{tr('mk.sub.all')}</SelectItem>
                     <SelectItem value="facebook">Facebook</SelectItem>
                     <SelectItem value="google">Google</SelectItem>
                     <SelectItem value="tiktok">TikTok</SelectItem>
@@ -295,27 +294,27 @@ const MarketplaceAssets: React.FC = () => {
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                  <DollarSign size={13} /> Faixa de Preço
+                  <DollarSign size={13} /> {tr('mk.assets.priceRange')}
                 </label>
                 <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="0-1000">Até R$ 1.000</SelectItem>
+                    <SelectItem value="all">{tr('mk.src.all')}</SelectItem>
+                    <SelectItem value="0-1000">{tr('mk.assets.upTo')}</SelectItem>
                     <SelectItem value="1000-3000">R$ 1.000 – R$ 3.000</SelectItem>
                     <SelectItem value="3000-7000">R$ 3.000 – R$ 7.000</SelectItem>
-                    <SelectItem value="7000-999999">Acima de R$ 7.000</SelectItem>
+                    <SelectItem value="7000-999999">{tr('mk.assets.above')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                  <Wallet size={13} /> Moeda das Contas
+                  <Wallet size={13} /> {tr('mk.assets.currency')}
                 </label>
                 <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="all">{tr('mk.sub.all')}</SelectItem>
                     <SelectItem value="BRL">BRL (R$)</SelectItem>
                     <SelectItem value="USD">USD ($)</SelectItem>
                     <SelectItem value="EUR">EUR (€)</SelectItem>
@@ -324,21 +323,19 @@ const MarketplaceAssets: React.FC = () => {
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                  <Search size={13} /> Buscar por Nome
+                  <Search size={13} /> {tr('mk.assets.search')}
                 </label>
-                <Input placeholder="Ex: BM AdScale" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input placeholder={tr('mk.assets.searchPh')} value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-              <SliderField label="Gastos Mínimos" icon={<TrendingUp size={13} />} value={minGastos} onChange={setMinGastos} max={maxBounds.g} />
-              <SliderField label="Limite Mínimo" icon={<DollarSign size={13} />} value={minLimite} onChange={setMinLimite} max={maxBounds.l} />
-              <SliderField label="Ciclo Mínimo" icon={<TrendingUp size={13} />} value={minCiclo} onChange={setMinCiclo} max={maxBounds.c} />
+              <SliderField label={tr('mk.assets.minSpend')} icon={<TrendingUp size={13} />} value={minGastos} onChange={setMinGastos} max={maxBounds.g} />
+              <SliderField label={tr('mk.assets.minLimit')} icon={<DollarSign size={13} />} value={minLimite} onChange={setMinLimite} max={maxBounds.l} />
+              <SliderField label={tr('mk.assets.minCycle')} icon={<TrendingUp size={13} />} value={minCiclo} onChange={setMinCiclo} max={maxBounds.c} />
             </div>
 
-            <p className="text-xs text-muted-foreground pt-1">
-              Mostrando <span className="font-bold text-foreground">{filtered.length}</span> de <span className="font-bold text-foreground">{assets.length}</span> BMs
-            </p>
+            <p className="text-xs text-muted-foreground pt-1" dangerouslySetInnerHTML={{ __html: trHtml('mk.assets.showing', { n: filtered.length, total: assets.length }) }} />
           </div>
         </div>
       </section>
@@ -346,10 +343,10 @@ const MarketplaceAssets: React.FC = () => {
       {/* Grid */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-6">
         {loading ? (
-          <p className="text-center text-muted-foreground py-12">Carregando ativos…</p>
+          <p className="text-center text-muted-foreground py-12">{tr('mk.assets.loading')}</p>
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-border/60 bg-card/40 p-12 text-center">
-            <p className="text-muted-foreground">Nenhum ativo encontrado com os filtros atuais.</p>
+            <p className="text-muted-foreground">{tr('mk.assets.none')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -379,7 +376,7 @@ const Step: React.FC<{ n: number; title: string; text: string }> = ({ n, title, 
 const SliderField: React.FC<{ label: string; icon: React.ReactNode; value: number; onChange: (v: number) => void; max: number }> = ({ label, icon, value, onChange, max }) => (
   <div>
     <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-      {icon} {label}: <span className="text-foreground font-semibold">{value === 0 ? "Todos" : fmtBRL(value)}</span>
+      {icon} {label}: <span className="text-foreground font-semibold">{value === 0 ? tr('mk.src.all') : fmtBRL(value)}</span>
     </label>
     <Slider value={[value]} max={max} step={Math.max(1, Math.round(max / 100))} onValueChange={(v) => onChange(v[0] || 0)} />
   </div>

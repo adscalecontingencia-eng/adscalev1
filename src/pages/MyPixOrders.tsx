@@ -1,3 +1,5 @@
+import { tr } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +20,7 @@ interface OrderRow {
 }
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 export default function MyPixOrders() {
   const { toast } = useToast();
@@ -50,7 +52,7 @@ export default function MyPixOrders() {
 
     const { data, error } = await query;
     if (error) {
-      toast({ title: "Erro ao carregar", description: error.message, variant: "destructive" });
+      toast({ title: tr('mk.pixo.loadErr'), description: error.message, variant: "destructive" });
     } else {
       setOrders((data ?? []) as unknown as OrderRow[]);
     }
@@ -69,11 +71,11 @@ export default function MyPixOrders() {
       });
       if (error) throw error;
       const r = data as { url?: string; error?: string };
-      if (r?.error || !r?.url) throw new Error(r?.error ?? "Arquivo não disponível");
+      if (r?.error || !r?.url) throw new Error(r?.error ?? tr('mk.pixo.noFile'));
       window.location.href = r.url;
     } catch (err: any) {
       toast({
-        title: "Erro ao baixar",
+        title: tr('mk.pixo.dlErr'),
         description: err?.message ?? String(err),
         variant: "destructive",
       });
@@ -86,28 +88,28 @@ export default function MyPixOrders() {
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 py-10">
         <Link to="/marketplace" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Voltar ao marketplace
+          <ArrowLeft className="w-4 h-4 mr-1" /> {tr('mk.back')}
         </Link>
-        <h1 className="text-2xl font-bold mb-1">Minhas compras (Pix)</h1>
+        <h1 className="text-2xl font-bold mb-1">{tr('mk.pixo.title')}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Aqui você baixa novamente qualquer arquivo já pago.
+          {tr('mk.pixo.desc')}
         </p>
 
         <div className="mb-6 flex gap-2">
           <input
             type="email"
-            placeholder="Buscar pelo e-mail usado na compra"
+            placeholder={tr('mk.pixo.searchPh')}
             value={emailFilter}
             onChange={(e) => setEmailFilter(e.target.value)}
             className="flex-1 rounded border bg-background px-3 py-2 text-sm"
           />
-          <Button variant="outline" onClick={load}>Buscar</Button>
+          <Button variant="outline" onClick={load}>{tr('mk.pixo.search')}</Button>
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <p className="text-sm text-muted-foreground">{tr('mk.loading')}</p>
         ) : orders.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma compra encontrada.</p>
+          <p className="text-sm text-muted-foreground">{tr('mk.pixo.none')}</p>
         ) : (
           <div className="space-y-3">
             {orders.map((o) => {
@@ -120,12 +122,12 @@ export default function MyPixOrders() {
                   <FileText className="w-5 h-5 text-primary" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">
-                      {o.marketplace_products?.name ?? "Produto"}
+                      {o.marketplace_products?.name ?? tr('mk.product')}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {fmtBRL(Number(o.amount))} ·{" "}
-                      <span className={canDownload ? "text-primary" : ""}>{o.status}</span>
-                      {o.paid_at ? ` · pago em ${new Date(o.paid_at).toLocaleString("pt-BR")}` : ""}
+                      <span className={canDownload ? "text-primary" : ""}>{tr(`mk.status.${o.status}`, { defaultValue: o.status })}</span>
+                      {o.paid_at ? ` · ${tr('mk.pixo.paidAt', { date: new Date(o.paid_at).toLocaleString(getNumberLocale()) })}` : ""}
                     </div>
                   </div>
                   <Button
@@ -136,7 +138,7 @@ export default function MyPixOrders() {
                     {downloadingId === o.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <><Download className="w-4 h-4 mr-1" /> Baixar</>
+                      <><Download className="w-4 h-4 mr-1" /> {tr('mk.pixo.download')}</>
                     )}
                   </Button>
                 </div>

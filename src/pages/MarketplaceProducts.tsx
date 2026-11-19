@@ -1,3 +1,4 @@
+import { tr, trHtml, getLanguage } from "@/i18n";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -93,23 +94,23 @@ const MarketplaceProducts: React.FC = () => {
 
   const topSelling = useMemo(() => {
     return [...products].sort((a, b) => (b.stock_available ?? 0) - (a.stock_available ?? 0)).slice(0, 4);
-  }, [products]);
+  }, [products, getLanguage()]);
 
   const categories = useMemo(() => {
     const map = new Map<string, { key: string; label: string; desc: string; icon: string; count: number }>();
     products.forEach(p => {
       const blob = `${p.category} ${p.subcategory ?? ""} ${p.name}`.toLowerCase();
-      let key = "outros", label = "Outros", desc = "Produtos diversos", icon = "📦";
-      if (/tiktok|tt\b|bc\b/.test(blob)) { key = "tiktok"; label = "TikTok Ads"; desc = "BC Verificadados - Restabelecidos - Resistentes"; icon = "tiktok"; }
-      else if (/disparo|whats|cloud api|api/.test(blob)) { key = "bms-disparo"; label = "BMs de Disparos"; desc = "Verificadas - Waba aprovado - Com e sem template"; icon = "whats"; }
-      else if (/perfil/.test(blob)) { key = "perfis"; label = "Perfis Facebook"; desc = "Perfis antigos - Com cookies - Com 2FA - Perfis brasileiros"; icon = "fb"; }
-      else if (/bm|business manager|meta|facebook/.test(blob)) { key = "bms-fb"; label = "BMs Facebook"; desc = "BMs antigas - Limites altos - Sem gastos"; icon = "meta"; }
+      let key = "outros", label = tr('mk.cat.other'), desc = tr('mk.cat.otherDesc'), icon = "📦";
+      if (/tiktok|tt\b|bc\b/.test(blob)) { key = "tiktok"; label = "TikTok Ads"; desc = tr('mk.cat.tiktok'); icon = "tiktok"; }
+      else if (/disparo|whats|cloud api|api/.test(blob)) { key = "bms-disparo"; label = tr('mk.cat.bmMsg'); desc = tr('mk.cat.bmMsgDesc'); icon = "whats"; }
+      else if (/perfil/.test(blob)) { key = "perfis"; label = tr('mk.cat.fbProfiles'); desc = tr('mk.cat.fbProfilesDesc'); icon = "fb"; }
+      else if (/bm|business manager|meta|facebook/.test(blob)) { key = "bms-fb"; label = tr('mk.cat.fbBms'); desc = tr('mk.cat.fbBmsDesc'); icon = "meta"; }
       const cur = map.get(key);
       if (cur) cur.count++;
       else map.set(key, { key, label, desc, icon, count: 1 });
     });
     return Array.from(map.values());
-  }, [products]);
+  }, [products, getLanguage()]);
 
   const goPainel = () => {
     const dest = user?.role === "client" ? "/client-dashboard"
@@ -150,10 +151,10 @@ const MarketplaceProducts: React.FC = () => {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1 mx-auto">
-            <button onClick={() => navigate("/marketplace")} className={navBtn(false)}><Home size={15} /> Início</button>
-            <button className={navBtn(true)}><ShoppingCart size={15} /> Produtos</button>
-            <button onClick={() => navigate("/marketplace/ativos")} className={navBtn(false)}><TrendingUp size={15} /> Ativos c/ Gastos</button>
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={navBtn(false)}><MessageCircle size={15} /> Contato</a>
+            <button onClick={() => navigate("/marketplace")} className={navBtn(false)}><Home size={15} /> {tr('mk.home')}</button>
+            <button className={navBtn(true)}><ShoppingCart size={15} /> {tr('mk.products')}</button>
+            <button onClick={() => navigate("/marketplace/ativos")} className={navBtn(false)}><TrendingUp size={15} /> {tr('mk.withSpend')}</button>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={navBtn(false)}><MessageCircle size={15} /> {tr('mk.contact')}</a>
           </nav>
 
           <div className="ml-auto md:ml-0 flex items-center gap-2">
@@ -172,19 +173,19 @@ const MarketplaceProducts: React.FC = () => {
                         {(user?.name || "U").split(" ").map(w => w[0]).slice(0, 2).join("")}
                       </span>
                       <span className="flex flex-col items-start leading-tight">
-                        <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">{user?.name || "Usuário"}</span>
-                        <span className="text-[10px] text-muted-foreground">Meu perfil</span>
+                        <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">{user?.name || tr('mk.user')}</span>
+                        <span className="text-[10px] text-muted-foreground">{tr('mk.myProfile')}</span>
                       </span>
                       <ChevronDown size={14} className="text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => navigate("/perfil")}>Perfil</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>Meus Pedidos</DropdownMenuItem>
-                    <DropdownMenuItem onClick={goPainel}>Ir para o painel</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/perfil")}>{tr('mk.profile')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>{tr('mk.myOrders')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={goPainel}>{tr('mk.goPanel')}</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => { await supabase.auth.signOut(); navigate("/marketplace"); }} className="text-destructive">
-                      Sair
+                      {tr('mk.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -192,10 +193,10 @@ const MarketplaceProducts: React.FC = () => {
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")}>
-                  <LogIn size={14} className="mr-1" /> Entrar
+                  <LogIn size={14} className="mr-1" /> {tr('mk.login')}
                 </Button>
                 <Button size="sm" onClick={() => navigate("/marketplace-signup")}>
-                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                  <UserPlus size={14} className="mr-1" /> {tr('mk.signup')}
                 </Button>
               </>
             )}
@@ -208,15 +209,15 @@ const MarketplaceProducts: React.FC = () => {
       {/* Hero / Produtos em Destaque */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 pt-12 sm:pt-16 pb-6">
         <div className="text-center mb-8">
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">Produtos em Destaque</h1>
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">{tr('mk.prod.featuredTitle')}</h1>
           <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl mx-auto">
-            Confira nossos produtos mais vendidos e com as melhores avaliações dos clientes.
+            {tr('mk.prod.featuredDesc')}
           </p>
           <div className="flex justify-center mt-6">
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
               <TabsList>
-                <TabsTrigger value="destaque">Em Destaque</TabsTrigger>
-                <TabsTrigger value="novidades">Novidades</TabsTrigger>
+                <TabsTrigger value="destaque">{tr('mk.featured')}</TabsTrigger>
+                <TabsTrigger value="novidades">{tr('mk.new')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -228,16 +229,16 @@ const MarketplaceProducts: React.FC = () => {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produto..."
+              placeholder={tr('mk.prod.search')}
               className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
             />
           </div>
         </div>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-12">Carregando produtos…</p>
+          <p className="text-center text-muted-foreground py-12">{tr('mk.prod.loading')}</p>
         ) : featured.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">Nenhum produto encontrado.</p>
+          <p className="text-center text-muted-foreground py-12">{tr('mk.prod.none')}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {featured.map(p => (
@@ -250,9 +251,9 @@ const MarketplaceProducts: React.FC = () => {
       {/* Categorias */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
         <div className="text-center mb-8 sm:mb-10">
-          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Categorias</h2>
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">{tr('mk.categories')}</h2>
           <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-xl mx-auto">
-            Explore nossas categorias de produtos e encontre exatamente o que você precisa.
+            {tr('mk.prod.catDesc')}
           </p>
         </div>
 
@@ -279,14 +280,14 @@ const MarketplaceProducts: React.FC = () => {
       {/* Mais Vendidos */}
       <section className="relative max-w-7xl mx-auto px-4 lg:px-6 py-12 sm:py-16">
         <div className="text-center mb-8 sm:mb-10">
-          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Mais Vendidos</h2>
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">{tr('mk.prod.top')}</h2>
           <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-xl mx-auto">
-            Os produtos preferidos pelos nossos clientes com entrega imediata.
+            {tr('mk.prod.topDesc')}
           </p>
         </div>
 
         {topSelling.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">Em breve.</p>
+          <p className="text-center text-muted-foreground py-12">{tr('mk.prod.soon')}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {topSelling.map((p, i) => (
@@ -317,17 +318,17 @@ const MarketplaceProducts: React.FC = () => {
               </DialogHeader>
               <div className="space-y-3 mt-2">
                 <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                  {selected.description || "Sem descrição disponível."}
+                  {selected.description || tr('mk.prod.noDesc')}
                 </p>
                 <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/[0.03] p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Total</p>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{tr('mk.total')}</p>
                     <p className="text-2xl font-bold text-primary">
                       {fmtBRL(selected.discount_price ?? selected.sale_price)}
                     </p>
                   </div>
                   <Button onClick={() => handleBuy(selected)}>
-                    <ShoppingCart size={14} className="mr-1.5" /> Comprar Agora
+                    <ShoppingCart size={14} className="mr-1.5" /> {tr('mk.buy')}
                   </Button>
                 </div>
               </div>

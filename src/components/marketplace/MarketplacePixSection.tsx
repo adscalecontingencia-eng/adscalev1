@@ -1,3 +1,5 @@
+import { tr, trHtml } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ interface MarketplaceProduct {
 }
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 export default function MarketplacePixSection() {
   const { isAuthenticated } = useAuth();
@@ -56,30 +58,28 @@ export default function MarketplacePixSection() {
     <section id="produtos-digitais" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
       <div className="text-center mb-8 sm:mb-10">
         <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3 flex items-center justify-center gap-2">
-          <Sparkles className="w-3 h-3" /> Produtos Digitais
+          <Sparkles className="w-3 h-3" /> {tr('mk.ps.digital')}
         </p>
-        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-          Compre na hora com <span className="text-primary">saldo</span> da carteira
-        </h2>
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground" dangerouslySetInnerHTML={{ __html: tr('mk.ps.title') }} />
         <p className="text-sm text-muted-foreground mt-2">
-          Deposite via Pix, compre com 1 clique e baixe instantaneamente.
+          {tr('mk.ps.desc')}
         </p>
 
         {isAuthenticated && (
           <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/5 px-4 py-2">
             <WalletIcon className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Saldo:</span>
+            <span className="text-xs text-muted-foreground">{tr('mk.wallet.balanceShort')}</span>
             <span className="text-sm font-bold text-foreground">{fmtBRL(balance)}</span>
             <Button size="sm" variant="outline" className="h-7 text-xs ml-2" onClick={() => setWalletOpen(true)}>
-              Adicionar saldo
+              {tr('mk.addBalance')}
             </Button>
-            <a href="#/minha-carteira" className="text-xs text-primary hover:underline ml-1">Histórico</a>
+            <a href="#/minha-carteira" className="text-xs text-primary hover:underline ml-1">{tr('mk.wd.history')}</a>
           </div>
         )}
       </div>
 
       {loading ? (
-        <p className="text-center text-muted-foreground text-sm py-12">Carregando…</p>
+        <p className="text-center text-muted-foreground text-sm py-12">{tr('mk.loading')}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {products.map((p) => (
@@ -101,7 +101,7 @@ export default function MarketplacePixSection() {
               <div className="mt-auto flex items-center justify-between pt-2">
                 <div className="text-lg font-bold text-foreground">{fmtBRL(Number(p.price))}</div>
                 <Button size="sm" onClick={() => handleBuy(p)}>
-                  <ShoppingCart className="w-4 h-4 mr-1" /> Comprar
+                  <ShoppingCart className="w-4 h-4 mr-1" /> {tr('mk.pc.buy')}
                 </Button>
               </div>
             </div>

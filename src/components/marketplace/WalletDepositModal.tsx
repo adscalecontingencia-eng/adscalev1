@@ -1,3 +1,5 @@
+import { tr, trHtml } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +10,7 @@ import { Loader2, Copy, Wallet as WalletIcon, Plus, History, CheckCircle2, Info,
 import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/hooks/useWallet";
 
-const fmt = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+const fmt = (n: number) => new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 const parseAmount = (s: string) => {
   const n = Number(String(s ?? "").replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : 0;
@@ -101,12 +103,12 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
         }
       }
     } catch { /* ignore */ }
-    toast({ title: "Pagamento confirmado", description: "Saldo creditado na sua carteira." });
+    toast({ title: tr('mk.wd.confirmed'), description: tr('mk.wd.credited') });
   }
 
   async function generatePix() {
     const value = parseAmount(amount);
-    if (!(value >= 20)) { toast({ title: "Depósito mínimo R$ 20,00", variant: "destructive" }); return; }
+    if (!(value >= 20)) { toast({ title: tr('mk.wd.min'), variant: "destructive" }); return; }
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("wallet-create-deposit", { body: { amount: value } });
@@ -127,14 +129,14 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
       setStatus(r.status ?? "pending");
       watchDeposit(r.deposit_id);
     } catch (e: any) {
-      toast({ title: "Erro ao gerar Pix", description: e?.message ?? String(e), variant: "destructive" });
+      toast({ title: tr('mk.wd.pixErr'), description: e?.message ?? String(e), variant: "destructive" });
     } finally { setCreating(false); }
   }
 
   async function copyPix() {
     if (!pix?.pix_qr_code) return;
     await navigator.clipboard.writeText(pix.pix_qr_code);
-    toast({ title: "Código Pix copiado" });
+    toast({ title: tr('mk.wd.pixCopied') });
   }
 
   async function simulatePayment() {
@@ -147,7 +149,7 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
       if (r?.error) throw new Error(r.error);
       handleApproved();
     } catch (e: any) {
-      toast({ title: "Erro ao simular", description: e?.message ?? String(e), variant: "destructive" });
+      toast({ title: tr('mk.wd.simErr'), description: e?.message ?? String(e), variant: "destructive" });
     } finally { setSimulating(false); }
   }
   return (
@@ -155,13 +157,13 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
 
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><WalletIcon className="w-5 h-5 text-primary" /> Carteira</DialogTitle>
-          <DialogDescription>Gerencie seu saldo e depósitos.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><WalletIcon className="w-5 h-5 text-primary" /> {tr('mk.wd.wallet')}</DialogTitle>
+          <DialogDescription>{tr('mk.wd.manage')}</DialogDescription>
         </DialogHeader>
 
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Saldo disponível</div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{tr('mk.wd.available')}</div>
             <div className="text-2xl font-bold text-foreground">{fmt(balance)}</div>
           </div>
           <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary grid place-items-center">
@@ -171,17 +173,17 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
 
         <div className="flex gap-2">
           <Button size="sm" variant={tab === "deposit" ? "default" : "outline"} onClick={() => setTab("deposit")}>
-            <Plus className="w-4 h-4 mr-1" /> Depositar
+            <Plus className="w-4 h-4 mr-1" /> {tr('mk.wd.deposit')}
           </Button>
           <Button size="sm" variant={tab === "history" ? "default" : "outline"} onClick={() => { setTab("history"); loadHistory(); }}>
-            <History className="w-4 h-4 mr-1" /> Histórico
+            <History className="w-4 h-4 mr-1" /> {tr('mk.wd.history')}
           </Button>
         </div>
 
         {tab === "deposit" && !pix && (
           <div className="space-y-3">
             <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Valor rápido</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr('mk.wd.quick')}</Label>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {QUICK.map((v) => (
                   <Button key={v} variant={parseAmount(amount) === v ? "default" : "outline"} size="sm" onClick={() => setAmount(String(v))}>
@@ -192,22 +194,22 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
               </div>
             </div>
             <div>
-              <Label htmlFor="wd-amount" className="text-xs uppercase tracking-wider text-muted-foreground">Valor personalizado</Label>
+              <Label htmlFor="wd-amount" className="text-xs uppercase tracking-wider text-muted-foreground">{tr('mk.wd.custom')}</Label>
               <div className="relative mt-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                 <Input id="wd-amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-9" inputMode="decimal" />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">Depósito mínimo R$ 20,00</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{tr('mk.wd.min')}</p>
             </div>
             <div className="text-xs text-muted-foreground flex items-start gap-2 rounded-lg border border-border p-3">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>Pagamento via PIX com confirmação instantânea. O saldo é creditado automaticamente após a confirmação do pagamento.</span>
+              <span>{tr('mk.wd.info')}</span>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>{tr('mk.cancel')}</Button>
               <Button className="flex-1" onClick={generatePix} disabled={creating || parseAmount(amount) < 20}>
                 {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Depositar {fmt(parseAmount(amount))}
+                {tr('mk.wd.deposit')} {fmt(parseAmount(amount))}
               </Button>
             </div>
           </div>
@@ -216,11 +218,11 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
         {tab === "deposit" && pix && status !== "approved" && (
           <div className="space-y-3">
             {pix.pix_qr_code_base64 && (
-              <img src={`data:image/png;base64,${pix.pix_qr_code_base64}`} alt="QR Code Pix" className="w-48 h-48 mx-auto rounded-lg border border-border bg-white p-2" />
+              <img src={`data:image/png;base64,${pix.pix_qr_code_base64}`} alt={tr('mk.wallet.qrAlt')} className="w-48 h-48 mx-auto rounded-lg border border-border bg-white p-2" />
             )}
             {pix.pix_qr_code && (
               <div>
-                <Label className="text-xs">Pix copia e cola</Label>
+                <Label className="text-xs">{tr('mk.wd.copyPaste')}</Label>
                 <div className="flex gap-2 mt-1">
                   <Input readOnly value={pix.pix_qr_code} className="text-xs" />
                   <Button size="icon" variant="outline" onClick={copyPix}><Copy className="w-4 h-4" /></Button>
@@ -228,19 +230,19 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
               </div>
             )}
             <p className="text-xs text-muted-foreground text-center">
-              Aguardando pagamento de <strong>{fmt(pix.amount)}</strong>… atualiza automaticamente.
+              <span dangerouslySetInnerHTML={{ __html: trHtml('mk.wd.waiting', { amount: fmt(pix.amount) }) }} />
             </p>
             {pix.test_mode && (
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-amber-500">
-                  <FlaskConical className="w-4 h-4" /> Modo sandbox
+                  <FlaskConical className="w-4 h-4" /> {tr('mk.wd.sandbox')}
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Contas teste do Mercado Pago não pagam Pix copia-e-cola. Clique abaixo para simular a aprovação.
+                  {tr('mk.wd.sandboxDesc')}
                 </p>
                 <Button size="sm" variant="outline" className="w-full border-amber-500/40 text-amber-500 hover:bg-amber-500/10" onClick={simulatePayment} disabled={simulating}>
                   {simulating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FlaskConical className="w-4 h-4 mr-2" />}
-                  Simular pagamento (sandbox)
+                  {tr('mk.wd.simulate')}
                 </Button>
               </div>
             )}
@@ -250,21 +252,21 @@ export default function WalletDepositModal({ open, onOpenChange, initialAmount }
         {tab === "deposit" && status === "approved" && (
           <div className="text-center py-6 space-y-2">
             <CheckCircle2 className="w-12 h-12 mx-auto text-primary" />
-            <p className="font-semibold text-foreground">Saldo creditado!</p>
-            <p className="text-xs text-muted-foreground">Novo saldo: {fmt(balance)}</p>
-            <Button onClick={() => onOpenChange(false)} className="mt-2">Fechar</Button>
+            <p className="font-semibold text-foreground">{tr('mk.wd.done')}</p>
+            <p className="text-xs text-muted-foreground">{tr('mk.wd.newBalance', { amount: fmt(balance) })}</p>
+            <Button onClick={() => onOpenChange(false)} className="mt-2">{tr('mk.wd.close')}</Button>
           </div>
         )}
 
         {tab === "history" && (
           <div className="max-h-72 overflow-y-auto space-y-1">
-            {history.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Nenhum movimento.</p>}
+            {history.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">{tr('mk.wd.noMov')}</p>}
             {history.map((h) => (
               <div key={h.id} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2">
                 <div>
                   <div className="font-medium text-foreground capitalize">{h.type}</div>
                   <div className="text-muted-foreground text-[11px]">{h.description ?? ""}</div>
-                  <div className="text-muted-foreground text-[10px]">{new Date(h.created_at).toLocaleString("pt-BR")}</div>
+                  <div className="text-muted-foreground text-[10px]">{new Date(h.created_at).toLocaleString(getNumberLocale())}</div>
                 </div>
                 <div className={Number(h.amount) >= 0 ? "text-primary font-semibold" : "text-destructive font-semibold"}>
                   {Number(h.amount) >= 0 ? "+" : ""}{fmt(Number(h.amount))}

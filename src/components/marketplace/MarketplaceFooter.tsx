@@ -1,3 +1,5 @@
+import { tr, trHtml } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import React from "react";
 import { Link } from "react-router-dom";
 import { Instagram, MessageCircle } from "lucide-react";
@@ -62,22 +64,22 @@ const MarketplaceFooter: React.FC = () => {
           {/* Políticas */}
           <div>
             <h4 className="font-display font-bold text-foreground text-sm sm:text-base mb-3 sm:mb-4">
-              Políticas
+              {tr('mk.ft.policies')}
             </h4>
             <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
                 <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                  Termos de Uso
+                  {tr('mk.ft.terms')}
                 </a>
               </li>
               <li>
                 <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                  Política de Publicidade
+                  {tr('mk.ft.ads')}
                 </a>
               </li>
               <li>
                 <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                  Política de Privacidade
+                  {tr('mk.ft.privacy')}
                 </a>
               </li>
             </ul>
@@ -86,7 +88,7 @@ const MarketplaceFooter: React.FC = () => {
           {/* Suporte */}
           <div>
             <h4 className="font-display font-bold text-foreground text-sm sm:text-base mb-3 sm:mb-4">
-              Suporte
+              {tr('mk.assets.support')}
             </h4>
             <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
@@ -96,38 +98,38 @@ const MarketplaceFooter: React.FC = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center sm:justify-start gap-1.5 hover:text-foreground transition-colors"
                 >
-                  <MessageCircle size={14} /> Atendimento via WhatsApp
+                  <MessageCircle size={14} /> {tr('mk.ft.wa')}
                 </a>
               </li>
-              <li>Segunda a Sexta: 10h às 22h</li>
-              <li>Sábado e Domingo: 10h às 20h</li>
+              <li>{tr('mk.ft.week')}</li>
+              <li>{tr('mk.ft.weekend')}</li>
             </ul>
           </div>
 
           {/* Links Rápidos */}
           <div className="sm:col-span-2 md:col-span-1">
             <h4 className="font-display font-bold text-foreground text-sm sm:text-base mb-3 sm:mb-4">
-              Links Rápidos
+              {tr('mk.ft.links')}
             </h4>
             <ul className="space-y-2 sm:space-y-2.5 text-sm text-muted-foreground">
               <li>
                 <Link to="/marketplace/produtos" className="hover:text-foreground transition-colors">
-                  Produtos
+                  {tr('mk.products')}
                 </Link>
               </li>
               <li>
                 <Link to="/marketplace/ativos" className="hover:text-foreground transition-colors">
-                  Ativos c/ Gastos
+                  {tr('mk.withSpend')}
                 </Link>
               </li>
               <li>
                 <Link to="/meus-pedidos" className="hover:text-foreground transition-colors">
-                  Meus Pedidos
+                  {tr('mk.myOrders')}
                 </Link>
               </li>
               <li>
                 <Link to="/perfil" className="hover:text-foreground transition-colors">
-                  Perfil
+                  {tr('mk.profile')}
                 </Link>
               </li>
             </ul>
@@ -146,7 +148,7 @@ const MarketplaceFooter: React.FC = () => {
             className="inline-flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
           >
             <Instagram size={18} />
-            Siga-nos no Instagram
+            {tr('mk.ft.ig')}
           </a>
         </div>
 
@@ -164,9 +166,9 @@ const MarketplaceFooter: React.FC = () => {
         <div className="text-center space-y-1.5 text-xs text-muted-foreground">
           <p>
             © {new Date().getFullYear()}{" "}
-            <span className="notranslate" translate="no">AD SCALE</span>. Todos os direitos reservados.
+            <span className="notranslate" translate="no">AD SCALE</span>. {tr('mk.ft.rights')}
           </p>
-          <p>Marketplace de ativos para tráfego pago.</p>
+          <p>{tr('mk.ft.tagline')}</p>
         </div>
       </div>
     </footer>

@@ -1,3 +1,5 @@
+import { tr, trHtml } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LogIn, UserPlus } from "lucide-react";
@@ -22,17 +24,17 @@ export default function LoginRequiredModal({ open, onOpenChange, redirectTo }: P
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Faça login para comprar</DialogTitle>
+          <DialogTitle>{tr('mk.lr.title')}</DialogTitle>
           <DialogDescription>
-            Você precisa estar logado para realizar compras. Faça login ou crie uma conta.
+            {tr('mk.lr.desc')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 mt-2">
           <Button onClick={() => go("/login?next=marketplace")} className="w-full justify-center">
-            <LogIn className="w-4 h-4 mr-2" /> Fazer Login
+            <LogIn className="w-4 h-4 mr-2" /> {tr('mk.lr.login')}
           </Button>
           <Button variant="outline" onClick={() => go("/marketplace-signup")} className="w-full justify-center">
-            <UserPlus className="w-4 h-4 mr-2" /> Criar Conta Marketplace
+            <UserPlus className="w-4 h-4 mr-2" /> {tr('mk.lr.create')}
           </Button>
         </div>
       </DialogContent>

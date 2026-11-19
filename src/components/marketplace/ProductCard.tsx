@@ -1,3 +1,5 @@
+import { tr, trHtml } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import React from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Info, Sparkles, Flame, ShieldCheck } from "lucide-react";
@@ -19,7 +21,7 @@ export interface MarketplaceProduct {
 }
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 /* —— Traffic source resolution —— */
 type Source = "meta" | "tiktok" | "google" | "proxy" | "generic";
@@ -53,13 +55,13 @@ const SOURCE_META: Record<Source, { label: string; tint: string; bg: string; rin
     ring: "ring-[#FBBC04]/30",
   },
   proxy: {
-    label: "Infra",
+    get label() { return tr('mk.pc.infra'); },
     tint: "text-primary",
     bg: "bg-primary/10",
     ring: "ring-primary/30",
   },
   generic: {
-    label: "Ativo",
+    get label() { return tr('mk.pc.asset'); },
     tint: "text-primary",
     bg: "bg-primary/10",
     ring: "ring-primary/30",
@@ -157,12 +159,12 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
         <div className="flex flex-wrap items-center gap-1.5 pr-28">
           {p.is_featured && (
             <span className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
-              <Flame size={9} /> Top
+              <Flame size={9} /> {tr('mk.pc.top')}
             </span>
           )}
           {p.is_new && (
             <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 border border-blue-400/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-300">
-              <Sparkles size={9} /> Novo
+              <Sparkles size={9} /> {tr('mk.pc.new')}
             </span>
           )}
         </div>
@@ -192,11 +194,11 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
         {/* Spec micro-row */}
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground/80 mt-1">
           <span className="inline-flex items-center gap-1">
-            <ShieldCheck size={11} className="text-primary/80" /> Garantia 24h
+            <ShieldCheck size={11} className="text-primary/80" /> {tr('mk.pc.warranty')}
           </span>
           <span className="inline-flex items-center gap-1">
             <span className={`h-1.5 w-1.5 rounded-full ${inStock ? "bg-primary shadow-[0_0_8px_hsl(var(--primary))]" : "bg-muted-foreground/40"}`} />
-            {inStock ? (lowStock ? `Últimas ${stock}` : `${stock} disponíveis`) : "Sob consulta"}
+            {inStock ? (lowStock ? tr('mk.pc.last', { n: stock }) : tr('mk.available', { n: stock })) : tr('mk.onRequest')}
           </span>
         </div>
 
@@ -212,7 +214,7 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
           )}
           <div className="flex items-end justify-between">
             <div className="flex flex-col leading-none">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">À vista no Pix</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">{tr('mk.pc.cash')}</span>
               <span className="text-2xl font-bold text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]">
                 {fmtBRL(finalPrice)}
               </span>
@@ -227,14 +229,14 @@ function ProductCard<T extends MarketplaceProduct>({ product: p, onBuy, onDetail
               disabled={!inStock}
             >
               <ShoppingCart size={14} className="mr-1.5" />
-              {inStock ? "Comprar" : "Indisponível"}
+              {inStock ? tr('mk.pc.buy') : tr('mk.co.unavailable')}
             </Button>
             <Button
               variant="outline"
               size="icon"
               onClick={() => onDetails(p)}
               className="border-border/60 hover:border-primary/40 hover:text-primary"
-              title="Detalhes"
+              title={tr('mk.pc.details')}
             >
               <Info size={14} />
             </Button>

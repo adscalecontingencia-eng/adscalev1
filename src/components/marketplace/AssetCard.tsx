@@ -1,3 +1,5 @@
+import { tr, trHtml } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, ShieldCheck, ChevronDown, ChevronUp } from "lucide-react";
@@ -32,7 +34,7 @@ export interface MarketplaceAsset {
 const fmt = (n: number, currency = "BRL") => {
   const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "R$";
   const v = Math.round(n || 0);
-  return `${symbol} ${v.toLocaleString("pt-BR")}`;
+  return `${symbol} ${v.toLocaleString(getNumberLocale())}`;
 };
 
 const WHATSAPP_URL = "https://wa.me/5531998416336?text=";
@@ -67,22 +69,22 @@ const AssetCard: React.FC<Props> = ({ asset }) => {
           <h3 className="font-display font-bold text-foreground text-lg leading-tight">{asset.name}</h3>
           <div className="flex flex-wrap items-center gap-1.5 mt-2">
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5">
-              {flag} Contas em {asset.currency}
+              {flag} {tr('mk.ac.accountsIn', { cur: asset.currency })}
             </span>
             {asset.verified && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5">
-                <ShieldCheck size={10} /> Verificada
+                <ShieldCheck size={10} /> {tr('mk.ac.verified')}
               </span>
             )}
             {asset.year && (
-              <span className="text-[11px] text-muted-foreground">Ano de Criação: {asset.year}</span>
+              <span className="text-[11px] text-muted-foreground">{tr('mk.ac.year', { year: asset.year })}</span>
             )}
           </div>
         </div>
 
         <div>
           <div className="flex items-baseline gap-2">
-            <span className="text-xs text-muted-foreground">Preço</span>
+            <span className="text-xs text-muted-foreground">{tr('mk.ac.price')}</span>
             <span className="font-display font-bold text-foreground text-xl">{fmt(asset.price, "BRL")}</span>
           </div>
         </div>
@@ -93,24 +95,24 @@ const AssetCard: React.FC<Props> = ({ asset }) => {
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm transition-colors"
         >
-          <ExternalLink size={14} /> Comprar via chat
+          <ExternalLink size={14} /> {tr('mk.ac.buyChat')}
         </a>
 
         <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/40 bg-background/40 p-3">
-          <KPI label="$ Gastos Totais" value={fmt(totals.gastosTotais, asset.currency)} tone="muted" />
-          <KPI label="◎ Maior Limite" value={fmt(totals.maiorLimite, asset.currency)} tone="blue" />
-          <KPI label="⇄ Ciclo Total" value={fmt(totals.cicloTotal, asset.currency)} tone="muted" />
+          <KPI label={tr('mk.ac.totalSpend')} value={fmt(totals.gastosTotais, asset.currency)} tone="muted" />
+          <KPI label={tr('mk.ac.maxLimit')} value={fmt(totals.maiorLimite, asset.currency)} tone="blue" />
+          <KPI label={tr('mk.ac.totalCycle')} value={fmt(totals.cicloTotal, asset.currency)} tone="muted" />
           {totals.dividaTotal > 0 ? (
-            <KPI label="🗎 Dívida Total" value={fmt(totals.dividaTotal, asset.currency)} tone="red" />
+            <KPI label={tr('mk.ac.totalDebt')} value={fmt(totals.dividaTotal, asset.currency)} tone="red" />
           ) : (
-            <KPI label="🗎 Saldo Total" value={fmt(totals.saldoTotal, asset.currency)} tone="green" />
+            <KPI label={tr('mk.ac.totalBalance')} value={fmt(totals.saldoTotal, asset.currency)} tone="green" />
           )}
         </div>
 
         {accounts.length > 0 && (
           <div className="rounded-xl border border-border/40 bg-background/40 overflow-hidden">
             <div className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold border-b border-border/40">
-              {accounts.length} contas de anúncio
+              {tr('mk.ac.nAccounts', { count: accounts.length })}
             </div>
             <div className={`${open ? "" : "max-h-[180px]"} overflow-hidden transition-all`}>
               {accounts.map((a) => (
@@ -124,19 +126,19 @@ const AssetCard: React.FC<Props> = ({ asset }) => {
                     </span>
                     {a.is_prepaid && (
                       <span className="text-[10px] font-semibold uppercase tracking-wider rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/30 px-2 py-0.5">
-                        Pré-Paga
+                        {tr('mk.ac.prepaid')}
                       </span>
                     )}
                   </div>
-                  <Row label="Gastos" value={fmt(a.gastos, asset.currency)} />
-                  <Row label="Limite Meta" value={fmt(a.limite_meta, asset.currency)} valueTone="blue" />
-                  <Row label="Ciclo" value={fmt(a.ciclo, asset.currency)} />
+                  <Row label={tr('mk.ac.spend')} value={fmt(a.gastos, asset.currency)} />
+                  <Row label={tr('mk.ac.metaLimit')} value={fmt(a.limite_meta, asset.currency)} valueTone="blue" />
+                  <Row label={tr('mk.ac.cycle')} value={fmt(a.ciclo, asset.currency)} />
                   {a.divida > 0 ? (
-                    <Row label="Dívida" value={fmt(a.divida, asset.currency)} valueTone="red" />
+                    <Row label={tr('mk.ac.debt')} value={fmt(a.divida, asset.currency)} valueTone="red" />
                   ) : a.saldo > 0 ? (
-                    <Row label="Saldo" value={fmt(a.saldo, asset.currency)} valueTone="green" />
+                    <Row label={tr('mk.ac.balance')} value={fmt(a.saldo, asset.currency)} valueTone="green" />
                   ) : (
-                    <Row label="Dívida" value={fmt(0, asset.currency)} />
+                    <Row label={tr('mk.ac.debt')} value={fmt(0, asset.currency)} />
                   )}
                 </div>
               ))}
@@ -146,7 +148,7 @@ const AssetCard: React.FC<Props> = ({ asset }) => {
                 onClick={() => setOpen(o => !o)}
                 className="w-full py-2 text-[11px] text-muted-foreground hover:text-primary flex items-center justify-center gap-1 border-t border-border/40"
               >
-                {open ? <>Recolher <ChevronUp size={12} /></> : <>Ver todas <ChevronDown size={12} /></>}
+                {open ? <>{tr('mk.ac.collapse')} <ChevronUp size={12} /></> : <>{tr('mk.ac.seeAll')} <ChevronDown size={12} /></>}
               </button>
             )}
           </div>
@@ -154,7 +156,7 @@ const AssetCard: React.FC<Props> = ({ asset }) => {
 
         {asset.notes && (
           <div className="rounded-xl border border-border/40 bg-background/40 p-3">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1">Observações</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1">{tr('mk.ac.notes')}</p>
             <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">{asset.notes}</p>
           </div>
         )}

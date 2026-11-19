@@ -1,3 +1,5 @@
+import { tr } from "@/i18n";
+import { getNumberLocale } from "@/i18n/format";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,10 +18,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 const fmtDate = (s: string | null | undefined) =>
-  s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+  s ? new Date(s).toLocaleDateString(getNumberLocale()) : "—";
 
 const NIVEIS = [
   { nivel: 1, min: 0, next: 1000 },
@@ -95,13 +97,13 @@ export default function MarketplaceProfile() {
   const initials = (user?.name || "U").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
   const handleSavePassword = async () => {
-    if (newPassword.length < 6) { toast.error("A senha deve ter ao menos 6 caracteres"); return; }
+    if (newPassword.length < 6) { toast.error(tr('mk.prof.pwMin')); return; }
     setSavingPwd(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSavingPwd(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Senha alterada com sucesso");
+      toast.success(tr('mk.prof.pwOk'));
       setPasswordOpen(false);
       setNewPassword("");
     }
@@ -110,7 +112,7 @@ export default function MarketplaceProfile() {
   const handleSaveName = async () => {
     const { error } = await supabase.auth.updateUser({ data: { name: editName } });
     if (error) toast.error(error.message);
-    else { toast.success("Perfil atualizado"); setEditOpen(false); }
+    else { toast.success(tr('mk.prof.updated')); setEditOpen(false); }
   };
 
   return (
@@ -123,7 +125,7 @@ export default function MarketplaceProfile() {
             <AdScaleLogo size={22} />
           </Link>
           <Button variant="ghost" size="sm" onClick={() => navigate("/marketplace")}>
-            <ArrowLeft size={14} className="mr-1.5" /> Voltar ao marketplace
+            <ArrowLeft size={14} className="mr-1.5" /> {tr('mk.back')}
           </Button>
           <div className="ml-auto"><LanguageSwitcher /></div>
         </div>
@@ -142,31 +144,31 @@ export default function MarketplaceProfile() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-3 mb-1">
-              <h1 className="font-display text-2xl font-bold text-foreground">{user?.name || "Usuário"}</h1>
-              <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/20">Nível {nivelInfo.nivel}</Badge>
+              <h1 className="font-display text-2xl font-bold text-foreground">{user?.name || tr('mk.user')}</h1>
+              <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/20">{tr('mk.prof.level', { n: nivelInfo.nivel })}</Badge>
             </div>
             <p className="text-muted-foreground text-sm">{user?.email}</p>
             <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><UserIcon size={13} /> ID: <span className="text-foreground/80 font-mono">usr_{userId.slice(0, 10)}</span></span>
-              <span className="inline-flex items-center gap-1.5"><Calendar size={13} /> Membro desde {fmtDate(createdAt)}</span>
+              <span className="inline-flex items-center gap-1.5"><Calendar size={13} /> {tr('mk.prof.since', { date: fmtDate(createdAt) })}</span>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-              <Settings size={14} className="mr-1.5" /> Editar Perfil
+              <Settings size={14} className="mr-1.5" /> {tr('mk.prof.edit')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setPasswordOpen(true)}>
-              <KeyRound size={14} className="mr-1.5" /> Alterar Senha
+              <KeyRound size={14} className="mr-1.5" /> {tr('mk.prof.changePw')}
             </Button>
           </div>
         </div>
 
         {/* 4 KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={ShoppingBag} label="Total Gasto" value={fmtBRL(totalGasto)} hint={`${fmtBRL(nivelInfo.restante)} para próximo nível`} tone="white" />
-          <KpiCard icon={Wallet} label="Saldo Atual" value={fmtBRL(balance)} hint="Disponível para compras" tone="green" />
-          <KpiCard icon={BadgeDollarSign} label="Total Depositado" value={fmtBRL(totalDepositado)} hint="Histórico de depósitos" tone="white" />
-          <KpiCard icon={Crown} label="Nível Atual" value={`Nível ${nivelInfo.nivel}`} hint="" tone="white" progress={nivelInfo.progress} />
+          <KpiCard icon={ShoppingBag} label={tr('mk.prof.totalSpent')} value={fmtBRL(totalGasto)} hint={tr('mk.prof.toNext', { amount: fmtBRL(nivelInfo.restante) })} tone="white" />
+          <KpiCard icon={Wallet} label={tr('mk.prof.balance')} value={fmtBRL(balance)} hint={tr('mk.prof.availBuy')} tone="green" />
+          <KpiCard icon={BadgeDollarSign} label={tr('mk.prof.deposited')} value={fmtBRL(totalDepositado)} hint={tr('mk.prof.depHist')} tone="white" />
+          <KpiCard icon={Crown} label={tr('mk.prof.curLevel')} value={tr('mk.prof.level', { n: nivelInfo.nivel })} hint="" tone="white" progress={nivelInfo.progress} />
         </div>
 
         {/* Histórico de depósitos */}
@@ -174,25 +176,25 @@ export default function MarketplaceProfile() {
           <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
             <div>
               <h2 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
-                <BadgeDollarSign size={18} /> Histórico de Depósitos
+                <BadgeDollarSign size={18} /> {tr('mk.prof.depHistTitle')}
               </h2>
-              <p className="text-xs text-muted-foreground">Visualize todos os seus depósitos realizados na plataforma</p>
+              <p className="text-xs text-muted-foreground">{tr('mk.prof.depHistDesc')}</p>
             </div>
             <Button size="sm" onClick={() => setWalletOpen(true)}>
-              <Plus size={14} className="mr-1.5" /> Adicionar saldo
+              <Plus size={14} className="mr-1.5" /> {tr('mk.addBalance')}
             </Button>
           </div>
 
           {loading ? (
-            <div className="py-16 text-center text-muted-foreground text-sm">Carregando…</div>
+            <div className="py-16 text-center text-muted-foreground text-sm">{tr('mk.loading')}</div>
           ) : deposits.length === 0 ? (
             <div className="py-16 text-center">
               <div className="mx-auto w-14 h-14 rounded-2xl bg-secondary/40 border border-border flex items-center justify-center mb-3">
                 <Receipt size={22} className="text-muted-foreground" />
               </div>
-              <p className="font-display font-semibold text-foreground">Nenhum depósito encontrado</p>
+              <p className="font-display font-semibold text-foreground">{tr('mk.prof.noDep')}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Você ainda não realizou nenhum depósito. Faça seu primeiro depósito para começar a comprar!
+                {tr('mk.prof.noDepDesc')}
               </p>
             </div>
           ) : (
@@ -205,7 +207,7 @@ export default function MarketplaceProfile() {
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">{fmtBRL(d.amount)}</p>
-                      <p className="text-[11px] text-muted-foreground">{new Date(d.created_at).toLocaleString("pt-BR")}</p>
+                      <p className="text-[11px] text-muted-foreground">{new Date(d.created_at).toLocaleString(getNumberLocale())}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className={
@@ -213,7 +215,7 @@ export default function MarketplaceProfile() {
                     d.status === "pending" ? "border-amber-500/30 text-amber-400 bg-amber-500/10" :
                     "border-red-500/30 text-red-400 bg-red-500/10"
                   }>
-                    {d.status === "approved" ? "Aprovado" : d.status === "pending" ? "Pendente" : d.status}
+                    {tr(`mk.status.${d.status}`, { defaultValue: d.status })}
                   </Badge>
                 </div>
               ))}
@@ -227,20 +229,20 @@ export default function MarketplaceProfile() {
       {/* Edit modal */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Editar Perfil</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr('mk.prof.edit')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>Nome</Label>
+              <Label>{tr('mk.name')}</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} />
             </div>
             <div>
-              <Label>Email</Label>
+              <Label>{tr('mk.email')}</Label>
               <Input value={user?.email || ""} disabled />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveName}>Salvar</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>{tr('mk.cancel')}</Button>
+            <Button onClick={handleSaveName}>{tr('mk.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -248,16 +250,16 @@ export default function MarketplaceProfile() {
       {/* Password modal */}
       <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Alterar Senha</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr('mk.prof.changePw')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>Nova senha</Label>
+              <Label>{tr('mk.prof.newPw')}</Label>
               <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSavePassword} disabled={savingPwd}>{savingPwd ? "Salvando..." : "Salvar"}</Button>
+            <Button variant="outline" onClick={() => setPasswordOpen(false)}>{tr('mk.cancel')}</Button>
+            <Button onClick={handleSavePassword} disabled={savingPwd}>{savingPwd ? tr('mk.saving') : tr('mk.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
