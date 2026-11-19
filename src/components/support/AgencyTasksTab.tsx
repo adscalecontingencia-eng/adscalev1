@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isBefore, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,17 +26,22 @@ const CATEGORIES = [
   'Jurídico', 'Marketing', 'Administrativo', 'Outros',
 ] as const;
 
+const CAT_LABEL: Record<string, string> = localizedMap('sup.agency.cat', {
+  Financeiro: 'Financeiro', 'Infra/Proxy': 'Infra/Proxy', Multilogin: 'Multilogin', Fornecedores: 'Fornecedores',
+  Jurídico: 'Jurídico', Marketing: 'Marketing', Administrativo: 'Administrativo', Outros: 'Outros',
+});
+
 const PRIORITIES = [
-  { v: 'baixa', label: 'Baixa', cls: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/40' },
-  { v: 'media', label: 'Média', cls: 'bg-sky-500/15 text-sky-300 border-sky-500/40' },
-  { v: 'alta', label: 'Alta', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
-  { v: 'urgente', label: 'Urgente', cls: 'bg-destructive/15 text-destructive border-destructive/40 animate-pulse' },
+  { v: 'baixa', get label() { return tr('sup.agency.prio.baixa'); }, cls: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/40' },
+  { v: 'media', get label() { return tr('sup.agency.prio.media'); }, cls: 'bg-sky-500/15 text-sky-300 border-sky-500/40' },
+  { v: 'alta', get label() { return tr('sup.agency.prio.alta'); }, cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
+  { v: 'urgente', get label() { return tr('sup.agency.prio.urgente'); }, cls: 'bg-destructive/15 text-destructive border-destructive/40 animate-pulse' },
 ];
 
 const STATUS_COLS = [
-  { key: 'pendente', label: 'Pendente', cls: 'border-amber-500/40 bg-amber-500/5', badge: 'bg-amber-500/20 text-amber-300', icon: AlertTriangle },
-  { key: 'em_andamento', label: 'Em andamento', cls: 'border-blue-500/40 bg-blue-500/5', badge: 'bg-blue-500/20 text-blue-300', icon: Clock },
-  { key: 'concluida', label: 'Concluída', cls: 'border-primary/40 bg-primary/5', badge: 'bg-primary/20 text-primary', icon: CheckCircle2 },
+  { key: 'pendente', get label() { return tr('sup.page.st.pendente'); }, cls: 'border-amber-500/40 bg-amber-500/5', badge: 'bg-amber-500/20 text-amber-300', icon: AlertTriangle },
+  { key: 'em_andamento', get label() { return tr('sup.page.st.em_andamento'); }, cls: 'border-blue-500/40 bg-blue-500/5', badge: 'bg-blue-500/20 text-blue-300', icon: Clock },
+  { key: 'concluida', get label() { return tr('sup.page.st.concluida'); }, cls: 'border-primary/40 bg-primary/5', badge: 'bg-primary/20 text-primary', icon: CheckCircle2 },
 ];
 
 const inputCls = "w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary";
@@ -98,7 +105,7 @@ const AgencyTasksTab: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!form.title?.trim()) { toast.error('Título é obrigatório'); return; }
+    if (!form.title?.trim()) { toast.error(tr('sup.agency.titleReq')); return; }
     const { data: { user } } = await supabase.auth.getUser();
     const payload: any = {
       title: form.title.trim(),
@@ -114,14 +121,14 @@ const AgencyTasksTab: React.FC = () => {
     };
     if (editing) {
       const { error } = await supabase.from('internal_tasks').update(payload).eq('id', editing.id);
-      if (error) { toast.error('Erro ao atualizar'); return; }
+      if (error) { toast.error(tr('sup.agency.updateError')); return; }
       logAudit({ action: 'agency_task_updated', entity: 'internal_task', entity_id: editing.id, after: payload });
-      toast.success('Atualizado');
+      toast.success(tr('sup.agency.updated'));
     } else {
       const { data, error } = await supabase.from('internal_tasks').insert({ ...payload, created_by: user?.id }).select().single();
-      if (error) { toast.error('Erro ao criar'); return; }
+      if (error) { toast.error(tr('sup.agency.createError')); return; }
       logAudit({ action: 'agency_task_created', entity: 'internal_task', entity_id: data?.id, after: payload });
-      toast.success('Criado');
+      toast.success(tr('sup.agency.created'));
     }
     setShowForm(false);
   };
@@ -130,7 +137,7 @@ const AgencyTasksTab: React.FC = () => {
     await supabase.from('internal_tasks').update({ status }).eq('id', id);
   };
   const deleteTask = async (id: string) => {
-    if (!confirm('Excluir esta pendência?')) return;
+    if (!confirm(tr('sup.agency.confirmDel'))) return;
     await supabase.from('internal_tasks').delete().eq('id', id);
   };
 
@@ -138,29 +145,29 @@ const AgencyTasksTab: React.FC = () => {
     <div className="space-y-5">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KPI label="Abertas" value={kpis.abertas} cls="text-amber-400" />
-        <KPI label="Urgentes" value={kpis.urgentes} cls="text-destructive" />
-        <KPI label="Vencidas" value={kpis.vencidas} cls="text-red-400" />
-        <KPI label="Concluídas no mês" value={kpis.concluidasMes} cls="text-primary" />
+        <KPI label={tr('sup.agency.open')} value={kpis.abertas} cls="text-amber-400" />
+        <KPI label={tr('sup.agency.urgent')} value={kpis.urgentes} cls="text-destructive" />
+        <KPI label={tr('sup.agency.overdue')} value={kpis.vencidas} cls="text-red-400" />
+        <KPI label={tr('sup.agency.doneMonth')} value={kpis.concluidasMes} cls="text-primary" />
       </div>
 
       {/* Filtros + Criar */}
       <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-2">
         <Filter size={14} className="text-muted-foreground" />
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className={cn(inputCls, "w-auto")}>
-          <option value="">Todas categorias</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value="">{tr('sup.agency.allCats')}</option>
+          {CATEGORIES.map(c => <option key={c} value={c}>{CAT_LABEL[c] ?? c}</option>)}
         </select>
         <select value={filterPrio} onChange={e => setFilterPrio(e.target.value)} className={cn(inputCls, "w-auto")}>
-          <option value="">Toda prioridade</option>
+          <option value="">{tr('sup.agency.allPrio')}</option>
           {PRIORITIES.map(p => <option key={p.v} value={p.v}>{p.label}</option>)}
         </select>
         <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className={cn(inputCls, "w-auto")}>
-          <option value="">Todos responsáveis</option>
+          <option value="">{tr('sup.agency.allOwners')}</option>
           {supportUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
         <button onClick={openCreate} className="ml-auto bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-2 hover:opacity-90">
-          <Plus size={14} /> Nova pendência
+          <Plus size={14} /> {tr('sup.agency.new')}
         </button>
       </div>
 
@@ -176,7 +183,7 @@ const AgencyTasksTab: React.FC = () => {
                 <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", col.badge)}>{items.length}</span>
               </div>
               {items.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground/60 text-center py-4">Nenhuma</p>
+                <p className="text-[11px] text-muted-foreground/60 text-center py-4">{tr('sup.agency.none')}</p>
               ) : (
                 <div className="space-y-2">
                   {items.map(t => {
@@ -188,11 +195,11 @@ const AgencyTasksTab: React.FC = () => {
                           <div className="flex-1 min-w-0">
                             <button onClick={() => openEdit(t)} className="text-sm font-semibold text-left hover:text-primary">{t.title}</button>
                             <div className="flex flex-wrap gap-1.5 mt-1">
-                              <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{t.category}</span>
+                              <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{CAT_LABEL[t.category] ?? t.category}</span>
                               <span className={cn("text-[10px] px-1.5 py-0.5 rounded border", prio.cls)}>{prio.label}</span>
                               {t.due_date && (
                                 <span className={cn("text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-1", overdue ? "bg-red-500/15 text-red-300 border border-red-500/40" : "bg-secondary text-muted-foreground")}>
-                                  <Calendar size={9} />{format(parseISO(t.due_date), 'dd/MM', { locale: ptBR })}
+                                  <Calendar size={9} />{format(parseISO(t.due_date), 'dd/MM', { locale: getDateLocale() })}
                                 </span>
                               )}
                               {t.assigned_to && (
@@ -210,10 +217,10 @@ const AgencyTasksTab: React.FC = () => {
                           onChange={e => updateStatus(t.id, e.target.value)}
                           className="mt-2 w-full bg-secondary border border-border rounded px-2 py-1 text-xs"
                         >
-                          <option value="pendente">Pendente</option>
-                          <option value="em_andamento">Em andamento</option>
-                          <option value="concluida">Concluída</option>
-                          <option value="cancelada">Cancelada</option>
+                          <option value="pendente">{tr('sup.page.st.pendente')}</option>
+                          <option value="em_andamento">{tr('sup.page.st.em_andamento')}</option>
+                          <option value="concluida">{tr('sup.page.st.concluida')}</option>
+                          <option value="cancelada">{tr('sup.page.st.cancelada')}</option>
                         </select>
                       </div>
                     );
@@ -228,7 +235,7 @@ const AgencyTasksTab: React.FC = () => {
       {filtered.length === 0 && tasks.length === 0 && (
         <div className="text-center py-12 text-muted-foreground text-sm">
           <Briefcase size={40} className="mx-auto mb-3 opacity-40" />
-          Nenhuma pendência da agência ainda. Clique em "Nova pendência" para criar.
+          {tr('sup.agency.empty')}
         </div>
       )}
 
@@ -237,27 +244,27 @@ const AgencyTasksTab: React.FC = () => {
         <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">{editing ? 'Editar pendência' : 'Nova pendência da agência'}</h3>
+              <h3 className="font-display text-sm font-semibold">{editing ? tr('sup.agency.edit') : tr('sup.agency.newAgency')}</h3>
               <button onClick={() => setShowForm(false)}><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Título *</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.title')}</label>
                 <input value={form.title || ''} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Descrição</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.desc')}</label>
                 <textarea value={form.description || ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={cn(inputCls, "h-20 resize-none")} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.category')}</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputCls}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map(c => <option key={c} value={c}>{CAT_LABEL[c] ?? c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Prioridade</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.priority')}</label>
                   <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className={inputCls}>
                     {PRIORITIES.map(p => <option key={p.v} value={p.v}>{p.label}</option>)}
                   </select>
@@ -265,30 +272,30 @@ const AgencyTasksTab: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Prazo</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.due')}</label>
                   <input type="date" value={form.due_date || ''} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Responsável</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.owner')}</label>
                   <select value={form.assigned_to || ''} onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))} className={inputCls}>
-                    <option value="">Sem atribuição</option>
+                    <option value="">{tr('sup.agency.unassigned')}</option>
                     {supportUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
               </div>
               {editing && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Status</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.agency.status')}</label>
                   <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className={inputCls}>
-                    <option value="pendente">Pendente</option>
-                    <option value="em_andamento">Em andamento</option>
-                    <option value="concluida">Concluída</option>
-                    <option value="cancelada">Cancelada</option>
+                    <option value="pendente">{tr('sup.page.st.pendente')}</option>
+                    <option value="em_andamento">{tr('sup.page.st.em_andamento')}</option>
+                    <option value="concluida">{tr('sup.page.st.concluida')}</option>
+                    <option value="cancelada">{tr('sup.page.st.cancelada')}</option>
                   </select>
                 </div>
               )}
               <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90">
-                {editing ? 'Salvar alterações' : 'Criar pendência'}
+                {editing ? tr('sup.agency.saveChanges') : tr('sup.agency.createBtn')}
               </button>
             </div>
           </div>

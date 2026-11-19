@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,10 +15,10 @@ interface Profile { id: string; bm_id: string; profile_name: string; profile_rol
 interface Activity { id: string; bm_id: string | null; activity_date: string; availability: string; accounts_available: number | null; activity_notes: string; created_at: string }
 
 const AVAIL_OPTS = [
-  { v: 'disponivel', label: 'Disponível', cls: 'bg-primary/15 text-primary border-primary/40' },
-  { v: 'parcial', label: 'Parcial', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
-  { v: 'indisponivel', label: 'Indisponível', cls: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/40' },
-  { v: 'bloqueada', label: 'Bloqueada', cls: 'bg-destructive/15 text-destructive border-destructive/40' },
+  { v: 'disponivel', get label() { return tr('sup.bma.av.disponivel'); }, cls: 'bg-primary/15 text-primary border-primary/40' },
+  { v: 'parcial', get label() { return tr('sup.bma.av.parcial'); }, cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
+  { v: 'indisponivel', get label() { return tr('sup.bma.av.indisponivel'); }, cls: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/40' },
+  { v: 'bloqueada', get label() { return tr('sup.bma.av.bloqueada'); }, cls: 'bg-destructive/15 text-destructive border-destructive/40' },
 ];
 
 // Cor estável por nome de perfil (hash simples)
@@ -47,11 +49,11 @@ const BMActivityTab: React.FC = () => {
       if (error || data?.erro) throw new Error(error?.message || data?.erro);
       const users = (data?.usuarios || []) as any[];
       setMetaUsers(p => ({ ...p, [bm.id]: users }));
-      if (users.length === 0) toast.info('Nenhum usuário retornado pela Meta para essa BM');
-      else toast.success(`${users.length} usuário(s) carregado(s) da Meta`);
+      if (users.length === 0) toast.info(tr('sup.bma.noUsers'));
+      else toast.success(tr('sup.bma.usersLoaded', { n: users.length }));
       if (data?.erros?.length) console.warn('Meta errors:', data.erros);
     } catch (e: any) {
-      toast.error('Erro Meta: ' + e.message);
+      toast.error(tr('sup.bma.metaErr') + ' ' + e.message);
     } finally {
       setLoadingMeta(p => ({ ...p, [bm.id]: false }));
     }
@@ -60,8 +62,8 @@ const BMActivityTab: React.FC = () => {
   const addProfileFromMeta = async (bmId: string, name: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('bm_profiles').insert({ bm_id: bmId, profile_name: name, created_by: user?.id });
-    if (error) { toast.error('Erro: ' + error.message); return; }
-    toast.success(`Perfil "${name}" vinculado`);
+    if (error) { toast.error(tr('sup.bma.err') + ' ' + error.message); return; }
+    toast.success(tr('sup.bma.linked', { name }));
     load();
   };
 
@@ -109,22 +111,22 @@ const BMActivityTab: React.FC = () => {
     if (!name) return;
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('bm_profiles').insert({ bm_id: bmId, profile_name: name, created_by: user?.id });
-    if (error) { toast.error('Erro: ' + error.message); return; }
+    if (error) { toast.error(tr('sup.bma.err') + ' ' + error.message); return; }
     setNewProfileName('');
     setShowProfileDialog(null);
-    toast.success('Perfil adicionado');
+    toast.success(tr('sup.bma.added'));
     load();
   };
 
   const removeProfile = async (id: string) => {
-    if (!confirm('Remover este perfil da BM?')) return;
+    if (!confirm(tr('sup.bma.confirmRemove'))) return;
     await supabase.from('bm_profiles').delete().eq('id', id);
     load();
   };
 
   const submitLog = async (bmId: string) => {
     const f = logForm[bmId];
-    if (!f?.notes?.trim()) { toast.error('Descreva a atividade'); return; }
+    if (!f?.notes?.trim()) { toast.error(tr('sup.bma.describe')); return; }
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('bm_activity_log').insert({
       bm_id: bmId,
@@ -133,9 +135,9 @@ const BMActivityTab: React.FC = () => {
       activity_notes: f.notes.trim(),
       created_by: user?.id,
     });
-    if (error) { toast.error('Erro: ' + error.message); return; }
+    if (error) { toast.error(tr('sup.bma.err') + ' ' + error.message); return; }
     setLogForm(prev => ({ ...prev, [bmId]: { availability: 'disponivel', accounts: 0, notes: '' } }));
-    toast.success('Atividade registrada');
+    toast.success(tr('sup.bma.logged'));
     load();
   };
 
@@ -151,12 +153,12 @@ const BMActivityTab: React.FC = () => {
     <div className="space-y-5">
       {/* Resumo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KPI icon={Building2} label="BMs cadastradas" value={bms.length} color="text-primary" />
-        <KPI icon={Users} label="Perfis distintos" value={profileGroups.length} color="text-sky-400" />
-        <KPI icon={Sparkles} label="Disponíveis hoje" value={
+        <KPI icon={Building2} label={tr('sup.bma.bms')} value={bms.length} color="text-primary" />
+        <KPI icon={Users} label={tr('sup.bma.profiles')} value={profileGroups.length} color="text-sky-400" />
+        <KPI icon={Sparkles} label={tr('sup.bma.availToday')} value={
           new Set(activities.filter(a => a.activity_date === todayStr && a.availability === 'disponivel').map(a => a.bm_id)).size
         } color="text-emerald-400" />
-        <KPI icon={CalendarIcon} label="Registros hoje" value={todayCount} color="text-amber-400" />
+        <KPI icon={CalendarIcon} label={tr('sup.bma.logsToday')} value={todayCount} color="text-amber-400" />
       </div>
 
       <BMNotesPanel />
@@ -168,18 +170,18 @@ const BMActivityTab: React.FC = () => {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar BM por nome ou ID..."
+            placeholder={tr('sup.bma.search')}
             className="flex-1 min-w-[200px] bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
           {filterProfile && (
             <button onClick={() => setFilterProfile('')} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-              <X size={12} /> Limpar filtro
+              <X size={12} /> {tr('sup.bma.clearFilter')}
             </button>
           )}
         </div>
         {profileGroups.length > 0 && (
           <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Perfis vinculados (clique para filtrar)</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{tr('sup.bma.linkedProfilesClick')}</div>
             <div className="flex flex-wrap gap-1.5">
               {profileGroups.map(p => {
                 const c = profileColor(p.name);
@@ -208,7 +210,7 @@ const BMActivityTab: React.FC = () => {
       {/* Lista de BMs */}
       <div className="space-y-2">
         {filteredBms.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm py-8">Nenhuma BM encontrada.</p>
+          <p className="text-center text-muted-foreground text-sm py-8">{tr('sup.bma.noBm')}</p>
         )}
         {filteredBms.map(bm => {
           const bmProfiles = profilesByBm(bm.id);
@@ -246,10 +248,10 @@ const BMActivityTab: React.FC = () => {
                 {lastOpt && (
                   <span className={cn("text-[10px] px-2 py-0.5 rounded-full border", lastOpt.cls)}>
                     {lastOpt.label}
-                    {last?.activity_date && <span className="opacity-70 ml-1">· {format(parseDateLocal(last.activity_date), 'dd/MM', { locale: ptBR })}</span>}
+                    {last?.activity_date && <span className="opacity-70 ml-1">· {format(parseDateLocal(last.activity_date), 'dd/MM', { locale: getDateLocale() })}</span>}
                   </span>
                 )}
-                {!last && <span className="text-[10px] text-muted-foreground/60">Sem registro</span>}
+                {!last && <span className="text-[10px] text-muted-foreground/60">{tr('sup.bma.noLog')}</span>}
               </div>
 
               {isOpen && (
@@ -257,25 +259,25 @@ const BMActivityTab: React.FC = () => {
                   {/* Perfis */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perfis vinculados</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr('sup.bma.linkedProfiles')}</h4>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => fetchMetaUsers(bm)}
                           disabled={loadingMeta[bm.id]}
                           className="text-xs text-sky-400 hover:underline flex items-center gap-1 disabled:opacity-50"
-                          title="Buscar usuários desta BM na Meta"
+                          title={tr('sup.bma.searchMetaTitle')}
                         >
                           <RefreshCw size={12} className={loadingMeta[bm.id] ? 'animate-spin' : ''} />
-                          {loadingMeta[bm.id] ? 'Buscando...' : 'Buscar perfis da Meta'}
+                          {loadingMeta[bm.id] ? tr('sup.bma.searching') : tr('sup.bma.searchMeta')}
                         </button>
                         <button onClick={() => { setShowProfileDialog(bm.id); setNewProfileName(''); }}
                           className="text-xs text-primary hover:underline flex items-center gap-1">
-                          <Plus size={12} /> Adicionar manualmente
+                          <Plus size={12} /> {tr('sup.bma.addManual')}
                         </button>
                       </div>
                     </div>
                     {bmProfiles.length === 0 ? (
-                      <p className="text-xs text-muted-foreground/70">Nenhum perfil cadastrado nesta BM.</p>
+                      <p className="text-xs text-muted-foreground/70">{tr('sup.bma.noProfiles')}</p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {bmProfiles.map(p => {
@@ -297,7 +299,7 @@ const BMActivityTab: React.FC = () => {
                     {metaUsers[bm.id] && metaUsers[bm.id].length > 0 && (
                       <div className="mt-3 p-2 rounded-lg border border-sky-500/30 bg-sky-500/5">
                         <div className="text-[10px] uppercase tracking-wider text-sky-400 mb-1.5 flex items-center gap-1">
-                          <Sparkles size={10} /> Usuários encontrados na Meta ({metaUsers[bm.id].length})
+                          <Sparkles size={10} /> {tr('sup.bma.found', { n: metaUsers[bm.id].length })}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {metaUsers[bm.id].map(u => {
@@ -313,7 +315,7 @@ const BMActivityTab: React.FC = () => {
                                     ? "opacity-50 cursor-not-allowed bg-secondary border-border"
                                     : "bg-secondary border-border hover:border-sky-400 hover:bg-sky-500/10"
                                 )}
-                                title={already ? 'Já vinculado' : `Adicionar ${u.name}${u.role ? ' · ' + u.role : ''}`}
+                                title={already ? tr('sup.bma.already') : tr('sup.bma.addUser', { name: u.name + (u.role ? ' · ' + u.role : '') })}
                               >
                                 {already ? <Users size={11} /> : <Download size={11} />}
                                 <span>{u.name || u.id}</span>
@@ -333,10 +335,10 @@ const BMActivityTab: React.FC = () => {
                           value={newProfileName}
                           onChange={e => setNewProfileName(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && addProfile(bm.id)}
-                          placeholder="Nome do usuário Meta (ex: João Silva)"
+                          placeholder={tr('sup.bma.namePh')}
                           className="flex-1 bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
                         />
-                        <button onClick={() => addProfile(bm.id)} className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold">Salvar</button>
+                        <button onClick={() => addProfile(bm.id)} className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold">{tr('sup.bma.save')}</button>
                         <button onClick={() => setShowProfileDialog(null)} className="text-muted-foreground px-2"><X size={14} /></button>
                       </div>
                     )}
@@ -344,12 +346,12 @@ const BMActivityTab: React.FC = () => {
 
                   {/* Registro diário */}
                   <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Registrar atividade de hoje</h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{tr('sup.bma.logToday')}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_auto] gap-2">
                       <input
                         value={f.notes}
                         onChange={e => setLogForm(p => ({ ...p, [bm.id]: { ...f, notes: e.target.value } }))}
-                        placeholder="O que foi feito / status atual..."
+                        placeholder={tr('sup.bma.whatPh')}
                         className="bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                       />
                       <select
@@ -363,12 +365,12 @@ const BMActivityTab: React.FC = () => {
                         type="number" min={0}
                         value={f.accounts}
                         onChange={e => setLogForm(p => ({ ...p, [bm.id]: { ...f, accounts: Number(e.target.value) } }))}
-                        placeholder="Contas disp."
+                        placeholder={tr('sup.bma.accPh')}
                         className="bg-secondary border border-border rounded-lg px-2 py-2 text-sm"
                       />
                       <button onClick={() => submitLog(bm.id)}
                         className="bg-primary text-primary-foreground px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                        <Save size={12} /> Registrar
+                        <Save size={12} /> {tr('sup.bma.log')}
                       </button>
                     </div>
                   </div>
@@ -376,7 +378,7 @@ const BMActivityTab: React.FC = () => {
                   {/* Histórico */}
                   {acts.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Histórico ({acts.length})</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{tr('sup.bma.history', { n: acts.length })}</h4>
                       <div className="space-y-1 max-h-56 overflow-auto pr-1">
                         {acts.map(a => {
                           const opt = AVAIL_OPTS.find(o => o.v === a.availability);
@@ -386,8 +388,8 @@ const BMActivityTab: React.FC = () => {
                               <div className="flex-1 min-w-0">
                                 <p className="text-foreground/90 whitespace-pre-wrap">{a.activity_notes}</p>
                                 <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                                  {format(parseDateLocal(a.activity_date), "dd 'de' MMM", { locale: ptBR })}
-                                  {a.accounts_available ? ` · ${a.accounts_available} contas` : ''}
+                                  {format(parseDateLocal(a.activity_date), "d MMM", { locale: getDateLocale() })}
+                                  {a.accounts_available ? ` ${tr('sup.bma.accounts', { n: a.accounts_available })}` : ''}
                                 </p>
                               </div>
                               <button onClick={() => deleteActivity(a.id)} className="text-muted-foreground hover:text-destructive">

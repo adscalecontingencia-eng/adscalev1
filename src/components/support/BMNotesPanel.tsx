@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { supabase } from '@/integrations/supabase/client';
 import { StickyNote, Send, Trash2, Building2, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -32,7 +34,7 @@ const BMNotesPanel: React.FC = () => {
 
   const submit = async () => {
     const txt = content.trim();
-    if (!txt) { toast.error('Escreva a anotação'); return; }
+    if (!txt) { toast.error(tr('sup.notes.write')); return; }
     const { error } = await supabase.from('bm_notes').insert({
       content: txt,
       bm_id: bmId || null,
@@ -41,12 +43,12 @@ const BMNotesPanel: React.FC = () => {
     });
     if (error) { toast.error(error.message); return; }
     setContent(''); setBmId('');
-    toast.success('Anotação salva');
+    toast.success(tr('sup.notes.saved'));
     load();
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Remover esta anotação?')) return;
+    if (!confirm(tr('sup.notes.confirmRemove'))) return;
     const { error } = await supabase.from('bm_notes').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     load();
@@ -68,8 +70,8 @@ const BMNotesPanel: React.FC = () => {
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
         <StickyNote size={16} className="text-amber-400" />
-        <h3 className="text-sm font-semibold">Anotações gerais</h3>
-        <span className="text-[10px] text-muted-foreground">{notes.length} no total</span>
+        <h3 className="text-sm font-semibold">{tr('sup.notes.title')}</h3>
+        <span className="text-[10px] text-muted-foreground">{tr('sup.notes.total', { n: notes.length })}</span>
       </div>
 
       {/* Editor */}
@@ -78,7 +80,7 @@ const BMNotesPanel: React.FC = () => {
           value={content}
           onChange={e => setContent(e.target.value)}
           rows={2}
-          placeholder="Escreva uma anotação para o relatório (pode marcar uma BM específica)..."
+          placeholder={tr('sup.notes.ph')}
           className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary resize-y"
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -89,7 +91,7 @@ const BMNotesPanel: React.FC = () => {
               onChange={e => setBmId(e.target.value)}
               className="w-full pl-7 bg-secondary border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
             >
-              <option value="">Sem BM (geral)</option>
+              <option value="">{tr('sup.notes.noBm')}</option>
               {bms.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
@@ -97,7 +99,7 @@ const BMNotesPanel: React.FC = () => {
             onClick={submit}
             className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 hover:opacity-90"
           >
-            <Send size={12} /> Salvar anotação
+            <Send size={12} /> {tr('sup.notes.save')}
           </button>
         </div>
       </div>
@@ -109,7 +111,7 @@ const BMNotesPanel: React.FC = () => {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar nas anotações..."
+            placeholder={tr('sup.notes.search')}
             className="w-full pl-7 bg-secondary border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
           />
         </div>
@@ -118,12 +120,12 @@ const BMNotesPanel: React.FC = () => {
           onChange={e => setFilterBm(e.target.value)}
           className="bg-secondary border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
         >
-          <option value="">Todas BMs</option>
+          <option value="">{tr('sup.notes.allBms')}</option>
           {bms.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         {(search || filterBm) && (
           <button onClick={() => { setSearch(''); setFilterBm(''); }} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-            <X size={12} /> Limpar
+            <X size={12} /> {tr('sup.notes.clear')}
           </button>
         )}
       </div>
@@ -131,7 +133,7 @@ const BMNotesPanel: React.FC = () => {
       {/* Lista */}
       <div className="space-y-1.5 max-h-96 overflow-auto pr-1">
         {filtered.length === 0 && (
-          <p className="text-xs text-muted-foreground/70 text-center py-6">Nenhuma anotação ainda.</p>
+          <p className="text-xs text-muted-foreground/70 text-center py-6">{tr('sup.notes.none')}</p>
         )}
         {filtered.map(n => {
           const bm = n.bm_id ? bmById[n.bm_id] : null;
@@ -149,10 +151,10 @@ const BMNotesPanel: React.FC = () => {
                     <Building2 size={9} /> {bm.name}
                   </span>
                 ) : (
-                  <span className="bg-secondary border border-border px-1.5 py-0.5 rounded">Geral</span>
+                  <span className="bg-secondary border border-border px-1.5 py-0.5 rounded">{tr('sup.notes.general')}</span>
                 )}
                 <span>·</span>
-                <span>{format(new Date(n.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                <span>{format(new Date(n.created_at), "P p", { locale: getDateLocale() })}</span>
                 {n.author_name && <><span>·</span><span>{n.author_name}</span></>}
               </div>
             </div>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
 import { Plus, X, CheckCircle2, Clock, AlertTriangle, LifeBuoy, CreditCard, ImageIcon, ListTodo, Building2, Briefcase, LayoutGrid } from 'lucide-react';
@@ -25,6 +27,11 @@ interface Task {
   status: string;
   created_at: string;
 }
+
+const STRUCT_LABEL: Record<string, string> = localizedMap('sup.page.struct', {
+  Perfil: 'Perfil', 'BM Comum': 'BM Comum', 'BM Verificada': 'BM Verificada', 'BM API': 'BM API',
+  'BM Disparo': 'BM Disparo', Pagina: 'Página', Outro: 'Outro',
+});
 
 const Support: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -119,7 +126,7 @@ const Support: React.FC = () => {
       created_by: user?.id ?? null,
     };
     const { data, error } = await supabase.from('internal_tasks').insert(payload).select().single();
-    if (error) { toast.error('Erro ao criar tarefa'); return; }
+    if (error) { toast.error(tr('sup.page.createError')); return; }
     setForm({ category: 'manutencao', structure_type: 'BM Comum', status: 'pendente' });
     setShowForm(false);
     logAudit({ action: 'internal_task_created', entity: 'internal_task', entity_id: data?.id, after: payload });
@@ -148,12 +155,12 @@ const Support: React.FC = () => {
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Suporte"
-        title={<>Operação & <span className="text-primary glow-text">tarefas</span></>}
-        description="Tarefas internas, solicitações de clientes, e registro diário de BMs e atividades do time."
+        eyebrow={tr('sup.page.eyebrow')}
+        title={<>{tr('sup.page.titleA')} <span className="text-primary glow-text">{tr('sup.page.titleB')}</span></>}
+        description={tr('sup.page.desc')}
         actions={
           <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
-            <Plus size={16} /> Nova Tarefa
+            <Plus size={16} /> {tr('sup.page.newTask')}
           </button>
         }
       />
@@ -161,16 +168,16 @@ const Support: React.FC = () => {
       <Tabs defaultValue="tarefas" className="space-y-5">
         <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto sm:inline-grid h-auto p-1 bg-secondary/60 border border-border">
           <TabsTrigger value="tarefas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
-            <ListTodo size={14} /> Tarefas & Solicitações
+            <ListTodo size={14} /> {tr('sup.page.tabTasks')}
           </TabsTrigger>
           <TabsTrigger value="agencia" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
-            <Briefcase size={14} /> Agência
+            <Briefcase size={14} /> {tr('sup.page.tabAgency')}
           </TabsTrigger>
           <TabsTrigger value="painel-bms" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
-            <LayoutGrid size={14} /> Painel BMs
+            <LayoutGrid size={14} /> {tr('sup.page.tabBm')}
           </TabsTrigger>
           <TabsTrigger value="bms" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 px-4 gap-2 text-xs sm:text-sm">
-            <Building2 size={14} /> Atividades & BMs
+            <Building2 size={14} /> {tr('sup.page.tabActivity')}
           </TabsTrigger>
         </TabsList>
 
@@ -185,9 +192,9 @@ const Support: React.FC = () => {
         const count = (s: string) => allItems.filter(i => i.status === s).length;
         return (
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="bg-muted/60 backdrop-blur border border-border/60 text-muted-foreground px-3 py-1.5 rounded-full">Pendentes · {count('pendente')}</span>
-            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full">Em andamento · {count('em_andamento')}</span>
-            <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">Concluídas · {count('concluida')}</span>
+            <span className="bg-muted/60 backdrop-blur border border-border/60 text-muted-foreground px-3 py-1.5 rounded-full">{tr('sup.page.pendingN')} · {count('pendente')}</span>
+            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full">{tr('sup.page.st.em_andamento')} · {count('em_andamento')}</span>
+            <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full">{tr('sup.page.doneN')} · {count('concluida')}</span>
           </div>
         );
       })()}
@@ -197,14 +204,14 @@ const Support: React.FC = () => {
       <div className="bg-card border border-border rounded-xl p-5 border-glow">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-            <LifeBuoy size={16} className="text-primary" /> Solicitações de clientes
+            <LifeBuoy size={16} className="text-primary" /> {tr('sup.page.clientRequests')}
             {clientRequests.filter(r => r.status === 'pendente').length > 0 && (
               <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-2 py-0.5">
                 {clientRequests.filter(r => r.status === 'pendente').length} novas
               </span>
             )}
           </h3>
-          <button onClick={loadClientRequests} className="text-xs text-muted-foreground hover:text-primary">Atualizar</button>
+          <button onClick={loadClientRequests} className="text-xs text-muted-foreground hover:text-primary">{tr('sup.page.refresh')}</button>
         </div>
         {(() => {
           const merged: any[] = [
@@ -212,12 +219,12 @@ const Support: React.FC = () => {
             ...tasks.map((t: any) => ({ ...t, _kind: 'task' })),
           ];
           if (merged.length === 0) {
-            return <p className="text-center text-muted-foreground text-xs py-6">Nenhuma solicitação ou tarefa.</p>;
+            return <p className="text-center text-muted-foreground text-xs py-6">{tr('sup.page.noneAll')}</p>;
           }
           const columns = [
-            { key: 'pendente', label: 'Pendente', accent: 'border-amber-500/40 bg-amber-500/5', badge: 'bg-amber-500/20 text-amber-300', icon: <AlertTriangle size={14} /> },
-            { key: 'em_andamento', label: 'Em andamento', accent: 'border-blue-500/40 bg-blue-500/5', badge: 'bg-blue-500/20 text-blue-300', icon: <Clock size={14} /> },
-            { key: 'concluida', label: 'Concluída', accent: 'border-primary/40 bg-primary/5', badge: 'bg-primary/20 text-primary', icon: <CheckCircle2 size={14} /> },
+            { key: 'pendente', label: tr('sup.page.st.pendente'), accent: 'border-amber-500/40 bg-amber-500/5', badge: 'bg-amber-500/20 text-amber-300', icon: <AlertTriangle size={14} /> },
+            { key: 'em_andamento', label: tr('sup.page.st.em_andamento'), accent: 'border-blue-500/40 bg-blue-500/5', badge: 'bg-blue-500/20 text-blue-300', icon: <Clock size={14} /> },
+            { key: 'concluida', label: tr('sup.page.st.concluida'), accent: 'border-primary/40 bg-primary/5', badge: 'bg-primary/20 text-primary', icon: <CheckCircle2 size={14} /> },
           ] as const;
           return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -241,7 +248,7 @@ const Support: React.FC = () => {
                     <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", col.badge)}>{items.length}</span>
                   </div>
                   {items.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/60 text-center py-4">Nenhuma</p>
+                    <p className="text-[11px] text-muted-foreground/60 text-center py-4">{tr('sup.page.none')}</p>
                   ) : (
                     <div className="space-y-2">
                       {items.map((r: any) => {
@@ -253,7 +260,7 @@ const Support: React.FC = () => {
                           : 'bg-secondary/40 border-border';
                         const overdueBadge = overdue && (
                           <span className="text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/50 px-1.5 py-0.5 rounded inline-flex items-center gap-1 animate-pulse">
-                            <AlertTriangle size={10} /> Atrasado {hoursLate}h
+                            <AlertTriangle size={10} /> {tr('sup.page.late')} {hoursLate}h
                           </span>
                         );
                         if (r._kind === 'task') {
@@ -269,14 +276,14 @@ const Support: React.FC = () => {
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <p className="text-sm font-semibold">{r.title}</p>
                                     {overdueBadge}
-                                    <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{r.category === 'manutencao' ? 'Manutenção' : 'Atendimento'}</span>
-                                    <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{r.structure_type}</span>
+                                    <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{r.category === 'manutencao' ? tr('sup.page.cat.manutencao') : tr('sup.page.cat.atendimento')}</span>
+                                    <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{STRUCT_LABEL[r.structure_type] ?? r.structure_type}</span>
                                     {clientName && <span className="text-[11px] text-primary">{clientName}</span>}
                                   </div>
                                   {r.description && <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{r.description}</p>}
-                                  {assignedName && <p className="text-[10px] text-primary mt-1">Atribuído: {assignedName}</p>}
+                                  {assignedName && <p className="text-[10px] text-primary mt-1">{tr('sup.page.assignedLbl')} {assignedName}</p>}
                                   <p className={cn("text-[10px] mt-1", overdue ? "text-red-400/80 font-semibold" : "text-muted-foreground/70")}>
-                                    {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                    {format(new Date(r.created_at), "P HH:mm", { locale: getDateLocale() })}
                                   </p>
                                 </div>
                               </div>
@@ -286,9 +293,9 @@ const Support: React.FC = () => {
                                   onChange={e => updateStatus(r.id, e.target.value)}
                                   className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground flex-1"
                                 >
-                                  <option value="pendente">Pendente</option>
-                                  <option value="em_andamento">Em andamento</option>
-                                  <option value="concluida">Concluída</option>
+                                  <option value="pendente">{tr('sup.page.st.pendente')}</option>
+                                  <option value="em_andamento">{tr('sup.page.st.em_andamento')}</option>
+                                  <option value="concluida">{tr('sup.page.st.concluida')}</option>
                                 </select>
                                 <button onClick={() => deleteTask(r.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><X size={14} /></button>
                               </div>
@@ -296,7 +303,7 @@ const Support: React.FC = () => {
                           );
                         }
                         const TypeIcon = r.request_type === 'add_ad_account' ? CreditCard : r.request_type === 'add_page' ? ImageIcon : r.request_type === 'add_bm' ? Building2 : LifeBuoy;
-                        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
+                        const typeLabel = r.request_type === 'add_ad_account' ? tr('sup.page.rt.add_ad_account') : r.request_type === 'add_page' ? tr('sup.page.rt.add_page') : r.request_type === 'add_bm' ? tr('sup.page.rt.add_bm') : tr('sup.page.rt.other');
                         return (
                 <div key={r.id} className={cn("border rounded-lg p-3 flex flex-col gap-2", overdueCard)}>
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -315,13 +322,13 @@ const Support: React.FC = () => {
                       {r.description && <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{r.description}</p>}
                       {r.bm_meta_id && (
                         <p className="text-[11px] text-primary flex items-center gap-1 mt-1">
-                          <CreditCard size={11} /> BM destino: <span className="font-mono">{r.bm_meta_id}</span>
+                          <CreditCard size={11} /> {tr('sup.page.targetBm')} <span className="font-mono">{r.bm_meta_id}</span>
                         </p>
                       )}
                       {r.agency_client_id && (
                         <div className="mt-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-[11px] space-y-0.5">
-                          <p className="text-primary font-semibold">Via agência: {clients.find((c: any) => c.id === r.agency_client_id)?.name ?? '—'}</p>
-                          {r.agency_bm_id && <p>BM da agência: <span className="font-mono">{r.agency_bm_id}</span></p>}
+                          <p className="text-primary font-semibold">{tr('sup.page.viaAgency')} {clients.find((c: any) => c.id === r.agency_client_id)?.name ?? '—'}</p>
+                          {r.agency_bm_id && <p>{tr('sup.page.agencyBm')} <span className="font-mono">{r.agency_bm_id}</span></p>}
                           {r.agency_notes && <p className="whitespace-pre-wrap text-muted-foreground">{r.agency_notes}</p>}
                         </div>
                       )}
@@ -335,7 +342,7 @@ const Support: React.FC = () => {
                         </div>
                       )}
                       <p className={cn("text-[10px] mt-1", overdue ? "text-red-400/80 font-semibold" : "text-muted-foreground/70")}>
-                        {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(r.created_at), "P HH:mm", { locale: getDateLocale() })}
                       </p>
                     </div>
                   </div>
@@ -348,10 +355,10 @@ const Support: React.FC = () => {
                       r.status === 'em_andamento' && 'text-warning',
                     )}
                   >
-                    <option value="pendente">Pendente</option>
-                    <option value="em_andamento">Em andamento</option>
-                    <option value="concluida">Concluída</option>
-                    <option value="cancelada">Cancelada</option>
+                    <option value="pendente">{tr('sup.page.st.pendente')}</option>
+                    <option value="em_andamento">{tr('sup.page.st.em_andamento')}</option>
+                    <option value="concluida">{tr('sup.page.st.concluida')}</option>
+                    <option value="cancelada">{tr('sup.page.st.cancelada')}</option>
                   </select>
                 </div>
                         );
@@ -371,48 +378,48 @@ const Support: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">Nova Tarefa</h3>
+              <h3 className="font-display text-sm font-semibold">{tr('sup.page.newTask')}</h3>
               <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Título</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('sup.page.title')}</label>
                 <input value={form.title || ''} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className={inputClass} required />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Descrição</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('sup.page.description')}</label>
                 <textarea value={form.description || ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${inputClass} h-20 resize-none`} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.page.category')}</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value as any }))} className={inputClass}>
-                    <option value="manutencao">Manutenção</option>
-                    <option value="atendimento">Atendimento</option>
+                    <option value="manutencao">{tr('sup.page.cat.manutencao')}</option>
+                    <option value="atendimento">{tr('sup.page.cat.atendimento')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Estrutura</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('sup.page.structure')}</label>
                   <select value={form.structure_type} onChange={e => setForm(p => ({ ...p, structure_type: e.target.value as any }))} className={inputClass}>
-                    {['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Perfil', 'BM Comum', 'BM Verificada', 'BM API', 'BM Disparo', 'Pagina', 'Outro'].map(s => <option key={s} value={s}>{STRUCT_LABEL[s] ?? s}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Atribuir a</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('sup.page.assignTo')}</label>
                 <select value={form.assigned_to || ''} onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))} className={inputClass}>
-                  <option value="">Sem atribuição</option>
+                  <option value="">{tr('sup.page.unassigned')}</option>
                   {supportUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Cliente</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('sup.page.client')}</label>
                 <select value={form.client_id || ''} onChange={e => setForm(p => ({ ...p, client_id: e.target.value }))} className={inputClass}>
-                  <option value="">Nenhum</option>
+                  <option value="">{tr('sup.page.noneM')}</option>
                   {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">Criar Tarefa</button>
+              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">{tr('sup.page.create')}</button>
             </div>
           </motion.div>
         </motion.div>
@@ -429,9 +436,9 @@ const Support: React.FC = () => {
                 </div>
                 {t.description && <p className="text-xs text-muted-foreground mb-2">{t.description}</p>}
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category === 'manutencao' ? 'Manutenção' : 'Atendimento'}</span>
-                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.structure_type}</span>
-                  {t.assigned_to && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{supportUsers.find((u: any) => u.id === t.assigned_to)?.name || 'Atribuído'}</span>}
+                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category === 'manutencao' ? tr('sup.page.cat.manutencao') : tr('sup.page.cat.atendimento')}</span>
+                  <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded">{STRUCT_LABEL[t.structure_type] ?? t.structure_type}</span>
+                  {t.assigned_to && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{supportUsers.find((u: any) => u.id === t.assigned_to)?.name || tr('sup.page.assigned')}</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -440,16 +447,16 @@ const Support: React.FC = () => {
                   onChange={e => updateStatus(t.id, e.target.value as Task['status'])}
                   className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                 >
-                  <option value="pendente">Pendente</option>
-                  <option value="em_andamento">Em andamento</option>
-                  <option value="concluida">Concluída</option>
+                  <option value="pendente">{tr('sup.page.st.pendente')}</option>
+                  <option value="em_andamento">{tr('sup.page.st.em_andamento')}</option>
+                  <option value="concluida">{tr('sup.page.st.concluida')}</option>
                 </select>
                 <button onClick={() => deleteTask(t.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><X size={14} /></button>
               </div>
             </div>
           </div>
         ))}
-        {tasks.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma tarefa registrada.</p>}
+        {tasks.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">{tr('sup.page.noTasks')}</p>}
       </div>
         </TabsContent>
 

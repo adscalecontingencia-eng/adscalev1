@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { supabase } from '@/integrations/supabase/client';
 import { Building2, ShieldCheck, ShieldAlert, UserX, HardDrive, Search, Settings, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -103,20 +105,20 @@ const BMPanelTab: React.FC = () => {
     try {
       const { error } = await supabase.functions.invoke('meta-sync', { body: { action: 'start_sync_accounts' } });
       if (error) throw error;
-      toast.success('Sincronização iniciada em segundo plano');
+      toast.success(tr('sup.bmp.bgStarted'));
       setTimeout(load, 4000);
     } catch (e: any) {
-      toast.error(e.message || 'Falha ao sincronizar');
+      toast.error(e.message || tr('sup.bmp.syncFail'));
     } finally {
       setTimeout(() => setSyncing(false), 3000);
     }
   };
 
   const tabs: { key: TabKey; label: string; count: number; tone: 'primary' | 'destructive' | 'amber' | 'neutral' }[] = [
-    { key: 'all', label: 'Todas', count: filtered.length, tone: 'neutral' },
-    { key: 'active', label: 'Ativas', count: groups.active.length, tone: 'primary' },
-    { key: 'blocked', label: 'Bloqueadas', count: groups.blocked.length, tone: 'destructive' },
-    { key: 'unassigned', label: 'Sem cliente', count: groups.unassigned.length, tone: 'amber' },
+    { key: 'all', label: tr('sup.bmp.all'), count: filtered.length, tone: 'neutral' },
+    { key: 'active', label: tr('sup.bmp.active'), count: groups.active.length, tone: 'primary' },
+    { key: 'blocked', label: tr('sup.bmp.blocked'), count: groups.blocked.length, tone: 'destructive' },
+    { key: 'unassigned', label: tr('sup.bmp.noClient'), count: groups.unassigned.length, tone: 'amber' },
   ];
   const currentBms = tab === 'all' ? filtered : tab === 'active' ? groups.active : tab === 'blocked' ? groups.blocked : groups.unassigned;
 
@@ -124,11 +126,11 @@ const BMPanelTab: React.FC = () => {
     <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <KPI label="BMs totais" value={kpis.total} icon={Building2} cls="text-foreground" />
-        <KPI label="Ativas c/ cliente" value={kpis.active} icon={ShieldCheck} cls="text-primary" />
-        <KPI label="Bloqueadas" value={kpis.blocked} icon={ShieldAlert} cls="text-destructive" />
-        <KPI label="Sem cliente" value={kpis.unassigned} icon={UserX} cls="text-amber-400" />
-        <KPI label="Fora do backup mínimo" value={kpis.outOfBackup} icon={HardDrive} cls={kpis.outOfBackup > 0 ? "text-red-400" : "text-muted-foreground"} />
+        <KPI label={tr('sup.bmp.total')} value={kpis.total} icon={Building2} cls="text-foreground" />
+        <KPI label={tr('sup.bmp.activeWithClient')} value={kpis.active} icon={ShieldCheck} cls="text-primary" />
+        <KPI label={tr('sup.bmp.blocked')} value={kpis.blocked} icon={ShieldAlert} cls="text-destructive" />
+        <KPI label={tr('sup.bmp.noClient')} value={kpis.unassigned} icon={UserX} cls="text-amber-400" />
+        <KPI label={tr('sup.bmp.outBackup')} value={kpis.outOfBackup} icon={HardDrive} cls={kpis.outOfBackup > 0 ? "text-red-400" : "text-muted-foreground"} />
       </div>
 
       {/* Toolbar */}
@@ -138,19 +140,19 @@ const BMPanelTab: React.FC = () => {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar BM..."
+            placeholder={tr('sup.bmp.search')}
             className="w-full pl-9 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
         <button onClick={sync} disabled={syncing} className="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-semibold inline-flex items-center gap-1 hover:opacity-90 disabled:opacity-60">
           <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? 'Sincronizando...' : 'Sincronizar BMs + Contas'}
+          {syncing ? tr('sup.bmp.syncing') : tr('sup.bmp.syncAll')}
         </button>
         <button onClick={() => setShowDetected(true)} className="bg-primary/15 border border-primary/40 text-primary rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:bg-primary/25">
-          <ScanLine size={12} /> Detectar perfis
+          <ScanLine size={12} /> {tr('sup.bmp.detect')}
         </button>
         <button onClick={() => setShowBackupsManager(true)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs inline-flex items-center gap-1 hover:border-primary/50">
-          <Settings size={12} /> Gerenciar backups
+          <Settings size={12} /> {tr('sup.bmp.backups')}
         </button>
       </div>
 
@@ -182,7 +184,7 @@ const BMPanelTab: React.FC = () => {
 
       {/* Grid */}
       {currentBms.length === 0 ? (
-        <p className="text-sm text-muted-foreground/60 text-center py-12">Nenhuma BM nesta categoria</p>
+        <p className="text-sm text-muted-foreground/60 text-center py-12">{tr('sup.bmp.none')}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {currentBms.map(bm => (
@@ -231,7 +233,7 @@ const BMCard: React.FC<{
       </div>
       <div className="flex flex-wrap gap-1 mt-2">
         <span className="text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5">
-          {st.active}/{st.total} contas ok
+          {tr('sup.bmp.okAccounts', { a: st.active, t: st.total })}
         </span>
         {st.blocked > 0 && (
           <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/30 rounded px-1.5 py-0.5">
@@ -245,7 +247,7 @@ const BMCard: React.FC<{
         </span>
         {outOfBackup && (
           <span className="text-[10px] bg-red-500/15 text-red-300 border border-red-500/40 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
-            <AlertTriangle size={9} /> Fora do backup
+            <AlertTriangle size={9} /> {tr('sup.bmp.outOfBackup')}
           </span>
         )}
       </div>
