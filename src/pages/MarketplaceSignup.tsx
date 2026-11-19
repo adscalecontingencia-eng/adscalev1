@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { tr } from '@/i18n';
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock, AlertCircle, CheckCircle2, Phone, User, ShoppingBag } from "lucide-react";
@@ -19,10 +20,10 @@ const MarketplaceSignup: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password !== confirm) return setError("As senhas não coincidem");
-    if (password.length < 8) return setError("Senha precisa de pelo menos 8 caracteres");
-    if (phone.replace(/\D+/g, "").length < 10) return setError("WhatsApp obrigatório com DDD");
-    if (!acceptedTerms) return setError("Você precisa aceitar os Termos de Uso e a Política de Publicidade");
+    if (password !== confirm) return setError(tr('auth.signup.mismatch'));
+    if (password.length < 8) return setError(tr('auth.signup.min8'));
+    if (phone.replace(/\D+/g, "").length < 10) return setError(tr('auth.signup.mpPhone'));
+    if (!acceptedTerms) return setError(tr('auth.signup.mpTerms'));
 
     setSubmitting(true);
     try {
@@ -38,11 +39,11 @@ const MarketplaceSignup: React.FC = () => {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
+      if (!res.ok || data?.error) throw new Error(data?.error || tr('auth.signup.httpErr', { s: res.status }));
       setDone(true);
       setTimeout(() => navigate("/login?next=marketplace"), 2500);
     } catch (e: any) {
-      setError(e.message || "Erro no cadastro");
+      setError(e.message || tr('auth.signup.err'));
     } finally {
       setSubmitting(false);
     }
@@ -55,8 +56,8 @@ const MarketplaceSignup: React.FC = () => {
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mb-4">
             <CheckCircle2 size={32} className="text-primary" />
           </div>
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">Cadastro concluído</h2>
-          <p className="text-sm text-muted-foreground">Redirecionando para o login…</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">{tr('auth.signup.done')}</h2>
+          <p className="text-sm text-muted-foreground">{tr('auth.signup.redirect')}</p>
         </motion.div>
       </div>
     );
@@ -73,15 +74,15 @@ const MarketplaceSignup: React.FC = () => {
         <div className="flex flex-col items-center mb-6 text-primary">
           <AdScaleLogo size={typeof window !== "undefined" && window.innerWidth < 640 ? 32 : 48} />
           <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
-            <ShoppingBag size={12} /> Cadastro Marketplace
+            <ShoppingBag size={12} /> {tr('auth.signup.mpTitle')}
           </p>
         </div>
 
         <div className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl shadow-black/30">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Crie sua conta do Marketplace</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{tr('auth.signup.mpCreate')}</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Acesso exclusivo ao Marketplace, Carteira e Meus Pedidos. Cadastre-se em segundos.
+              {tr('auth.signup.mpDesc')}
             </p>
           </div>
 
@@ -95,12 +96,12 @@ const MarketplaceSignup: React.FC = () => {
           <form onSubmit={submit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.name')}</label>
                 <div className="relative group">
                   <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input value={name} onChange={(e) => setName(e.target.value)} required
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="Seu nome" maxLength={120} />
+                    placeholder={tr('auth.signup.namePh')} maxLength={120} />
                 </div>
               </div>
 
@@ -115,7 +116,7 @@ const MarketplaceSignup: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">WhatsApp (com DDD)</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.mpWa')}</label>
                 <div className="relative group">
                   <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} required
@@ -125,22 +126,22 @@ const MarketplaceSignup: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Senha</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.pw')}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="mín. 8 caracteres" />
+                    placeholder={tr('auth.signup.pwPh')} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Confirmar senha</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.confirm')}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8}
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="repita a senha" />
+                    placeholder={tr('auth.signup.confirmPh')} />
                 </div>
               </div>
             </div>
@@ -154,28 +155,28 @@ const MarketplaceSignup: React.FC = () => {
                 required
               />
               <span>
-                Li e aceito os{" "}
+                {tr('auth.signup.readAccept')}{" "}
                 <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  Termos de Uso
+                  {tr('auth.signup.termsLink')}
                 </a>{" "}
-                e a{" "}
+                {tr('auth.signup.andThe')}{" "}
                 <a href="/advertising-policy.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  Política de Publicidade
+                  {tr('auth.signup.adPolicy')}
                 </a>
-                , declarando ser o único responsável pelo uso dos ativos e pelo conteúdo dos meus anúncios.
+                {tr('auth.signup.mpDeclare')}
               </span>
             </label>
 
             <button type="submit" disabled={submitting || !acceptedTerms}
               className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:pointer-events-none">
-              {submitting ? "Criando cadastro…" : "Criar conta Marketplace"}
+              {submitting ? tr('auth.signup.creating') : tr('auth.signup.mpCreateBtn')}
             </button>
 
             <p className="text-center text-xs text-muted-foreground">
-              Já tem conta? <Link to="/login?next=marketplace" className="text-primary hover:underline">Fazer login</Link>
+              {tr('auth.signup.have')} <Link to="/login?next=marketplace" className="text-primary hover:underline">{tr('auth.signup.login')}</Link>
             </p>
             <p className="text-center text-[10px] text-muted-foreground/70">
-              É cliente da agência? <Link to="/signup" className="text-primary hover:underline">Cadastro completo</Link>
+              {tr('auth.signup.isClient')} <Link to="/signup" className="text-primary hover:underline">{tr('auth.signup.full')}</Link>
             </p>
           </form>
         </div>

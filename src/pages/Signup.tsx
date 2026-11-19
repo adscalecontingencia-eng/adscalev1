@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { tr } from '@/i18n';
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock, AlertCircle, CheckCircle2, ScrollText, ShieldCheck, Phone, User } from "lucide-react";
@@ -36,16 +37,16 @@ const Signup: React.FC = () => {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-    if (result.error) setError((result.error as any).message || "Erro no Google Sign-In");
+    if (result.error) setError((result.error as any).message || tr('auth.signup.googleErr'));
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password !== confirm) return setError("As senhas não coincidem");
-    if (password.length < 8) return setError("Senha precisa de pelo menos 8 caracteres");
-    if (phone.replace(/\D+/g, "").length < 10) return setError("Telefone (WhatsApp) é obrigatório com DDD");
-    if (!accepted) return setError("Você precisa aceitar o Termo de Uso");
+    if (password !== confirm) return setError(tr('auth.signup.mismatch'));
+    if (password.length < 8) return setError(tr('auth.signup.min8'));
+    if (phone.replace(/\D+/g, "").length < 10) return setError(tr('auth.signup.phone'));
+    if (!accepted) return setError(tr('auth.signup.terms'));
 
     setSubmitting(true);
     try {
@@ -65,11 +66,11 @@ const Signup: React.FC = () => {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.error) throw new Error(data?.error || `Erro no cadastro (HTTP ${res.status})`);
+      if (!res.ok || data?.error) throw new Error(data?.error || tr('auth.signup.httpErr', { s: res.status }));
       setDone(true);
       setTimeout(() => navigate("/login"), 2500);
     } catch (e: any) {
-      setError(e.message || "Erro no cadastro");
+      setError(e.message || tr('auth.signup.err'));
     } finally {
       setSubmitting(false);
     }
@@ -82,8 +83,8 @@ const Signup: React.FC = () => {
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mb-4">
             <CheckCircle2 size={32} className="text-primary" />
           </div>
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">Cadastro concluído</h2>
-          <p className="text-sm text-muted-foreground">Redirecionando para o login…</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">{tr('auth.signup.done')}</h2>
+          <p className="text-sm text-muted-foreground">{tr('auth.signup.redirect')}</p>
         </motion.div>
       </div>
     );
@@ -99,14 +100,14 @@ const Signup: React.FC = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-2xl relative z-10">
         <div className="flex flex-col items-center mb-6 text-primary">
           <AdScaleLogo size={typeof window !== 'undefined' && window.innerWidth < 640 ? 32 : 48} />
-          <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3">Cadastro do Cliente</p>
+          <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3">{tr('auth.signup.title')}</p>
         </div>
 
         <div className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl shadow-black/30">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Crie sua conta</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{tr('auth.signup.create')}</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Cadastre-se com Google ou com email/senha. O número de WhatsApp é obrigatório para suporte.
+              {tr('auth.signup.desc')}
             </p>
           </div>
 
@@ -122,22 +123,22 @@ const Signup: React.FC = () => {
             onClick={signInWithGoogle}
             className="w-full flex items-center justify-center gap-3 bg-secondary/60 hover:bg-secondary border border-border rounded-xl py-3 text-sm font-medium transition-all"
           >
-            <GoogleIcon /> Continuar com Google
+            <GoogleIcon /> {tr('auth.signup.google')}
           </button>
 
           <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            <span className="flex-1 h-px bg-border" /> ou com email <span className="flex-1 h-px bg-border" />
+            <span className="flex-1 h-px bg-border" /> {tr('auth.signup.orEmail')} <span className="flex-1 h-px bg-border" />
           </div>
 
           <form onSubmit={submit} className="space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.name')}</label>
                 <div className="relative group">
                   <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input value={name} onChange={(e) => setName(e.target.value)} required
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="Seu nome" maxLength={120} />
+                    placeholder={tr('auth.signup.namePh')} maxLength={120} />
                 </div>
               </div>
 
@@ -152,7 +153,7 @@ const Signup: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">WhatsApp (com DDD) *</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.wa')}</label>
                 <div className="relative group">
                   <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} required
@@ -162,22 +163,22 @@ const Signup: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Senha</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.pw')}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="mín. 8 caracteres" />
+                    placeholder={tr('auth.signup.pwPh')} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Confirmar senha</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr('auth.signup.confirm')}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8}
                     className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-                    placeholder="repita a senha" />
+                    placeholder={tr('auth.signup.confirmPh')} />
                 </div>
               </div>
             </div>
@@ -199,10 +200,10 @@ const Signup: React.FC = () => {
                   className="mt-0.5 w-4 h-4 accent-primary" disabled={!scrolledTerms} />
                 <div className="text-xs text-foreground/90">
                   <strong className="flex items-center gap-1.5">
-                    <ShieldCheck size={12} className="text-primary" /> Aceito o Termo de Uso
+                    <ShieldCheck size={12} className="text-primary" /> {tr('auth.signup.accept')}
                   </strong>
                   <span className="text-muted-foreground">
-                    Declaro ter lido e concordo com a isenção de responsabilidade da agência e com a coleta de IP, dados de conexão e logs de acesso.
+                    {tr('auth.signup.declare')}
                   </span>
                 </div>
               </label>
@@ -210,11 +211,11 @@ const Signup: React.FC = () => {
 
             <button type="submit" disabled={submitting || !accepted}
               className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:pointer-events-none">
-              {submitting ? "Criando cadastro…" : "Finalizar Cadastro"}
+              {submitting ? tr('auth.signup.creating') : tr('auth.signup.finish')}
             </button>
 
             <p className="text-center text-xs text-muted-foreground">
-              Já tem conta? <Link to="/login" className="text-primary hover:underline">Fazer login</Link>
+              {tr('auth.signup.have')} <Link to="/login" className="text-primary hover:underline">{tr('auth.signup.login')}</Link>
             </p>
           </form>
         </div>

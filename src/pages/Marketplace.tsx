@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
+import { getNumberLocale } from '@/i18n/format';
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -82,15 +84,15 @@ interface Product {
 }
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 /* --------------------- Static social proof --------------------- */
 
 const STATS = [
-  { label: "Contas entregues", value: "+12.5k", hint: "Operação 24/7", icon: Package },
-  { label: "Clientes ativos", value: "+2.300", hint: "Gestores escalando", icon: Users },
-  { label: "Países atendidos", value: "18", hint: "Cobertura global", icon: Globe2 },
-  { label: "Reposição em até 24h", value: "100%", hint: "Garantia AD SCALE", icon: ShieldCheck },
+  { get label() { return tr('mk.stats.delivered'); }, value: "+12.5k", get hint() { return tr('mk.stats.deliveredHint'); }, icon: Package },
+  { get label() { return tr('mk.stats.clients'); }, value: "+2.300", get hint() { return tr('mk.stats.clientsHint'); }, icon: Users },
+  { get label() { return tr('mk.stats.countries'); }, value: "18", get hint() { return tr('mk.stats.countriesHint'); }, icon: Globe2 },
+  { get label() { return tr('mk.stats.replace'); }, value: "100%", get hint() { return tr('mk.stats.replaceHint'); }, icon: ShieldCheck },
 ];
 
 const WHATSAPP_URL = "https://wa.me/5531998416336?text=Ol%C3%A1!%20Tenho%20interesse%20no%20marketplace%20da%20AD%20SCALE";
@@ -98,47 +100,44 @@ const WHATSAPP_URL = "https://wa.me/5531998416336?text=Ol%C3%A1!%20Tenho%20inter
 const TESTIMONIALS = [
   {
     name: "Lucas Andrade",
-    role: "Gestor de Tráfego",
-    text:
-      "A AD SCALE virou nossa base de operação. Compro de madrugada e em minutos a conta já está rodando campanha. Sem dor de cabeça.",
+    get role() { return tr('mk.t1.role'); },
+    get text() { return tr('mk.t1.text'); },
     rating: 5,
   },
   {
     name: "Mariana Costa",
-    role: "Afiliada Black",
-    text:
-      "Já testei vários fornecedores e nenhum chega perto da qualidade das BMs daqui. Suporte responde no WhatsApp em segundos.",
+    get role() { return tr('mk.t2.role'); },
+    get text() { return tr('mk.t2.text'); },
     rating: 5,
   },
   {
     name: "Rafael Mendes",
-    role: "Agência Performance",
-    text:
-      "Estrutura completa: BM, perfis, proxy, multilogin. Conseguimos escalar 3x sem precisar gastar horas montando ativo.",
+    get role() { return tr('mk.t3.role'); },
+    get text() { return tr('mk.t3.text'); },
     rating: 5,
   },
 ];
 
 const FAQ = [
   {
-    q: "Como funciona a entrega das contas?",
-    a: "A maioria dos produtos é entregue automaticamente após a confirmação do Pix — o acesso aparece na sua área de pedidos em segundos. Itens marcados como manuais são liberados por um especialista em até alguns minutos no horário comercial.",
+    get q() { return tr('mk.faq.q1'); },
+    get a() { return tr('mk.faq.a1'); },
   },
   {
-    q: "Qual é a garantia oferecida?",
-    a: "Todos os ativos têm garantia de 24 horas para falhas de acesso, bloqueio no primeiro login ou divergência de descrição. Basta abrir um chamado no WhatsApp com print do erro que substituímos a unidade.",
+    get q() { return tr('mk.faq.q2'); },
+    get a() { return tr('mk.faq.a2'); },
   },
   {
-    q: "Vocês emitem nota fiscal?",
-    a: "Sim. Após o pagamento, basta solicitar a NF-e para o nosso suporte com seus dados de CNPJ ou CPF. Emitimos em até 1 dia útil.",
+    get q() { return tr('mk.faq.q3'); },
+    get a() { return tr('mk.faq.a3'); },
   },
   {
-    q: "Posso pagar com cartão ou boleto?",
-    a: "No momento trabalhamos exclusivamente com Pix instantâneo — é mais rápido, seguro e permite que a entrega automática aconteça em segundos.",
+    get q() { return tr('mk.faq.q4'); },
+    get a() { return tr('mk.faq.a4'); },
   },
   {
-    q: "Como entro na comunidade no WhatsApp?",
-    a: "Assim que você finaliza o cadastro com seu número, recebe o convite do grupo automaticamente. Lá compartilhamos novidades, lotes premium e suporte direto com o time.",
+    get q() { return tr('mk.faq.q5'); },
+    get a() { return tr('mk.faq.a5'); },
   },
 ];
 
@@ -238,17 +237,17 @@ const Marketplace: React.FC = () => {
   };
 
   const SOURCES = [
-    { id: "all", label: "Todos" },
+    { id: "all", label: tr('mk.src.all') },
     { id: "meta", label: "Meta" },
     { id: "tiktok", label: "TikTok" },
     { id: "google", label: "Google" },
   ] as const;
 
   const META_SUBS = [
-    { id: "all", label: "Todas" },
-    { id: "bm-ads", label: "BM para Ads" },
-    { id: "bm-api", label: "BM para disparo via API" },
-    { id: "perfil", label: "Perfil" },
+    { id: "all", label: tr('mk.sub.all') },
+    { id: "bm-ads", label: tr('mk.sub.bmAds') },
+    { id: "bm-api", label: tr('mk.sub.bmApi') },
+    { id: "perfil", label: tr('mk.sub.profile') },
   ] as const;
 
   // Price boundaries derived from products
@@ -354,19 +353,19 @@ const Marketplace: React.FC = () => {
           {/* Nav */}
           <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground mx-auto">
             <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <Home size={15} /> Início
+              <Home size={15} /> {tr('mk.home')}
             </button>
             <button type="button" onClick={() => navigate("/marketplace/produtos")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <ShoppingCart size={15} /> Produtos
+              <ShoppingCart size={15} /> {tr('mk.products')}
             </button>
             <button type="button" onClick={() => navigate("/marketplace/ativos")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <TrendingUpIcon size={15} /> Ativos c/ Gastos
+              <TrendingUpIcon size={15} /> {tr('mk.withSpend')}
             </button>
             <button type="button" onClick={() => scrollToId("beneficios")} className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <Sparkles size={15} /> Benefícios
+              <Sparkles size={15} /> {tr('mk.benefits')}
             </button>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg hover:text-foreground hover:bg-primary/5 transition-colors inline-flex items-center gap-1.5">
-              <MessageCircle size={15} /> Contato
+              <MessageCircle size={15} /> {tr('mk.contact')}
             </a>
           </nav>
 
@@ -379,13 +378,13 @@ const Marketplace: React.FC = () => {
                   type="button"
                   onClick={() => setWalletOpen(true)}
                   className="group flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors pl-1 pr-3 sm:pr-4 py-1"
-                  aria-label="Adicionar saldo"
+                  aria-label={tr('mk.addBalance')}
                 >
                   <span className="grid place-items-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground shadow-md shadow-primary/30 group-hover:scale-105 transition-transform">
                     <Plus size={16} strokeWidth={3} />
                   </span>
                   <span className="font-semibold text-foreground text-xs sm:text-sm tabular-nums">
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(balance || 0)}
+                    {new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(balance || 0)}
                   </span>
                 </button>
 
@@ -405,9 +404,9 @@ const Marketplace: React.FC = () => {
                       </span>
                       <span className="flex flex-col items-start leading-tight">
                         <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">
-                          {user?.name || "Usuário"}
+                          {user?.name || tr('mk.user')}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">Meu perfil</span>
+                        <span className="text-[10px] text-muted-foreground">{tr('mk.myProfile')}</span>
                       </span>
                       <ChevronDownIcon size={14} className="text-muted-foreground" />
                     </button>
@@ -418,26 +417,26 @@ const Marketplace: React.FC = () => {
                         {(user?.name || "U").split(" ").map(w => w[0]).slice(0, 2).join("")}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{user?.name || "Usuário"}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{user?.name || tr('mk.user')}</p>
                         <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
                       </div>
                     </div>
                     <div className="p-1">
                       <DropdownMenuItem onClick={() => navigate("/perfil")}>
-                        <UserPlus size={14} className="mr-2" /> Perfil
+                        <UserPlus size={14} className="mr-2" /> {tr('mk.profile')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate("/meus-pedidos")}>
-                        <Package size={14} className="mr-2" /> Meus Pedidos
+                        <Package size={14} className="mr-2" /> {tr('mk.myOrders')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate("/partner-signup")}>
-                        <HeartHandshake size={14} className="mr-2" /> Programa de Afiliados
+                        <HeartHandshake size={14} className="mr-2" /> {tr('mk.affiliate')}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={async () => { await supabase.auth.signOut(); navigate("/marketplace"); }}
                         className="text-destructive focus:text-destructive"
                       >
-                        <X size={14} className="mr-2" /> Sair
+                        <X size={14} className="mr-2" /> {tr('mk.logout')}
                       </DropdownMenuItem>
                     </div>
                   </DropdownMenuContent>
@@ -447,11 +446,11 @@ const Marketplace: React.FC = () => {
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/login?next=marketplace")} className="px-2 sm:px-3">
                   <LogIn size={14} className="sm:mr-1" />
-                  <span className="hidden sm:inline">Entrar</span>
+                  <span className="hidden sm:inline">{tr('mk.login')}</span>
                 </Button>
                 <Button size="sm" onClick={() => navigate("/marketplace-signup")} className="px-2.5 sm:px-3">
                   <UserPlus size={14} className="sm:mr-1" />
-                  <span>Cadastrar</span>
+                  <span>{tr('mk.signup')}</span>
                 </Button>
               </>
             )}
@@ -462,7 +461,7 @@ const Marketplace: React.FC = () => {
               size="icon"
               className="md:hidden h-9 w-9 ml-0.5"
               onClick={() => setNavOpen(true)}
-              aria-label="Abrir menu"
+              aria-label={tr('mk.openMenu')}
             >
               <Menu size={18} />
             </Button>
@@ -479,14 +478,14 @@ const Marketplace: React.FC = () => {
         <SheetContent side="right" className="w-[78vw] sm:max-w-sm bg-background border-l border-border/60 p-0">
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
             <SheetTitle className="flex items-center gap-2 text-primary notranslate" translate="no">
-              <AdScaleLogo size={20} /> <span className="font-display">Menu</span>
+              <AdScaleLogo size={20} /> <span className="font-display">{tr('mk.menu')}</span>
             </SheetTitle>
           </SheetHeader>
           <nav className="p-3 flex flex-col gap-1 text-sm">
             {[
-              { id: "catalogo", label: "Catálogo", icon: ShoppingCart },
-              { id: "beneficios", label: "Benefícios", icon: Sparkles },
-              { id: "depoimentos", label: "Depoimentos", icon: Star },
+              { id: "catalogo", label: tr('mk.nav.catalog'), icon: ShoppingCart },
+              { id: "beneficios", label: tr('mk.benefits'), icon: Sparkles },
+              { id: "depoimentos", label: tr('mk.nav.testimonials'), icon: Star },
               { id: "faq", label: "FAQ", icon: Info },
             ].map((it) => (
               <button
@@ -504,7 +503,7 @@ const Marketplace: React.FC = () => {
               className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
             >
               <MessageCircle size={16} className="text-primary/80" />
-              <span className="font-medium">Falar no WhatsApp</span>
+              <span className="font-medium">{tr('mk.whatsapp')}</span>
             </button>
             {isAuthenticated ? (
               <>
@@ -512,17 +511,17 @@ const Marketplace: React.FC = () => {
                   onClick={() => { setNavOpen(false); navigate("/meus-pedidos"); }}
                   className="flex items-center gap-3 px-3 py-3 rounded-lg text-foreground/90 hover:bg-primary/10 hover:text-primary transition-colors text-left"
                 >
-                  <Package size={16} className="text-primary/80" /> <span className="font-medium">Meus pedidos</span>
+                  <Package size={16} className="text-primary/80" /> <span className="font-medium">{tr('mk.myOrdersLower')}</span>
                 </button>
-                <Button className="mt-3 mx-3" onClick={() => { setNavOpen(false); goPainel(); }}>Ir para o painel</Button>
+                <Button className="mt-3 mx-3" onClick={() => { setNavOpen(false); goPainel(); }}>{tr('mk.goPanel')}</Button>
               </>
             ) : (
               <div className="grid grid-cols-2 gap-2 mt-3 px-3">
                 <Button variant="outline" onClick={() => { setNavOpen(false); navigate("/login?next=marketplace"); }}>
-                  <LogIn size={14} className="mr-1" /> Entrar
+                  <LogIn size={14} className="mr-1" /> {tr('mk.login')}
                 </Button>
                 <Button onClick={() => { setNavOpen(false); navigate("/signup"); }}>
-                  <UserPlus size={14} className="mr-1" /> Cadastrar
+                  <UserPlus size={14} className="mr-1" /> {tr('mk.signup')}
                 </Button>
               </div>
             )}
@@ -536,14 +535,14 @@ const Marketplace: React.FC = () => {
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
             <SheetTitle className="flex items-center gap-2">
               <SlidersHorizontal size={16} className="text-primary" />
-              <span className="font-display">Filtrar produtos</span>
+              <span className="font-display">{tr('mk.filter')}</span>
             </SheetTitle>
           </SheetHeader>
 
           <div className="overflow-y-auto px-5 py-4 space-y-5">
             {/* Tab */}
             <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Mostrar</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">{tr('mk.show')}</p>
               <div className="grid grid-cols-2 gap-2">
                 {(["destaque", "novidades"] as const).map((t) => (
                   <button
@@ -555,7 +554,7 @@ const Marketplace: React.FC = () => {
                         : "bg-secondary/40 border-border text-muted-foreground"
                     }`}
                   >
-                    {t === "destaque" ? "Em Destaque" : "Novidades"}
+                    {t === "destaque" ? tr('mk.featured') : tr('mk.new')}
                   </button>
                 ))}
               </div>
@@ -563,7 +562,7 @@ const Marketplace: React.FC = () => {
 
             {/* Source */}
             <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Categoria</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">{tr('mk.category')}</p>
               <div className="grid grid-cols-2 gap-2">
                 {SOURCES.map((s) => (
                   <button
@@ -587,7 +586,7 @@ const Marketplace: React.FC = () => {
             {/* Meta sub */}
             {activeSource === "meta" && (
               <div>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Subcategoria Meta</p>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">{tr('mk.metaSub')}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {META_SUBS.map((s) => (
                     <button
@@ -609,7 +608,7 @@ const Marketplace: React.FC = () => {
             {/* Price */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Preço máximo</p>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{tr('mk.maxPrice')}</p>
                 <p className="text-xs font-semibold text-primary">{fmtBRL(priceMax || priceBounds.max)}</p>
               </div>
               <input
@@ -630,11 +629,11 @@ const Marketplace: React.FC = () => {
 
           <div className="border-t border-border/60 px-5 py-3 flex items-center gap-2 bg-background">
             <Button variant="outline" className="flex-1" onClick={clearFilters}>
-              Limpar
+              {tr('mk.clear')}
             </Button>
             <SheetClose asChild>
               <Button className="flex-1">
-                Ver {filtered.length} {filtered.length === 1 ? "produto" : "produtos"}
+                {tr('mk.seeN', { count: filtered.length })}
               </Button>
             </SheetClose>
           </div>
@@ -657,42 +656,37 @@ const Marketplace: React.FC = () => {
 
           <h1 className="font-display text-[1.75rem] leading-[1.1] sm:text-5xl md:text-7xl font-bold tracking-tight">
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
-              Escale suas campanhas
+              {tr('mk.heroA')}
             </span>
             <br />
             <span className="relative inline-block text-primary drop-shadow-[0_0_40px_hsl(var(--primary)/0.5)]">
-              sem travar na contingência.
+              {tr('mk.heroB')}
               <span className="absolute -inset-x-4 -bottom-2 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
             </span>
           </h1>
-          <p className="text-muted-foreground mt-5 sm:mt-7 max-w-2xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed px-2">
-            Contas <span className="text-foreground font-semibold">Meta</span>,{" "}
-            <span className="text-foreground font-semibold">TikTok</span> e{" "}
-            <span className="text-foreground font-semibold">Google Ads</span> de qualidade,
-            com o melhor custo benefício do mercado.
-          </p>
+          <p className="text-muted-foreground mt-5 sm:mt-7 max-w-2xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed px-2" dangerouslySetInnerHTML={{ __html: tr('mk.heroSub') }} />
 
 
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/marketplace/produtos")}>
 
-              <ShoppingCart size={16} className="mr-2" /> Conferir produtos <ArrowRight size={16} className="ml-1" />
+              <ShoppingCart size={16} className="mr-2" /> {tr('mk.seeProducts')} <ArrowRight size={16} className="ml-1" />
             </Button>
             <Button
               size="lg"
               variant="outline"
               onClick={() => window.open(WHATSAPP_URL, "_blank", "noopener,noreferrer")}
             >
-              <MessageCircle size={16} className="mr-2" /> Entrar em contato
+              <MessageCircle size={16} className="mr-2" /> {tr('mk.getInTouch')}
             </Button>
           </div>
 
           {/* Trust row */}
           <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 gap-y-2 sm:gap-y-3 text-[11px] sm:text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5 sm:gap-2"><Zap size={13} className="text-primary" /> Entrega via Pix</span>
-            <span className="flex items-center gap-1.5 sm:gap-2"><ShieldCheck size={13} className="text-primary" /> Garantia de 24h</span>
-            <span className="flex items-center gap-1.5 sm:gap-2"><Clock size={13} className="text-primary" /> Suporte 7 dias</span>
-            <span className="flex items-center gap-1.5 sm:gap-2"><HeartHandshake size={13} className="text-primary" /> +2.300 clientes</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><Zap size={13} className="text-primary" /> {tr('mk.pix')}</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><ShieldCheck size={13} className="text-primary" /> {tr('mk.warranty24')}</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><Clock size={13} className="text-primary" /> {tr('mk.support7')}</span>
+            <span className="flex items-center gap-1.5 sm:gap-2"><HeartHandshake size={13} className="text-primary" /> {tr('mk.clients2300')}</span>
           </div>
         </motion.div>
 
@@ -725,7 +719,7 @@ const Marketplace: React.FC = () => {
                     </div>
                   </div>
                   <span className="hidden sm:inline-block text-[8px] font-bold uppercase tracking-[0.2em] text-primary/70 px-1.5 py-0.5 rounded border border-primary/30 bg-primary/5">
-                    Live
+                    {tr('mk.live')}
                   </span>
                 </div>
 
@@ -752,27 +746,27 @@ const Marketplace: React.FC = () => {
       {/* Benefícios */}
       <section id="beneficios" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
         <div className="text-center mb-8 sm:mb-10">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Por que AD SCALE</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">{tr('mk.why')}</p>
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Infraestrutura completa para quem vive de tráfego
+            {tr('mk.infra')}
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             {
               icon: Zap,
-              title: "Entrega em segundos",
-              text: "Confirmou o Pix, recebeu o acesso. Tudo automatizado e disponível no painel imediatamente.",
+              get title() { return tr('mk.b1.title'); },
+              get text() { return tr('mk.b1.text'); },
             },
             {
               icon: ShieldCheck,
-              title: "Garantia real de 24h",
-              text: "Conta bloqueada ou divergente? Substituímos sem burocracia. Você não fica na mão.",
+              get title() { return tr('mk.b2.title'); },
+              get text() { return tr('mk.b2.text'); },
             },
             {
               icon: HeartHandshake,
-              title: "Suporte humano no WhatsApp",
-              text: "Time de especialistas em ads disponível 7 dias por semana para destravar sua operação.",
+              get title() { return tr('mk.b3.title'); },
+              get text() { return tr('mk.b3.text'); },
             },
           ].map((b) => (
             <motion.div
@@ -793,21 +787,21 @@ const Marketplace: React.FC = () => {
       {/* Categorias */}
       <section id="categorias" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
         <div className="text-center mb-8 sm:mb-10">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Categorias</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">{tr('mk.categories')}</p>
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Explore nossas categorias
+            {tr('mk.explore')}
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-xl mx-auto px-2">
-            Encontre o ativo certo para escalar sua operação.
+            {tr('mk.findAsset')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
-            { label: "TikTok Ads", desc: "BC Verificadados · Restabelecidos · Resistentes", icon: <Music2 className="w-7 h-7 text-foreground" /> },
-            { label: "BMs de Disparos", desc: "Verificadas · Waba aprovado · Com e sem template", icon: <MessageSquare className="w-7 h-7 text-emerald-400" /> },
-            { label: "Perfis Facebook", desc: "Perfis antigos · Com cookies · Com 2FA · Brasileiros", icon: <Facebook className="w-7 h-7 text-[#0866FF]" /> },
-            { label: "BMs Facebook", desc: "BMs antigas · Limites altos · Sem gastos", icon: <Hexagon className="w-7 h-7 text-[#0866FF]" /> },
+            { label: "TikTok Ads", desc: tr('mk.cat.tiktok'), icon: <Music2 className="w-7 h-7 text-foreground" /> },
+            { label: tr('mk.cat.bmMsg'), desc: tr('mk.cat.bmMsgDesc'), icon: <MessageSquare className="w-7 h-7 text-emerald-400" /> },
+            { label: tr('mk.cat.fbProfiles'), desc: tr('mk.cat.fbProfilesDesc'), icon: <Facebook className="w-7 h-7 text-[#0866FF]" /> },
+            { label: tr('mk.cat.fbBms'), desc: tr('mk.cat.fbBmsDesc'), icon: <Hexagon className="w-7 h-7 text-[#0866FF]" /> },
           ].map((c) => (
             <button
               key={c.label}
@@ -832,10 +826,10 @@ const Marketplace: React.FC = () => {
       {assets.length > 0 && (
         <section id="ativos-gastos" className="relative max-w-7xl mx-auto px-4 lg:px-6 py-10 sm:py-14">
           <div className="text-center mb-6 sm:mb-8">
-            <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">Premium</p>
-            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Ativos com Gastos</h2>
+            <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">{tr('mk.premium')}</p>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">{tr('mk.withSpendTitle')}</h2>
             <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto px-2">
-              BMs com histórico de gastos, limites elevados e contas prontas para escalar.
+              {tr('mk.withSpendDesc')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -853,10 +847,10 @@ const Marketplace: React.FC = () => {
         <div className="text-center mb-8 sm:mb-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 mb-3">FAQ</p>
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Perguntas frequentes
+            {tr('mk.faqTitle')}
           </h2>
           <p className="text-muted-foreground text-sm mt-2">
-            Tudo o que você precisa saber antes de comprar.
+            {tr('mk.faqSub')}
           </p>
         </div>
 
@@ -904,28 +898,27 @@ const Marketplace: React.FC = () => {
           <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/40 bg-primary/15 text-primary text-[10px] uppercase tracking-[0.3em] mb-5">
-              <MessageCircle size={12} /> Comunidade exclusiva
+              <MessageCircle size={12} /> {tr('mk.community')}
             </div>
             <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-              Pronto para escalar com a <span className="text-primary notranslate" translate="no">AD SCALE</span>?
+              {tr('mk.ready')} <span className="text-primary notranslate" translate="no">AD SCALE</span>?
             </h2>
             <p className="text-muted-foreground mt-4 max-w-xl mx-auto text-sm sm:text-base">
-              Crie sua conta em menos de 1 minuto, finalize sua primeira compra via Pix e entre na nossa
-              comunidade de tráfego no WhatsApp.
+              {tr('mk.ctaDesc')}
             </p>
             <div className="mt-7 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3">
               {!isAuthenticated ? (
                 <>
                   <Button size="lg" onClick={() => navigate("/signup")}>
-                    <UserPlus size={16} className="mr-2" /> Criar conta grátis
+                    <UserPlus size={16} className="mr-2" /> {tr('mk.freeAccount')}
                   </Button>
                   <Button size="lg" variant="outline" onClick={() => navigate("/login?next=marketplace")}>
-                    Já tenho conta
+                    {tr('mk.haveAccount')}
                   </Button>
                 </>
               ) : (
                 <Button size="lg" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
-                  <ShoppingCart size={16} className="mr-2" /> Ver catálogo
+                  <ShoppingCart size={16} className="mr-2" /> {tr('mk.seeCatalog')}
                 </Button>
               )}
             </div>
@@ -950,9 +943,9 @@ const Marketplace: React.FC = () => {
 
               <Tabs defaultValue="produto" className="mt-2">
                 <TabsList className="w-full">
-                  <TabsTrigger value="produto" className="flex-1">Produto</TabsTrigger>
+                  <TabsTrigger value="produto" className="flex-1">{tr('mk.product')}</TabsTrigger>
                   <TabsTrigger value="garantia" className="flex-1">
-                    <ShieldCheck size={14} className="mr-1.5" /> Garantia
+                    <ShieldCheck size={14} className="mr-1.5" /> {tr('mk.warranty')}
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="produto" className="space-y-3">
@@ -962,9 +955,9 @@ const Marketplace: React.FC = () => {
                         <Package size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-display text-sm font-semibold text-foreground mb-2">Sobre o ativo</h4>
+                        <h4 className="font-display text-sm font-semibold text-foreground mb-2">{tr('mk.about')}</h4>
                         <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                          {selected.description || "Sem descrição disponível para este ativo."}
+                          {selected.description || tr('mk.noDesc')}
                         </p>
                       </div>
                     </div>
@@ -976,11 +969,11 @@ const Marketplace: React.FC = () => {
                         <Sparkles size={15} />
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Quantidade</p>
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{tr('mk.qty')}</p>
                         <p className="text-xs text-primary mt-0.5">
                           {selected.stock_available && selected.stock_available > 0
-                            ? `${selected.stock_available} disponíveis`
-                            : "Sob consulta"}
+                            ? tr('mk.available', { n: selected.stock_available })
+                            : tr('mk.onRequest')}
                         </p>
                       </div>
                     </div>
@@ -993,13 +986,13 @@ const Marketplace: React.FC = () => {
 
                   <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/[0.03] p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Total</p>
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{tr('mk.total')}</p>
                       <p className="text-2xl font-bold text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]">
                         {fmtBRL((selected.discount_price ?? selected.sale_price) * buyingQty)}
                       </p>
                     </div>
                     <Button onClick={() => handleBuy(selected)} className="shadow-[0_0_24px_-6px_hsl(var(--primary)/0.6)]">
-                      <ShoppingCart size={14} className="mr-1.5" /> Comprar Agora
+                      <ShoppingCart size={14} className="mr-1.5" /> {tr('mk.buy')}
                     </Button>
                   </div>
                 </TabsContent>
@@ -1010,9 +1003,9 @@ const Marketplace: React.FC = () => {
                         <ShieldCheck size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-display text-sm font-semibold text-foreground mb-2">Termos de Garantia</h4>
+                        <h4 className="font-display text-sm font-semibold text-foreground mb-2">{tr('mk.warrantyTerms')}</h4>
                         <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                          {selected.warranty_terms || "➔ Garantia de 24 horas válida para:\n• Senha incorreta\n• Informações do perfil incorretas\n• Checkpoint instantâneo no primeiro login\n• Algum tipo de restrição no perfil\n\nRequisitos para garantia:\n• Login feito corretamente\n• Aquecimento do perfil realizado de forma adequada"}
+                          {selected.warranty_terms || tr('mk.defaultWarranty')}
                         </p>
                       </div>
                     </div>
@@ -1024,9 +1017,9 @@ const Marketplace: React.FC = () => {
                         <Info size={15} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-display text-sm font-semibold text-foreground mb-1">Informações importantes</h4>
+                        <h4 className="font-display text-sm font-semibold text-foreground mb-1">{tr('mk.important')}</h4>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          Ao realizar a compra, você concorda com os termos e condições de uso do produto. Leia atentamente a política de garantia antes de finalizar sua compra.
+                          {tr('mk.agree')}
                         </p>
                       </div>
                     </div>

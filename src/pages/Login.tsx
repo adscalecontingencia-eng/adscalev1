@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { tr } from '@/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -46,7 +47,7 @@ const Login: React.FC = () => {
     const result = await lovable.auth.signInWithOAuth('google', {
       redirect_uri: window.location.origin,
     });
-    if (result.error) setError((result.error as any).message || 'Erro no Google Sign-In');
+    if (result.error) setError((result.error as any).message || tr('auth.login.googleErr'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +63,7 @@ const Login: React.FC = () => {
         supabase.functions.invoke('record-access', { body: { action: 'login', email } }).catch(() => {});
       }
     } catch {
-      setError('Erro ao fazer login');
+      setError(tr('auth.login.loginErr'));
     } finally {
       setSubmitting(false);
     }
@@ -73,7 +74,7 @@ const Login: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-3">
           <Zap size={32} className="text-primary animate-bounce" />
-          <p className="text-muted-foreground text-sm">Carregando...</p>
+          <p className="text-muted-foreground text-sm">{tr('auth.login.loading')}</p>
         </div>
       </div>
     );
@@ -129,7 +130,7 @@ const Login: React.FC = () => {
           >
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-primary/60" />
             <p className="text-primary/80 text-[10px] uppercase tracking-[0.5em] font-medium">
-              {agencyBrand ? 'Client Panel' : 'Contingency Accounts'}
+              {agencyBrand ? tr('auth.login.clientPanel') : tr('auth.login.contingency')}
             </p>
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-primary/60" />
           </motion.div>

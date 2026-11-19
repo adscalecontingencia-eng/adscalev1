@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -31,8 +32,8 @@ const ResetPassword: React.FC = () => {
         window.history.replaceState(null, '', url.pathname + url.search + '#/reset-password');
         if (!cancelled) {
           if (error) {
-            setError('Link de recuperação inválido ou expirado. Solicite um novo.');
-            toast.error('Link inválido ou expirado');
+            setError(tr('auth.reset.invalidLink'));
+            toast.error(tr('auth.reset.invalidShort'));
           } else {
             setReady(true);
           }
@@ -63,13 +64,13 @@ const ResetPassword: React.FC = () => {
     e.preventDefault();
     setError('');
     if (password.length < 6) {
-      const msg = 'A senha deve ter pelo menos 6 caracteres';
+      const msg = tr('auth.reset.min6');
       setError(msg);
       toast.error(msg);
       return;
     }
     if (password !== confirm) {
-      const msg = 'As senhas não coincidem';
+      const msg = tr('auth.reset.mismatch');
       setError(msg);
       toast.error(msg);
       return;
@@ -78,20 +79,20 @@ const ResetPassword: React.FC = () => {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        const msg = error.message || 'Erro ao atualizar senha';
+        const msg = error.message || tr('auth.reset.updateErr');
         setError(msg);
-        toast.error('Não foi possível atualizar a senha', { description: msg });
+        toast.error(tr('auth.reset.cantUpdate'), { description: msg });
       } else {
         setSuccess(true);
-        toast.success('Senha atualizada com sucesso!', {
-          description: 'Você será redirecionado para o login.',
+        toast.success(tr('auth.reset.updated'), {
+          description: tr('auth.reset.redirect'),
         });
         await supabase.auth.signOut();
         setTimeout(() => navigate('/login'), 2500);
       }
     } catch {
-      setError('Erro ao atualizar senha');
-      toast.error('Erro ao atualizar senha');
+      setError(tr('auth.reset.updateErr'));
+      toast.error(tr('auth.reset.updateErr'));
     } finally {
       setSubmitting(false);
     }
@@ -116,19 +117,19 @@ const ResetPassword: React.FC = () => {
 
         <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-2xl p-7 space-y-5 shadow-lg shadow-black/10">
           <div className="text-center mb-2">
-            <h2 className="text-lg font-semibold text-foreground">Redefinir senha</h2>
-            <p className="text-muted-foreground text-xs mt-1">Crie uma nova senha para sua conta</p>
+            <h2 className="text-lg font-semibold text-foreground">{tr('auth.reset.title')}</h2>
+            <p className="text-muted-foreground text-xs mt-1">{tr('auth.reset.sub')}</p>
           </div>
 
           {success ? (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <CheckCircle2 size={40} className="text-primary" />
-              <p className="text-sm text-foreground">Senha atualizada!</p>
-              <p className="text-xs text-muted-foreground">Redirecionando para o login...</p>
+              <p className="text-sm text-foreground">{tr('auth.reset.done')}</p>
+              <p className="text-xs text-muted-foreground">{tr('auth.reset.redirecting')}</p>
             </div>
           ) : !ready ? (
             <div className="text-center py-6 text-xs text-muted-foreground">
-              Validando link de recuperação...
+              {tr('auth.reset.validating')}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -140,7 +141,7 @@ const ResetPassword: React.FC = () => {
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-muted-foreground">Nova senha</label>
+                <label className="block text-xs font-medium text-muted-foreground">{tr('auth.reset.newPw')}</label>
                 <div className="relative group">
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <input
@@ -156,7 +157,7 @@ const ResetPassword: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-muted-foreground">Confirmar senha</label>
+                <label className="block text-xs font-medium text-muted-foreground">{tr('auth.reset.confirm')}</label>
                 <div className="relative group">
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <input
@@ -176,7 +177,7 @@ const ResetPassword: React.FC = () => {
                 disabled={submitting}
                 className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none shadow-md shadow-primary/20"
               >
-                {submitting ? 'Salvando...' : 'Redefinir senha'}
+                {submitting ? tr('auth.reset.saving') : tr('auth.reset.title')}
               </button>
             </form>
           )}

@@ -4,8 +4,10 @@ import * as adminCore from './admin_core';
 import * as adminFinance from './admin_finance';
 import * as adminMeta from './admin_meta';
 import * as adminSupport from './admin_support';
+import * as marketplace from './marketplace';
+import * as auth from './auth';
 
-const areas = [client, agency, adminCore, adminFinance, adminMeta, adminSupport];
+const areas = [client, agency, adminCore, adminFinance, adminMeta, adminSupport, marketplace, auth];
 
 type Tree = Record<string, unknown>;
 const isTree = (v: unknown): v is Tree => !!v && typeof v === 'object' && !Array.isArray(v);

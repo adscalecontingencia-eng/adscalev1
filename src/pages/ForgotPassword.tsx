@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { tr } from '@/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
@@ -38,9 +39,9 @@ const ForgotPassword: React.FC = () => {
     try {
       await sendCode();
       setSent(true);
-      toast.success('Código enviado!', { description: `Enviamos um código para ${email}` });
+      toast.success(tr('auth.forgot.sent'), { description: tr('auth.forgot.sentTo', { email }) });
     } catch (err: any) {
-      const msg = /rate|seconds/i.test(err?.message || '') ? 'Aguarde um minuto antes de pedir outro código.' : (err?.message || 'Erro ao enviar e-mail');
+      const msg = /rate|seconds/i.test(err?.message || '') ? tr('auth.forgot.wait') : (err?.message || tr('auth.forgot.sendErr'));
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -50,22 +51,22 @@ const ForgotPassword: React.FC = () => {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (password.length < 8) return setError('A senha precisa ter pelo menos 8 caracteres.');
-    if (password !== confirm) return setError('As senhas não conferem.');
+    if (password.length < 8) return setError(tr('auth.forgot.min8'));
+    if (password !== confirm) return setError(tr('auth.forgot.mismatch'));
     setSubmitting(true);
     try {
       const { error: vErr } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: 'recovery' });
-      if (vErr) throw new Error('Código inválido ou expirado. Peça um novo código.');
+      if (vErr) throw new Error(tr('auth.forgot.invalidCode'));
       const { error: uErr } = await supabase.auth.updateUser({ password });
       if (uErr) {
         const m = uErr.message || '';
-        throw new Error(/pwned|leak|weak|known/i.test(m) ? 'Essa senha é fraca ou já apareceu em vazamentos. Escolha outra, misturando letras, números e símbolos.' : m);
+        throw new Error(/pwned|leak|weak|known/i.test(m) ? tr('auth.forgot.weak') : m);
       }
       await supabase.auth.signOut();
-      toast.success('Senha alterada! Entre com a nova senha.');
+      toast.success(tr('auth.forgot.changed'));
       navigate('/login');
     } catch (err: any) {
-      setError(err.message || 'Erro ao redefinir senha');
+      setError(err.message || tr('auth.forgot.resetErr'));
     } finally {
       setSubmitting(false);
     }
@@ -92,9 +93,9 @@ const ForgotPassword: React.FC = () => {
 
         <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-2xl p-7 space-y-5 shadow-lg shadow-black/10">
           <div className="text-center mb-2">
-            <h2 className="text-lg font-semibold text-foreground">Recuperar senha</h2>
+            <h2 className="text-lg font-semibold text-foreground">{tr('auth.forgot.title')}</h2>
             <p className="text-muted-foreground text-xs mt-1">
-              {sent ? 'Digite o código recebido no e-mail e sua nova senha' : 'Digite seu e-mail e enviaremos um código para redefinir sua senha'}
+              {sent ? tr('auth.forgot.enterCode') : tr('auth.forgot.enterEmail')}
             </p>
           </div>
 
@@ -107,16 +108,16 @@ const ForgotPassword: React.FC = () => {
                 </div>
               )}
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 size={14} className="text-primary" /> Código enviado para {email}. Veja também o spam.
+                <CheckCircle2 size={14} className="text-primary" /> {tr('auth.forgot.sentToSpam', { email })}
               </div>
-              <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder="Código do e-mail" className={inputCls + ' tracking-[0.4em] text-center font-mono'} required />
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha" className={inputCls} required />
-              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Confirmar nova senha" className={inputCls} required />
+              <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder={tr('auth.forgot.codePh')} className={inputCls + ' tracking-[0.4em] text-center font-mono'} required />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={tr('auth.forgot.newPw')} className={inputCls} required />
+              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder={tr('auth.forgot.confirmPw')} className={inputCls} required />
               <button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 shadow-md shadow-primary/20">
-                {submitting ? 'Salvando...' : 'Salvar nova senha'}
+                {submitting ? tr('auth.forgot.saving') : tr('auth.forgot.saveNew')}
               </button>
-              <button type="button" disabled={cooldown > 0 || submitting} onClick={async () => { setError(''); try { await sendCode(); toast.success('Novo código enviado'); } catch (err: any) { setError(err.message); } }} className="w-full text-xs text-muted-foreground hover:text-primary disabled:opacity-50">
-                {cooldown > 0 ? `Reenviar código em ${cooldown}s` : 'Reenviar código'}
+              <button type="button" disabled={cooldown > 0 || submitting} onClick={async () => { setError(''); try { await sendCode(); toast.success(tr('auth.forgot.resent')); } catch (err: any) { setError(err.message); } }} className="w-full text-xs text-muted-foreground hover:text-primary disabled:opacity-50">
+                {cooldown > 0 ? tr('auth.forgot.resendIn', { s: cooldown }) : tr('auth.forgot.resend')}
               </button>
             </form>
           ) : (
@@ -148,13 +149,13 @@ const ForgotPassword: React.FC = () => {
                 disabled={submitting}
                 className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none shadow-md shadow-primary/20"
               >
-                {submitting ? 'Enviando...' : 'Enviar código'}
+                {submitting ? tr('auth.forgot.sending') : tr('auth.forgot.send')}
               </button>
             </form>
           )}
 
           <Link to="/login" className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
-            <ArrowLeft size={14} /> Voltar para o login
+            <ArrowLeft size={14} /> {tr('auth.forgot.back')}
           </Link>
         </div>
       </motion.div>

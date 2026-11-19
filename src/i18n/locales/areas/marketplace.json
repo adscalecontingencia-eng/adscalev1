@@ -1,0 +1,422 @@
+{
+ "pt": {
+  "mk": {
+   "stats": {
+    "delivered": "Contas entregues",
+    "deliveredHint": "Operação 24/7",
+    "clients": "Clientes ativos",
+    "clientsHint": "Gestores escalando",
+    "countries": "Países atendidos",
+    "countriesHint": "Cobertura global",
+    "replace": "Reposição em até 24h",
+    "replaceHint": "Garantia AD SCALE"
+   },
+   "t1": {
+    "role": "Gestor de Tráfego",
+    "text": "A AD SCALE virou nossa base de operação. Compro de madrugada e em minutos a conta já está rodando campanha. Sem dor de cabeça."
+   },
+   "t2": {
+    "role": "Afiliada Black",
+    "text": "Já testei vários fornecedores e nenhum chega perto da qualidade das BMs daqui. Suporte responde no WhatsApp em segundos."
+   },
+   "t3": {
+    "role": "Agência Performance",
+    "text": "Estrutura completa: BM, perfis, proxy, multilogin. Conseguimos escalar 3x sem precisar gastar horas montando ativo."
+   },
+   "faq": {
+    "q1": "Como funciona a entrega das contas?",
+    "a1": "A maioria dos produtos é entregue automaticamente após a confirmação do Pix — o acesso aparece na sua área de pedidos em segundos. Itens marcados como manuais são liberados por um especialista em até alguns minutos no horário comercial.",
+    "q2": "Qual é a garantia oferecida?",
+    "a2": "Todos os ativos têm garantia de 24 horas para falhas de acesso, bloqueio no primeiro login ou divergência de descrição. Basta abrir um chamado no WhatsApp com print do erro que substituímos a unidade.",
+    "q3": "Vocês emitem nota fiscal?",
+    "a3": "Sim. Após o pagamento, basta solicitar a NF-e para o nosso suporte com seus dados de CNPJ ou CPF. Emitimos em até 1 dia útil.",
+    "q4": "Posso pagar com cartão ou boleto?",
+    "a4": "No momento trabalhamos exclusivamente com Pix instantâneo — é mais rápido, seguro e permite que a entrega automática aconteça em segundos.",
+    "q5": "Como entro na comunidade no WhatsApp?",
+    "a5": "Assim que você finaliza o cadastro com seu número, recebe o convite do grupo automaticamente. Lá compartilhamos novidades, lotes premium e suporte direto com o time."
+   },
+   "src": {
+    "all": "Todos"
+   },
+   "sub": {
+    "all": "Todas",
+    "bmAds": "BM para Ads",
+    "bmApi": "BM para disparo via API",
+    "profile": "Perfil"
+   },
+   "home": "Início",
+   "products": "Produtos",
+   "withSpend": "Ativos c/ Gastos",
+   "benefits": "Benefícios",
+   "contact": "Contato",
+   "addBalance": "Adicionar saldo",
+   "user": "Usuário",
+   "myProfile": "Meu perfil",
+   "profile": "Perfil",
+   "myOrders": "Meus Pedidos",
+   "affiliate": "Programa de Afiliados",
+   "logout": "Sair",
+   "login": "Entrar",
+   "signup": "Cadastrar",
+   "openMenu": "Abrir menu",
+   "menu": "Menu",
+   "nav": {
+    "catalog": "Catálogo",
+    "testimonials": "Depoimentos"
+   },
+   "whatsapp": "Falar no WhatsApp",
+   "myOrdersLower": "Meus pedidos",
+   "goPanel": "Ir para o painel",
+   "filter": "Filtrar produtos",
+   "show": "Mostrar",
+   "featured": "Em Destaque",
+   "new": "Novidades",
+   "category": "Categoria",
+   "metaSub": "Subcategoria Meta",
+   "maxPrice": "Preço máximo",
+   "clear": "Limpar",
+   "seeN_one": "Ver {{count}} produto",
+   "seeN_other": "Ver {{count}} produtos",
+   "heroA": "Escale suas campanhas",
+   "heroB": "sem travar na contingência.",
+   "heroSub": "Contas <span class=\"text-foreground font-semibold\">Meta</span>, <span class=\"text-foreground font-semibold\">TikTok</span> e <span class=\"text-foreground font-semibold\">Google Ads</span> de qualidade, com o melhor custo benefício do mercado.",
+   "seeProducts": "Conferir produtos",
+   "getInTouch": "Entrar em contato",
+   "pix": "Entrega via Pix",
+   "warranty24": "Garantia de 24h",
+   "support7": "Suporte 7 dias",
+   "clients2300": "+2.300 clientes",
+   "live": "Live",
+   "why": "Por que AD SCALE",
+   "infra": "Infraestrutura completa para quem vive de tráfego",
+   "b1": {
+    "title": "Entrega em segundos",
+    "text": "Confirmou o Pix, recebeu o acesso. Tudo automatizado e disponível no painel imediatamente."
+   },
+   "b2": {
+    "title": "Garantia real de 24h",
+    "text": "Conta bloqueada ou divergente? Substituímos sem burocracia. Você não fica na mão."
+   },
+   "b3": {
+    "title": "Suporte humano no WhatsApp",
+    "text": "Time de especialistas em ads disponível 7 dias por semana para destravar sua operação."
+   },
+   "categories": "Categorias",
+   "explore": "Explore nossas categorias",
+   "findAsset": "Encontre o ativo certo para escalar sua operação.",
+   "cat": {
+    "tiktok": "BC Verificados · Restabelecidos · Resistentes",
+    "bmMsg": "BMs de Disparos",
+    "bmMsgDesc": "Verificadas · Waba aprovado · Com e sem template",
+    "fbProfiles": "Perfis Facebook",
+    "fbProfilesDesc": "Perfis antigos · Com cookies · Com 2FA · Brasileiros",
+    "fbBms": "BMs Facebook",
+    "fbBmsDesc": "BMs antigas · Limites altos · Sem gastos"
+   },
+   "premium": "Premium",
+   "withSpendTitle": "Ativos com Gastos",
+   "withSpendDesc": "BMs com histórico de gastos, limites elevados e contas prontas para escalar.",
+   "faqTitle": "Perguntas frequentes",
+   "faqSub": "Tudo o que você precisa saber antes de comprar.",
+   "community": "Comunidade exclusiva",
+   "ready": "Pronto para escalar com a",
+   "ctaDesc": "Crie sua conta em menos de 1 minuto, finalize sua primeira compra via Pix e entre na nossa comunidade de tráfego no WhatsApp.",
+   "freeAccount": "Criar conta grátis",
+   "haveAccount": "Já tenho conta",
+   "seeCatalog": "Ver catálogo",
+   "product": "Produto",
+   "warranty": "Garantia",
+   "about": "Sobre o ativo",
+   "noDesc": "Sem descrição disponível para este ativo.",
+   "qty": "Quantidade",
+   "available": "{{n}} disponíveis",
+   "onRequest": "Sob consulta",
+   "total": "Total",
+   "buy": "Comprar Agora",
+   "warrantyTerms": "Termos de Garantia",
+   "defaultWarranty": "➔ Garantia de 24 horas válida para:\n• Senha incorreta\n• Informações do perfil incorretas\n• Checkpoint instantâneo no primeiro login\n• Algum tipo de restrição no perfil\n\nRequisitos para garantia:\n• Login feito corretamente\n• Aquecimento do perfil realizado de forma adequada",
+   "important": "Informações importantes",
+   "agree": "Ao realizar a compra, você concorda com os termos e condições de uso do produto. Leia atentamente a política de garantia antes de finalizar sua compra."
+  }
+ },
+ "en": {
+  "mk": {
+   "stats": {
+    "delivered": "Accounts delivered",
+    "deliveredHint": "24/7 operation",
+    "clients": "Active clients",
+    "clientsHint": "Media buyers scaling",
+    "countries": "Countries served",
+    "countriesHint": "Global coverage",
+    "replace": "Replacement within 24h",
+    "replaceHint": "AD SCALE guarantee"
+   },
+   "t1": {
+    "role": "Media Buyer",
+    "text": "AD SCALE became our operations base. I buy in the middle of the night and within minutes the account is already running campaigns. No headaches."
+   },
+   "t2": {
+    "role": "Black-hat affiliate",
+    "text": "I've tried many suppliers and none come close to the quality of the BMs here. Support replies on WhatsApp in seconds."
+   },
+   "t3": {
+    "role": "Performance Agency",
+    "text": "Complete structure: BM, profiles, proxy, multilogin. We scaled 3x without spending hours building assets."
+   },
+   "faq": {
+    "q1": "How does account delivery work?",
+    "a1": "Most products are delivered automatically once the Pix is confirmed — access shows up in your orders area within seconds. Items marked as manual are released by a specialist within a few minutes during business hours.",
+    "q2": "What guarantee is offered?",
+    "a2": "All assets have a 24-hour guarantee for access failures, blocking on first login or description mismatch. Just open a ticket on WhatsApp with a screenshot of the error and we'll replace the unit.",
+    "q3": "Do you issue invoices?",
+    "a3": "Yes. After payment, just request the NF-e (Brazilian invoice) from our support with your CNPJ or CPF details. We issue it within 1 business day.",
+    "q4": "Can I pay by card or boleto?",
+    "a4": "For now we work exclusively with instant Pix — it's faster, safer and lets automatic delivery happen in seconds.",
+    "q5": "How do I join the WhatsApp community?",
+    "a5": "As soon as you finish signing up with your number, you get the group invite automatically. There we share news, premium batches and direct support from the team."
+   },
+   "src": {
+    "all": "All"
+   },
+   "sub": {
+    "all": "All",
+    "bmAds": "BM for Ads",
+    "bmApi": "BM for API messaging",
+    "profile": "Profile"
+   },
+   "home": "Home",
+   "products": "Products",
+   "withSpend": "Assets w/ Spend",
+   "benefits": "Benefits",
+   "contact": "Contact",
+   "addBalance": "Add balance",
+   "user": "User",
+   "myProfile": "My profile",
+   "profile": "Profile",
+   "myOrders": "My Orders",
+   "affiliate": "Affiliate Program",
+   "logout": "Log out",
+   "login": "Sign in",
+   "signup": "Sign up",
+   "openMenu": "Open menu",
+   "menu": "Menu",
+   "nav": {
+    "catalog": "Catalog",
+    "testimonials": "Testimonials"
+   },
+   "whatsapp": "Chat on WhatsApp",
+   "myOrdersLower": "My orders",
+   "goPanel": "Go to dashboard",
+   "filter": "Filter products",
+   "show": "Show",
+   "featured": "Featured",
+   "new": "New",
+   "category": "Category",
+   "metaSub": "Meta subcategory",
+   "maxPrice": "Max price",
+   "clear": "Clear",
+   "seeN_one": "See {{count}} product",
+   "seeN_other": "See {{count}} products",
+   "heroA": "Scale your campaigns",
+   "heroB": "without getting stuck on contingency.",
+   "heroSub": "Quality <span class=\"text-foreground font-semibold\">Meta</span>, <span class=\"text-foreground font-semibold\">TikTok</span> and <span class=\"text-foreground font-semibold\">Google Ads</span> accounts, with the best value on the market.",
+   "seeProducts": "See products",
+   "getInTouch": "Get in touch",
+   "pix": "Delivery via Pix",
+   "warranty24": "24h guarantee",
+   "support7": "7-day support",
+   "clients2300": "+2,300 clients",
+   "live": "Live",
+   "why": "Why AD SCALE",
+   "infra": "Complete infrastructure for those who live off traffic",
+   "b1": {
+    "title": "Delivery in seconds",
+    "text": "Pix confirmed, access received. Fully automated and available in the dashboard right away."
+   },
+   "b2": {
+    "title": "Real 24h guarantee",
+    "text": "Blocked or mismatched account? We replace it without red tape. You're never left hanging."
+   },
+   "b3": {
+    "title": "Human support on WhatsApp",
+    "text": "A team of ads specialists available 7 days a week to unblock your operation."
+   },
+   "categories": "Categories",
+   "explore": "Explore our categories",
+   "findAsset": "Find the right asset to scale your operation.",
+   "cat": {
+    "tiktok": "Verified BC · Reinstated · Resilient",
+    "bmMsg": "Messaging BMs",
+    "bmMsgDesc": "Verified · WABA approved · With and without template",
+    "fbProfiles": "Facebook Profiles",
+    "fbProfilesDesc": "Aged profiles · With cookies · With 2FA · Brazilian",
+    "fbBms": "Facebook BMs",
+    "fbBmsDesc": "Aged BMs · High limits · No spend"
+   },
+   "premium": "Premium",
+   "withSpendTitle": "Assets with Spend",
+   "withSpendDesc": "BMs with spend history, high limits and accounts ready to scale.",
+   "faqTitle": "Frequently asked questions",
+   "faqSub": "Everything you need to know before buying.",
+   "community": "Exclusive community",
+   "ready": "Ready to scale with",
+   "ctaDesc": "Create your account in under 1 minute, complete your first purchase via Pix and join our traffic community on WhatsApp.",
+   "freeAccount": "Create free account",
+   "haveAccount": "I already have an account",
+   "seeCatalog": "See catalog",
+   "product": "Product",
+   "warranty": "Guarantee",
+   "about": "About the asset",
+   "noDesc": "No description available for this asset.",
+   "qty": "Quantity",
+   "available": "{{n}} available",
+   "onRequest": "On request",
+   "total": "Total",
+   "buy": "Buy Now",
+   "warrantyTerms": "Guarantee Terms",
+   "defaultWarranty": "➔ 24-hour guarantee valid for:\n• Wrong password\n• Wrong profile information\n• Instant checkpoint on first login\n• Any kind of restriction on the profile\n\nGuarantee requirements:\n• Login done correctly\n• Profile warm-up done properly",
+   "important": "Important information",
+   "agree": "By purchasing, you agree to the product's terms and conditions of use. Read the guarantee policy carefully before completing your purchase."
+  }
+ },
+ "es": {
+  "mk": {
+   "stats": {
+    "delivered": "Cuentas entregadas",
+    "deliveredHint": "Operación 24/7",
+    "clients": "Clientes activos",
+    "clientsHint": "Gestores escalando",
+    "countries": "Países atendidos",
+    "countriesHint": "Cobertura global",
+    "replace": "Reposición en hasta 24h",
+    "replaceHint": "Garantía AD SCALE"
+   },
+   "t1": {
+    "role": "Gestor de Tráfico",
+    "text": "AD SCALE se convirtió en nuestra base de operación. Compro de madrugada y en minutos la cuenta ya está corriendo campañas. Sin dolores de cabeza."
+   },
+   "t2": {
+    "role": "Afiliada Black",
+    "text": "Ya probé varios proveedores y ninguno se acerca a la calidad de los BMs de aquí. El soporte responde por WhatsApp en segundos."
+   },
+   "t3": {
+    "role": "Agencia Performance",
+    "text": "Estructura completa: BM, perfiles, proxy, multilogin. Logramos escalar 3x sin gastar horas armando activos."
+   },
+   "faq": {
+    "q1": "¿Cómo funciona la entrega de las cuentas?",
+    "a1": "La mayoría de los productos se entrega automáticamente tras la confirmación del Pix — el acceso aparece en tu área de pedidos en segundos. Los artículos marcados como manuales los libera un especialista en pocos minutos en horario comercial.",
+    "q2": "¿Qué garantía se ofrece?",
+    "a2": "Todos los activos tienen garantía de 24 horas por fallas de acceso, bloqueo en el primer login o diferencias con la descripción. Solo abre un ticket por WhatsApp con captura del error y reemplazamos la unidad.",
+    "q3": "¿Emiten factura?",
+    "a3": "Sí. Tras el pago, solicita la NF-e (factura brasileña) a nuestro soporte con tus datos de CNPJ o CPF. La emitimos en hasta 1 día hábil.",
+    "q4": "¿Puedo pagar con tarjeta o boleto?",
+    "a4": "Por ahora trabajamos exclusivamente con Pix instantáneo — es más rápido, seguro y permite que la entrega automática ocurra en segundos.",
+    "q5": "¿Cómo entro a la comunidad de WhatsApp?",
+    "a5": "En cuanto terminas el registro con tu número, recibes la invitación al grupo automáticamente. Allí compartimos novedades, lotes premium y soporte directo con el equipo."
+   },
+   "src": {
+    "all": "Todos"
+   },
+   "sub": {
+    "all": "Todas",
+    "bmAds": "BM para Ads",
+    "bmApi": "BM para envíos vía API",
+    "profile": "Perfil"
+   },
+   "home": "Inicio",
+   "products": "Productos",
+   "withSpend": "Activos c/ Gastos",
+   "benefits": "Beneficios",
+   "contact": "Contacto",
+   "addBalance": "Agregar saldo",
+   "user": "Usuario",
+   "myProfile": "Mi perfil",
+   "profile": "Perfil",
+   "myOrders": "Mis Pedidos",
+   "affiliate": "Programa de Afiliados",
+   "logout": "Salir",
+   "login": "Ingresar",
+   "signup": "Registrarse",
+   "openMenu": "Abrir menú",
+   "menu": "Menú",
+   "nav": {
+    "catalog": "Catálogo",
+    "testimonials": "Testimonios"
+   },
+   "whatsapp": "Hablar por WhatsApp",
+   "myOrdersLower": "Mis pedidos",
+   "goPanel": "Ir al panel",
+   "filter": "Filtrar productos",
+   "show": "Mostrar",
+   "featured": "Destacados",
+   "new": "Novedades",
+   "category": "Categoría",
+   "metaSub": "Subcategoría Meta",
+   "maxPrice": "Precio máximo",
+   "clear": "Limpiar",
+   "seeN_one": "Ver {{count}} producto",
+   "seeN_other": "Ver {{count}} productos",
+   "heroA": "Escala tus campañas",
+   "heroB": "sin trabarte en la contingencia.",
+   "heroSub": "Cuentas <span class=\"text-foreground font-semibold\">Meta</span>, <span class=\"text-foreground font-semibold\">TikTok</span> y <span class=\"text-foreground font-semibold\">Google Ads</span> de calidad, con la mejor relación costo-beneficio del mercado.",
+   "seeProducts": "Ver productos",
+   "getInTouch": "Contactar",
+   "pix": "Entrega vía Pix",
+   "warranty24": "Garantía de 24h",
+   "support7": "Soporte 7 días",
+   "clients2300": "+2.300 clientes",
+   "live": "En vivo",
+   "why": "Por qué AD SCALE",
+   "infra": "Infraestructura completa para quien vive del tráfico",
+   "b1": {
+    "title": "Entrega en segundos",
+    "text": "Confirmaste el Pix, recibiste el acceso. Todo automatizado y disponible en el panel de inmediato."
+   },
+   "b2": {
+    "title": "Garantía real de 24h",
+    "text": "¿Cuenta bloqueada o distinta? La reemplazamos sin burocracia. No te quedas a la deriva."
+   },
+   "b3": {
+    "title": "Soporte humano por WhatsApp",
+    "text": "Equipo de especialistas en ads disponible 7 días a la semana para destrabar tu operación."
+   },
+   "categories": "Categorías",
+   "explore": "Explora nuestras categorías",
+   "findAsset": "Encuentra el activo correcto para escalar tu operación.",
+   "cat": {
+    "tiktok": "BC Verificados · Restablecidos · Resistentes",
+    "bmMsg": "BMs de Envíos",
+    "bmMsgDesc": "Verificados · WABA aprobado · Con y sin plantilla",
+    "fbProfiles": "Perfiles de Facebook",
+    "fbProfilesDesc": "Perfiles antiguos · Con cookies · Con 2FA · Brasileños",
+    "fbBms": "BMs de Facebook",
+    "fbBmsDesc": "BMs antiguos · Límites altos · Sin gastos"
+   },
+   "premium": "Premium",
+   "withSpendTitle": "Activos con Gastos",
+   "withSpendDesc": "BMs con historial de gastos, límites elevados y cuentas listas para escalar.",
+   "faqTitle": "Preguntas frecuentes",
+   "faqSub": "Todo lo que necesitas saber antes de comprar.",
+   "community": "Comunidad exclusiva",
+   "ready": "Listo para escalar con",
+   "ctaDesc": "Crea tu cuenta en menos de 1 minuto, finaliza tu primera compra vía Pix y entra en nuestra comunidad de tráfico en WhatsApp.",
+   "freeAccount": "Crear cuenta gratis",
+   "haveAccount": "Ya tengo cuenta",
+   "seeCatalog": "Ver catálogo",
+   "product": "Producto",
+   "warranty": "Garantía",
+   "about": "Sobre el activo",
+   "noDesc": "Sin descripción disponible para este activo.",
+   "qty": "Cantidad",
+   "available": "{{n}} disponibles",
+   "onRequest": "Bajo consulta",
+   "total": "Total",
+   "buy": "Comprar Ahora",
+   "warrantyTerms": "Términos de Garantía",
+   "defaultWarranty": "➔ Garantía de 24 horas válida para:\n• Contraseña incorrecta\n• Información del perfil incorrecta\n• Checkpoint instantáneo en el primer login\n• Algún tipo de restricción en el perfil\n\nRequisitos para la garantía:\n• Login realizado correctamente\n• Calentamiento del perfil realizado de forma adecuada",
+   "important": "Información importante",
+   "agree": "Al realizar la compra, aceptas los términos y condiciones de uso del producto. Lee atentamente la política de garantía antes de finalizar tu compra."
+  }
+ }
+}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { tr } from '@/i18n';
 import { useNavigate } from "react-router-dom";
 import { Phone, CheckCircle2, AlertCircle } from "lucide-react";
 import AdScaleLogo from "@/components/AdScaleLogo";
@@ -22,7 +23,7 @@ const CompleteSignup: React.FC = () => {
     e.preventDefault();
     setError("");
     const digits = phone.replace(/\D+/g, "");
-    if (digits.length < 10) return setError("Telefone inválido");
+    if (digits.length < 10) return setError(tr('auth.complete.invalidPhone'));
     setSubmitting(true);
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -36,12 +37,12 @@ const CompleteSignup: React.FC = () => {
         body: JSON.stringify({ phone: digits }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.error) throw new Error(data?.error || `Erro (HTTP ${res.status})`);
+      if (!res.ok || data?.error) throw new Error(data?.error || tr('auth.complete.httpErr', { s: res.status }));
       // Refresh page so AuthContext re-fetches profile with the new role
       window.location.hash = "#/marketplace";
       window.location.reload();
     } catch (e: any) {
-      setError(e.message || "Erro ao salvar telefone");
+      setError(e.message || tr('auth.complete.saveErr'));
     } finally {
       setSubmitting(false);
     }
@@ -52,14 +53,14 @@ const CompleteSignup: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6 text-primary">
           <AdScaleLogo size={48} />
-          <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3">Complete seu cadastro</p>
+          <p className="text-primary/70 text-[10px] uppercase tracking-[0.4em] mt-3">{tr('auth.complete.title')}</p>
         </div>
 
         <form onSubmit={submit} className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl p-6 space-y-4 shadow-2xl">
           <div>
-            <h2 className="font-display text-lg font-semibold">Falta só o WhatsApp</h2>
+            <h2 className="font-display text-lg font-semibold">{tr('auth.complete.onlyWa')}</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Precisamos do seu número para enviar atualizações dos pedidos e te adicionar ao grupo de suporte.
+              {tr('auth.complete.why')}
             </p>
           </div>
 
@@ -70,7 +71,7 @@ const CompleteSignup: React.FC = () => {
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">WhatsApp (com DDD)</label>
+            <label className="text-xs font-medium text-muted-foreground">{tr('auth.complete.wa')}</label>
             <div className="relative">
               <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -84,7 +85,7 @@ const CompleteSignup: React.FC = () => {
           </div>
 
           <button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:brightness-110 disabled:opacity-50">
-            {submitting ? "Salvando…" : "Concluir cadastro"}
+            {submitting ? tr('auth.complete.saving') : tr('auth.complete.finish')}
           </button>
         </form>
       </div>
