@@ -1,3 +1,4 @@
+import { localizedMap } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ManualAdjustmentInput {
@@ -38,10 +39,10 @@ export async function logManualAdjustment(input: ManualAdjustmentInput) {
   }
 }
 
-export const ADJUSTMENT_TYPE_LABELS: Record<string, string> = {
+export const ADJUSTMENT_TYPE_LABELS: Record<string, string> = localizedMap('fin.adjType', {
   insights_backfill: 'Backfill de gastos',
   commission_override: 'Ajuste de comissão',
   balance_correction: 'Correção de saldo',
   payment_manual: 'Pagamento manual',
   other: 'Outro',
-};
+});

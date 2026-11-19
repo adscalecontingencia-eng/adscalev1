@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { PageHero } from '@/components/ui-kit';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -76,8 +77,8 @@ export default function ManualAdjustments() {
   return (
     <div className="space-y-6">
       <PageHero
-        title="Ajustes Manuais"
-        description="Histórico de todas as correções feitas manualmente pela equipe (gastos, comissões, saldos)."
+        title={tr('fin.adj.title')}
+        description={tr('fin.adj.desc')}
       />
 
 
@@ -86,7 +87,7 @@ export default function ManualAdjustments() {
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por cliente, conta, usuário ou motivo..."
+              placeholder={tr('fin.adj.search')}
               value={q}
               onChange={e => setQ(e.target.value)}
               className="pl-8"
@@ -98,14 +99,14 @@ export default function ManualAdjustments() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="all">{tr('fin.adj.allTypes')}</SelectItem>
               {types.map(t => (
                 <SelectItem key={t} value={t}>{ADJUSTMENT_TYPE_LABELS[t] || t}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> {tr('fin.adj.refresh')}
           </Button>
           <div className="text-sm text-muted-foreground ml-auto">
             {filtered.length} de {rows.length} registros
@@ -118,23 +119,23 @@ export default function ManualAdjustments() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-muted-foreground">
               <tr className="text-left">
-                <th className="p-3">Data</th>
-                <th className="p-3">Usuário</th>
-                <th className="p-3">Cliente</th>
-                <th className="p-3">Tipo</th>
-                <th className="p-3">Contas</th>
-                <th className="p-3">Período</th>
-                <th className="p-3 text-right">Anterior</th>
-                <th className="p-3 text-right">Novo</th>
+                <th className="p-3">{tr('fin.adj.th.date')}</th>
+                <th className="p-3">{tr('fin.adj.th.user')}</th>
+                <th className="p-3">{tr('fin.adj.th.client')}</th>
+                <th className="p-3">{tr('fin.adj.th.type')}</th>
+                <th className="p-3">{tr('fin.adj.th.accounts')}</th>
+                <th className="p-3">{tr('fin.adj.th.period')}</th>
+                <th className="p-3 text-right">{tr('fin.adj.th.prev')}</th>
+                <th className="p-3 text-right">{tr('fin.adj.th.new')}</th>
                 <th className="p-3 text-right">Δ</th>
-                <th className="p-3">Motivo</th>
+                <th className="p-3">{tr('fin.adj.th.reason')}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Carregando…</td></tr>
+                <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">{tr('fin.adj.loading')}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Nenhum ajuste encontrado.</td></tr>
+                <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">{tr('fin.adj.none')}</td></tr>
               ) : filtered.map(r => (
                 <tr key={r.id} className="border-t border-border/50 hover:bg-muted/20 align-top">
                   <td className="p-3 whitespace-nowrap font-mono text-xs">

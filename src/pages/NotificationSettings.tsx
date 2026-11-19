@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { Bell, Mail, MessageCircle, Save, Plus, Trash2, ShieldAlert, Building2, CreditCard, Globe } from "lucide-react";
 import { PageHero, Panel } from "@/components/ui-kit";
@@ -9,16 +10,16 @@ type AssetType = "Conta" | "BM" | "Página" | "Perfil" | "Pixel";
 type EventType = "account_blocked" | "bm_unverified" | "event_detected" | "event_resolved";
 
 const CHANNELS: { id: Channel; label: string; Icon: React.ElementType }[] = [
-  { id: "central",  label: "Central",  Icon: Bell },
-  { id: "email",    label: "E-mail",   Icon: Mail },
+  { id: "central", get label() { return tr('fin.ns.ch.central'); }, Icon: Bell },
+  { id: "email", get label() { return tr('fin.ns.ch.email'); }, Icon: Mail },
   { id: "whatsapp", label: "WhatsApp", Icon: MessageCircle },
 ];
 
 const EVENTS: { id: EventType; label: string }[] = [
-  { id: "account_blocked",  label: "Conta bloqueada" },
-  { id: "bm_unverified",    label: "BM não verificada" },
-  { id: "event_detected",   label: "Evento detectado" },
-  { id: "event_resolved",   label: "Evento resolvido" },
+  { id: "account_blocked", get label() { return tr('fin.ns.ev.account_blocked'); } },
+  { id: "bm_unverified", get label() { return tr('fin.ns.ev.bm_unverified'); } },
+  { id: "event_detected", get label() { return tr('fin.ns.ev.event_detected'); } },
+  { id: "event_resolved", get label() { return tr('fin.ns.ev.event_resolved'); } },
 ];
 
 const ASSET_TYPES: AssetType[] = ["Conta", "BM", "Página", "Perfil", "Pixel"];
@@ -121,9 +122,9 @@ const NotificationSettings: React.FC = () => {
         const { error } = await supabase.from("notification_preferences").insert(rows);
         if (error) throw error;
       }
-      toast.success("Preferências salvas");
+      toast.success(tr('fin.ns.saved'));
     } catch (e: any) {
-      toast.error("Erro ao salvar: " + e.message);
+      toast.error(tr('fin.ns.saveError') + " " + e.message);
     } finally {
       setSaving(false);
     }
@@ -133,29 +134,29 @@ const NotificationSettings: React.FC = () => {
     Conta: CreditCard, BM: Building2, Página: Globe, Perfil: ShieldAlert, Pixel: ShieldAlert,
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground text-sm">Carregando preferências…</div>;
+  if (loading) return <div className="p-8 text-muted-foreground text-sm">{tr('fin.ns.loading')}</div>;
 
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Preferências"
-        title="Notificações"
-        description="Defina quais eventos chegam na Central, no e-mail e no WhatsApp — com granularidade por tipo de ativo e ativo específico."
+        eyebrow={tr('fin.ns.eyebrow')}
+        title={tr('fin.ns.title')}
+        description={tr('fin.ns.desc')}
         actions={
           <button onClick={save} disabled={saving}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60">
-            <Save size={14} /> {saving ? "Salvando…" : "Salvar"}
+            <Save size={14} /> {saving ? tr('fin.ns.saving') : tr('fin.ns.save')}
           </button>
         }
       />
 
-      <Panel title="Padrões por canal e tipo de ativo"
-        subtitle="Ative ou desative cada combinação. Específicos abaixo sobrescrevem estes padrões.">
+      <Panel title={tr('fin.ns.defaults')}
+        subtitle={tr('fin.ns.defaultsSub')}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground/70 border-b border-border/60">
-                <th className="text-left p-2 font-medium">Evento × Ativo</th>
+                <th className="text-left p-2 font-medium">{tr('fin.ns.matrix')}</th>
                 {CHANNELS.map(c => (
                   <th key={c.id} className="p-2 font-medium">
                     <div className="flex items-center justify-center gap-1">
@@ -174,7 +175,7 @@ const NotificationSettings: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <AIcon size={12} className="text-muted-foreground/60" />
                         <span className="text-foreground/90">{ev.label}</span>
-                        <span className="text-[10px] text-muted-foreground/60">/ {at}</span>
+                        <span className="text-[10px] text-muted-foreground/60">/ {tr(`admin.notif.asset.${at}`)}</span>
                       </div>
                     </td>
                     {CHANNELS.map(c => (
@@ -194,20 +195,20 @@ const NotificationSettings: React.FC = () => {
           </table>
         </div>
         <p className="text-[10px] text-muted-foreground/60 mt-3">
-          E-mail e WhatsApp: as preferências são salvas, mas a entrega depende da configuração de envio (a habilitar separadamente).
+          {tr('fin.ns.delivery')}
         </p>
       </Panel>
 
-      <Panel title="Regras específicas por ativo"
-        subtitle="Sobrescreva o padrão para uma BM, conta, perfil ou página específica."
+      <Panel title={tr('fin.ns.rules')}
+        subtitle={tr('fin.ns.rulesSub')}
         actions={
           <button onClick={addOverride}
             className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
-            <Plus size={12} /> Adicionar regra
+            <Plus size={12} /> {tr('fin.ns.addRule')}
           </button>
         }>
         {overrides.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma regra específica. Use os padrões acima ou adicione uma exceção.</p>
+          <p className="text-xs text-muted-foreground py-4 text-center">{tr('fin.ns.noRules')}</p>
         ) : (
           <div className="space-y-2">
             {overrides.map((o, i) => (
@@ -218,12 +219,12 @@ const NotificationSettings: React.FC = () => {
                 </select>
                 <select value={o.event_type} onChange={(e) => updateOverride(i, { event_type: e.target.value })}
                   className="bg-background border border-border/60 rounded-md px-2 py-1 text-xs">
-                  <option value="*">Todos eventos</option>
+                  <option value="*">{tr('fin.ns.allEvents')}</option>
                   {EVENTS.map(ev => <option key={ev.id} value={ev.id}>{ev.label}</option>)}
                 </select>
                 <select value={o.asset_type} onChange={(e) => updateOverride(i, { asset_type: e.target.value })}
                   className="bg-background border border-border/60 rounded-md px-2 py-1 text-xs">
-                  {ASSET_TYPES.map(at => <option key={at} value={at}>{at}</option>)}
+                  {ASSET_TYPES.map(at => <option key={at} value={at}>{tr(`admin.notif.asset.${at}`)}</option>)}
                 </select>
                 <select value={o.asset_id} onChange={(e) => updateOverride(i, { asset_id: e.target.value })}
                   className="bg-background border border-border/60 rounded-md px-2 py-1 text-xs flex-1 min-w-[160px]">
@@ -234,7 +235,7 @@ const NotificationSettings: React.FC = () => {
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                   <input type="checkbox" checked={o.enabled} onChange={(e) => updateOverride(i, { enabled: e.target.checked })}
                     className="w-4 h-4 accent-primary" />
-                  <span className={o.enabled ? "text-primary" : "text-muted-foreground"}>{o.enabled ? "Receber" : "Silenciar"}</span>
+                  <span className={o.enabled ? "text-primary" : "text-muted-foreground"}>{o.enabled ? tr('fin.ns.receive') : tr('fin.ns.mute')}</span>
                 </label>
                 <button onClick={() => removeOverride(i)} className="text-muted-foreground hover:text-destructive p-1">
                   <Trash2 size={12} />

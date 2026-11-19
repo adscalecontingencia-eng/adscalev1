@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { tr, localizedMap } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RefreshCw, ShieldCheck, ShieldAlert, KeyRound, Search, Mail, CheckCircle2, XCircle } from "lucide-react";
@@ -38,7 +39,7 @@ interface AuditData {
   orphan_auth: OrphanRow[];
 }
 
-const issueLabels: Record<string, string> = {
+const issueLabels: Record<string, string> = localizedMap('fin.auth.issue', {
   sem_auth_user_id: "Cliente sem auth_user_id",
   usuario_auth_nao_encontrado: "Sem usuário no Auth",
   email_diverge_do_auth: "E-mail diverge do Auth vinculado",
@@ -46,7 +47,7 @@ const issueLabels: Record<string, string> = {
   email_nao_confirmado: "E-mail não confirmado",
   sem_role_client: "Sem role 'client'",
   email_difere_entre_tabelas: "E-mail difere entre clients e auth",
-};
+});
 
 const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleString("pt-BR") : "—");
 
@@ -62,7 +63,7 @@ const ClientsAuthAudit: React.FC = () => {
     const { data: res, error } = await supabase.functions.invoke("clients-auth-audit");
     setLoading(false);
     if (error || (res as any)?.error) {
-      toast.error((res as any)?.error || error?.message || "Erro ao carregar auditoria");
+      toast.error((res as any)?.error || error?.message || tr('fin.auth.loadError'));
       return;
     }
     setData(res as AuditData);
@@ -87,40 +88,40 @@ const ClientsAuthAudit: React.FC = () => {
   }, [data, filter, search]);
 
   const handleReset = async (row: ReportRow) => {
-    const newPwd = window.prompt(`Nova senha para ${row.name} (${row.client_email}). Mínimo 6 caracteres:`);
+    const newPwd = window.prompt(tr('fin.auth.pwPrompt', { name: row.name, email: row.client_email }));
     if (!newPwd) return;
-    if (newPwd.length < 6) { toast.error("Senha precisa ter ao menos 6 caracteres"); return; }
+    if (newPwd.length < 6) { toast.error(tr('admin.clients.pw6')); return; }
     setBusyId(row.client_id);
     const { data: res, error } = await supabase.functions.invoke("manage-users", {
       body: { action: "reset_password", client_id: row.client_id, new_password: newPwd },
     });
     setBusyId(null);
     if (error || (res as any)?.error) {
-      toast.error((res as any)?.error || error?.message || "Erro ao redefinir senha");
+      toast.error((res as any)?.error || error?.message || tr('admin.clients.resetPwError'));
       return;
     }
-    toast.success("Senha redefinida");
+    toast.success(tr('fin.auth.pwReset'));
   };
 
   const handleResetLogin = async (row: ReportRow) => {
     const currentEmail = row.auth_email || row.client_email || "";
     const newEmail = window.prompt(
-      `Redefinir LOGIN completo de ${row.name}.\n\nNovo e-mail (deixe igual para não alterar):`,
+      tr('fin.auth.loginPrompt', { name: row.name }),
       currentEmail
     );
     if (newEmail === null) return;
     const emailTrim = newEmail.trim();
-    if (!emailTrim || !emailTrim.includes("@")) { toast.error("E-mail inválido"); return; }
+    if (!emailTrim || !emailTrim.includes("@")) { toast.error(tr('admin.clients.invalidEmail')); return; }
 
     const newPwd = window.prompt(
-      `Nova senha para ${row.name}.\n\nDeixe em branco para manter a senha atual. Mínimo 6 caracteres:`
+      tr('fin.auth.pwOptPrompt', { name: row.name })
     );
     if (newPwd === null) return;
     const pwd = newPwd.trim();
-    if (pwd && pwd.length < 6) { toast.error("Senha precisa ter ao menos 6 caracteres"); return; }
+    if (pwd && pwd.length < 6) { toast.error(tr('admin.clients.pw6')); return; }
 
     const emailChanged = emailTrim.toLowerCase() !== currentEmail.toLowerCase();
-    if (!emailChanged && !pwd) { toast.info("Nada para alterar"); return; }
+    if (!emailChanged && !pwd) { toast.info(tr('admin.clients.nothing')); return; }
 
     setBusyId(row.client_id);
     const { data: res, error } = await supabase.functions.invoke("manage-users", {
@@ -133,10 +134,10 @@ const ClientsAuthAudit: React.FC = () => {
     });
     setBusyId(null);
     if (error || (res as any)?.error) {
-      toast.error((res as any)?.error || error?.message || "Erro ao redefinir login");
+      toast.error((res as any)?.error || error?.message || tr('admin.clients.resetLoginError'));
       return;
     }
-    toast.success("Login do cliente redefinido");
+    toast.success(tr('fin.auth.loginReset'));
     fetchAudit();
   };
 
@@ -144,25 +145,25 @@ const ClientsAuthAudit: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Auditoria de Acessos dos Clientes</h1>
-          <p className="text-sm text-muted-foreground">Valida se cada cliente tem usuário no Auth, e-mail confirmado e role correta.</p>
+          <h1 className="text-2xl font-semibold text-foreground">{tr('fin.auth.title')}</h1>
+          <p className="text-sm text-muted-foreground">{tr('fin.auth.desc')}</p>
         </div>
         <button
           onClick={fetchAudit}
           disabled={loading}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-sm"
         >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Reexecutar auditoria
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {tr('fin.auth.rerun')}
         </button>
       </div>
 
       {data && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Stat label="Clientes" value={data.summary.total_clients} />
-          <Stat label="Usuários Auth" value={data.summary.total_auth_users} />
+          <Stat label={tr('fin.auth.clients')} value={data.summary.total_clients} />
+          <Stat label={tr('fin.auth.authUsers')} value={data.summary.total_auth_users} />
           <Stat label="OK" value={data.summary.ok} tone="success" icon={<ShieldCheck size={14} />} />
-          <Stat label="Com problemas" value={data.summary.with_issues} tone="warning" icon={<ShieldAlert size={14} />} />
-          <Stat label="Auth órfãos" value={data.summary.orphan_auth_count} tone="warning" />
+          <Stat label={tr('fin.auth.withIssues')} value={data.summary.with_issues} tone="warning" icon={<ShieldAlert size={14} />} />
+          <Stat label={tr('fin.auth.orphans')} value={data.summary.orphan_auth_count} tone="warning" />
         </div>
       )}
 
@@ -177,7 +178,7 @@ const ClientsAuthAudit: React.FC = () => {
                 : "bg-secondary text-muted-foreground border-border hover:text-foreground"
             }`}
           >
-            {f === "atencao" ? "Com problemas" : f === "ok" ? "OK" : "Todos"}
+            {f === "atencao" ? tr('fin.auth.withIssues') : f === "ok" ? "OK" : tr('fin.auth.all')}
           </button>
         ))}
         <div className="relative ml-auto">
@@ -185,7 +186,7 @@ const ClientsAuthAudit: React.FC = () => {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou e-mail"
+            placeholder={tr('fin.auth.search')}
             className="pl-8 pr-3 py-2 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:border-primary w-64"
           />
         </div>
@@ -195,13 +196,13 @@ const ClientsAuthAudit: React.FC = () => {
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="text-left px-3 py-2">Cliente</th>
+              <th className="text-left px-3 py-2">{tr('fin.auth.client')}</th>
               <th className="text-left px-3 py-2">E-mail</th>
               <th className="text-left px-3 py-2">Auth</th>
-              <th className="text-left px-3 py-2">Confirmado</th>
-              <th className="text-left px-3 py-2">Último login</th>
-              <th className="text-left px-3 py-2">Problemas</th>
-              <th className="text-right px-3 py-2">Ações</th>
+              <th className="text-left px-3 py-2">{tr('fin.auth.confirmed')}</th>
+              <th className="text-left px-3 py-2">{tr('fin.auth.lastLogin')}</th>
+              <th className="text-left px-3 py-2">{tr('fin.auth.issues')}</th>
+              <th className="text-right px-3 py-2">{tr('fin.auth.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -249,25 +250,25 @@ const ClientsAuthAudit: React.FC = () => {
                     <button
                       disabled={!r.auth_user_id || busyId === r.client_id}
                       onClick={() => handleReset(r)}
-                      title="Redefinir somente a senha"
+                      title={tr('fin.auth.pwOnly')}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs border border-border hover:border-primary hover:text-primary disabled:opacity-40"
                     >
-                      <KeyRound size={12} /> Senha
+                      <KeyRound size={12} /> {tr('fin.auth.password')}
                     </button>
                     <button
                       disabled={!r.auth_user_id || busyId === r.client_id}
                       onClick={() => handleResetLogin(r)}
-                      title="Redefinir e-mail e/ou senha"
+                      title={tr('fin.auth.emailPw')}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40"
                     >
-                      <Mail size={12} /> Redefinir login
+                      <Mail size={12} /> {tr('fin.auth.resetLogin')}
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && !loading && (
-              <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground text-sm">Nenhum registro</td></tr>
+              <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground text-sm">{tr('fin.auth.none')}</td></tr>
             )}
           </tbody>
         </table>
@@ -275,15 +276,15 @@ const ClientsAuthAudit: React.FC = () => {
 
       {data && data.orphan_auth.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-foreground">Usuários Auth sem cliente vinculado ({data.orphan_auth.length})</h2>
+          <h2 className="text-sm font-semibold text-foreground">{tr('fin.auth.orphanTitle', { n: data.orphan_auth.length })}</h2>
           <div className="overflow-x-auto border border-border rounded-lg">
             <table className="w-full text-sm">
               <thead className="bg-secondary/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2">E-mail Auth</th>
-                  <th className="text-left px-3 py-2">Confirmado</th>
-                  <th className="text-left px-3 py-2">Último login</th>
-                  <th className="text-left px-3 py-2">Criado em</th>
+                  <th className="text-left px-3 py-2">{tr('fin.auth.authEmail')}</th>
+                  <th className="text-left px-3 py-2">{tr('fin.auth.confirmed')}</th>
+                  <th className="text-left px-3 py-2">{tr('fin.auth.lastLogin')}</th>
+                  <th className="text-left px-3 py-2">{tr('fin.auth.createdAt')}</th>
                 </tr>
               </thead>
               <tbody>

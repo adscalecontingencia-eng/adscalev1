@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ function RawDialog({ raw, title }: { raw: unknown; title: string }) {
       <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <pre className="text-xs bg-muted/50 p-3 rounded overflow-auto flex-1 font-mono">
-{raw ? JSON.stringify(raw, null, 2) : "(sem payload)"}
+{raw ? JSON.stringify(raw, null, 2) : tr('fin.aud.noPayload')}
         </pre>
       </DialogContent>
     </Dialog>
@@ -54,12 +55,12 @@ function ActionDialog({
         body: { target_type: targetType, target_id: targetId, action: defaultAction, reason },
       });
       if (error) throw error;
-      toast({ title: "Ação executada", description: JSON.stringify(data?.result ?? data) });
+      toast({ title: tr('fin.aud.done'), description: JSON.stringify(data?.result ?? data) });
       setOpen(false);
       setReason("");
       onDone?.();
     } catch (e: any) {
-      toast({ title: "Falha", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: tr('fin.aud.fail'), description: e.message ?? String(e), variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -77,12 +78,12 @@ function ActionDialog({
         <div className="space-y-3">
           <div className="text-xs text-muted-foreground">ID: {targetId}</div>
           <div>
-            <Label>Motivo / observação</Label>
-            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Descreva o motivo desta ação" />
+            <Label>{tr('fin.aud.reason')}</Label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={tr('fin.aud.reasonPh')} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={run} disabled={busy}>{busy ? "Executando..." : "Confirmar"}</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{tr('fin.aud.cancel')}</Button>
+            <Button onClick={run} disabled={busy}>{busy ? tr('fin.aud.running') : tr('fin.aud.confirm')}</Button>
           </div>
         </div>
       </DialogContent>
@@ -146,50 +147,50 @@ export default function AdminAudit() {
     <div className="space-y-6 p-2 md:p-4">
       <div className="flex flex-col md:flex-row md:items-end gap-3 justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Auditoria de Pagamentos</h1>
-          <p className="text-muted-foreground text-sm">Liberações de download, ações administrativas e gerenciamento.</p>
+          <h1 className="text-2xl font-bold">{tr('fin.aud.title')}</h1>
+          <p className="text-muted-foreground text-sm">{tr('fin.aud.desc')}</p>
         </div>
         <Button variant="outline" onClick={load} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> {tr('fin.aud.refresh')}
         </Button>
       </div>
 
       <Card>
         <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2">
-            <Label>Buscar</Label>
+            <Label>{tr('fin.aud.search')}</Label>
             <div className="relative">
               <Search className="h-4 w-4 absolute left-2 top-3 text-muted-foreground" />
-              <Input className="pl-8" placeholder="user_id, email, order_id, ação..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input className="pl-8" placeholder={tr('fin.aud.searchPh')} value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
-          <div><Label>De</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-          <div><Label>Até</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+          <div><Label>{tr('fin.aud.from')}</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+          <div><Label>{tr('fin.aud.to')}</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="downloads">
         <TabsList>
-          <TabsTrigger value="downloads">Downloads ({filteredDownloads.length})</TabsTrigger>
-          <TabsTrigger value="actions">Ações Admin ({filteredActions.length})</TabsTrigger>
-          <TabsTrigger value="orders">Gerenciar Compras ({filteredOrders.length})</TabsTrigger>
-          <TabsTrigger value="deposits">Gerenciar Depósitos ({deposits.length})</TabsTrigger>
+          <TabsTrigger value="downloads">{tr('fin.aud.tabDl', { n: filteredDownloads.length })}</TabsTrigger>
+          <TabsTrigger value="actions">{tr('fin.aud.tabActions', { n: filteredActions.length })}</TabsTrigger>
+          <TabsTrigger value="orders">{tr('fin.aud.tabOrders', { n: filteredOrders.length })}</TabsTrigger>
+          <TabsTrigger value="deposits">{tr('fin.aud.tabDeposits', { n: deposits.length })}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="downloads">
           <Card>
-            <CardHeader><CardTitle>Liberações de Link Assinado (TXT)</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{tr('fin.aud.signed')}</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-muted-foreground border-b">
                   <tr>
-                    <th className="p-2">Quando</th>
+                    <th className="p-2">{tr('fin.aud.when')}</th>
                     <th className="p-2">Order</th>
-                    <th className="p-2">Dono da compra</th>
-                    <th className="p-2">Solicitante</th>
-                    <th className="p-2">Liberado?</th>
-                    <th className="p-2">Sucesso</th>
-                    <th className="p-2">Expira</th>
+                    <th className="p-2">{tr('fin.aud.owner')}</th>
+                    <th className="p-2">{tr('fin.aud.requester')}</th>
+                    <th className="p-2">{tr('fin.aud.released')}</th>
+                    <th className="p-2">{tr('fin.aud.success')}</th>
+                    <th className="p-2">{tr('fin.aud.expires')}</th>
                     <th className="p-2">IP</th>
                     <th className="p-2">Raw</th>
                   </tr>
@@ -201,7 +202,7 @@ export default function AdminAudit() {
                       <td className="p-2 font-mono text-xs">{r.marketplace_order_id?.slice(0, 8) ?? "—"}</td>
                       <td className="p-2 font-mono text-xs">{r.user_id?.slice(0, 8) ?? "—"}</td>
                       <td className="p-2 font-mono text-xs">{r.requested_by?.slice(0, 8) ?? "—"}</td>
-                      <td className="p-2">{r.download_released ? <Badge variant="outline" className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">sim</Badge> : <Badge variant="outline">não</Badge>}</td>
+                      <td className="p-2">{r.download_released ? <Badge variant="outline" className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">{tr('fin.aud.yes')}</Badge> : <Badge variant="outline">{tr('fin.aud.no')}</Badge>}</td>
                       <td className="p-2">{r.success ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <span className="flex items-center gap-1 text-red-400"><XCircle className="h-4 w-4" />{r.error_message ?? "erro"}</span>}</td>
                       <td className="p-2 whitespace-nowrap">{fmtDate(r.signed_url_expires_at)}</td>
                       <td className="p-2 text-xs">{r.ip ?? "—"}</td>
@@ -209,7 +210,7 @@ export default function AdminAudit() {
                     </tr>
                   ))}
                   {filteredDownloads.length === 0 && (
-                    <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Nenhum registro</td></tr>
+                    <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">{tr('fin.aud.none')}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -219,18 +220,18 @@ export default function AdminAudit() {
 
         <TabsContent value="actions">
           <Card>
-            <CardHeader><CardTitle>Histórico de ações administrativas</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{tr('fin.aud.historyTitle')}</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-muted-foreground border-b">
                   <tr>
-                    <th className="p-2">Quando</th>
-                    <th className="p-2">Tipo</th>
-                    <th className="p-2">Ação</th>
-                    <th className="p-2">Alvo</th>
-                    <th className="p-2">Por</th>
+                    <th className="p-2">{tr('fin.aud.when')}</th>
+                    <th className="p-2">{tr('fin.aud.type')}</th>
+                    <th className="p-2">{tr('fin.aud.action')}</th>
+                    <th className="p-2">{tr('fin.aud.target')}</th>
+                    <th className="p-2">{tr('fin.aud.by')}</th>
                     <th className="p-2">Motivo</th>
-                    <th className="p-2">Detalhes</th>
+                    <th className="p-2">{tr('fin.aud.details')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,11 +243,11 @@ export default function AdminAudit() {
                       <td className="p-2 font-mono text-xs">{r.target_id?.slice(0, 8)}</td>
                       <td className="p-2 text-xs">{r.performed_by_email ?? r.performed_by?.slice(0, 8) ?? "—"}</td>
                       <td className="p-2 text-xs max-w-[260px] truncate">{r.reason ?? "—"}</td>
-                      <td className="p-2"><RawDialog raw={r} title="Ação admin" /></td>
+                      <td className="p-2"><RawDialog raw={r} title={tr('fin.aud.adminAction')} /></td>
                     </tr>
                   ))}
                   {filteredActions.length === 0 && (
-                    <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhuma ação registrada</td></tr>
+                    <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">{tr('fin.aud.noActions')}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -256,18 +257,18 @@ export default function AdminAudit() {
 
         <TabsContent value="orders">
           <Card>
-            <CardHeader><CardTitle>Compras — ações administrativas</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{tr('fin.aud.ordersTitle')}</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-muted-foreground border-b">
                   <tr>
-                    <th className="p-2">Quando</th>
+                    <th className="p-2">{tr('fin.aud.when')}</th>
                     <th className="p-2">Order</th>
                     <th className="p-2">Email</th>
-                    <th className="p-2">Valor</th>
-                    <th className="p-2">Status</th>
+                    <th className="p-2">{tr('fin.aud.value')}</th>
+                    <th className="p-2">{tr('fin.aud.status')}</th>
                     <th className="p-2">Download</th>
-                    <th className="p-2">Ações</th>
+                    <th className="p-2">{tr('fin.aud.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -278,12 +279,12 @@ export default function AdminAudit() {
                       <td className="p-2 text-xs">{r.customer_email ?? "—"}</td>
                       <td className="p-2">{fmtBRL(Number(r.amount))}</td>
                       <td className="p-2"><Badge variant="outline">{r.status}</Badge></td>
-                      <td className="p-2">{r.download_released ? "Liberado" : "Bloqueado"}</td>
+                      <td className="p-2">{r.download_released ? tr('fin.aud.dlReleased') : tr('fin.aud.dlBlocked')}</td>
                       <td className="p-2 flex flex-wrap gap-1">
-                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="reprocess" label="Reprocessar" onDone={load} />
-                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="release_download" label="Liberar Download" onDone={load} />
-                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="mark_credited" label="Marcar Creditado" onDone={load} />
-                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="refund" label="Estornar" onDone={load} />
+                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="reprocess" label={tr('fin.aud.reprocess')} onDone={load} />
+                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="release_download" label={tr('fin.aud.releaseDl')} onDone={load} />
+                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="mark_credited" label={tr('fin.aud.markCredited')} onDone={load} />
+                        <ActionDialog targetType="marketplace_order" targetId={r.id} defaultAction="refund" label={tr('fin.aud.refund')} onDone={load} />
                       </td>
                     </tr>
                   ))}
@@ -295,18 +296,18 @@ export default function AdminAudit() {
 
         <TabsContent value="deposits">
           <Card>
-            <CardHeader><CardTitle>Depósitos — ações administrativas</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{tr('fin.aud.depositsTitle')}</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-muted-foreground border-b">
                   <tr>
-                    <th className="p-2">Quando</th>
+                    <th className="p-2">{tr('fin.aud.when')}</th>
                     <th className="p-2">ID</th>
                     <th className="p-2">User</th>
-                    <th className="p-2">Valor</th>
-                    <th className="p-2">Status</th>
-                    <th className="p-2">Creditado</th>
-                    <th className="p-2">Ações</th>
+                    <th className="p-2">{tr('fin.aud.value')}</th>
+                    <th className="p-2">{tr('fin.aud.status')}</th>
+                    <th className="p-2">{tr('fin.aud.credited')}</th>
+                    <th className="p-2">{tr('fin.aud.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,9 +320,9 @@ export default function AdminAudit() {
                       <td className="p-2"><Badge variant="outline">{r.status}</Badge></td>
                       <td className="p-2 text-xs">{fmtDate(r.credited_at)}</td>
                       <td className="p-2 flex flex-wrap gap-1">
-                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="reprocess" label="Reprocessar" onDone={load} />
-                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="mark_credited" label="Marcar Creditado" onDone={load} />
-                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="refund" label="Estornar" onDone={load} />
+                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="reprocess" label={tr('fin.aud.reprocess')} onDone={load} />
+                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="mark_credited" label={tr('fin.aud.markCredited')} onDone={load} />
+                        <ActionDialog targetType="wallet_deposit" targetId={r.id} defaultAction="refund" label={tr('fin.aud.refund')} onDone={load} />
                       </td>
                     </tr>
                   ))}

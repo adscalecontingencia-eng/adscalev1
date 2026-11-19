@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import pt from './locales/pt';
 import en from './locales/en';
 import es from './locales/es';
-import { areaPt, areaEn, areaEs } from './locales/areas';
+import { areaPt, areaEn, areaEs, deepMerge } from './locales/areas';
 
 export const SUPPORTED_LANGUAGES = ['pt', 'en', 'es'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -24,9 +24,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      pt: { translation: { ...pt, ...areaPt } },
-      en: { translation: { ...en, ...areaEn } },
-      es: { translation: { ...es, ...areaEs } },
+      pt: { translation: deepMerge(pt as never, areaPt) },
+      en: { translation: deepMerge(en as never, areaEn) },
+      es: { translation: deepMerge(es as never, areaEs) },
     },
     fallbackLng: 'pt',
     supportedLngs: [...SUPPORTED_LANGUAGES],

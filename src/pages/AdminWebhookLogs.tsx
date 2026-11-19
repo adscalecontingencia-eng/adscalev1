@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,15 +37,15 @@ function statusVariant(status: string | null, http: number | null): "default" | 
 
 function reasonFor(row: Row): string {
   const s = row.status ?? "";
-  if (s === "ignored_no_id") return "Webhook não trouxe data.id";
-  if (s === "ignored_no_ref") return "Pagamento não tinha external_reference nem order.id (provavelmente simulação do painel ou pagamento de outra conta MP)";
-  if (s === "invalid_signature") return "Assinatura HMAC do MP não bateu — verifique MERCADO_PAGO_WEBHOOK_SECRET";
-  if (s === "token_missing") return "Variável MERCADO_PAGO_ACCESS_TOKEN_* ausente";
-  if (s === "order_not_found") return "Order não localizada no banco para esse external_reference";
-  if (s === "already_approved") return "Pedido já estava aprovado e liberado";
+  if (s === "ignored_no_id") return tr('fin.wh.r.noId');
+  if (s === "ignored_no_ref") return tr('fin.wh.r.noRef');
+  if (s === "invalid_signature") return tr('fin.wh.r.sig');
+  if (s === "token_missing") return tr('fin.wh.r.token');
+  if (s === "order_not_found") return tr('fin.wh.r.order');
+  if (s === "already_approved") return tr('fin.wh.r.approved');
   if (s?.startsWith("deposit_")) {
-    if (s === "deposit_processed") return "Depósito creditado com sucesso";
-    return `Depósito em estado ${s.replace("deposit_", "")}`;
+    if (s === "deposit_processed") return tr('fin.wh.r.credited');
+    return tr('fin.wh.r.state', { s: s.replace("deposit_", "") });
   }
   return "—";
 }
@@ -136,21 +137,21 @@ export default function AdminWebhookLogs() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Webhook className="w-6 h-6 text-primary" /> Logs de Webhook — Mercado Pago
+            <Webhook className="w-6 h-6 text-primary" /> {tr('fin.wh.title')}
           </h1>
-          <p className="text-sm text-muted-foreground">Cada notificação recebida do MP, com motivo e link para o depósito.</p>
+          <p className="text-sm text-muted-foreground">{tr('fin.wh.desc')}</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> {tr('fin.wh.refresh')}
         </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Total", value: stats.total, key: "all" as const },
-          { label: "Processados", value: stats.ok, key: "ok" as const },
-          { label: "Ignorados", value: stats.ignored, key: "ignored" as const },
-          { label: "Erros", value: stats.error, key: "error" as const },
+          { label: tr('fin.wh.processed'), value: stats.ok, key: "ok" as const },
+          { label: tr('fin.wh.ignored'), value: stats.ignored, key: "ignored" as const },
+          { label: tr('fin.wh.errors'), value: stats.error, key: "error" as const },
         ].map((s) => (
           <button
             key={s.key}
@@ -166,10 +167,10 @@ export default function AdminWebhookLogs() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Eventos recentes</CardTitle>
+            <CardTitle className="text-base">{tr('fin.wh.recent')}</CardTitle>
             <div className="relative w-72">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9 h-9" placeholder="Buscar por data.id, ref, status…" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Input className="pl-9 h-9" placeholder={tr('fin.wh.search')} value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -178,20 +179,20 @@ export default function AdminWebhookLogs() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left p-3">Data</th>
+                  <th className="text-left p-3">{tr('fin.wh.date')}</th>
                   <th className="text-left p-3">Topic</th>
                   <th className="text-left p-3">data.id</th>
                   <th className="text-left p-3">Live</th>
-                  <th className="text-left p-3">Status</th>
-                  <th className="text-left p-3">Assinatura</th>
-                  <th className="text-left p-3">Motivo</th>
-                  <th className="text-left p-3">Depósito</th>
+                  <th className="text-left p-3">{tr('fin.wh.status')}</th>
+                  <th className="text-left p-3">{tr('fin.wh.signature')}</th>
+                  <th className="text-left p-3">{tr('fin.wh.reason')}</th>
+                  <th className="text-left p-3">{tr('fin.wh.deposit')}</th>
                   <th className="text-right p-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Nenhum evento.</td></tr>
+                  <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">{tr('fin.wh.none')}</td></tr>
                 )}
                 {filtered.map((r) => {
                   const live = r.payload?.live_mode;
@@ -211,8 +212,8 @@ export default function AdminWebhookLogs() {
                         </Badge>
                       </td>
                       <td className="p-3 text-xs">
-                        {r.signature_valid === true && <span className="text-primary">✓ válida</span>}
-                        {r.signature_valid === false && <span className="text-destructive">✗ inválida</span>}
+                        {r.signature_valid === true && <span className="text-primary">{tr('fin.wh.valid')}</span>}
+                        {r.signature_valid === false && <span className="text-destructive">{tr('fin.wh.invalid')}</span>}
                         {r.signature_valid === null && <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="p-3 text-xs text-muted-foreground max-w-xs">{reasonFor(r)}</td>
@@ -226,7 +227,7 @@ export default function AdminWebhookLogs() {
                         )}
                       </td>
                       <td className="p-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setDetail(r)}>Detalhes</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDetail(r)}>{tr('fin.wh.details')}</Button>
                       </td>
                     </tr>
                   );
@@ -240,18 +241,18 @@ export default function AdminWebhookLogs() {
       <Dialog open={!!detail} onOpenChange={(v) => !v && setDetail(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Evento {detail?.data_id ?? detail?.id}</DialogTitle>
+            <DialogTitle>{tr('fin.wh.event')} {detail?.data_id ?? detail?.id}</DialogTitle>
           </DialogHeader>
           {detail && (
             <div className="space-y-3 text-xs">
-              <div><b>Motivo:</b> {reasonFor(detail)}</div>
+              <div><b>{tr('fin.wh.reasonLbl')}</b> {reasonFor(detail)}</div>
               <div>
                 <div className="font-semibold mb-1">Payload</div>
                 <pre className="bg-muted/40 p-3 rounded-lg overflow-auto max-h-72">{JSON.stringify(detail.payload, null, 2)}</pre>
               </div>
               {detail.response && (
                 <div>
-                  <div className="font-semibold mb-1">Resposta</div>
+                  <div className="font-semibold mb-1">{tr('fin.wh.response')}</div>
                   <pre className="bg-muted/40 p-3 rounded-lg overflow-auto max-h-48">{JSON.stringify(detail.response, null, 2)}</pre>
                 </div>
               )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr, localizedMap } from '@/i18n';
 import { PageHero } from '@/components/ui-kit';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, RefreshCw, AlertTriangle, AlertCircle, Info, CheckCircle2, X, Copy, Search, Calendar as CalIcon } from 'lucide-react';
@@ -43,20 +44,20 @@ function classify(action: string, metadata: any): { sev: Severity; cat: Category
 }
 
 const sevStyle: Record<Severity, { cls: string; Icon: any; label: string }> = {
-  critical: { cls: 'text-red-400 border-red-500/40 bg-red-500/10', Icon: AlertTriangle, label: 'Crítico' },
-  error:    { cls: 'text-destructive border-destructive/40 bg-destructive/10', Icon: AlertCircle, label: 'Erro' },
-  warning:  { cls: 'text-amber-300 border-amber-500/40 bg-amber-500/10', Icon: AlertTriangle, label: 'Aviso' },
-  info:     { cls: 'text-primary border-primary/30 bg-primary/10', Icon: CheckCircle2, label: 'Info' },
+  critical: { cls: 'text-red-400 border-red-500/40 bg-red-500/10', Icon: AlertTriangle, get label() { return tr('fin.log.sev.critical'); } },
+  error:    { cls: 'text-destructive border-destructive/40 bg-destructive/10', Icon: AlertCircle, get label() { return tr('fin.log.sev.error'); } },
+  warning:  { cls: 'text-amber-300 border-amber-500/40 bg-amber-500/10', Icon: AlertTriangle, get label() { return tr('fin.log.sev.warning'); } },
+  info:     { cls: 'text-primary border-primary/30 bg-primary/10', Icon: CheckCircle2, get label() { return tr('fin.log.sev.info'); } },
 };
 
-const catLabel: Record<Category, string> = {
+const catLabel: Record<Category, string> = localizedMap('fin.log.cat', {
   error: 'Erros do sistema',
   auth: 'Autenticação',
   task: 'Tarefas/Suporte',
   financial: 'Financeiro',
   meta: 'Meta/BMs',
   other: 'Outros',
-};
+});
 
 const AuditLog: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([]);
@@ -108,12 +109,12 @@ const AuditLog: React.FC = () => {
   return (
     <div className="space-y-5">
       <PageHero
-        eyebrow="Segurança"
-        title={<>Auditoria de <span className="text-primary glow-text">ações & erros</span></>}
-        description="Histórico de ações sensíveis e erros do sistema. Filtre por tipo, severidade e data — clique em qualquer linha para ver payload, stack e solução sugerida."
+        eyebrow={tr('fin.log.eyebrow')}
+        title={<span dangerouslySetInnerHTML={{ __html: tr('fin.log.title').replace('<span>', '<span class="text-primary glow-text">') }} />}
+        description={tr('fin.log.desc')}
         actions={
           <button onClick={load} disabled={loading} className="flex items-center gap-2 bg-card border border-border text-foreground px-3 py-2 rounded-lg text-xs font-medium hover:border-primary">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Atualizar
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> {tr('fin.log.refresh')}
           </button>
         }
       />
@@ -150,18 +151,18 @@ const AuditLog: React.FC = () => {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar ação, email, metadata..."
+            placeholder={tr('fin.log.search')}
             className="w-full pl-9 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
 
         <select value={cat} onChange={e => setCat(e.target.value as any)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs">
-          <option value="all">Todas categorias</option>
+          <option value="all">{tr('fin.log.allCats')}</option>
           {(Object.keys(catLabel) as Category[]).map(c => <option key={c} value={c}>{catLabel[c]}</option>)}
         </select>
 
         <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs max-w-[220px]">
-          <option value="all">Todas ações</option>
+          <option value="all">{tr('fin.log.allActions')}</option>
           {actions.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
 
@@ -177,7 +178,7 @@ const AuditLog: React.FC = () => {
             onClick={() => { setSearch(''); setSev('all'); setCat('all'); setActionFilter('all'); setFrom(''); setTo(''); }}
             className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
-            <X size={11} /> Limpar
+            <X size={11} /> {tr('fin.log.clear')}
           </button>
         )}
       </div>
@@ -186,19 +187,19 @@ const AuditLog: React.FC = () => {
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {filtered.length === 0 ? (
           <p className="text-center text-muted-foreground text-sm py-12">
-            {loading ? 'Carregando...' : 'Nenhuma entrada com os filtros atuais.'}
+            {loading ? tr('fin.log.loading') : tr('fin.log.noRows')}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-secondary/60 sticky top-0">
                 <tr className="text-left">
-                  <th className="px-3 py-2">Severidade</th>
-                  <th className="px-3 py-2">Ação</th>
-                  <th className="px-3 py-2">Entidade</th>
-                  <th className="px-3 py-2">Ator</th>
-                  <th className="px-3 py-2">Resumo</th>
-                  <th className="px-3 py-2 text-right">Quando</th>
+                  <th className="px-3 py-2">{tr('fin.log.severity')}</th>
+                  <th className="px-3 py-2">{tr('fin.log.action')}</th>
+                  <th className="px-3 py-2">{tr('fin.log.entity')}</th>
+                  <th className="px-3 py-2">{tr('fin.log.actor')}</th>
+                  <th className="px-3 py-2">{tr('fin.log.summary')}</th>
+                  <th className="px-3 py-2 text-right">{tr('fin.log.when')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,7 +237,7 @@ const AuditLog: React.FC = () => {
       </div>
 
       <p className="text-[10px] text-muted-foreground text-center">
-        Mostrando {filtered.length} de {rows.length} registros (limite 500 por consulta).
+        {tr('fin.log.showing', { n: filtered.length, total: rows.length })}
       </p>
 
       {detail && <DetailDrawer row={detail} onClose={() => setDetail(null)} />}
@@ -252,7 +253,7 @@ const DetailDrawer: React.FC<{ row: Row; onClose: () => void }> = ({ row, onClos
   const stack = meta.stack;
   const payload = meta.payload;
 
-  const copy = (txt: string) => { navigator.clipboard.writeText(txt); toast.success('Copiado'); };
+  const copy = (txt: string) => { navigator.clipboard.writeText(txt); toast.success(tr('fin.log.copied')); };
 
   return (
     <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -278,14 +279,14 @@ const DetailDrawer: React.FC<{ row: Row; onClose: () => void }> = ({ row, onClos
           {solucao && (
             <div className="border border-primary/40 bg-primary/10 rounded-lg p-3">
               <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1 flex items-center gap-1">
-                <Info size={11} /> Solução sugerida
+                <Info size={11} /> {tr('fin.log.fix')}
               </div>
               <p className="text-sm">{String(solucao)}</p>
             </div>
           )}
 
           {(meta.erro || meta.message) && (
-            <Section title="Mensagem de erro">
+            <Section title={tr('fin.log.errMsg')}>
               <pre className="text-xs whitespace-pre-wrap text-destructive">{String(meta.erro || meta.message)}</pre>
             </Section>
           )}
@@ -297,24 +298,24 @@ const DetailDrawer: React.FC<{ row: Row; onClose: () => void }> = ({ row, onClos
           )}
 
           {payload != null && (
-            <Section title="Payload da requisição" onCopy={() => copy(JSON.stringify(payload, null, 2))}>
+            <Section title={tr('fin.log.payload')} onCopy={() => copy(JSON.stringify(payload, null, 2))}>
               <pre className="text-[10px] whitespace-pre-wrap max-h-72 overflow-auto">{JSON.stringify(payload, null, 2)}</pre>
             </Section>
           )}
 
-          <Section title="Metadata completa" onCopy={() => copy(JSON.stringify(meta, null, 2))}>
+          <Section title={tr('fin.log.meta')} onCopy={() => copy(JSON.stringify(meta, null, 2))}>
             <pre className="text-[10px] whitespace-pre-wrap max-h-72 overflow-auto text-muted-foreground">{JSON.stringify(meta, null, 2)}</pre>
           </Section>
 
           {(row.before || row.after) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {row.before && (
-                <Section title="Antes">
+                <Section title={tr('fin.log.before')}>
                   <pre className="text-[10px] whitespace-pre-wrap max-h-60 overflow-auto text-muted-foreground">{JSON.stringify(row.before, null, 2)}</pre>
                 </Section>
               )}
               {row.after && (
-                <Section title="Depois">
+                <Section title={tr('fin.log.after')}>
                   <pre className="text-[10px] whitespace-pre-wrap max-h-60 overflow-auto text-muted-foreground">{JSON.stringify(row.after, null, 2)}</pre>
                 </Section>
               )}
@@ -332,7 +333,7 @@ const Section: React.FC<{ title: string; onCopy?: () => void; children: React.Re
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{title}</span>
       {onCopy && (
         <button onClick={onCopy} className="text-[10px] text-muted-foreground hover:text-primary inline-flex items-center gap-1">
-          <Copy size={10} /> Copiar
+          <Copy size={10} /> {tr('fin.log.copy')}
         </button>
       )}
     </div>

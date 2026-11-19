@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { PageHero } from '@/components/ui-kit';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -100,7 +101,7 @@ export default function TermsAudit() {
 
   const openTerms = async (v: string, download = false) => {
     const res = await resolveTermsText(v, 'pt');
-    if (!res.text) { toast.error('Texto desta versão não está arquivado no sistema.'); return; }
+    if (!res.text) { toast.error(tr('fin.terms.notArchived')); return; }
     if (download) downloadTextFile(`ad-scale-terms-${v}.txt`, res.text);
     else setPreview({ version: v, text: res.text });
   };
@@ -117,27 +118,27 @@ export default function TermsAudit() {
   return (
     <div className="space-y-6">
       <PageHero
-        title="Auditoria de Termos de Uso"
-        description="Histórico de aceitações e de downloads/visualizações dos Termos por cliente, versão e data."
+        title={tr('fin.terms.title')}
+        description={tr('fin.terms.desc')}
       />
 
       <Card className="p-4">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Buscar por cliente, e-mail ou versão..." value={q} onChange={e => setQ(e.target.value)} />
+            <Input className="pl-8" placeholder={tr('fin.terms.search')} value={q} onChange={e => setQ(e.target.value)} />
           </div>
           <Select value={version} onValueChange={setVersion}>
-            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Versão" /></SelectTrigger>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder={tr('fin.terms.version')} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as versões</SelectItem>
+              <SelectItem value="all">{tr('fin.terms.allVersions')}</SelectItem>
               {versions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
           <Input type="date" className="w-[160px]" value={from} onChange={e => setFrom(e.target.value)} />
           <Input type="date" className="w-[160px]" value={to} onChange={e => setTo(e.target.value)} />
           <Button variant="outline" onClick={load} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> {tr('fin.terms.refresh')}
           </Button>
           <Button variant="outline" onClick={exportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
         </div>
@@ -145,8 +146,8 @@ export default function TermsAudit() {
 
       <Tabs defaultValue="acceptances">
         <TabsList>
-          <TabsTrigger value="acceptances">Aceitações ({filteredAcceptances.length})</TabsTrigger>
-          <TabsTrigger value="downloads">Downloads ({filteredDownloads.length})</TabsTrigger>
+          <TabsTrigger value="acceptances">{tr('fin.terms.tabAcc', { n: filteredAcceptances.length })}</TabsTrigger>
+          <TabsTrigger value="downloads">{tr('fin.terms.tabDl', { n: filteredDownloads.length })}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="acceptances">
@@ -154,12 +155,12 @@ export default function TermsAudit() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left p-3">Data</th>
-                  <th className="text-left p-3">Cliente</th>
+                  <th className="text-left p-3">{tr('fin.terms.date')}</th>
+                  <th className="text-left p-3">{tr('fin.terms.client')}</th>
                   <th className="text-left p-3">E-mail</th>
-                  <th className="text-left p-3">Versão</th>
+                  <th className="text-left p-3">{tr('fin.terms.version')}</th>
                   <th className="text-left p-3">IP</th>
-                  <th className="text-right p-3">Termo</th>
+                  <th className="text-right p-3">{tr('fin.terms.term')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +178,7 @@ export default function TermsAudit() {
                   </tr>
                 ))}
                 {!filteredAcceptances.length && (
-                  <tr><td className="p-6 text-center text-muted-foreground" colSpan={6}>Nenhum aceite encontrado.</td></tr>
+                  <tr><td className="p-6 text-center text-muted-foreground" colSpan={6}>{tr('fin.terms.noAcc')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -189,12 +190,12 @@ export default function TermsAudit() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left p-3">Data</th>
-                  <th className="text-left p-3">Cliente</th>
+                  <th className="text-left p-3">{tr('fin.terms.date')}</th>
+                  <th className="text-left p-3">{tr('fin.terms.client')}</th>
                   <th className="text-left p-3">E-mail</th>
-                  <th className="text-left p-3">Versão</th>
-                  <th className="text-left p-3">Ação</th>
-                  <th className="text-left p-3">Idioma</th>
+                  <th className="text-left p-3">{tr('fin.terms.version')}</th>
+                  <th className="text-left p-3">{tr('fin.terms.action')}</th>
+                  <th className="text-left p-3">{tr('fin.terms.language')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -206,14 +207,14 @@ export default function TermsAudit() {
                     <td className="p-3"><Badge variant="outline">{r.terms_version}</Badge></td>
                     <td className="p-3">
                       <Badge variant={r.action === 'download' ? 'default' : 'secondary'}>
-                        {r.action === 'download' ? `Download (${r.format})` : 'Visualização'}
+                        {r.action === 'download' ? tr('fin.terms.download', { f: r.format }) : tr('fin.terms.view')}
                       </Badge>
                     </td>
                     <td className="p-3 uppercase text-muted-foreground">{r.language}</td>
                   </tr>
                 ))}
                 {!filteredDownloads.length && (
-                  <tr><td className="p-6 text-center text-muted-foreground" colSpan={6}>Nenhum download registrado.</td></tr>
+                  <tr><td className="p-6 text-center text-muted-foreground" colSpan={6}>{tr('fin.terms.noDl')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -225,7 +226,7 @@ export default function TermsAudit() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileSignature className="h-4 w-4" /> Termos · {preview?.version}
+              <FileSignature className="h-4 w-4" /> {tr('fin.terms.termsOf')} {preview?.version}
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,7 @@ function RawDialog({ raw, title }: { raw: unknown; title: string }) {
       <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <pre className="text-xs bg-muted/50 p-3 rounded overflow-auto flex-1 font-mono">
-{raw ? JSON.stringify(raw, null, 2) : "(sem payload)"}
+{raw ? JSON.stringify(raw, null, 2) : tr('fin.pay.noPayload')}
         </pre>
       </DialogContent>
     </Dialog>
@@ -63,11 +64,11 @@ export default function AdminPayments() {
       });
       if (error) throw error;
       setValidation(data);
-      if (data?.ok) toast.success("Integração Mercado Pago OK");
-      else toast.error("Integração com falha — veja detalhes");
+      if (data?.ok) toast.success(tr('fin.pay.mpOk'));
+      else toast.error(tr('fin.pay.mpFail'));
     } catch (e: any) {
-      setValidation({ ok: false, error: e?.message || "Erro ao validar" });
-      toast.error(e?.message || "Erro ao validar");
+      setValidation({ ok: false, error: e?.message || tr('fin.pay.validateError') });
+      toast.error(e?.message || tr('fin.pay.validateError'));
     } finally {
       setValidating(false);
     }
@@ -103,41 +104,39 @@ export default function AdminPayments() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Pagamentos & Carteira</h1>
-          <p className="text-sm text-muted-foreground">Depósitos Pix, compras e eventos de webhook.</p>
+          <h1 className="text-2xl font-bold">{tr('fin.pay.title')}</h1>
+          <p className="text-sm text-muted-foreground">{tr('fin.pay.desc')}</p>
         </div>
-        <Button onClick={load} variant="outline" size="sm"><RefreshCw className="h-4 w-4 mr-1" /> Atualizar</Button>
+        <Button onClick={load} variant="outline" size="sm"><RefreshCw className="h-4 w-4 mr-1" /> {tr('fin.pay.refresh')}</Button>
       </div>
 
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-sm flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            Validação Mercado Pago
+            {tr('fin.pay.mpValidation')}
           </CardTitle>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => runValidation(false)} disabled={validating}>
               {validating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Validar token
+              {tr('fin.pay.validateToken')}
             </Button>
             <Button size="sm" onClick={() => runValidation(true)} disabled={validating}>
               {validating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Validar + criar Pix R$1
+              {tr('fin.pay.validatePix')}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {!validation && !validating && (
-            <p className="text-xs text-muted-foreground">
-              Clique para verificar o token ativo (TEST ou LIVE conforme <code>MERCADO_PAGO_ENV</code>) chamando <code>/users/me</code> e, opcionalmente, criando uma cobrança Pix real de R$ 1,00 para confirmar a integração ponta-a-ponta.
-            </p>
+            <p className="text-xs text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('fin.pay.hint') }} />
           )}
           {validation && (
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 {validation.ok ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <XCircle className="h-5 w-5 text-red-400" />}
                 <span className="font-semibold">
-                  {validation.ok ? "Integração OK" : "Falha na validação"}
+                  {validation.ok ? tr('fin.pay.ok') : tr('fin.pay.fail')}
                 </span>
                 {validation.mode && (
                   <Badge variant="outline" className={validation.mode === "production" ? "border-emerald-500/40 text-emerald-300" : "border-amber-500/40 text-amber-300"}>
@@ -178,7 +177,7 @@ export default function AdminPayments() {
                   <div className="bg-muted/40 rounded p-2 md:col-span-2">
                     <div className="text-muted-foreground flex items-center gap-2">
                       {validation.checks.pix_create.ok ? <CheckCircle2 className="h-3 w-3 text-emerald-400" /> : <XCircle className="h-3 w-3 text-red-400" />}
-                      Criação de Pix R$ 1,00 (HTTP {validation.checks.pix_create.http_status})
+                      {tr('fin.pay.pixTest')} {validation.checks.pix_create.http_status})
                     </div>
                     {validation.checks.pix_create.ok ? (
                       <div className="font-mono">
@@ -193,49 +192,49 @@ export default function AdminPayments() {
                   <div className="bg-red-500/10 border border-red-500/30 rounded p-2 md:col-span-2 text-red-300">{validation.error}</div>
                 )}
               </div>
-              <RawDialog raw={validation} title="Resultado completo da validação" />
+              <RawDialog raw={validation} title={tr('fin.pay.fullResult')} />
             </div>
           )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm">Filtros</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-sm">{tr('fin.pay.filters')}</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="md:col-span-2">
             <Label className="text-xs">User ID</Label>
-            <Input value={filters.userId} onChange={(e) => setFilters({ ...filters, userId: e.target.value })} placeholder="uuid do usuário" />
+            <Input value={filters.userId} onChange={(e) => setFilters({ ...filters, userId: e.target.value })} placeholder={tr('fin.pay.userPh')} />
           </div>
           <div>
-            <Label className="text-xs">Email (compras)</Label>
+            <Label className="text-xs">{tr('fin.pay.emailPurchases')}</Label>
             <Input value={filters.email} onChange={(e) => setFilters({ ...filters, email: e.target.value })} placeholder="cliente@..." />
           </div>
           <div>
-            <Label className="text-xs">De</Label>
+            <Label className="text-xs">{tr('fin.pay.from')}</Label>
             <Input type="date" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} />
           </div>
           <div>
-            <Label className="text-xs">Até</Label>
+            <Label className="text-xs">{tr('fin.pay.to')}</Label>
             <Input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
           </div>
           <div className="md:col-span-5 flex gap-2">
-            <Button onClick={() => setApplied(filters)} size="sm"><Search className="h-4 w-4 mr-1" /> Aplicar</Button>
-            <Button onClick={() => { setFilters(emptyFilters); setApplied(emptyFilters); }} variant="ghost" size="sm">Limpar</Button>
+            <Button onClick={() => setApplied(filters)} size="sm"><Search className="h-4 w-4 mr-1" /> {tr('fin.pay.apply')}</Button>
+            <Button onClick={() => { setFilters(emptyFilters); setApplied(emptyFilters); }} variant="ghost" size="sm">{tr('fin.pay.clear')}</Button>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">Depósitos aprovados</p><p className="text-2xl font-bold text-emerald-400">{fmtBRL(totals.depApproved)}</p></CardContent></Card>
-        <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">Depósitos pendentes</p><p className="text-2xl font-bold text-amber-400">{fmtBRL(totals.depPending)}</p></CardContent></Card>
-        <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">Compras aprovadas</p><p className="text-2xl font-bold">{fmtBRL(totals.ordApproved)}</p></CardContent></Card>
+        <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">{tr('fin.pay.depApproved')}</p><p className="text-2xl font-bold text-emerald-400">{fmtBRL(totals.depApproved)}</p></CardContent></Card>
+        <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">{tr('fin.pay.depPending')}</p><p className="text-2xl font-bold text-amber-400">{fmtBRL(totals.depPending)}</p></CardContent></Card>
+        <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">{tr('fin.pay.purApproved')}</p><p className="text-2xl font-bold">{fmtBRL(totals.ordApproved)}</p></CardContent></Card>
       </div>
 
       <Tabs defaultValue="deposits">
         <TabsList>
-          <TabsTrigger value="deposits">Depósitos ({deposits.length})</TabsTrigger>
-          <TabsTrigger value="orders">Compras ({orders.length})</TabsTrigger>
-          <TabsTrigger value="events">Eventos webhook ({events.length})</TabsTrigger>
+          <TabsTrigger value="deposits">{tr('fin.pay.tabDeposits', { n: deposits.length })}</TabsTrigger>
+          <TabsTrigger value="orders">{tr('fin.pay.tabOrders', { n: orders.length })}</TabsTrigger>
+          <TabsTrigger value="events">{tr('fin.pay.tabEvents', { n: events.length })}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="deposits" className="mt-4">
@@ -243,7 +242,7 @@ export default function AdminPayments() {
             {loading ? <div className="p-4"><Skeleton className="h-24 w-full" /></div> : (
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr><th className="text-left p-3">Data</th><th className="text-left p-3">User ID</th><th className="text-left p-3">Valor</th><th className="text-left p-3">Status</th><th className="text-left p-3">MP Payment</th><th className="text-left p-3">Ref</th><th className="text-right p-3">Raw</th></tr>
+                  <tr><th className="text-left p-3">{tr('fin.pay.date')}</th><th className="text-left p-3">User ID</th><th className="text-left p-3">{tr('fin.pay.value')}</th><th className="text-left p-3">{tr('fin.pay.status')}</th><th className="text-left p-3">MP Payment</th><th className="text-left p-3">Ref</th><th className="text-right p-3">Raw</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {deposits.map((d) => (
@@ -254,10 +253,10 @@ export default function AdminPayments() {
                       <td className="p-3"><StatusBadge s={d.status} /></td>
                       <td className="p-3 font-mono text-xs">{d.mercado_pago_payment_id ?? "—"}</td>
                       <td className="p-3 font-mono text-xs">{d.external_reference}</td>
-                      <td className="p-3 text-right"><RawDialog raw={d.raw_response} title={`Depósito ${d.external_reference}`} /></td>
+                      <td className="p-3 text-right"><RawDialog raw={d.raw_response} title={tr('fin.pay.deposit', { ref: d.external_reference })} /></td>
                     </tr>
                   ))}
-                  {deposits.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum depósito.</td></tr>}
+                  {deposits.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">{tr('fin.pay.noDeposits')}</td></tr>}
                 </tbody>
               </table>
             )}
@@ -269,7 +268,7 @@ export default function AdminPayments() {
             {loading ? <div className="p-4"><Skeleton className="h-24 w-full" /></div> : (
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr><th className="text-left p-3">Data</th><th className="text-left p-3">User ID</th><th className="text-left p-3">Produto</th><th className="text-left p-3">Email</th><th className="text-left p-3">Valor</th><th className="text-left p-3">Status</th><th className="text-right p-3">Raw</th></tr>
+                  <tr><th className="text-left p-3">{tr('fin.pay.date')}</th><th className="text-left p-3">User ID</th><th className="text-left p-3">{tr('fin.pay.product')}</th><th className="text-left p-3">Email</th><th className="text-left p-3">{tr('fin.pay.value')}</th><th className="text-left p-3">{tr('fin.pay.status')}</th><th className="text-right p-3">Raw</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {orders.map((o) => (
@@ -280,10 +279,10 @@ export default function AdminPayments() {
                       <td className="p-3">{o.customer_email ?? "—"}</td>
                       <td className="p-3 font-medium">{fmtBRL(Number(o.amount))}</td>
                       <td className="p-3"><StatusBadge s={o.status} /></td>
-                      <td className="p-3 text-right"><RawDialog raw={o.raw_response} title={`Pedido ${o.external_reference}`} /></td>
+                      <td className="p-3 text-right"><RawDialog raw={o.raw_response} title={tr('fin.pay.order', { ref: o.external_reference })} /></td>
                     </tr>
                   ))}
-                  {orders.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhuma compra.</td></tr>}
+                  {orders.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">{tr('fin.pay.noOrders')}</td></tr>}
                 </tbody>
               </table>
             )}
@@ -295,7 +294,7 @@ export default function AdminPayments() {
             {loading ? <div className="p-4"><Skeleton className="h-24 w-full" /></div> : (
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr><th className="text-left p-3">Data</th><th className="text-left p-3">Tópico</th><th className="text-left p-3">Ref</th><th className="text-left p-3">Status</th><th className="text-left p-3">HTTP</th><th className="text-left p-3">Sig</th><th className="text-right p-3">Raw</th></tr>
+                  <tr><th className="text-left p-3">{tr('fin.pay.date')}</th><th className="text-left p-3">{tr('fin.pay.topic')}</th><th className="text-left p-3">Ref</th><th className="text-left p-3">{tr('fin.pay.status')}</th><th className="text-left p-3">HTTP</th><th className="text-left p-3">Sig</th><th className="text-right p-3">Raw</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {events.map((e) => (
@@ -306,10 +305,10 @@ export default function AdminPayments() {
                       <td className="p-3">{e.status ?? "—"}</td>
                       <td className="p-3">{e.http_status ?? "—"}</td>
                       <td className="p-3">{e.signature_valid === null ? "—" : e.signature_valid ? "✓" : "✗"}</td>
-                      <td className="p-3 text-right"><RawDialog raw={{ payload: e.payload, headers: e.headers, response: e.response }} title={`Evento ${e.event_key}`} /></td>
+                      <td className="p-3 text-right"><RawDialog raw={{ payload: e.payload, headers: e.headers, response: e.response }} title={tr('fin.pay.event', { ref: e.event_key })} /></td>
                     </tr>
                   ))}
-                  {events.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum evento.</td></tr>}
+                  {events.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">{tr('fin.pay.noEvents')}</td></tr>}
                 </tbody>
               </table>
             )}

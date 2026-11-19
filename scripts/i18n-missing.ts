@@ -4,8 +4,8 @@ import { execSync } from 'node:child_process';
 import pt from '../src/i18n/locales/pt';
 import en from '../src/i18n/locales/en';
 import es from '../src/i18n/locales/es';
-import { areaPt, areaEn, areaEs } from '../src/i18n/locales/areas';
-const res = { pt: { ...pt, ...areaPt }, en: { ...en, ...areaEn }, es: { ...es, ...areaEs } } as Record<string, any>;
+import { areaPt, areaEn, areaEs, deepMerge } from '../src/i18n/locales/areas';
+const res = { pt: deepMerge(pt as any, areaPt), en: deepMerge(en as any, areaEn), es: deepMerge(es as any, areaEs) } as Record<string, any>;
 const get = (o: any, k: string) => k.split('.').reduce((a, p) => (a == null ? a : a[p]), o);
 const files = process.argv.slice(2).length ? process.argv.slice(2)
   : execSync("rg -l \"\\b(t|tr)\\(\" src --glob '*.tsx' --glob '*.ts'").toString().trim().split('\n');

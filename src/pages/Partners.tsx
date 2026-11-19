@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { tr } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Handshake, Users, DollarSign, Clock, CheckCircle2, Search, Pencil, Save, X } from "lucide-react";
@@ -74,38 +75,38 @@ const Partners: React.FC = () => {
 
   const markPaid = async (pc: PC) => {
     const { error } = await supabase.from("partner_commissions").update({ status: "pago", paid_at: new Date().toISOString() }).eq("id", pc.id);
-    if (error) return toast.error("Erro ao marcar como pago: " + error.message);
-    toast.success("Pago! Lançamento criado no Faturamento.");
+    if (error) return toast.error(tr("fin.partners.payError") + " " + error.message);
+    toast.success(tr('fin.partners.paid'));
     reload();
   };
 
   const savePct = async (partnerId: string) => {
     const n = parseFloat(pctDraft);
-    if (!Number.isFinite(n) || n < 0 || n > 100) return toast.error("Percentual inválido");
+    if (!Number.isFinite(n) || n < 0 || n > 100) return toast.error(tr('fin.partners.invalidPct'));
     const { error } = await supabase.from("partners").update({ commission_pct: n }).eq("id", partnerId);
-    if (error) return toast.error("Erro: " + error.message);
-    toast.success("Percentual atualizado");
+    if (error) return toast.error(tr("fin.partners.err") + " " + error.message);
+    toast.success(tr('fin.partners.pctUpdated'));
     setEditingPct(null);
     reload();
   };
 
-  if (loading) return <div className="p-10 text-center text-sm text-muted-foreground">Carregando…</div>;
+  if (loading) return <div className="p-10 text-center text-sm text-muted-foreground">{tr('fin.partners.loading')}</div>;
 
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Programa de indicação"
-        title={<span className="flex items-center gap-3"><Handshake size={22} className="text-primary" /> Parceiros</span>}
-        description="Gerencie os parceiros do programa de indicação e suas comissões"
+        eyebrow={tr('fin.partners.eyebrow')}
+        title={<span className="flex items-center gap-3"><Handshake size={22} className="text-primary" /> {tr('fin.partners.title')}</span>}
+        description={tr('fin.partners.desc')}
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { icon: Users, label: "Parceiros ativos", value: partners.filter(p => p.status === "active").length, color: "text-primary" },
-          { icon: Clock, label: "Comissões pendentes", value: fmt(totals.pendente), color: "text-yellow-400" },
-          { icon: CheckCircle2, label: "Já pago", value: fmt(totals.pago), color: "text-green-400" },
-          { icon: DollarSign, label: "Total acumulado", value: fmt(totals.total), color: "text-blue-400" },
+          { icon: Users, label: tr('fin.partners.active'), value: partners.filter(p => p.status === "active").length, color: "text-primary" },
+          { icon: Clock, label: tr('fin.partners.pending'), value: fmt(totals.pendente), color: "text-yellow-400" },
+          { icon: CheckCircle2, label: tr('fin.partners.alreadyPaid'), value: fmt(totals.pago), color: "text-green-400" },
+          { icon: DollarSign, label: tr('fin.partners.total'), value: fmt(totals.total), color: "text-blue-400" },
         ].map(k => (
           <div key={k.label} className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className={`${k.color} mb-2`}><k.icon size={18} /></div>
@@ -118,7 +119,7 @@ const Partners: React.FC = () => {
       {/* Search */}
       <div className="relative max-w-md">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar parceiro por nome ou e-mail…"
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tr('fin.partners.search')}
           className="w-full bg-secondary/50 border border-border rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-primary" />
       </div>
 
@@ -126,7 +127,7 @@ const Partners: React.FC = () => {
       <div className="space-y-3">
         {filtered.length === 0 && (
           <div className="bg-card/40 border border-border/60 rounded-xl p-10 text-center text-sm text-muted-foreground">
-            Nenhum parceiro cadastrado ainda.
+            {tr('fin.partners.none')}
           </div>
         )}
         {filtered.map(p => {
@@ -147,19 +148,19 @@ const Partners: React.FC = () => {
                 </div>
                 <div className="hidden sm:flex items-center gap-6 text-xs">
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-muted-foreground">Indicados</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">{tr('fin.partners.referred')}</div>
                     <div className="font-semibold text-foreground">{myClients.length}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-muted-foreground">% Comissão</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">{tr('fin.partners.pctComm')}</div>
                     <div className="font-semibold text-primary">{Number(p.commission_pct)}%</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-muted-foreground">Pendente</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">{tr('fin.partners.st.pending')}</div>
                     <div className="font-semibold text-yellow-400">{fmt(pendente)}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-muted-foreground">Pago</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">{tr('fin.partners.st.paid')}</div>
                     <div className="font-semibold text-green-400">{fmt(pago)}</div>
                   </div>
                 </div>
@@ -177,7 +178,7 @@ const Partners: React.FC = () => {
                       <div className="text-foreground break-all">{p.pix_key || "—"}</div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase text-muted-foreground mb-1">% de comissão</div>
+                      <div className="text-[10px] uppercase text-muted-foreground mb-1">{tr('fin.partners.pctOf')}</div>
                       {editingPct === p.id ? (
                         <div className="flex items-center gap-1">
                           <input type="number" step="0.1" value={pctDraft} onChange={e => setPctDraft(e.target.value)}
@@ -196,9 +197,9 @@ const Partners: React.FC = () => {
 
                   {/* Referred clients */}
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Clientes indicados ({myClients.length})</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">{tr('fin.partners.referredClients', { n: myClients.length })}</div>
                     <div className="flex flex-wrap gap-2">
-                      {myClients.length === 0 && <span className="text-xs text-muted-foreground">Nenhum cliente vinculado.</span>}
+                      {myClients.length === 0 && <span className="text-xs text-muted-foreground">{tr('fin.partners.noClients')}</span>}
                       {myClients.map(c => (
                         <span key={c.id} className="text-xs bg-secondary/60 border border-border/60 px-2.5 py-1 rounded-full text-foreground">{c.name}</span>
                       ))}
@@ -207,20 +208,20 @@ const Partners: React.FC = () => {
 
                   {/* Commissions */}
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Comissões</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">{tr('fin.partners.commissions')}</div>
                     {myCommissions.length === 0 ? (
-                      <div className="text-xs text-muted-foreground py-3">Nenhuma comissão gerada ainda.</div>
+                      <div className="text-xs text-muted-foreground py-3">{tr('fin.partners.noComm')}</div>
                     ) : (
                       <div className="overflow-x-auto rounded-lg border border-border/60">
                         <table className="w-full text-xs">
                           <thead className="bg-secondary/40 text-[10px] uppercase text-muted-foreground">
                             <tr>
-                              <th className="text-left px-3 py-2 font-medium">Data</th>
-                              <th className="text-right px-3 py-2 font-medium">Base</th>
+                              <th className="text-left px-3 py-2 font-medium">{tr('fin.partners.date')}</th>
+                              <th className="text-right px-3 py-2 font-medium">{tr('fin.partners.base')}</th>
                               <th className="text-right px-3 py-2 font-medium">%</th>
-                              <th className="text-right px-3 py-2 font-medium">Comissão</th>
-                              <th className="text-center px-3 py-2 font-medium">Status</th>
-                              <th className="text-right px-3 py-2 font-medium">Ação</th>
+                              <th className="text-right px-3 py-2 font-medium">{tr('fin.partners.commission')}</th>
+                              <th className="text-center px-3 py-2 font-medium">{tr('fin.partners.status')}</th>
+                              <th className="text-right px-3 py-2 font-medium">{tr('fin.partners.action')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -232,14 +233,14 @@ const Partners: React.FC = () => {
                                 <td className="px-3 py-2 text-right font-semibold text-primary">{fmt(Number(c.amount))}</td>
                                 <td className="px-3 py-2 text-center">
                                   {c.status === "pago" ? (
-                                    <span className="text-[9px] uppercase tracking-wider text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded-full">Pago</span>
+                                    <span className="text-[9px] uppercase tracking-wider text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded-full">{tr('fin.partners.st.paid')}</span>
                                   ) : (
-                                    <span className="text-[9px] uppercase tracking-wider text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded-full">Pendente</span>
+                                    <span className="text-[9px] uppercase tracking-wider text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded-full">{tr('fin.partners.st.pending')}</span>
                                   )}
                                 </td>
                                 <td className="px-3 py-2 text-right">
                                   {c.status !== "pago" && (
-                                    <button onClick={() => markPaid(c)} className="text-[10px] uppercase tracking-wider text-primary hover:underline">Marcar pago</button>
+                                    <button onClick={() => markPaid(c)} className="text-[10px] uppercase tracking-wider text-primary hover:underline">{tr('fin.partners.markPaid')}</button>
                                   )}
                                 </td>
                               </tr>

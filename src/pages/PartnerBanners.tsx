@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { tr } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHero, Panel } from '@/components/ui-kit';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,7 @@ const PartnerBanners: React.FC = () => {
       .select('*')
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
-    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    if (error) toast({ title: tr('fin.banner.error'), description: error.message, variant: 'destructive' });
     setBanners((data as Banner[]) || []);
     setLoading(false);
   };
@@ -61,7 +62,7 @@ const PartnerBanners: React.FC = () => {
 
   const save = async () => {
     if (!form.title.trim() || !form.image_url.trim()) {
-      toast({ title: 'Preencha título e URL da imagem', variant: 'destructive' });
+      toast({ title: tr('fin.banner.fill'), variant: 'destructive' });
       return;
     }
     setSaving(true);
@@ -80,8 +81,8 @@ const PartnerBanners: React.FC = () => {
       : supabase.from('partner_banners').insert({ ...payload, created_by: user?.id });
     const { error } = await q;
     setSaving(false);
-    if (error) return toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
-    toast({ title: editingId ? 'Banner atualizado' : 'Banner criado' });
+    if (error) return toast({ title: tr('fin.banner.saveError'), description: error.message, variant: 'destructive' });
+    toast({ title: editingId ? tr('fin.banner.updated') : tr('fin.banner.created') });
     reset();
     load();
   };
@@ -101,39 +102,39 @@ const PartnerBanners: React.FC = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Remover este banner?')) return;
+    if (!confirm(tr('fin.banner.confirmRemove'))) return;
     const { error } = await supabase.from('partner_banners').delete().eq('id', id);
-    if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    toast({ title: 'Removido' });
+    if (error) return toast({ title: tr('fin.banner.error'), description: error.message, variant: 'destructive' });
+    toast({ title: tr('fin.banner.removed') });
     load();
   };
 
   const toggleActive = async (b: Banner) => {
     const { error } = await supabase.from('partner_banners').update({ active: !b.active }).eq('id', b.id);
-    if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    if (error) return toast({ title: tr('fin.banner.error'), description: error.message, variant: 'destructive' });
     load();
   };
 
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Parceiros"
-        title="Banners de Parceiros"
-        description="Adicione banners promocionais que aparecerão no dashboard dos clientes e/ou no marketplace."
+        eyebrow={tr('fin.banner.eyebrow')}
+        title={tr('fin.banner.title')}
+        description={tr('fin.banner.desc')}
       />
 
-      <Panel title={editingId ? 'Editar banner' : 'Novo banner'} icon={Plus as any}>
+      <Panel title={editingId ? tr('fin.banner.edit') : tr('fin.banner.new')} icon={Plus as any}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <Label>Título *</Label>
-            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Ex: Parceiro XYZ" />
+            <Label>{tr('fin.banner.titleLbl')}</Label>
+            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={tr('fin.banner.titlePh')} />
           </div>
           <div className="md:col-span-2">
-            <Label>Descrição</Label>
-            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Curta descrição opcional" />
+            <Label>{tr('fin.banner.descLbl')}</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder={tr('fin.banner.descPh')} />
           </div>
           <div className="md:col-span-2">
-            <Label>URL da imagem * (recomendado 1600×600 ou 16:6)</Label>
+            <Label>{tr('fin.banner.img')}</Label>
             <Input value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
             {form.image_url && (
               <div className="mt-2 aspect-[16/6] w-full overflow-hidden rounded-lg border border-border/60 bg-muted/30">
@@ -142,45 +143,45 @@ const PartnerBanners: React.FC = () => {
             )}
           </div>
           <div>
-            <Label>Link de destino (URL)</Label>
+            <Label>{tr('fin.banner.link')}</Label>
             <Input value={form.link_url} onChange={e => setForm(f => ({ ...f, link_url: e.target.value }))} placeholder="https://..." />
           </div>
           <div className="md:col-span-2">
-            <Label>Texto do botão (opcional)</Label>
-            <Input value={form.cta_label} onChange={e => setForm(f => ({ ...f, cta_label: e.target.value }))} placeholder="Ex: Saiba mais, Acessar, Comprar agora" />
-            <p className="mt-1 text-[11px] text-muted-foreground">Exibido como botão sobre o banner quando houver link. Padrão: "Saiba mais".</p>
+            <Label>{tr('fin.banner.btn')}</Label>
+            <Input value={form.cta_label} onChange={e => setForm(f => ({ ...f, cta_label: e.target.value }))} placeholder={tr('fin.banner.btnPh')} />
+            <p className="mt-1 text-[11px] text-muted-foreground">{tr('fin.banner.btnHint')}</p>
           </div>
           <div>
-            <Label>Exibir em</Label>
+            <Label>{tr('fin.banner.showIn')}</Label>
             <Select value={form.placement} onValueChange={(v: any) => setForm(f => ({ ...f, placement: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="both">Ambos (Dashboard + Marketplace)</SelectItem>
-                <SelectItem value="client_dashboard">Dashboard do Cliente</SelectItem>
+                <SelectItem value="both">{tr('fin.banner.both')}</SelectItem>
+                <SelectItem value="client_dashboard">{tr('fin.banner.dash')}</SelectItem>
                 <SelectItem value="marketplace">Marketplace</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Ordem</Label>
+            <Label>{tr('fin.banner.order')}</Label>
             <Input type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: Number(e.target.value) }))} />
           </div>
           <div className="flex items-center gap-3">
             <Switch checked={form.active} onCheckedChange={v => setForm(f => ({ ...f, active: v }))} />
-            <Label>Ativo</Label>
+            <Label>{tr('fin.banner.active')}</Label>
           </div>
         </div>
         <div className="mt-4 flex gap-2 justify-end">
-          {editingId && <Button variant="outline" onClick={reset}>Cancelar</Button>}
-          <Button onClick={save} disabled={saving}>{editingId ? 'Salvar alterações' : 'Adicionar banner'}</Button>
+          {editingId && <Button variant="outline" onClick={reset}>{tr('fin.banner.cancel')}</Button>}
+          <Button onClick={save} disabled={saving}>{editingId ? tr('fin.banner.saveChanges') : tr('fin.banner.add')}</Button>
         </div>
       </Panel>
 
-      <Panel title={`Banners cadastrados (${banners.length})`} icon={ImageIcon as any}>
+      <Panel title={tr('fin.banner.list', { n: banners.length })} icon={ImageIcon as any}>
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <p className="text-sm text-muted-foreground">{tr('fin.banner.loading')}</p>
         ) : banners.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum banner cadastrado ainda.</p>
+          <p className="text-sm text-muted-foreground">{tr('fin.banner.none')}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {banners.map(b => (
@@ -200,7 +201,7 @@ const PartnerBanners: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="px-2 py-0.5 rounded-full bg-muted">{b.placement}</span>
-                    <span>Ordem: {b.sort_order}</span>
+                    <span>{tr('fin.banner.orderLbl')} {b.sort_order}</span>
                     {b.link_url && (
                       <a href={b.link_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
                         <ExternalLink size={12} /> link
@@ -208,8 +209,8 @@ const PartnerBanners: React.FC = () => {
                     )}
                   </div>
                   <div className="flex gap-2 pt-1">
-                    <Button size="sm" variant="outline" onClick={() => edit(b)}>Editar</Button>
-                    <Button size="sm" variant="outline" onClick={() => toggleActive(b)}>{b.active ? 'Desativar' : 'Ativar'}</Button>
+                    <Button size="sm" variant="outline" onClick={() => edit(b)}>{tr('fin.banner.editBtn')}</Button>
+                    <Button size="sm" variant="outline" onClick={() => toggleActive(b)}>{b.active ? tr('fin.banner.deactivate') : tr('fin.banner.activate')}</Button>
                     <Button size="sm" variant="ghost" onClick={() => remove(b.id)} className="text-destructive"><Trash2 size={14} /></Button>
                   </div>
                 </div>
