@@ -40,9 +40,7 @@ export const TiersDialog: React.FC<Props> = ({
         <DialogHeader>
           <DialogTitle className="font-display">{tr('admin.tiers.title')}</DialogTitle>
           <DialogDescription className="text-xs">
-            Configuração <strong className="text-foreground">global</strong>. Define o percentual aplicado conforme o
-            gasto semanal acumulado de cada cliente de aluguel. As metas acompanham o nível de fidelidade: clientes
-            Premium (4% base) e Elite (3% base) recebem cada meta reduzida pela mesma diferença — ex.: Premium começa em 3%.
+            <span dangerouslySetInnerHTML={{ __html: tr('admin.tiers.desc') }} />
           </DialogDescription>
         </DialogHeader>
 

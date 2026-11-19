@@ -64,3 +64,21 @@ const escapeHtml = (v: unknown) =>
 /** Like `tr`, but HTML-escapes every interpolated value. Use this (never `tr`) inside dangerouslySetInnerHTML. */
 export const trHtml = (key: string, options: Record<string, unknown> = {}): string =>
   tr(key, Object.fromEntries(Object.entries(options).map(([k, v]) => [k, escapeHtml(v)])));
+
+/**
+ * Wraps a static `{ code: 'Rótulo PT' }` map so each read returns the label in the current language
+ * (`<prefix>.<code>`), falling back to the Portuguese text when no translation exists.
+ */
+export function localizedMap<T extends Record<string, string>>(prefix: string, ptMap: T): T {
+  const out = {} as T;
+  for (const k of Object.keys(ptMap)) {
+    Object.defineProperty(out, k, {
+      enumerable: true,
+      get: () => {
+        const key = `${prefix}.${k}`;
+        return i18n.exists(key) ? tr(key) : ptMap[k];
+      },
+    });
+  }
+  return out;
+}

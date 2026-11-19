@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { tr } from '@/i18n';
+import { getNumberLocale } from '@/i18n/format';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle2, XCircle, UserPlus, RefreshCw, Building2, Mail, Phone, Target, DollarSign, Compass } from 'lucide-react';
 
@@ -17,7 +18,7 @@ type PendingClient = {
 };
 
 const nicheLabel = (v: string | null) =>
-  v === 'infoproduto' ? 'Infoproduto' : v === 'produto_fisico' ? 'Produto físico' : v === 'outro' ? 'Outro' : '—';
+  v === 'infoproduto' ? tr('admin.approvals.niche.info') : v === 'produto_fisico' ? tr('admin.approvals.niche.physical') : v === 'outro' ? tr('admin.approvals.niche.other') : '—';
 
 const investLabel = (v: string | null) => {
   const map: Record<string, string> = {
@@ -102,7 +103,7 @@ const PendingApprovalsPanel: React.FC<{ onChanged?: () => void }> = ({ onChanged
               <div>
                 <p className="text-sm font-semibold text-foreground">{r.name || '—'}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(r.created_at).toLocaleString('pt-BR')}
+                  {new Date(r.created_at).toLocaleString(getNumberLocale())}
                 </p>
               </div>
               <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/30">

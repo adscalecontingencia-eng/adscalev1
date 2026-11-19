@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { tr } from '@/i18n';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -37,7 +38,7 @@ const Row: React.FC<{
   const dotColor =
     comm.type === 'daily' ? 'bg-primary' : comm.type === 'paid' ? 'bg-success' : 'bg-warning';
   const label =
-    comm.type === 'daily' ? 'Gasto em Ads' : comm.type === 'paid' ? 'Pagamento' : 'Cobrança Semanal';
+    comm.type === 'daily' ? tr('admin.history.t.daily') : comm.type === 'paid' ? tr('admin.history.t.paid') : tr('admin.history.t.weekly');
   const amountClass =
     comm.type === 'daily' ? 'text-primary' : comm.type === 'paid' ? 'text-success' : 'text-warning';
 
@@ -61,7 +62,7 @@ const Row: React.FC<{
                 : 'bg-muted text-muted-foreground'
             )}
           >
-            {comm.status === 'pago' ? 'Pago' : comm.status === 'parcial' ? 'Parcial' : 'Pendente'}
+            {comm.status === 'pago' ? tr('admin.history.s.paid') : comm.status === 'parcial' ? tr('admin.history.s.partial') : tr('admin.history.s.pending')}
           </span>
         )}
         {comm.note && <span className="text-muted-foreground italic truncate">— {comm.note}</span>}
@@ -74,14 +75,14 @@ const Row: React.FC<{
         <button
           onClick={() => onEdit(comm)}
           className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
-          title="Editar"
+          title={tr('admin.history.edit')}
         >
           <Pencil size={12} />
         </button>
         <button
           onClick={() => onDelete(comm.id)}
           className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-          title="Remover"
+          title={tr('admin.history.remove')}
         >
           <Trash2 size={12} />
         </button>
@@ -131,25 +132,25 @@ export const ClientHistoryDrawer: React.FC<Props> = ({
         <SheetHeader className="p-5 border-b border-border">
           <SheetTitle className="font-display">{clientName}</SheetTitle>
           <SheetDescription className="text-xs">
-            Histórico completo de lançamentos, cobranças e pagamentos.
+            {tr('admin.history.desc')}
           </SheetDescription>
         </SheetHeader>
 
         <div className="grid grid-cols-4 gap-2 p-4 border-b border-border bg-secondary/30">
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Ads</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{tr('admin.history.ads')}</p>
             <p className="text-xs font-bold">{fmt(totals.adSpend)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Comissão</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{tr('admin.history.comm')}</p>
             <p className="text-xs font-bold text-primary">{fmt(totals.commission)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Paga</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{tr('admin.history.paid')}</p>
             <p className="text-xs font-bold text-success">{fmt(totals.paid)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saldo</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{tr('admin.history.balance')}</p>
             <p className={cn('text-xs font-bold', totals.balance > 0 ? 'text-warning' : 'text-success')}>
               {fmt(Math.max(0, totals.balance))}
             </p>
@@ -158,15 +159,15 @@ export const ClientHistoryDrawer: React.FC<Props> = ({
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex-1 flex flex-col min-h-0">
           <TabsList className="mx-4 mt-3">
-            <TabsTrigger value="all">Todos ({sorted.length})</TabsTrigger>
-            <TabsTrigger value="daily">Lançamentos</TabsTrigger>
-            <TabsTrigger value="weekly">Cobranças</TabsTrigger>
-            <TabsTrigger value="paid">Pagamentos</TabsTrigger>
+            <TabsTrigger value="all">{tr('admin.history.allN', { n: sorted.length })}</TabsTrigger>
+            <TabsTrigger value="daily">{tr('admin.history.entries')}</TabsTrigger>
+            <TabsTrigger value="weekly">{tr('admin.history.charges')}</TabsTrigger>
+            <TabsTrigger value="paid">{tr('admin.history.payments')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value={tab} className="flex-1 overflow-y-auto p-4 space-y-1.5 mt-0">
             {filtered.length === 0 ? (
-              <Empty label="Nenhum lançamento encontrado." />
+              <Empty label={tr('admin.history.none')} />
             ) : (
               filtered.map((c) => <Row key={c.id} comm={c} onEdit={onEdit} onDelete={onDelete} />)
             )}

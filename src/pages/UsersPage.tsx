@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { tr } from '@/i18n';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
 import { Plus, X, Shield, KeyRound, Pencil, Trash2 } from 'lucide-react';
@@ -13,7 +14,7 @@ interface SupportUser {
   auth_user_id?: string;
 }
 
-const PERMISSION_OPTIONS = [
+const PERMISSION_OPTIONS = ([
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'clients', label: 'Clientes' },
   { key: 'financial', label: 'Financeiro' },
@@ -23,7 +24,7 @@ const PERMISSION_OPTIONS = [
   { key: 'meta-connections', label: 'Conexões Meta' },
   { key: 'pages', label: 'Páginas' },
   { key: 'marketplace', label: 'Marketplace' },
-];
+]).map(o => ({ key: o.key, get label() { return tr(`admin.users.perm.${o.key}`); } }));
 
 const inputClass = "w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors";
 
@@ -39,7 +40,7 @@ const UsersPage: React.FC = () => {
 
   const fetchUsers = async () => {
     const { data, error } = await supabase.from('support_users').select('*').order('created_at', { ascending: false });
-    if (error) { toast.error('Erro ao carregar colaboradores'); return; }
+    if (error) { toast.error(tr('admin.users.loadError')); return; }
     setUsers((data || []).map((u: any) => ({
       id: u.id, name: u.name, email: u.email,
       permissions: u.permissions || [],
@@ -52,15 +53,15 @@ const UsersPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.email.trim() || !form.password) {
-      toast.error('Preencha todos os campos');
+      toast.error(tr('admin.users.fillAll'));
       return;
     }
     if (form.password.length < 6) {
-      toast.error('Senha deve ter ao menos 6 caracteres');
+      toast.error(tr('admin.users.pw6'));
       return;
     }
     if (!form.email.includes('@')) {
-      toast.error('E-mail inválido');
+      toast.error(tr('admin.users.invalidEmail'));
       return;
     }
     setSaving(true);
@@ -76,10 +77,10 @@ const UsersPage: React.FC = () => {
         },
       });
       if (res.error || (res.data as any)?.error) {
-        toast.error((res.data as any)?.error || res.error?.message || 'Erro ao cadastrar colaborador');
+        toast.error((res.data as any)?.error || res.error?.message || tr('admin.users.createError'));
         return;
       }
-      toast.success('Colaborador cadastrado!');
+      toast.success(tr('admin.users.created'));
       setForm({ name: '', email: '', password: '', permissions: ['support'] });
       setShowForm(false);
       fetchUsers();
@@ -103,7 +104,7 @@ const UsersPage: React.FC = () => {
           body: { action: 'update_support_permissions', support_user_id: editing.id, name: editForm.name.trim(), permissions: editForm.permissions },
         });
         if (r.error || (r.data as any)?.error) {
-          toast.error((r.data as any)?.error || 'Falha ao atualizar dados');
+          toast.error((r.data as any)?.error || tr('admin.users.updateDataFail'));
           return;
         }
       }
@@ -112,7 +113,7 @@ const UsersPage: React.FC = () => {
       const pwdSet = editForm.new_password.length > 0;
       if ((emailChanged || pwdSet) && editing.auth_user_id) {
         if (pwdSet && editForm.new_password.length < 6) {
-          toast.error('Senha deve ter ao menos 6 caracteres');
+          toast.error(tr('admin.users.pw6'));
           return;
         }
         const r = await supabase.functions.invoke('manage-users', {
@@ -124,14 +125,14 @@ const UsersPage: React.FC = () => {
           },
         });
         if (r.error || (r.data as any)?.error) {
-          toast.error((r.data as any)?.error || 'Falha ao atualizar login');
+          toast.error((r.data as any)?.error || tr('admin.users.updateLoginFail'));
           return;
         }
       } else if ((emailChanged || pwdSet) && !editing.auth_user_id) {
-        toast.error('Colaborador legado sem usuário de autenticação. Recadastre.');
+        toast.error(tr('admin.users.legacy'));
         return;
       }
-      toast.success('Colaborador atualizado!');
+      toast.success(tr('admin.users.updated'));
       setEditing(null);
       fetchUsers();
     } finally {
@@ -140,21 +141,21 @@ const UsersPage: React.FC = () => {
   };
 
   const handleDelete = async (user: SupportUser) => {
-    if (!confirm(`Remover colaborador ${user.name}?`)) return;
+    if (!confirm(tr('admin.users.confirmRemove', { name: user.name }))) return;
     if (!user.auth_user_id) {
       const { error } = await supabase.from('support_users').delete().eq('id', user.id);
-      if (error) { toast.error('Erro ao remover'); return; }
+      if (error) { toast.error(tr('admin.users.removeError')); return; }
     } else {
       const res = await supabase.functions.invoke('manage-users', {
         body: { action: 'delete_user', user_id: user.auth_user_id },
       });
       if (res.error || (res.data as any)?.error) {
-        toast.error((res.data as any)?.error || 'Erro ao remover');
+        toast.error((res.data as any)?.error || tr('admin.users.removeError'));
         return;
       }
       await supabase.from('support_users').delete().eq('auth_user_id', user.auth_user_id);
     }
-    toast.success('Colaborador removido!');
+    toast.success(tr('admin.users.removed'));
     setUsers(prev => prev.filter(u => u.id !== user.id));
   };
 
@@ -166,17 +167,17 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">{tr('admin.users.loading')}</p></div>;
 
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Equipe"
-        title={<>Usuários & <span className="text-primary glow-text">permissões</span></>}
-        description={`${users.length} colaborador(es) com acesso ao painel.`}
+        eyebrow={tr('admin.users.eyebrow')}
+        title={<span dangerouslySetInnerHTML={{ __html: tr('admin.users.title').replace('<span>', '<span class="text-primary glow-text">') }} />}
+        description={tr('admin.users.count', { n: users.length })}
         actions={
           <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
-            <Plus size={16} /> Novo Colaborador
+            <Plus size={16} /> {tr('admin.users.newUser')}
           </button>
         }
       />
@@ -185,12 +186,12 @@ const UsersPage: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">Novo Colaborador</h3>
+              <h3 className="font-display text-sm font-semibold">{tr('admin.users.newUser')}</h3>
               <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Nome</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.users.name')}</label>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputClass} />
               </div>
               <div>
@@ -198,11 +199,11 @@ const UsersPage: React.FC = () => {
                 <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Senha</label>
-                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} placeholder="Mínimo 6 caracteres" />
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.users.password')}</label>
+                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputClass} placeholder={tr('admin.users.min6')} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-2">Permissões</label>
+                <label className="block text-xs text-muted-foreground mb-2">{tr('admin.users.permissions')}</label>
                 <div className="flex flex-wrap gap-2">
                   {PERMISSION_OPTIONS.map(p => (
                     <button key={p.key} onClick={() => togglePermission(p.key, 'create')}
@@ -214,7 +215,7 @@ const UsersPage: React.FC = () => {
               </div>
               <button onClick={handleSave} disabled={saving}
                 className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
-                {saving ? 'Cadastrando...' : 'Cadastrar'}
+                {saving ? tr('admin.users.creating') : tr('admin.users.create')}
               </button>
             </div>
           </motion.div>
@@ -225,24 +226,24 @@ const UsersPage: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold flex items-center gap-2"><KeyRound size={14} className="text-primary" /> Editar colaborador</h3>
+              <h3 className="font-display text-sm font-semibold flex items-center gap-2"><KeyRound size={14} className="text-primary" /> {tr('admin.users.editTitle')}</h3>
               <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Nome</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.users.name')}</label>
                 <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">E-mail de acesso</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.users.loginEmail')}</label>
                 <input type="email" value={editForm.new_email} onChange={e => setEditForm(p => ({ ...p, new_email: e.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Nova senha <span className="text-muted-foreground/60">(deixe vazio para manter)</span></label>
-                <input type="password" value={editForm.new_password} onChange={e => setEditForm(p => ({ ...p, new_password: e.target.value }))} className={inputClass} placeholder="Mínimo 6 caracteres" />
+                <label className="block text-xs text-muted-foreground mb-1">{tr('admin.users.newPw')} <span className="text-muted-foreground/60">{tr('admin.users.keepEmpty')}</span></label>
+                <input type="password" value={editForm.new_password} onChange={e => setEditForm(p => ({ ...p, new_password: e.target.value }))} className={inputClass} placeholder={tr('admin.users.min6')} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-2">Permissões</label>
+                <label className="block text-xs text-muted-foreground mb-2">{tr('admin.users.permissions')}</label>
                 <div className="flex flex-wrap gap-2">
                   {PERMISSION_OPTIONS.map(p => (
                     <button key={p.key} onClick={() => togglePermission(p.key, 'edit')}
@@ -253,11 +254,11 @@ const UsersPage: React.FC = () => {
                 </div>
               </div>
               {!editing.auth_user_id && (
-                <p className="text-[11px] text-amber-400">⚠️ Colaborador legado sem login Auth. Para alterar email/senha, recadastre.</p>
+                <p className="text-[11px] text-amber-400">{tr('admin.users.legacyWarn')}</p>
               )}
               <button onClick={handleEditSave} disabled={editSaving}
                 className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box disabled:opacity-50">
-                {editSaving ? 'Salvando...' : 'Salvar alterações'}
+                {editSaving ? tr('admin.users.saving') : tr('admin.users.saveChanges')}
               </button>
             </div>
           </motion.div>
@@ -282,13 +283,13 @@ const UsersPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => openEdit(u)} title="Editar login/permissões" className="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-secondary"><Pencil size={14} /></button>
-                <button onClick={() => handleDelete(u)} title="Remover" className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-secondary"><Trash2 size={14} /></button>
+                <button onClick={() => openEdit(u)} title={tr('admin.users.editTitleAttr')} className="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-secondary"><Pencil size={14} /></button>
+                <button onClick={() => handleDelete(u)} title={tr('admin.users.remove')} className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-secondary"><Trash2 size={14} /></button>
               </div>
             </div>
           </div>
         ))}
-        {users.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhum colaborador cadastrado.</p>}
+        {users.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">{tr('admin.users.none')}</p>}
       </div>
     </div>
   );

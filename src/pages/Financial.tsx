@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { tr, trHtml } from '@/i18n';
 import { motion } from 'framer-motion';
 import { PageHero } from '@/components/ui-kit';
 import { Plus, X, AlertCircle, CalendarIcon, Filter, Pencil, History, Wallet, CheckCircle2 } from 'lucide-react';
+import { localizedMap } from '@/i18n';
 import { STATUS_LABEL, TYPE_LABEL, PAYMENT_METHODS, effectiveStatus, reportRows, accountBalances, openItems, type TxStatus } from '@/lib/finance-ledger';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,8 +48,8 @@ const STATUS_STYLE: Record<TxStatus, string> = {
   atrasado: 'bg-destructive/15 text-destructive',
   cancelado: 'bg-muted text-muted-foreground line-through',
 };
-const ACCOUNT_TYPES: Record<string, string> = { banco: 'Banco', carteira: 'Carteira digital', caixa: 'Caixa', cartao: 'Cartão', cripto: 'Cripto', outro: 'Outro' };
-const FIELD_LABEL: Record<string, string> = { date: 'Data', type: 'Tipo', category: 'Categoria', subcategory: 'Subcategoria', client_id: 'Cliente', amount: 'Valor', description: 'Descrição', custo_produto: 'Custo do produto', valor_venda: 'Valor de venda', quantidade: 'Quantidade', supplier_id: 'Fornecedor', status: 'Status', due_date: 'Vencimento', paid_at: 'Data de pagamento', payment_method: 'Forma de pagamento', account_id: 'Conta', destination_account_id: 'Conta de destino', related_transaction_id: 'Lançamento original', notes: 'Observação' };
+const ACCOUNT_TYPES: Record<string, string> = localizedMap('fin.accType', { banco: 'Banco', carteira: 'Carteira digital', caixa: 'Caixa', cartao: 'Cartão', cripto: 'Cripto', outro: 'Outro' });
+const FIELD_LABEL: Record<string, string> = localizedMap('fin.field', { date: tr('fin.page.date'), type: tr('fin.page.type'), category: tr('fin.page.category'), subcategory: 'Subcategoria', client_id: 'Cliente', amount: tr('fin.page.value'), description: tr('fin.page.description'), custo_produto: tr('fin.page.productCost'), valor_venda: tr('fin.page.saleValue'), quantidade: tr('fin.page.qty'), supplier_id: tr('fin.page.supplier'), status: tr('fin.page.status'), due_date: tr('fin.page.due'), paid_at: tr('fin.page.paidAt'), payment_method: tr('fin.page.method'), account_id: tr('fin.page.account'), destination_account_id: tr('fin.page.destAccount'), related_transaction_id: tr('fin.page.original'), notes: tr('fin.page.note') });
 
 interface ClientOption {
   id: string;
@@ -128,21 +130,21 @@ const Financial: React.FC = () => {
 
   const createSupplier = async (): Promise<string | null> => {
     const name = newSupplierName.trim();
-    if (!name) { toast.error('Informe o nome do fornecedor'); return null; }
+    if (!name) { toast.error(tr('fin.page.needSupplier')); return null; }
     const { data, error } = await supabase.from('suppliers' as any).insert({ name } as any).select('id, name').single();
-    if (error || !data) { toast.error('Erro ao criar fornecedor'); return null; }
+    if (error || !data) { toast.error(tr('fin.page.supplierError')); return null; }
     const created = data as any;
     setSuppliers(prev => [...prev, { id: created.id, name: created.name }].sort((a, b) => a.name.localeCompare(b.name)));
     setNewSupplierName('');
     setShowNewSupplier(false);
-    toast.success('Fornecedor cadastrado');
+    toast.success(tr('fin.page.supplierCreated'));
     return created.id;
   };
 
   const deleteSupplier = async (id: string) => {
-    if (!confirm('Remover este fornecedor? Os lançamentos antigos continuarão, mas sem vínculo.')) return;
+    if (!confirm(tr('fin.page.confirmSupplier'))) return;
     const { error } = await supabase.from('suppliers' as any).delete().eq('id', id);
-    if (error) { toast.error('Erro ao remover'); return; }
+    if (error) { toast.error(tr('fin.page.removeError')); return; }
     setSuppliers(prev => prev.filter(s => s.id !== id));
   };
 
@@ -199,12 +201,12 @@ const Financial: React.FC = () => {
     const errs: Record<string, string> = {};
     const valueField = form.type === 'gasto' ? form.custoProduto : form.type === 'receita' ? form.valorVenda : form.amount;
     const amount = parseFloat(valueField);
-    if (isNaN(amount) || amount <= 0) errs.amount = 'O valor deve ser um número positivo';
-    if (!form.date) errs.date = 'Data é obrigatória';
-    if (!form.description.trim()) errs.description = 'Descrição é obrigatória';
-    if (form.type === 'transferencia' && (!form.accountId || !form.destAccountId || form.accountId === form.destAccountId)) errs.accounts = 'Escolha conta de origem e destino diferentes';
-    if ((form.type === 'estorno' || form.type === 'reembolso') && !form.relatedId) errs.related = 'Escolha o lançamento original';
-    if (form.status === 'pendente' && !form.dueDate) errs.dueDate = 'Informe o vencimento';
+    if (isNaN(amount) || amount <= 0) errs.amount = tr('fin.page.e.amount');
+    if (!form.date) errs.date = tr('fin.page.e.date');
+    if (!form.description.trim()) errs.description = tr('fin.page.e.desc');
+    if (form.type === 'transferencia' && (!form.accountId || !form.destAccountId || form.accountId === form.destAccountId)) errs.accounts = tr('fin.page.e.accounts');
+    if ((form.type === 'estorno' || form.type === 'reembolso') && !form.relatedId) errs.related = tr('fin.page.e.related');
+    if (form.status === 'pendente' && !form.dueDate) errs.dueDate = tr('fin.page.e.due');
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -255,8 +257,8 @@ const Financial: React.FC = () => {
     const { error } = editingId
       ? await supabase.from('transactions').update(payload).eq('id', editingId)
       : await supabase.from('transactions').insert(payload);
-    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
-    toast.success(editingId ? 'Lançamento atualizado!' : inputCurrency === 'BRL' ? `Salva em USD (convertida de R$ @ ${usdToBrl.toFixed(2)})` : 'Transação salva!');
+    if (error) { toast.error(tr('fin.page.saveError') + ' ' + error.message); return; }
+    toast.success(editingId ? tr('fin.page.updated') : inputCurrency === 'BRL' ? tr('fin.page.savedBrl', { rate: usdToBrl.toFixed(2) }) : tr('fin.page.saved'));
     closeForm();
     fetchData();
   };
@@ -293,8 +295,8 @@ const Financial: React.FC = () => {
 
   const markPaid = async (t: Transaction) => {
     const { error } = await supabase.from('transactions').update({ status: 'confirmado', paid_at: today() }).eq('id', t.id);
-    if (error) { toast.error('Erro ao marcar como pago'); return; }
-    toast.success(t.type === 'receita' ? 'Marcado como recebido' : 'Marcado como pago');
+    if (error) { toast.error(tr('fin.page.markError')); return; }
+    toast.success(t.type === 'receita' ? tr('fin.page.markedReceived') : tr('fin.page.markedPaid'));
     fetchData();
   };
 
@@ -306,20 +308,20 @@ const Financial: React.FC = () => {
   };
 
   const saveAccount = async () => {
-    if (!accForm.name.trim()) { toast.error('Informe o nome da conta'); return; }
+    if (!accForm.name.trim()) { toast.error(tr('fin.page.needAccName')); return; }
     const { error } = await supabase.from('financial_accounts').insert({
       name: accForm.name.trim(), account_type: accForm.account_type, currency: accForm.currency,
       initial_balance: parseFloat(accForm.initial_balance) || 0,
     });
-    if (error) { toast.error('Erro ao criar conta'); return; }
+    if (error) { toast.error(tr('fin.page.accCreateError')); return; }
     setAccForm({ name: '', account_type: 'banco', currency: 'USD', initial_balance: '' });
-    toast.success('Conta cadastrada');
+    toast.success(tr('fin.page.accCreated'));
     fetchData();
   };
 
   const toggleAccount = async (a: FinAccount) => {
     const { error } = await supabase.from('financial_accounts').update({ active: !a.active }).eq('id', a.id);
-    if (error) { toast.error('Erro ao atualizar conta'); return; }
+    if (error) { toast.error(tr('fin.page.accUpdateError')); return; }
     fetchData();
   };
 
@@ -337,11 +339,11 @@ const Financial: React.FC = () => {
   const handleDelete = async (id: string) => {
     const linked = transactions.filter((t: any) => t.related_transaction_id === id);
     const msg = linked.length
-      ? `Este lançamento tem ${linked.length} estorno/reembolso ligado. Apagar também remove ${linked.length === 1 ? 'esse estorno/reembolso' : 'esses estornos/reembolsos'}. A exclusão fica registrada no histórico. Continuar?`
-      : 'Apagar este lançamento? A exclusão fica registrada no histórico.';
+      ? tr('fin.page.confirmLinked', { n: linked.length, which: linked.length === 1 ? tr('fin.page.linkedOne') : tr('fin.page.linkedMany') })
+      : tr('fin.page.confirmDelete');
     if (!confirm(msg)) return;
     const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) { toast.error(`Erro ao remover: ${error.message}`); return; }
+    if (error) { toast.error(tr('fin.page.removeErrorMsg', { msg: error.message })); return; }
     const removed = new Set([id, ...linked.map((t: any) => t.id)]);
     setTransactions(prev => prev.filter(t => !removed.has(t.id)));
   };
@@ -358,24 +360,24 @@ const Financial: React.FC = () => {
   const totalProductCost = reportable.filter((r: any) => r.type === 'receita').reduce((s, r: any) => s + (Number(r.custo_produto) || 0), 0);
   const totalExpenses = totalStructureExpenses + totalProductCost;
 
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">Carregando...</p></div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground text-sm">{tr('fin.page.loading')}</p></div>;
 
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Financeiro"
-        title={<>Caixa & <span className="text-primary glow-text">transações</span></>}
-        description="Receitas, gastos de estrutura e comissões em um só lugar — sempre em USD."
+        eyebrow={tr('fin.page.eyebrow')}
+        title={<span dangerouslySetInnerHTML={{ __html: tr('fin.page.title').replace('<span>', '<span class="text-primary glow-text">') }} />}
+        description={tr('fin.page.desc')}
         actions={
           <div className="flex gap-2">
             <button onClick={() => setShowAccounts(true)} className="flex items-center gap-2 bg-secondary border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-primary/50">
-              <Wallet size={16} /> Contas
+              <Wallet size={16} /> {tr('fin.page.accounts')}
             </button>
             <button onClick={() => setShowSuppliersManager(true)} className="flex items-center gap-2 bg-secondary border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-primary/50">
-              Fornecedores
+              {tr('fin.page.suppliers')}
             </button>
             <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
-              <Plus size={16} /> Nova transação
+              <Plus size={16} /> {tr('fin.page.newTx')}
             </button>
           </div>
         }
@@ -387,7 +389,7 @@ const Financial: React.FC = () => {
           <Filter size={16} className="text-muted-foreground" />
           {(['all', 'today', '7days', 'month', 'custom', 'range'] as DateFilter[]).map(f => (
             <button key={f} onClick={() => setDateFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${dateFilter === f ? 'bg-primary text-primary-foreground glow-box' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
-              {f === 'all' ? 'Todos' : f === 'today' ? 'Hoje' : f === '7days' ? '7 dias' : f === 'month' ? 'Este mês' : f === 'custom' ? 'Data' : 'Período'}
+              {tr(`fin.page.f.${['all', 'today', '7days', 'month', 'custom'].includes(f) ? f : 'range'}`)}
             </button>
           ))}
           {dateFilter === 'custom' && (
@@ -395,7 +397,7 @@ const Financial: React.FC = () => {
               <PopoverTrigger asChild>
                 <button className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
                   <CalendarIcon size={12} />
-                  {customDate ? format(customDate, "dd/MM/yyyy", { locale: ptBR }) : 'Selecionar'}
+                  {customDate ? format(customDate, "dd/MM/yyyy", { locale: ptBR }) : tr('fin.page.select')}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -409,19 +411,19 @@ const Financial: React.FC = () => {
                 <PopoverTrigger asChild>
                   <button className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
                     <CalendarIcon size={12} />
-                    {rangeFrom ? format(rangeFrom, "dd/MM/yyyy") : 'De'}
+                    {rangeFrom ? format(rangeFrom, "dd/MM/yyyy") : tr('fin.page.from')}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar mode="single" selected={rangeFrom} onSelect={setRangeFrom} initialFocus className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
-              <span className="text-xs text-muted-foreground">até</span>
+              <span className="text-xs text-muted-foreground">{tr('fin.page.until')}</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-secondary border border-border text-foreground hover:border-primary transition-colors")}>
                     <CalendarIcon size={12} />
-                    {rangeTo ? format(rangeTo, "dd/MM/yyyy") : 'Até'}
+                    {rangeTo ? format(rangeTo, "dd/MM/yyyy") : tr('fin.page.to')}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -433,33 +435,33 @@ const Financial: React.FC = () => {
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
-            <option value="all">Todas categorias</option>
+            <option value="all">{tr('fin.page.allCats')}</option>
             {filterCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
-            <option value="all">Todos tipos</option>
-            <option value="receita">Receita</option>
-            <option value="gasto">Gasto</option>
-            <option value="transferencia">Transferência</option>
-            <option value="estorno">Estorno</option>
-            <option value="reembolso">Reembolso</option>
+            <option value="all">{tr('fin.page.allTypes')}</option>
+            <option value="receita">{tr('fin.page.t.revenue')}</option>
+            <option value="gasto">{tr('fin.page.t.expense')}</option>
+            <option value="transferencia">{tr('fin.page.t.transfer')}</option>
+            <option value="estorno">{tr('fin.page.t.chargeback')}</option>
+            <option value="reembolso">{tr('fin.page.t.refund')}</option>
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-colors">
-            <option value="all">Todos status</option>
+            <option value="all">{tr('fin.page.allStatus')}</option>
             {(Object.keys(STATUS_LABEL) as TxStatus[]).map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
           </select>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {([['pagar', 'Contas a pagar', payables, 'text-destructive'], ['receber', 'Contas a receber', receivables, 'text-primary']] as const).map(([k, label, data, color]) => (
+        {([['pagar', tr('fin.page.payables'), payables, 'text-destructive'], ['receber', tr('fin.page.receivables'), receivables, 'text-primary']] as const).map(([k, label, data, color]) => (
           <button key={k} onClick={() => setView(v => v === k ? 'todos' : k)} className={cn('text-left bg-card border rounded-xl p-4 transition-colors', view === k ? 'border-primary' : 'border-border hover:border-primary/50')}>
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">{label} <span className="opacity-70">({data.items.length})</span></p>
               {data.overdue.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded bg-destructive/15 text-destructive">{data.overdue.length} atrasado(s)</span>}
             </div>
             <p className={cn('text-xl font-bold', color)}>{fmt(data.total)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Próximos 7 dias: <span className="font-mono text-foreground">{fmt(data.next7Total)}</span> · {data.next7.length} vencimento(s)</p>
+            <p className="text-[11px] text-muted-foreground mt-1" dangerouslySetInnerHTML={{ __html: trHtml('fin.page.next7', { amount: fmt(data.next7Total), n: data.next7.length }) }} />
             {data.next7.slice(0, 3).map(i => (
               <p key={i.id} className="text-[11px] text-muted-foreground truncate">{formatDateBR(i.due_date || i.date)} · {i.description} · <span className="font-mono">{fmt(Math.abs(Number(i.amount)))}</span></p>
             ))}
@@ -469,11 +471,11 @@ const Financial: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 border-glow">
-          <p className="text-xs text-muted-foreground">Receitas totais (pagas/recebidas)</p>
+          <p className="text-xs text-muted-foreground">{tr('fin.page.totalRevenue')}</p>
           <p className="text-xl font-bold text-primary">{fmt(totalRevenue)}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 border-glow">
-          <p className="text-xs text-muted-foreground">Gastos totais (pagos)</p>
+          <p className="text-xs text-muted-foreground">{tr('fin.page.totalExpense')}</p>
           <p className="text-xl font-bold text-destructive">{fmt(totalExpenses)}</p>
         </div>
       </div>
@@ -482,13 +484,13 @@ const Financial: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           {(['todos', 'pagar', 'receber'] as const).map(v => (
             <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${view === v ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
-              {v === 'todos' ? 'Todos lançamentos' : v === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}
+              {v === 'todos' ? tr('fin.page.allEntries') : v === 'pagar' ? tr('fin.page.payables') : tr('fin.page.receivables')}
             </button>
           ))}
           <h3 className="font-display text-sm font-semibold ml-1">({visibleTransactions.length})</h3>
         </div>
         <button onClick={() => { setEditingId(null); setForm(emptyForm()); setShowForm(true); }} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 glow-box">
-          <Plus size={16} /> Adicionar
+          <Plus size={16} /> {tr('fin.page.add')}
         </button>
       </div>
 
@@ -496,13 +498,13 @@ const Financial: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">{editingId ? 'Editar lançamento' : 'Nova Transação'}</h3>
+              <h3 className="font-display text-sm font-semibold">{editingId ? tr('fin.page.editEntry') : tr('fin.page.newTxTitle')}</h3>
               <button onClick={closeForm} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               {/* Seletor de moeda do lançamento */}
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Moeda do lançamento</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.currency')}</label>
                 <div className="flex rounded-lg border border-border bg-secondary p-0.5 w-fit">
                   {(['USD', 'BRL'] as const).map(c => (
                     <button
@@ -520,17 +522,17 @@ const Financial: React.FC = () => {
                 </div>
                 {inputCurrency === 'BRL' && (
                   <p className="text-[10px] text-muted-foreground mt-1 font-mono">
-                    Convertido para USD @ R$ {usdToBrl.toFixed(4)} no momento do salvamento.
+                    {tr('fin.page.converted', { rate: usdToBrl.toFixed(4) })}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Data</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.date')}</label>
                 <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className={errors.date ? errorInputClass : inputClass} />
                 {errors.date && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.date}</p>}
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Tipo</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.type')}</label>
                 <select
                   value={form.type}
                   onChange={e => {
@@ -546,34 +548,34 @@ const Financial: React.FC = () => {
                   }}
                   className={inputClass}
                 >
-                  <option value="gasto">Gasto da Estrutura de aluguel</option>
-                  <option value="receita">Venda</option>
-                  <option value="fornecedores">Fornecedores (Custo de Produto)</option>
-                  <option value="marketing">Marketing (Anúncios / Social)</option>
-                  <option value="custo_op">Custo Operacional (Ferramentas / Suporte)</option>
-                  <option value="outros">Outros gastos</option>
-                  <option value="transferencia">Transferência entre contas</option>
-                  <option value="estorno">Estorno (de uma venda/receita)</option>
-                  <option value="reembolso">Reembolso (de um gasto)</option>
+                  <option value="gasto">{tr('fin.page.o.structure')}</option>
+                  <option value="receita">{tr('fin.page.o.sale')}</option>
+                  <option value="fornecedores">{tr('fin.page.o.suppliers')}</option>
+                  <option value="marketing">{tr('fin.page.o.marketing')}</option>
+                  <option value="custo_op">{tr('fin.page.o.opcost')}</option>
+                  <option value="outros">{tr('fin.page.o.other')}</option>
+                  <option value="transferencia">{tr('fin.page.o.transfer')}</option>
+                  <option value="estorno">{tr('fin.page.o.chargeback')}</option>
+                  <option value="reembolso">{tr('fin.page.o.refund')}</option>
                 </select>
-                {form.type === 'transferencia' && <p className="text-[10px] text-muted-foreground mt-1">Só move dinheiro entre contas — não entra como receita, gasto ou lucro.</p>}
+                {form.type === 'transferencia' && <p className="text-[10px] text-muted-foreground mt-1">{tr('fin.page.transferHint')}</p>}
               </div>
               {(form.type === 'estorno' || form.type === 'reembolso') && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Lançamento original</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.original')}</label>
                   <select value={form.relatedId} onChange={e => setForm(p => ({ ...p, relatedId: e.target.value }))} className={errors.related ? errorInputClass : inputClass}>
-                    <option value="">Selecione…</option>
+                    <option value="">{tr('fin.page.pick')}</option>
                     {transactions.filter(t => t.type === (form.type === 'estorno' ? 'receita' : 'gasto') && t.id !== editingId).slice(0, 300).map(t => (
                       <option key={t.id} value={t.id}>{formatDateBR(t.date)} · {t.description} · {fmt(t.amount)}</option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-muted-foreground mt-1">O valor abate {form.type === 'estorno' ? 'a receita' : 'o gasto'} desse lançamento nos relatórios.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{tr('fin.page.deducts', { what: form.type === 'estorno' ? tr('fin.page.theRevenue') : tr('fin.page.theExpense') })}</p>
                   {errors.related && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.related}</p>}
                 </div>
               )}
               {form.type === 'gasto' && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.category')}</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
                     {keepCat(ASSET_CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -581,29 +583,29 @@ const Financial: React.FC = () => {
               )}
               {form.type === 'receita' && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Categoria</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.category')}</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputClass}>
                     {keepCat(CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               )}
               {form.type !== 'transferencia' && <div>
-                <label className="block text-xs text-muted-foreground mb-1">Cliente (opcional)</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.clientOpt')}</label>
                 <select value={form.clientId} onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))} className={inputClass}>
-                  <option value="">Sem cliente</option>
+                  <option value="">{tr('fin.page.noClient')}</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>}
               {form.type === 'fornecedores' && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs text-muted-foreground">Fornecedor</label>
+                    <label className="block text-xs text-muted-foreground">{tr('fin.page.supplier')}</label>
                     <button
                       type="button"
                       onClick={() => setShowNewSupplier(s => !s)}
                       className="text-[11px] text-primary hover:underline"
                     >
-                      {showNewSupplier ? 'Cancelar' : '+ Cadastrar novo'}
+                      {showNewSupplier ? tr('fin.page.cancel') : tr('fin.page.newSupplier')}
                     </button>
                   </div>
                   {!showNewSupplier ? (
@@ -612,7 +614,7 @@ const Financial: React.FC = () => {
                       onChange={e => setForm(p => ({ ...p, supplierId: e.target.value }))}
                       className={inputClass}
                     >
-                      <option value="">Selecione um fornecedor</option>
+                      <option value="">{tr('fin.page.pickSupplier')}</option>
                       {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   ) : (
@@ -620,7 +622,7 @@ const Financial: React.FC = () => {
                       <input
                         value={newSupplierName}
                         onChange={e => setNewSupplierName(e.target.value)}
-                        placeholder="Nome do fornecedor"
+                        placeholder={tr('fin.page.supplierName')}
                         className={inputClass}
                       />
                       <button
@@ -631,7 +633,7 @@ const Financial: React.FC = () => {
                         }}
                         className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold whitespace-nowrap"
                       >
-                        Salvar
+                        {tr('fin.page.save')}
                       </button>
                     </div>
                   )}
@@ -648,7 +650,7 @@ const Financial: React.FC = () => {
                   <>
                     {form.type === 'gasto' && (
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Custo do produto ({symbol})</label>
+                        <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.costOf', { s: symbol })}</label>
                         <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                         {previewUsd(form.custoProduto) && <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.custoProduto)}</p>}
                         {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
@@ -657,28 +659,28 @@ const Financial: React.FC = () => {
                     {form.type === 'receita' && (
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-xs text-muted-foreground mb-1">Valor de venda ({symbol})</label>
+                          <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.saleOf', { s: symbol })}</label>
                           <input type="number" step="0.01" value={form.valorVenda} onChange={e => setForm(p => ({ ...p, valorVenda: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                           {previewUsd(form.valorVenda) && <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.valorVenda)}</p>}
                           {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-foreground mb-1">Custo do produto ({symbol})</label>
+                          <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.costOf', { s: symbol })}</label>
                           <input type="number" step="0.01" value={form.custoProduto} onChange={e => setForm(p => ({ ...p, custoProduto: e.target.value }))} placeholder="0.00" className={inputClass} />
                           {previewUsd(form.custoProduto)
                             ? <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.custoProduto)}</p>
-                            : <p className="text-[10px] text-muted-foreground mt-1">Subtraído do lucro.</p>}
+                            : <p className="text-[10px] text-muted-foreground mt-1">{tr('fin.page.subtracted')}</p>}
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-foreground mb-1">Quantidade</label>
+                          <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.qty')}</label>
                           <input type="number" min="0" step="1" value={form.quantidade} onChange={e => setForm(p => ({ ...p, quantidade: e.target.value }))} placeholder="0" className={inputClass} />
-                          <p className="text-[10px] text-muted-foreground mt-1">Produtos vendidos.</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">{tr('fin.page.sold')}</p>
                         </div>
                       </div>
                     )}
                     {(form.type === 'outros' || form.type === 'fornecedores' || form.type === 'marketing' || form.type === 'custo_op' || form.type === 'transferencia' || form.type === 'estorno' || form.type === 'reembolso') && (
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Valor ({symbol})</label>
+                        <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.valueOf', { s: symbol })}</label>
                         <input type="number" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className={errors.amount ? errorInputClass : inputClass} />
                         {previewUsd(form.amount) && <p className="text-[10px] text-primary mt-1 font-mono">{previewUsd(form.amount)}</p>}
                         {errors.amount && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.amount}</p>}
@@ -688,60 +690,60 @@ const Financial: React.FC = () => {
                 );
               })()}
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Descrição</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.description')}</label>
                 <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={errors.description ? errorInputClass : inputClass} />
                 {errors.description && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.description}</p>}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Status</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.status')}</label>
                   <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as TxStatus }))} className={inputClass}>
-                    <option value="pendente">Pendente</option>
-                    <option value="confirmado">Pago/Recebido</option>
-                    <option value="cancelado">Cancelado</option>
+                    <option value="pendente">{STATUS_LABEL.pendente}</option>
+                    <option value="confirmado">{STATUS_LABEL.confirmado}</option>
+                    <option value="cancelado">{STATUS_LABEL.cancelado}</option>
                   </select>
-                  <p className="text-[10px] text-muted-foreground mt-1">Vira "Atrasado" sozinho se vencer pendente.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{tr('fin.page.autoLate')}</p>
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Forma de pagamento</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.method')}</label>
                   <select value={form.paymentMethod} onChange={e => setForm(p => ({ ...p, paymentMethod: e.target.value }))} className={inputClass}>
-                    <option value="">Não informado</option>
+                    <option value="">{tr('fin.page.notInformed')}</option>
                     {Object.entries(PAYMENT_METHODS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Vencimento</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.due')}</label>
                   <input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className={errors.dueDate ? errorInputClass : inputClass} />
                   {errors.dueDate && <p className="text-xs text-destructive mt-1">{errors.dueDate}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Data de pagamento</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.paidAt')}</label>
                   <input type="date" value={form.paidAt} disabled={form.status !== 'confirmado'} onChange={e => setForm(p => ({ ...p, paidAt: e.target.value }))} className={cn(inputClass, form.status !== 'confirmado' && 'opacity-50')} />
                 </div>
                 <div className={form.type === 'transferencia' ? '' : 'col-span-2'}>
-                  <label className="block text-xs text-muted-foreground mb-1">{form.type === 'transferencia' ? 'Conta de origem' : 'Conta'}</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{form.type === 'transferencia' ? tr('fin.page.srcAccount') : tr('fin.page.account')}</label>
                   <select value={form.accountId} onChange={e => setForm(p => ({ ...p, accountId: e.target.value }))} className={errors.accounts ? errorInputClass : inputClass}>
-                    <option value="">{form.type === 'transferencia' ? 'Selecione…' : 'Sem conta'}</option>
+                    <option value="">{form.type === 'transferencia' ? tr('fin.page.pick') : tr('fin.page.noAccount')}</option>
                     {accounts.filter(a => a.active || a.id === form.accountId).map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
                   </select>
                 </div>
                 {form.type === 'transferencia' && (
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Conta de destino</label>
+                    <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.destAccount')}</label>
                     <select value={form.destAccountId} onChange={e => setForm(p => ({ ...p, destAccountId: e.target.value }))} className={errors.accounts ? errorInputClass : inputClass}>
-                      <option value="">Selecione…</option>
+                      <option value="">{tr('fin.page.pick')}</option>
                       {accounts.filter(a => a.active || a.id === form.destAccountId).map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
                     </select>
                   </div>
                 )}
               </div>
               {errors.accounts && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle size={12} />{errors.accounts}</p>}
-              {accounts.length === 0 && <p className="text-[10px] text-muted-foreground">Cadastre contas em "Contas" no topo da página.</p>}
+              {accounts.length === 0 && <p className="text-[10px] text-muted-foreground">{tr('fin.page.registerAccounts')}</p>}
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Observação</label>
+                <label className="block text-xs text-muted-foreground mb-1">{tr('fin.page.note')}</label>
                 <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} className={inputClass} />
               </div>
-              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">Salvar</button>
+              <button onClick={handleSave} className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:opacity-90 glow-box">{tr('fin.page.save')}</button>
             </div>
           </motion.div>
         </motion.div>
@@ -757,7 +759,7 @@ const Financial: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs px-2 py-0.5 rounded ${t.type === 'receita' ? 'bg-primary/10 text-primary' : isSpecial ? 'bg-secondary text-foreground border border-border' : t.subcategory === 'outros_gastos' ? 'bg-amber-500/10 text-amber-400' : 'bg-destructive/10 text-destructive'}`}>
-                  {t.type === 'receita' ? 'Venda' : isSpecial ? TYPE_LABEL[t.type] : t.subcategory === 'outros_gastos' ? 'Outros Gastos' : 'Gasto Estrutura'}
+                  {t.type === 'receita' ? tr('fin.page.o.sale') : isSpecial ? TYPE_LABEL[t.type] : t.subcategory === 'outros_gastos' ? tr('fin.page.otherExp') : tr('fin.page.structExp')}
                 </span>
                 <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded">{t.category}</span>
                 <span className={`text-xs px-2 py-0.5 rounded ${STATUS_STYLE[st]}`}>{STATUS_LABEL[st]}</span>
@@ -766,20 +768,20 @@ const Financial: React.FC = () => {
               <p className="text-sm mt-1">{t.description}</p>
               <p className="text-xs text-muted-foreground">
                 {formatDateBR(t.date)}
-                {t.dueDate && <> · Vence {formatDateBR(t.dueDate)}</>}
-                {t.paidAt && st === 'confirmado' && <> · Pago em {formatDateBR(t.paidAt)}</>}
+                {t.dueDate && <> · {tr('fin.page.dueOn')} {formatDateBR(t.dueDate)}</>}
+                {t.paidAt && st === 'confirmado' && <> · {tr('fin.page.paidOn')} {formatDateBR(t.paidAt)}</>}
                 {t.type === 'transferencia'
                   ? <> · {accName(t.accountId) || '?'} → {accName(t.destAccountId) || '?'}</>
-                  : accName(t.accountId) && <> · Conta: {accName(t.accountId)}</>}
+                  : accName(t.accountId) && <> · {tr('fin.page.accountLbl')} {accName(t.accountId)}</>}
               </p>
-              {orig && <p className="text-[11px] text-muted-foreground">Ligado a: {formatDateBR(orig.date)} · {orig.description} ({fmt(orig.amount)})</p>}
-              {t.notes && <p className="text-[11px] text-muted-foreground italic mt-0.5">Obs.: {t.notes}</p>}
+              {orig && <p className="text-[11px] text-muted-foreground">{tr('fin.page.linkedTo')} {formatDateBR(orig.date)} · {orig.description} ({fmt(orig.amount)})</p>}
+              {t.notes && <p className="text-[11px] text-muted-foreground italic mt-0.5">{tr('fin.page.obs')} {t.notes}</p>}
               {!isSpecial && (() => {
                 const isVenda = t.type === 'receita';
                 const isOutros = t.subcategory === 'outros_gastos';
                 const isGastoEst = t.type === 'gasto' && !isOutros;
-                const considerLabel = isVenda ? 'Valor de venda' : isGastoEst ? 'Custo do produto' : 'Valor';
-                const impactLabel = st !== 'confirmado' ? 'ainda não entra no resultado' : isVenda ? '+ entra como receita no lucro' : '− sai como gasto do lucro';
+                const considerLabel = isVenda ? tr('fin.page.saleValue') : isGastoEst ? tr('fin.page.productCost') : tr('fin.page.value');
+                const impactLabel = st !== 'confirmado' ? tr('fin.page.notYet') : isVenda ? tr('fin.page.asRevenue') : tr('fin.page.asExpense');
                 const impactColor = isVenda ? 'text-primary' : 'text-destructive';
                 return (
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
@@ -789,17 +791,17 @@ const Financial: React.FC = () => {
                     {isVenda && t.quantidade > 0 && (
                       <>
                         <span className="text-muted-foreground">·</span>
-                        <span className="text-muted-foreground">Qtd:</span>
+                        <span className="text-muted-foreground">{tr('fin.page.qtyLbl')}</span>
                         <span className="font-mono font-semibold text-foreground">{t.quantidade}</span>
                       </>
                     )}
                     {isVenda && t.custoProduto > 0 && (
                       <>
                         <span className="text-muted-foreground">·</span>
-                        <span className="text-muted-foreground">Custo:</span>
+                        <span className="text-muted-foreground">{tr('fin.page.costLbl')}</span>
                         <span className="font-mono text-destructive">−{fmt(t.custoProduto)}</span>
                         <span className="text-muted-foreground">·</span>
-                        <span className="text-muted-foreground">Lucro:</span>
+                        <span className="text-muted-foreground">{tr('fin.page.profitLbl')}</span>
                         <span className={`font-mono font-semibold ${(t.amount - t.custoProduto) >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(t.amount - t.custoProduto)}</span>
                       </>
                     )}
@@ -810,53 +812,53 @@ const Financial: React.FC = () => {
             <div className="flex items-center gap-3 shrink-0">
               <span className={`font-semibold ${t.type === 'receita' ? 'text-primary' : t.type === 'gasto' ? 'text-destructive' : 'text-foreground'}`}>{t.type === 'estorno' || t.type === 'reembolso' ? '−' : ''}{fmt(t.amount)}</span>
               {(st === 'pendente' || st === 'atrasado') && (
-                <button onClick={() => markPaid(t)} title={t.type === 'receita' ? 'Marcar como recebido' : 'Marcar como pago'} className="text-muted-foreground hover:text-primary"><CheckCircle2 size={15} /></button>
+                <button onClick={() => markPaid(t)} title={t.type === 'receita' ? tr('fin.page.markReceived') : tr('fin.page.markPaid')} className="text-muted-foreground hover:text-primary"><CheckCircle2 size={15} /></button>
               )}
-              <button onClick={() => openEdit(t)} title="Editar" className="text-muted-foreground hover:text-primary"><Pencil size={14} /></button>
-              <button onClick={() => openHistory(t)} title="Histórico" className="text-muted-foreground hover:text-primary"><History size={14} /></button>
-              <button onClick={() => handleDelete(t.id)} title="Apagar" className="text-muted-foreground hover:text-destructive"><X size={14} /></button>
+              <button onClick={() => openEdit(t)} title={tr('fin.page.edit')} className="text-muted-foreground hover:text-primary"><Pencil size={14} /></button>
+              <button onClick={() => openHistory(t)} title={tr('fin.page.history')} className="text-muted-foreground hover:text-primary"><History size={14} /></button>
+              <button onClick={() => handleDelete(t.id)} title={tr('fin.page.delete')} className="text-muted-foreground hover:text-destructive"><X size={14} /></button>
             </div>
           </div>
           );
         })}
-        {visibleTransactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Nenhuma transação encontrada.</p>}
+        {visibleTransactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">{tr('fin.page.noTx')}</p>}
       </div>
 
       {showAccounts && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">Contas financeiras</h3>
+              <h3 className="font-display text-sm font-semibold">{tr('fin.page.finAccounts')}</h3>
               <button onClick={() => setShowAccounts(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="grid grid-cols-2 gap-2 mb-4">
-              <input value={accForm.name} onChange={e => setAccForm(p => ({ ...p, name: e.target.value }))} placeholder="Nome (ex.: Banco Inter)" className={cn(inputClass, 'col-span-2')} />
+              <input value={accForm.name} onChange={e => setAccForm(p => ({ ...p, name: e.target.value }))} placeholder={tr('fin.page.accNamePh')} className={cn(inputClass, 'col-span-2')} />
               <select value={accForm.account_type} onChange={e => setAccForm(p => ({ ...p, account_type: e.target.value }))} className={inputClass}>
                 {Object.entries(ACCOUNT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <select value={accForm.currency} onChange={e => setAccForm(p => ({ ...p, currency: e.target.value }))} className={inputClass}>
                 <option value="USD">USD</option><option value="BRL">BRL</option><option value="USDT">USDT</option><option value="EUR">EUR</option>
               </select>
-              <input type="number" step="0.01" value={accForm.initial_balance} onChange={e => setAccForm(p => ({ ...p, initial_balance: e.target.value }))} placeholder="Saldo inicial" className={inputClass} />
-              <button onClick={saveAccount} className="bg-primary text-primary-foreground rounded-lg text-xs font-semibold"><Plus size={14} className="inline" /> Adicionar conta</button>
+              <input type="number" step="0.01" value={accForm.initial_balance} onChange={e => setAccForm(p => ({ ...p, initial_balance: e.target.value }))} placeholder={tr('fin.page.initialPh')} className={inputClass} />
+              <button onClick={saveAccount} className="bg-primary text-primary-foreground rounded-lg text-xs font-semibold"><Plus size={14} className="inline" /> {tr('fin.page.addAccount')}</button>
             </div>
             <div className="space-y-1.5">
-              {accounts.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta cadastrada.</p> : accounts.map(a => (
+              {accounts.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">{tr('fin.page.noAccounts')}</p> : accounts.map(a => (
                 <div key={a.id} className={cn('flex items-center justify-between bg-secondary/40 border border-border rounded-lg px-3 py-2', !a.active && 'opacity-50')}>
                   <div>
                     <p className="text-sm">{a.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{ACCOUNT_TYPES[a.account_type] || a.account_type} · {a.currency} · inicial {a.initial_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[11px] text-muted-foreground">{ACCOUNT_TYPES[a.account_type] || a.account_type} · {a.currency} · {tr('fin.page.initial')} {a.initial_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={cn('font-mono text-sm font-semibold', (balances[a.id] ?? 0) >= 0 ? 'text-primary' : 'text-destructive')}>
                       {(balances[a.id] ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {a.currency}
                     </span>
-                    <button onClick={() => toggleAccount(a)} className="text-[11px] text-muted-foreground hover:text-foreground">{a.active ? 'Desativar' : 'Reativar'}</button>
+                    <button onClick={() => toggleAccount(a)} className="text-[11px] text-muted-foreground hover:text-foreground">{a.active ? tr('fin.page.deactivate') : tr('fin.page.reactivate')}</button>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-3">Saldo atual = saldo inicial + recebidos − pagos (só lançamentos Pago/Recebido; transferências movem entre contas).</p>
+            <p className="text-[10px] text-muted-foreground mt-3">{tr('fin.page.balanceRule')}</p>
           </motion.div>
         </motion.div>
       )}
@@ -865,15 +867,15 @@ const Financial: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="font-display text-sm font-semibold">Histórico de alterações</h3>
+              <h3 className="font-display text-sm font-semibold">{tr('fin.page.changeHistory')}</h3>
               <button onClick={() => setHistoryFor(null)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <p className="text-xs text-muted-foreground mb-4">{historyFor.description}</p>
             {historyRows.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-6">Sem alterações registradas (lançamentos antigos não têm histórico anterior a esta melhoria).</p>
+              <p className="text-xs text-muted-foreground text-center py-6">{tr('fin.page.noChanges')}</p>
             ) : historyRows.map(h => (
               <div key={h.id} className="border-l-2 border-primary/40 pl-3 mb-3">
-                <p className="text-xs"><span className="font-semibold">{h.action === 'insert' ? 'Criado' : h.action === 'delete' ? 'Apagado' : 'Alterado'}</span> por {h.changed_by_email || 'sistema (automático)'} · {format(new Date(h.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                <p className="text-xs"><span className="font-semibold">{h.action === 'insert' ? tr('fin.page.created') : h.action === 'delete' ? tr('fin.page.deleted') : tr('fin.page.changed')}</span> {tr('fin.page.by')} {h.changed_by_email || tr('fin.page.system')} · {format(new Date(h.created_at), 'dd/MM/yyyy HH:mm')}</p>
                 {h.action === 'update' && Object.entries(h.changes || {}).map(([k, v]: any) => (
                   <p key={k} className="text-[11px] text-muted-foreground">{FIELD_LABEL[k] || k}: <span className="line-through">{fmtHistValue(k, v.old)}</span> → <span className="text-foreground">{fmtHistValue(k, v.new)}</span></p>
                 ))}
@@ -887,23 +889,23 @@ const Financial: React.FC = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-card border border-border rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-sm font-semibold">Fornecedores cadastrados</h3>
+              <h3 className="font-display text-sm font-semibold">{tr('fin.page.supplierList')}</h3>
               <button onClick={() => { setShowSuppliersManager(false); setShowNewSupplier(false); setNewSupplierName(''); }} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="flex gap-2 mb-4">
               <input
                 value={newSupplierName}
                 onChange={e => setNewSupplierName(e.target.value)}
-                placeholder="Nome do novo fornecedor"
+                placeholder={tr('fin.page.newSupplierPh')}
                 className={inputClass}
               />
               <button onClick={() => createSupplier()} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold whitespace-nowrap">
-                <Plus size={14} className="inline" /> Adicionar
+                <Plus size={14} className="inline" /> {tr('fin.page.add')}
               </button>
             </div>
             <div className="space-y-1.5 max-h-80 overflow-y-auto">
               {suppliers.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">Nenhum fornecedor cadastrado.</p>
+                <p className="text-xs text-muted-foreground text-center py-6">{tr('fin.page.noSuppliers')}</p>
               ) : suppliers.map(s => (
                 <div key={s.id} className="flex items-center justify-between bg-secondary/40 border border-border rounded-lg px-3 py-2">
                   <span className="text-sm">{s.name}</span>

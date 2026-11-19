@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { tr } from '@/i18n';
+import { disableReasonLabel } from '@/lib/meta-labels';
 import { Bell, Ban, ShieldAlert, AlertTriangle, CheckCircle2, X, Trash2, ExternalLink, Building2, CreditCard, Globe, Settings, Filter, LifeBuoy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -25,18 +27,18 @@ interface Notification {
 const fmtAgo = (iso: string) => {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "agora";
-  if (m < 60) return `${m} min atrás`;
+  if (m < 1) return tr('admin.notif.now');
+  if (m < 60) return tr('admin.notif.minAgo', { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h atrás`;
+  if (h < 24) return tr('admin.notif.hAgo', { n: h });
   const d = Math.floor(h / 24);
-  return `${d}d atrás`;
+  return tr('admin.notif.dAgo', { n: d });
 };
 
 const SEV_STYLE: Record<Severity, { ring: string; bg: string; text: string; Icon: React.ElementType; label: string }> = {
-  critical: { ring: "border-destructive/40", bg: "bg-destructive/15", text: "text-destructive", Icon: Ban, label: "Crítico" },
-  warning:  { ring: "border-amber-500/40", bg: "bg-amber-500/15", text: "text-amber-400", Icon: AlertTriangle, label: "Aviso" },
-  info:     { ring: "border-primary/40", bg: "bg-primary/15", text: "text-primary", Icon: ShieldAlert, label: "Info" },
+  critical: { ring: "border-destructive/40", bg: "bg-destructive/15", text: "text-destructive", Icon: Ban, get label() { return tr('admin.notif.sev.critical'); } },
+  warning:  { ring: "border-amber-500/40", bg: "bg-amber-500/15", text: "text-amber-400", Icon: AlertTriangle, get label() { return tr('admin.notif.sev.warning'); } },
+  info:     { ring: "border-primary/40", bg: "bg-primary/15", text: "text-primary", Icon: ShieldAlert, get label() { return tr('admin.notif.sev.info'); } },
 };
 
 const ASSET_ICON: Record<AssetType, React.ElementType> = {
@@ -150,13 +152,13 @@ export const NotificationCenter: React.FC = () => {
         assetName: a.name,
         assetId: a.meta_account_id,
         eventType: "account_blocked",
-        title: `Conta "${a.name}" bloqueada`,
-        description: a.disable_reason_label || "Conta de anúncios suspensa pelo Meta.",
+        title: tr('admin.notif.accBlocked', { name: a.name }),
+        description: disableReasonLabel(a.disable_reason_label) || tr('admin.notif.accSuspended'),
         meta: [
-          { label: "Conta ID", value: a.meta_account_id },
+          { label: tr('admin.notif.m.accId'), value: a.meta_account_id },
           { label: "BM", value: a.bm?.name || "—" },
-          { label: "Perfil", value: a.owner_business_name || "—" },
-          { label: "Página", value: a.bm?.primary_page || "—" },
+          { label: tr('admin.notif.m.profile'), value: a.owner_business_name || "—" },
+          { label: tr('admin.notif.m.page'), value: a.bm?.primary_page || "—" },
         ],
         occurredAt: a.updated_at,
         actionPath: "/block-log",
@@ -169,12 +171,12 @@ export const NotificationCenter: React.FC = () => {
         assetName: b.name,
         assetId: b.meta_bm_id,
         eventType: "bm_unverified",
-        title: `BM "${b.name}" não verificada`,
-        description: "Business Manager precisa concluir verificação comercial.",
+        title: tr('admin.notif.bmUnverified', { name: b.name }),
+        description: tr('admin.notif.bmNeedsVerify'),
         meta: [
           { label: "BM ID", value: b.meta_bm_id },
-          { label: "Página", value: b.primary_page || "—" },
-          { label: "Status", value: b.verification_status || "not_verified" },
+          { label: tr('admin.notif.m.page'), value: b.primary_page || "—" },
+          { label: tr('admin.notif.m.status'), value: b.verification_status || "not_verified" },
         ],
         occurredAt: b.updated_at,
         actionPath: "/meta-connections",
@@ -184,18 +186,18 @@ export const NotificationCenter: React.FC = () => {
         id: `log-${l.id}`,
         severity: l.resolved_at ? "info" : "critical",
         assetType: "Conta",
-        assetName: l.ad_account?.name || "Conta desconhecida",
+        assetName: l.ad_account?.name || tr('admin.notif.unknownAcc'),
         assetId: l.ad_account?.meta_account_id,
         eventType: l.resolved_at ? "event_resolved" : "event_detected",
         title: l.resolved_at
-          ? `Evento resolvido em "${l.ad_account?.name || "—"}"`
-          : `Evento "${l.event_type}" detectado`,
-        description: l.reason || "Mudança detectada na conta.",
+          ? tr('admin.notif.evResolved', { name: l.ad_account?.name || "—" })
+          : tr('admin.notif.evDetected', { type: l.event_type }),
+        description: l.reason || tr('admin.notif.changeDetected'),
         meta: [
-          { label: "Conta ID", value: l.ad_account?.meta_account_id || "—" },
+          { label: tr('admin.notif.m.accId'), value: l.ad_account?.meta_account_id || "—" },
           { label: "BM", value: l.ad_account?.bm?.name || "—" },
-          { label: "Perfil", value: l.ad_account?.owner_business_name || "—" },
-          { label: "Página", value: l.ad_account?.bm?.primary_page || "—" },
+          { label: tr('admin.notif.m.profile'), value: l.ad_account?.owner_business_name || "—" },
+          { label: tr('admin.notif.m.page'), value: l.ad_account?.bm?.primary_page || "—" },
         ],
         occurredAt: l.detected_at,
         actionPath: "/block-log",
@@ -203,24 +205,24 @@ export const NotificationCenter: React.FC = () => {
 
 
       const req = (reqRes.data || []).map<Notification>((r: any) => {
-        const typeLabel = r.request_type === 'add_ad_account' ? 'Adicionar conta' : r.request_type === 'add_page' ? 'Adicionar página' : r.request_type === 'add_bm' ? 'Adicionar BM' : 'Outro';
+        const typeLabel = tr(`admin.notif.rt.${['add_ad_account', 'add_page', 'add_bm'].includes(r.request_type) ? r.request_type : 'other'}`);
         const hasQty = r.request_type === 'add_ad_account' || r.request_type === 'add_page';
 
         return {
           id: `req-${r.id}`,
           severity: r.status === 'em_andamento' ? 'warning' : 'critical',
           assetType: 'Solicitação',
-          assetName: r.client?.name || 'Cliente',
+          assetName: r.client?.name || tr('admin.notif.m.client'),
           assetId: r.id,
           eventType: 'client_request',
-          title: `🔔 Solicitação de cliente: ${typeLabel}${hasQty ? ` (x${r.quantity})` : ''}`,
-          description: r.description || `${r.client?.name || 'Cliente'} solicitou ${typeLabel.toLowerCase()}.`,
+          title: `${tr('admin.notif.reqTitle', { type: typeLabel })}${hasQty ? ` (x${r.quantity})` : ''}`,
+          description: r.description || tr('admin.notif.reqDesc', { name: r.client?.name || tr('admin.notif.m.client'), type: typeLabel.toLowerCase() }),
           meta: [
-            { label: 'Cliente', value: r.client?.name || '—' },
-            { label: 'Tipo', value: typeLabel },
-            { label: 'Qtd', value: String(r.quantity) },
-            ...(r.bm_meta_id ? [{ label: 'BM destino', value: r.bm_meta_id }] : []),
-            { label: 'Status', value: r.status },
+            { label: tr('admin.notif.m.client'), value: r.client?.name || '—' },
+            { label: tr('admin.notif.m.type'), value: typeLabel },
+            { label: tr('admin.notif.m.qty'), value: String(r.quantity) },
+            ...(r.bm_meta_id ? [{ label: tr('admin.notif.m.targetBm'), value: r.bm_meta_id }] : []),
+            { label: tr('admin.notif.m.status'), value: r.status },
           ],
           occurredAt: r.created_at,
           actionPath: '/support',
@@ -313,7 +315,7 @@ export const NotificationCenter: React.FC = () => {
       <button
         onClick={handleOpen}
         className="relative w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors border border-transparent hover:border-border/60"
-        aria-label="Notificações"
+        aria-label={tr('admin.notif.aria')}
       >
         <Bell size={17} />
         {unreadCount > 0 && (
@@ -340,23 +342,23 @@ export const NotificationCenter: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <Bell size={14} className="text-primary" />
-                    <h3 className="font-display font-semibold text-foreground text-sm">Central de Notificações</h3>
+                    <h3 className="font-display font-semibold text-foreground text-sm">{tr('admin.notif.title')}</h3>
                   </div>
                   <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 mt-1">
-                    Eventos de tráfego pago · ao vivo
+                    {tr('admin.notif.live')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => { setOpen(false); navigate("/notification-settings"); }}
                     className="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-primary/10 transition-colors"
-                    title="Configurações de notificação">
+                    title={tr('admin.notif.settings')}>
                     <Settings size={13} />
                   </button>
                   {items.length > 0 && (
                     <button onClick={clearAll}
                       className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive flex items-center gap-1 px-2 py-1 rounded-md hover:bg-destructive/10 transition-colors"
-                      title="Limpar todas">
-                      <Trash2 size={11} /> Limpar
+                      title={tr('admin.notif.clearAllTitle')}>
+                      <Trash2 size={11} /> {tr('admin.notif.clear')}
                     </button>
                   )}
                   <button onClick={() => setOpen(false)}
@@ -393,14 +395,14 @@ export const NotificationCenter: React.FC = () => {
                       className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-md border transition-all flex items-center gap-1 ${
                         active ? "border-primary/40 bg-primary/15 text-primary" : "border-border/40 text-muted-foreground/70 hover:text-foreground"
                       }`}>
-                      <AIcon size={9} /> {a}
+                      <AIcon size={9} /> {tr(`admin.notif.asset.${a}`)}
                     </button>
                   );
                 })}
                 {(sevFilter.size > 0 || assetFilter.size > 0) && (
                   <button onClick={() => { setSevFilter(new Set()); setAssetFilter(new Set()); }}
                     className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-destructive ml-auto">
-                    Limpar filtros
+                    {tr('admin.notif.clearFilters')}
                   </button>
                 )}
               </div>
@@ -408,15 +410,15 @@ export const NotificationCenter: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto scrollbar-neon">
               {loading && items.length === 0 ? (
-                <div className="p-8 text-center text-xs text-muted-foreground">Carregando eventos…</div>
+                <div className="p-8 text-center text-xs text-muted-foreground">{tr('admin.notif.loading')}</div>
               ) : filtered.length === 0 ? (
                 <div className="p-10 text-center">
                   <CheckCircle2 className="mx-auto text-primary mb-3" size={28} />
                   <p className="text-sm font-medium text-foreground">
-                    {items.length === 0 ? "Tudo tranquilo por aqui" : "Nenhum evento com esses filtros"}
+                    {items.length === 0 ? tr('admin.notif.calm') : tr('admin.notif.noneFiltered')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {items.length === 0 ? "Nenhum evento crítico nos seus ativos." : "Ajuste ou limpe os filtros para ver mais."}
+                    {items.length === 0 ? tr('admin.notif.noCritical') : tr('admin.notif.adjust')}
                   </p>
                 </div>
               ) : (
@@ -435,7 +437,7 @@ export const NotificationCenter: React.FC = () => {
                               <p className="font-medium text-sm text-foreground leading-snug flex-1 min-w-0">{n.title}</p>
                               <button onClick={() => dismiss(n.id)}
                                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-0.5"
-                                title="Dispensar">
+                                title={tr('admin.notif.dismiss')}>
                                 <X size={12} />
                               </button>
                             </div>
@@ -443,7 +445,7 @@ export const NotificationCenter: React.FC = () => {
 
                             <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider border ${sev.ring} ${sev.bg} ${sev.text}`}>
-                                <AIcon size={9} /> {n.assetType}
+                                <AIcon size={9} /> {tr(`admin.notif.asset.${n.assetType}`)}
                               </span>
                               {n.meta.filter(m => m.value && m.value !== "—").slice(0, 4).map((m, i) => (
                                 <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-secondary/60 border border-border/50 text-muted-foreground">
@@ -458,7 +460,7 @@ export const NotificationCenter: React.FC = () => {
                               {n.actionPath && (
                                 <button onClick={() => { setOpen(false); navigate(n.actionPath!); }}
                                   className="text-[10px] uppercase tracking-wider text-primary hover:text-primary/80 flex items-center gap-1">
-                                  Investigar <ExternalLink size={10} />
+                                  {tr('admin.notif.investigate')} <ExternalLink size={10} />
                                 </button>
                               )}
                             </div>
@@ -474,7 +476,7 @@ export const NotificationCenter: React.FC = () => {
             <div className="px-4 py-2 border-t border-border/60 bg-background/40 flex items-center justify-between text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70">
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]" />
-                Atualiza a cada 60s
+                {tr('admin.notif.refresh')}
               </span>
               <span>{filtered.length}/{items.length} evento{items.length === 1 ? "" : "s"}</span>
             </div>

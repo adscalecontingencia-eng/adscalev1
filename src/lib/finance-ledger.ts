@@ -1,3 +1,4 @@
+import { localizedMap } from '@/i18n';
 // Regras do Financeiro: status, relatórios (só Pago/Recebido), estornos e saldos de contas.
 
 export type TxType = 'receita' | 'gasto' | 'transferencia' | 'estorno' | 'reembolso';
@@ -16,22 +17,22 @@ export interface LedgerTx {
   [k: string]: any;
 }
 
-export const STATUS_LABEL: Record<TxStatus, string> = {
+export const STATUS_LABEL: Record<TxStatus, string> = localizedMap('fin.status', {
   pendente: 'Pendente',
   confirmado: 'Pago/Recebido',
   atrasado: 'Atrasado',
   cancelado: 'Cancelado',
-};
+});
 
-export const TYPE_LABEL: Record<TxType, string> = {
+export const TYPE_LABEL: Record<TxType, string> = localizedMap('fin.type', {
   receita: 'Venda/Receita',
   gasto: 'Gasto',
   transferencia: 'Transferência',
   estorno: 'Estorno',
   reembolso: 'Reembolso',
-};
+});
 
-export const PAYMENT_METHODS: Record<string, string> = {
+export const PAYMENT_METHODS: Record<string, string> = localizedMap('fin.method', {
   pix: 'Pix',
   cartao_credito: 'Cartão de crédito',
   cartao_debito: 'Cartão de débito',
@@ -40,7 +41,7 @@ export const PAYMENT_METHODS: Record<string, string> = {
   cripto: 'Cripto',
   mercado_pago: 'Mercado Pago',
   outro: 'Outro',
-};
+});
 
 const todayStr = (now = new Date()) => {
   const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');
