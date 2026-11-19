@@ -1,4 +1,5 @@
 import { formatAccountMoney } from '@/lib/account-money';
+import { isSupportBlockedByOverdue } from '@/lib/support-bypass';
 import { disableReasonLabel } from '@/lib/meta-labels';
 import { tr } from '@/i18n';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -459,7 +460,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   }, [reqQty, reqType]);
 
   const submitRequest = async () => {
-    if (!isAdminView && !/emerson/i.test(client?.name || '') && billingSplit.overdue > 25) {
+    if (!isAdminView && isSupportBlockedByOverdue(client, billingSplit.overdue)) {
       toast.error(t('clientDash.messages.paymentPending', { amount: billingSplit.overdue.toFixed(2) }));
       return;
     }
@@ -871,8 +872,7 @@ const ClientDashboard: React.FC<{ agencyView?: boolean }> = ({ agencyView = fals
   const overdueTotal = billingSplit.overdue;
   const currentPendingTotal = billingSplit.currentPending;
   // Allowlist de clientes liberados para abrir suporte mesmo com saldo atrasado.
-  const supportOverdueBypass = /emerson/i.test(client?.name || '');
-  const supportBlockedByOverdue = !supportOverdueBypass && overdueTotal > 25;
+  const supportBlockedByOverdue = isSupportBlockedByOverdue(client, overdueTotal);
 
   const cobrancasCount = pendingBillings.length + (pendingTotal > 0 ? 1 : 0);
 
