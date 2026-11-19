@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { tr } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
@@ -315,13 +317,13 @@ export default function SalesAdsDashboard() {
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
       const errs = (data as any)?.erros || [];
-      if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
+      if (!silent) toast.success(tr('ads.dash.synced', { n: rows }));
       setLastSyncAt(new Date());
-      setAutoSyncError(errs.length > 0 ? `Meta retornou erro em ${errs.length} conta(s). Clique em "Sincronizar" para tentar de novo.` : null);
+      setAutoSyncError(errs.length > 0 ? tr('ads.dash.metaErr', { n: errs.length }) : null);
       await loadInsights({ background: silent });
     } catch (e: any) {
-      if (!silent) toast.error(`Falha: ${e.message}`);
-      else setAutoSyncError(`Falha ao sincronizar com a Meta: ${e.message}`);
+      if (!silent) toast.error(tr('ads.dash.fail', { msg: e.message }));
+      else setAutoSyncError(tr('ads.dash.syncFail', { msg: e.message }));
     } finally {
       setSyncing(false);
     }
@@ -332,31 +334,31 @@ export default function SalesAdsDashboard() {
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Venda · Performance"
-        title={<><span className="text-primary glow-text">Ads de Venda</span></>}
-        description={`Métricas do aplicativo Meta selecionado — ${accountLevelIds.size} conta(s).`}
+        eyebrow={tr('ads.sales.eyebrow')}
+        title={<><span className="text-primary glow-text">{tr('ads.sales.title')}</span></>}
+        description={tr('ads.sales.desc', { n: accountLevelIds.size })}
       />
 
       <Card className="p-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
           <AppWindow size={14} className="text-primary" />
-          Aplicativo Meta
+          {tr('ads.sales.app')}
         </div>
         <Select value={selectedAppId} onValueChange={setSelectedAppId}>
           <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder="Selecione um aplicativo Meta" />
+            <SelectValue placeholder={tr('ads.sales.pickApp')} />
           </SelectTrigger>
           <SelectContent>
             {apps.map((a) => (
               <SelectItem key={a.id} value={a.id}>
-                {a.label}{a.is_default ? " · padrão" : ""}
+                {a.label}{a.is_default ? ` · ${tr('meta.apps.defaultLower')}` : ""}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {selectedApp && (
           <span className="text-[11px] text-muted-foreground ml-auto">
-            {accounts.length} conta(s) · {bms.length} BM(s) vinculadas a este app
+            {tr('ads.sales.linked', { a: accounts.length, b: bms.length })}
           </span>
         )}
       </Card>
@@ -364,7 +366,7 @@ export default function SalesAdsDashboard() {
       {!selectedAppId ? (
         <Card className="p-12 text-center">
           <p className="text-sm text-muted-foreground">
-            Nenhum aplicativo Meta ativo. Cadastre em <span className="text-primary">Aplicativos Meta</span>.
+            <span dangerouslySetInnerHTML={{ __html: tr('ads.sales.noApp') }} />
           </p>
         </Card>
       ) : (
@@ -402,7 +404,7 @@ export default function SalesAdsDashboard() {
                 disabled={syncing}
                 className="text-xs px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-100 hover:bg-amber-500/30 disabled:opacity-50"
               >
-                {syncing ? "Sincronizando..." : "Tentar novamente"}
+                {syncing ? tr('ads.dash.syncing') : tr('ads.dash.retry')}
               </button>
             </Card>
           )}
@@ -423,13 +425,13 @@ export default function SalesAdsDashboard() {
           ) : filteredInsights.length === 0 ? (
             <Card className="p-12 text-center">
               <p className="text-sm text-muted-foreground mb-3">
-                Nenhum insight encontrado para os filtros selecionados.
+                {tr('ads.dash.none')}
               </p>
               <button
                 onClick={() => sync()}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
               >
-                Sincronizar agora
+                {tr('ads.dash.syncNow')}
               </button>
             </Card>
           ) : (

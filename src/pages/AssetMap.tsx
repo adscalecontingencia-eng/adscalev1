@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { tr } from '@/i18n';
 import ReactFlow, {
   Background, Controls, MiniMap, MarkerType,
   type Node, type Edge, useNodesState, useEdgesState, Handle, Position,
@@ -37,7 +38,7 @@ function ProfileNode({ data }: any) {
     <div className={`${baseCard} border-cyan-500/60 bg-cyan-500/10 min-w-[180px]`}>
       <Handle type="target" position={Position.Top} className="!bg-cyan-500" />
       <div className="flex items-center gap-1.5 text-[9px] uppercase text-cyan-300/80 mb-1">
-        <User size={10} /> Perfil / Negócio
+        <User size={10} /> {tr('assets.profile')}
       </div>
       <div className="font-semibold text-cyan-100 truncate">{data.label}</div>
       {data.id && <div className="text-[9px] text-cyan-300/60 font-mono truncate">ID: {data.id}</div>}
@@ -85,15 +86,15 @@ function AccountNode({ data }: any) {
     <div className={`${baseCard} ${cls} min-w-[200px]`}>
       <Handle type="target" position={Position.Top} className={active ? "!bg-primary" : "!bg-destructive"} />
       <div className={`flex items-center justify-between gap-1.5 text-[9px] uppercase ${txt} opacity-80 mb-1`}>
-        <span className="flex items-center gap-1"><CreditCard size={10} /> Conta de Anúncio</span>
+        <span className="flex items-center gap-1"><CreditCard size={10} /> {tr('assets.adAccount')}</span>
         <span className="text-[10px] font-bold">{data.score ?? 0}</span>
       </div>
       <div className="font-semibold truncate">{data.label}</div>
       <div className="text-[9px] text-muted-foreground font-mono truncate">{data.account_id}</div>
       <div className="grid grid-cols-2 gap-1 mt-1.5 text-[9px]">
-        <div><span className="text-muted-foreground">Status:</span> <span className={txt}>{active ? "Ativa" : "Bloqueada"}</span></div>
-        <div><span className="text-muted-foreground">Saldo:</span> {fmt(data.balance, data.currency)}</div>
-        <div className="col-span-2"><span className="text-muted-foreground">Gasto:</span> {fmt(data.spent, data.currency)}</div>
+        <div><span className="text-muted-foreground">{tr('assets.statusLbl')}</span> <span className={txt}>{active ? tr('assets.activeF') : tr('assets.blockedF')}</span></div>
+        <div><span className="text-muted-foreground">{tr('assets.balanceLbl')}</span> {fmt(data.balance, data.currency)}</div>
+        <div className="col-span-2"><span className="text-muted-foreground">{tr('assets.spendLbl')}</span> {fmt(data.spent, data.currency)}</div>
       </div>
       {!active && data.reason && <div className="mt-1 text-[9px] text-destructive truncate">{data.reason}</div>}
       <Handle type="source" position={Position.Bottom} className={active ? "!bg-primary" : "!bg-destructive"} />
@@ -118,9 +119,9 @@ function PageNode({ data }: any) {
     <div className={`${baseCard} border-blue-500/60 bg-blue-500/10 min-w-[140px]`}>
       <Handle type="target" position={Position.Top} className="!bg-blue-500" />
       <div className="flex items-center gap-1.5 text-[9px] uppercase text-blue-300/80 mb-0.5">
-        <FileText size={10} /> Páginas
+        <FileText size={10} /> {tr('assets.pages')}
       </div>
-      <div className="font-semibold text-blue-100">{data.count} página(s)</div>
+      <div className="font-semibold text-blue-100">{tr('assets.pageCount', { n: data.count })}</div>
     </div>
   );
 }
@@ -288,8 +289,8 @@ function analyzeContingency(bms: BM[], accounts: Account[]) {
   if (unverified.length > 0) {
     alerts.push({
       level: "warning",
-      title: `${unverified.length} BM(s) não verificada(s)`,
-      desc: `Verificação reduz risco de bloqueio. BMs: ${unverified.slice(0, 3).map(b => b.name).join(", ")}${unverified.length > 3 ? "..." : ""}`,
+      title: tr('assets.unverified', { n: unverified.length }),
+      desc: tr('assets.unverifiedDesc', { list: unverified.slice(0, 3).map(b => b.name).join(", ") + (unverified.length > 3 ? "..." : "") }),
     });
   }
 
@@ -298,8 +299,8 @@ function analyzeContingency(bms: BM[], accounts: Account[]) {
   if (noPage.length > 0) {
     alerts.push({
       level: "warning",
-      title: `${noPage.length} BM(s) sem página configurada`,
-      desc: `BMs sem página de backup: ${noPage.slice(0, 3).map(b => b.name).join(", ")}${noPage.length > 3 ? "..." : ""}`,
+      title: tr('assets.noPage', { n: noPage.length }),
+      desc: tr('assets.noPageDesc', { list: noPage.slice(0, 3).map(b => b.name).join(", ") + (noPage.length > 3 ? "..." : "") }),
     });
   }
 
@@ -308,8 +309,8 @@ function analyzeContingency(bms: BM[], accounts: Account[]) {
   if (blocked.length > 0) {
     alerts.push({
       level: "danger",
-      title: `${blocked.length} conta(s) bloqueada(s)`,
-      desc: `Verifique motivos no painel de detalhes para reativar.`,
+      title: tr('assets.blockedN', { n: blocked.length }),
+      desc: tr('assets.blockedDesc'),
     });
   }
 
@@ -318,8 +319,8 @@ function analyzeContingency(bms: BM[], accounts: Account[]) {
   if (noFunding.length > 0) {
     alerts.push({
       level: "warning",
-      title: `${noFunding.length} conta(s) sem pagamento`,
-      desc: `Configure forma de pagamento para evitar pausas.`,
+      title: tr('assets.noFunding', { n: noFunding.length }),
+      desc: tr('assets.noFundingDesc'),
     });
   }
 
@@ -328,8 +329,8 @@ function analyzeContingency(bms: BM[], accounts: Account[]) {
   if (critical.length > 0) {
     alerts.push({
       level: "danger",
-      title: `${critical.length} conta(s) com score crítico`,
-      desc: `Risco alto de perda — revisar urgente.`,
+      title: tr('assets.critical', { n: critical.length }),
+      desc: tr('assets.criticalDesc'),
     });
   }
 
@@ -377,7 +378,7 @@ export default function AssetMap() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-sm text-muted-foreground">Carregando mapa...</div>;
+    return <div className="p-8 text-center text-sm text-muted-foreground">{tr('assets.loading')}</div>;
   }
 
   return (
@@ -385,12 +386,12 @@ export default function AssetMap() {
       {/* Top header */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4 pointer-events-none">
         <div className="pointer-events-auto">
-          <h1 className="font-display text-2xl font-bold text-foreground">Mapa de Ativos</h1>
-          <p className="text-xs text-muted-foreground">Visualize todos os seus ativos Meta conectados.</p>
+          <h1 className="font-display text-2xl font-bold text-foreground">{tr('assets.title')}</h1>
+          <p className="text-xs text-muted-foreground">{tr('assets.desc')}</p>
         </div>
         <Button onClick={refresh} disabled={syncing} className="pointer-events-auto gap-2">
           <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-          Atualizar mapa
+          {tr('assets.refresh')}
         </Button>
       </div>
 
@@ -427,21 +428,21 @@ export default function AssetMap() {
       {/* Legend bottom-left */}
       <Card className="absolute bottom-20 left-4 z-10 w-56 p-3 bg-card/90 backdrop-blur">
         <button onClick={() => setLegendOpen(v => !v)} className="w-full flex items-center justify-between text-[10px] uppercase text-muted-foreground tracking-wider mb-2">
-          Legenda
+          {tr('assets.legend')}
           {legendOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </button>
         {legendOpen && (
           <div className="space-y-1.5 text-[11px]">
-            <LegendRow color="bg-cyan-500" label="Perfil / Negócio" />
+            <LegendRow color="bg-cyan-500" label={tr('assets.profile')} />
             <LegendRow color="bg-purple-500" label="Business Manager" />
-            <LegendRow color="bg-primary" label="Conta ativa" />
-            <LegendRow color="bg-destructive" label="Conta bloqueada" />
-            <LegendRow color="bg-blue-500" label="Páginas" />
+            <LegendRow color="bg-primary" label={tr('assets.activeAcc')} />
+            <LegendRow color="bg-destructive" label={tr('assets.blockedAcc')} />
+            <LegendRow color="bg-blue-500" label={tr('assets.pages')} />
             <LegendRow color="bg-yellow-500" label="Pixels" />
-            <div className="border-t border-border pt-1.5 mt-2 text-[9px] uppercase text-muted-foreground">Indicadores</div>
-            <LegendRow color="bg-primary" label="Ativo / OK" dot />
-            <LegendRow color="bg-yellow-400" label="Atenção" dot />
-            <LegendRow color="bg-destructive" label="Bloqueado" dot />
+            <div className="border-t border-border pt-1.5 mt-2 text-[9px] uppercase text-muted-foreground">{tr('assets.indicators')}</div>
+            <LegendRow color="bg-primary" label={tr('assets.ok')} dot />
+            <LegendRow color="bg-yellow-400" label={tr('assets.attention')} dot />
+            <LegendRow color="bg-destructive" label={tr('assets.blocked')} dot />
           </div>
         )}
       </Card>
@@ -451,15 +452,15 @@ export default function AssetMap() {
         <button onClick={() => setAnalysisOpen(v => !v)} className="w-full flex items-center justify-between mb-3">
           <span className="flex items-center gap-2 font-semibold text-sm">
             <Zap size={14} className="text-yellow-400" />
-            Análise de Contingência
+            {tr('assets.contingency')}
           </span>
           {analysisOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
         {analysisOpen && (
           <>
-            <div className="text-xs text-muted-foreground mb-3">{alerts.length} alerta(s) encontrado(s)</div>
+            <div className="text-xs text-muted-foreground mb-3">{tr('assets.alerts', { n: alerts.length })}</div>
             {alerts.length === 0 ? (
-              <div className="text-xs text-primary text-center py-4">Tudo certo! Nenhum alerta.</div>
+              <div className="text-xs text-primary text-center py-4">{tr('assets.allGood')}</div>
             ) : (
               <div className="space-y-2">
                 {alerts.map((a, i) => (
@@ -488,8 +489,8 @@ export default function AssetMap() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <Card className="p-8 text-center pointer-events-auto">
             <Globe size={40} className="mx-auto mb-3 text-muted-foreground" />
-            <div className="font-semibold mb-1">Nenhum ativo conectado</div>
-            <div className="text-xs text-muted-foreground mb-4">Sincronize suas BMs em Conexões Meta.</div>
+            <div className="font-semibold mb-1">{tr('assets.noAssets')}</div>
+            <div className="text-xs text-muted-foreground mb-4">{tr('assets.syncHint')}</div>
           </Card>
         </div>
       )}

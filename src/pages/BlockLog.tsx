@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
+import { getNumberLocale } from '@/i18n/format';
+import { disableReasonLabel } from '@/lib/meta-labels';
 import { supabase } from "@/integrations/supabase/client";
 import { Ban, RefreshCw, AlertTriangle, ShieldAlert, Search, FileText, Copy, ExternalLink, BookOpen, X } from "lucide-react";
 import { toast } from "sonner";
@@ -40,22 +43,22 @@ type LogItem = {
 };
 
 const STATUS_LABEL: Record<number, { label: string; tone: "red" | "amber" }> = {
-  1: { label: "ADS_INTEGRITY_POLICY · Violação de Política de Integridade", tone: "red" },
-  2: { label: "ADS_IP_REVIEW · Revisão de IP", tone: "amber" },
-  3: { label: "RISK_PAYMENT · Risco de Pagamento", tone: "red" },
-  4: { label: "GRAY_ACCOUNT · Conta em zona cinza", tone: "amber" },
-  5: { label: "ADS_AFC_REVIEW · Revisão AFC", tone: "amber" },
-  6: { label: "BUSINESS_INTEGRITY_RAR · Integridade do negócio", tone: "red" },
-  7: { label: "PERMANENT_CLOSE · Fechamento permanente", tone: "red" },
-  11: { label: "BUSINESS_MANAGER_INTEGRITY · BM com restrição", tone: "red" },
-  12: { label: "MISREPRESENTED_AD_ACCOUNT · Conta deturpada", tone: "red" },
-  15: { label: "COMPROMISED_AD_ACCOUNT · Conta comprometida", tone: "red" },
+  1: { get label() { return "ADS_INTEGRITY_POLICY · " + tr('blocklog.code.1'); }, tone: "red" },
+  2: { get label() { return "ADS_IP_REVIEW · " + tr('blocklog.code.2'); }, tone: "amber" },
+  3: { get label() { return "RISK_PAYMENT · " + tr('blocklog.code.3'); }, tone: "red" },
+  4: { get label() { return "GRAY_ACCOUNT · " + tr('blocklog.code.4'); }, tone: "amber" },
+  5: { get label() { return "ADS_AFC_REVIEW · " + tr('blocklog.code.5'); }, tone: "amber" },
+  6: { get label() { return "BUSINESS_INTEGRITY_RAR · " + tr('blocklog.code.6'); }, tone: "red" },
+  7: { get label() { return "PERMANENT_CLOSE · " + tr('blocklog.code.7'); }, tone: "red" },
+  11: { get label() { return "BUSINESS_MANAGER_INTEGRITY · " + tr('blocklog.code.11'); }, tone: "red" },
+  12: { get label() { return "MISREPRESENTED_AD_ACCOUNT · " + tr('blocklog.code.12'); }, tone: "red" },
+  15: { get label() { return "COMPROMISED_AD_ACCOUNT · " + tr('blocklog.code.15'); }, tone: "red" },
 };
 
 const reasonForCode = (code: number | null, fallback: string | null) => {
   if (code && STATUS_LABEL[code]) return STATUS_LABEL[code];
-  if (fallback && fallback !== "Nenhum") return { label: fallback, tone: "red" as const };
-  return { label: "Conta suspensa", tone: "red" as const };
+  if (fallback && fallback !== "Nenhum") return { label: disableReasonLabel(fallback) || fallback, tone: "red" as const };
+  return { label: tr('blocklog.suspended'), tone: "red" as const };
 };
 
 // Help center articles per disable_reason
@@ -158,7 +161,7 @@ Atenciosamente.`;
 
 const fmtDate = (d: string) => {
   try {
-    return new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
+    return new Date(d).toLocaleString(getNumberLocale(), { dateStyle: "short", timeStyle: "medium" });
   } catch { return d; }
 };
 
@@ -218,7 +221,7 @@ const BlockLog: React.FC = () => {
       key: `bm-${b.id}`,
       kind: "bm",
       title: b.name,
-      badge: b.verification_status === "not_verified" || !b.verification_status ? "BM Não Verificada" : `Status: ${b.verification_status}`,
+      badge: b.verification_status === "not_verified" || !b.verification_status ? tr('blocklog.bmUnverifiedBadge') : `${tr('blocklog.statusLbl')} ${b.verification_status}`,
       badgeTone: "amber",
       meta_id: b.meta_bm_id,
       parent: "Business Manager",
@@ -227,7 +230,7 @@ const BlockLog: React.FC = () => {
       category: "not_approved",
       type: "bm",
       reason_code: null,
-      reason_label: "BM não verificada",
+      reason_label: tr('blocklog.bmUnverified'),
     }));
     return [...acc, ...bb].sort((a, b) => +new Date(b.updated_at) - +new Date(a.updated_at));
   }, [accounts, bms]);
@@ -251,10 +254,10 @@ const BlockLog: React.FC = () => {
     setSyncing(true);
     try {
       await supabase.functions.invoke("meta-sync", { body: { action: "sync_accounts" } });
-      toast.success("Sincronização concluída");
+      toast.success(tr('blocklog.syncDone'));
       await load();
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao sincronizar");
+      toast.error(e?.message || tr('blocklog.syncError'));
     } finally {
       setSyncing(false);
     }
@@ -294,36 +297,36 @@ const BlockLog: React.FC = () => {
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             <Ban className="text-destructive" size={24} />
-            Log de Bloqueios
+            {tr('blocklog.title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Contas e BMs com problemas identificados nas suas conexões Meta.
+            {tr('blocklog.desc')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium flex items-center gap-2">
             <AlertTriangle size={14} />
-            {items.length} eventos de bloqueio
+            {tr('blocklog.events', { n: items.length })}
           </div>
           <button onClick={sync} disabled={syncing}
             className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm flex items-center gap-2 hover:bg-secondary/70 disabled:opacity-50">
             <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-            Atualizar
+            {tr('blocklog.refresh')}
           </button>
         </div>
       </div>
 
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          <TabBtn active={statusFilter === "all"} onClick={() => setStatusFilter("all")} count={counts.all}>Todas</TabBtn>
-          <TabBtn active={statusFilter === "not_approved"} onClick={() => setStatusFilter("not_approved")} count={counts.not_approved} tone="danger">Não aprovadas</TabBtn>
-          <TabBtn active={statusFilter === "suspended"} onClick={() => setStatusFilter("suspended")} count={counts.suspended} tone="danger">Suspensas</TabBtn>
+          <TabBtn active={statusFilter === "all"} onClick={() => setStatusFilter("all")} count={counts.all}>{tr('blocklog.all')}</TabBtn>
+          <TabBtn active={statusFilter === "not_approved"} onClick={() => setStatusFilter("not_approved")} count={counts.not_approved} tone="danger">{tr('blocklog.notApproved')}</TabBtn>
+          <TabBtn active={statusFilter === "suspended"} onClick={() => setStatusFilter("suspended")} count={counts.suspended} tone="danger">{tr('blocklog.suspendedF')}</TabBtn>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase text-muted-foreground tracking-wider mr-1">Tipo:</span>
-          <TabBtn active={typeFilter === "all"} onClick={() => setTypeFilter("all")} count={counts.all}>Todos</TabBtn>
-          <TabBtn active={typeFilter === "account"} onClick={() => setTypeFilter("account")} count={counts.type_account}>Contas de anúncio</TabBtn>
+          <span className="text-xs uppercase text-muted-foreground tracking-wider mr-1">{tr('blocklog.type')}</span>
+          <TabBtn active={typeFilter === "all"} onClick={() => setTypeFilter("all")} count={counts.all}>{tr('blocklog.allTypes')}</TabBtn>
+          <TabBtn active={typeFilter === "account"} onClick={() => setTypeFilter("account")} count={counts.type_account}>{tr('blocklog.adAccounts')}</TabBtn>
           <TabBtn active={typeFilter === "bm"} onClick={() => setTypeFilter("bm")} count={counts.type_bm}>Business Managers</TabBtn>
         </div>
 
@@ -332,24 +335,24 @@ const BlockLog: React.FC = () => {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, BM ou ID..."
+            placeholder={tr('blocklog.search')}
             className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-primary"
           />
         </div>
       </div>
 
       <div className="text-xs uppercase tracking-wider text-muted-foreground">
-        Bloqueios e restrições · Mais recentes primeiro
+        {tr('blocklog.listTitle')}
       </div>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>
+        <div className="text-sm text-muted-foreground py-8 text-center">{tr('blocklog.loading')}</div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <ShieldAlert className="mx-auto text-primary mb-3" size={32} />
-          <p className="text-sm font-medium text-foreground">Nenhum bloqueio encontrado</p>
+          <p className="text-sm font-medium text-foreground">{tr('blocklog.none')}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Todas as contas e BMs estão saudáveis com os filtros atuais.
+            {tr('blocklog.healthy')}
           </p>
         </div>
       ) : (
@@ -368,27 +371,27 @@ const BlockLog: React.FC = () => {
                 </span>
               </div>
               <div className="text-xs text-muted-foreground font-mono">
-                {it.type === "account" ? "Conta ID" : "BM ID"}: {it.meta_id} · {it.parent}
+                {it.type === "account" ? tr('blocklog.accountId') : "BM ID"}: {it.meta_id} · {it.parent}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Atualizado em {fmtDate(it.updated_at)}
+                {tr('blocklog.updatedAt')} {fmtDate(it.updated_at)}
               </div>
 
               <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-2">
                 <button onClick={() => openHelp(it)}
                   className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-medium flex items-center gap-2 hover:bg-secondary/70 transition-colors">
                   <BookOpen size={13} />
-                  Entender o motivo
+                  {tr('blocklog.understand')}
                 </button>
                 <button onClick={() => setAppealFor(it)}
                   className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-medium flex items-center gap-2 hover:bg-secondary/70 transition-colors">
                   <FileText size={13} />
-                  Texto de recurso
+                  {tr('blocklog.appealText')}
                 </button>
                 <button onClick={() => openReview(it)}
                   className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors">
                   <ExternalLink size={13} />
-                  Solicitar revisão
+                  {tr('blocklog.requestReview')}
                 </button>
               </div>
             </div>
@@ -409,9 +412,9 @@ const AppealModal: React.FC<{ item: LogItem; onClose: () => void }> = ({ item, o
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Texto copiado para a área de transferência");
+      toast.success(tr('blocklog.copied'));
     } catch {
-      toast.error("Não foi possível copiar");
+      toast.error(tr('blocklog.copyFail'));
     }
   };
 
@@ -430,7 +433,7 @@ const AppealModal: React.FC<{ item: LogItem; onClose: () => void }> = ({ item, o
           <div>
             <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
               <FileText className="text-primary" size={18} />
-              Texto de recurso para o Meta
+              {tr('blocklog.appealTitle')}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
               {item.title} · {item.reason_label}
@@ -443,7 +446,7 @@ const AppealModal: React.FC<{ item: LogItem; onClose: () => void }> = ({ item, o
 
         <div className="p-5 overflow-y-auto flex-1">
           <p className="text-xs text-muted-foreground mb-2">
-            Texto gerado conforme as diretrizes oficiais do Meta. Você pode editar antes de enviar.
+            {tr('blocklog.appealHint')}
           </p>
           <textarea
             value={text}
@@ -456,17 +459,17 @@ const AppealModal: React.FC<{ item: LogItem; onClose: () => void }> = ({ item, o
         <div className="flex flex-wrap gap-2 justify-end p-5 border-t border-border">
           <button onClick={onClose}
             className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm hover:bg-secondary/70">
-            Cancelar
+            {tr('blocklog.cancel')}
           </button>
           <button onClick={copy}
             className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm flex items-center gap-2 hover:bg-secondary/70">
             <Copy size={14} />
-            Copiar texto
+            {tr('blocklog.copy')}
           </button>
           <button onClick={openSupport}
             className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 hover:bg-primary/90">
             <ExternalLink size={14} />
-            Abrir Meta para enviar
+            {tr('blocklog.openMeta')}
           </button>
         </div>
       </div>
