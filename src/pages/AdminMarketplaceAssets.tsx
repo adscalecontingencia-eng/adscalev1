@@ -1,3 +1,5 @@
+import { getNumberLocale } from "@/i18n/format";
+import { tr } from '@/i18n';
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -50,7 +52,7 @@ const emptyAccount = (n: number): Account => ({
 
 const fmt = (n: number, currency = "BRL") => {
   const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "R$";
-  return `${symbol} ${Math.round(n || 0).toLocaleString("pt-BR")}`;
+  return `${symbol} ${Math.round(n || 0).toLocaleString(getNumberLocale())}`;
 };
 
 export default function AdminMarketplaceAssets() {
@@ -102,7 +104,7 @@ export default function AdminMarketplaceAssets() {
   };
 
   const save = async () => {
-    if (!editing?.name) { toast.error("Nome obrigatório"); return; }
+    if (!editing?.name) { toast.error(tr('amk.nameRequired')); return; }
     setSaving(true);
     try {
       let assetId = (editing as Asset).id;
@@ -142,22 +144,22 @@ export default function AdminMarketplaceAssets() {
         const { error } = await supabase.from("marketplace_asset_accounts").insert(rows);
         if (error) throw error;
       }
-      toast.success("Ativo salvo");
+      toast.success(tr('amk.assetSaved'));
       setEditing(null);
       setEditingAccounts([]);
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar");
+      toast.error(e.message || tr('amk.saveErr'));
     } finally {
       setSaving(false);
     }
   };
 
   const remove = async (a: Asset) => {
-    if (!confirm(`Excluir ${a.name}?`)) return;
+    if (!confirm(tr('amk.confirmDelAsset', { name: a.name }))) return;
     const { error } = await supabase.from("marketplace_assets").delete().eq("id", a.id);
     if (error) toast.error(error.message);
-    else { toast.success("Removido"); await load(); }
+    else { toast.success(tr('amk.removed')); await load(); }
   };
 
   return (
@@ -165,15 +167,15 @@ export default function AdminMarketplaceAssets() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-            <Boxes size={22} /> Ativos c/ Gastos
+            <Boxes size={22} /> {tr('amk.assetsTitle')}
           </h1>
-          <p className="text-sm text-muted-foreground">Cadastre BMs com suas contas de anúncio, gastos, limites e dívidas para exibir no marketplace.</p>
+          <p className="text-sm text-muted-foreground">{tr('amk.assetsDesc')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
+            <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> {tr('amk.refresh')}
           </Button>
-          <Button size="sm" onClick={openNew}><Plus size={14} className="mr-1.5" /> Novo ativo</Button>
+          <Button size="sm" onClick={openNew}><Plus size={14} className="mr-1.5" /> {tr('amk.newAsset')}</Button>
         </div>
       </div>
 
@@ -182,14 +184,14 @@ export default function AdminMarketplaceAssets() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Plataforma</TableHead>
-                <TableHead>Moeda</TableHead>
-                <TableHead>Ano</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead className="text-center">Contas</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>{tr('amk.name')}</TableHead>
+                <TableHead>{tr('amk.platform')}</TableHead>
+                <TableHead>{tr('amk.currency')}</TableHead>
+                <TableHead>{tr('amk.year')}</TableHead>
+                <TableHead className="text-right">{tr('amk.price')}</TableHead>
+                <TableHead className="text-center">{tr('amk.accounts')}</TableHead>
+                <TableHead className="text-center">{tr('amk.status')}</TableHead>
+                <TableHead className="text-right">{tr('amk.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -197,7 +199,7 @@ export default function AdminMarketplaceAssets() {
                 <TableRow key={a.id}>
                   <TableCell className="font-medium">
                     {a.name}
-                    {a.verified && <Badge variant="outline" className="ml-2 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Verificada</Badge>}
+                    {a.verified && <Badge variant="outline" className="ml-2 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">{tr('amk.verified')}</Badge>}
                   </TableCell>
                   <TableCell>{a.platform}</TableCell>
                   <TableCell>{a.currency}</TableCell>
@@ -206,7 +208,7 @@ export default function AdminMarketplaceAssets() {
                   <TableCell className="text-center">{(accountsMap[a.id] ?? []).length}</TableCell>
                   <TableCell className="text-center">
                     <Badge variant="outline" className={a.status === "active" ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" : "border-border text-muted-foreground"}>
-                      {a.status}
+                      {tr(`mk.status.${a.status}`, { defaultValue: a.status })}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -216,7 +218,7 @@ export default function AdminMarketplaceAssets() {
                 </TableRow>
               ))}
               {assets.length === 0 && !loading && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ativo cadastrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{tr('amk.noAssets')}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -226,21 +228,21 @@ export default function AdminMarketplaceAssets() {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{(editing as Asset)?.id ? "Editar ativo" : "Novo ativo"}</DialogTitle>
+            <DialogTitle>{(editing as Asset)?.id ? tr('amk.editAsset') : tr('amk.newAsset')}</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-5 py-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <Label>Nome do BM</Label>
-                  <Input value={editing.name || ""} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="Ex: BM MaxScale MS360" />
+                  <Label>{tr('amk.bmName')}</Label>
+                  <Input value={editing.name || ""} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder={tr('amk.bmPh')} />
                 </div>
                 <div>
-                  <Label>Preço (R$)</Label>
+                  <Label>{tr('amk.priceBrl')}</Label>
                   <Input type="number" value={editing.price ?? 0} onChange={e => setEditing({ ...editing, price: Number(e.target.value) })} />
                 </div>
                 <div>
-                  <Label>Plataforma</Label>
+                  <Label>{tr('amk.platform')}</Label>
                   <Select value={editing.platform || "Facebook"} onValueChange={v => setEditing({ ...editing, platform: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -251,7 +253,7 @@ export default function AdminMarketplaceAssets() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Moeda das contas</Label>
+                  <Label>{tr('amk.accCurrency')}</Label>
                   <Select value={editing.currency || "BRL"} onValueChange={v => setEditing({ ...editing, currency: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -262,34 +264,34 @@ export default function AdminMarketplaceAssets() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Ano de criação</Label>
+                  <Label>{tr('amk.yearCreated')}</Label>
                   <Input type="number" value={editing.year ?? ""} onChange={e => setEditing({ ...editing, year: e.target.value ? Number(e.target.value) : null })} />
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label>{tr('amk.status')}</Label>
                   <Select value={editing.status || "active"} onValueChange={v => setEditing({ ...editing, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Ativo (visível no marketplace)</SelectItem>
-                      <SelectItem value="hidden">Oculto</SelectItem>
-                      <SelectItem value="sold">Vendido</SelectItem>
+                      <SelectItem value="active">{tr('amk.activeVisible')}</SelectItem>
+                      <SelectItem value="hidden">{tr('amk.hidden')}</SelectItem>
+                      <SelectItem value="sold">{tr('amk.sold')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-center gap-2 pt-6">
                   <Switch checked={!!editing.verified} onCheckedChange={v => setEditing({ ...editing, verified: v })} />
-                  <Label>Verificada</Label>
+                  <Label>{tr('amk.verified')}</Label>
                 </div>
               </div>
               <div>
-                <Label>Observações</Label>
+                <Label>{tr('amk.notes')}</Label>
                 <Textarea value={editing.notes || ""} onChange={e => setEditing({ ...editing, notes: e.target.value })} rows={3} />
               </div>
 
               <div className="border-t border-border/60 pt-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-foreground text-sm">Contas de anúncio</p>
-                  <Button size="sm" variant="outline" onClick={addAccount}><Plus size={12} className="mr-1" /> Adicionar conta</Button>
+                  <p className="font-semibold text-foreground text-sm">{tr('amk.adAccounts')}</p>
+                  <Button size="sm" variant="outline" onClick={addAccount}><Plus size={12} className="mr-1" /> {tr('amk.addAccount')}</Button>
                 </div>
                 <div className="space-y-2">
                   {editingAccounts.map((a, idx) => (
@@ -299,24 +301,24 @@ export default function AdminMarketplaceAssets() {
                         <Select value={a.status} onValueChange={v => updateAccount(idx, { status: v })}>
                           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Ativa">Ativa</SelectItem>
-                            <SelectItem value="Inativa">Inativa</SelectItem>
-                            <SelectItem value="Bloqueada">Bloqueada</SelectItem>
+                            <SelectItem value="Ativa">{tr('amk.accActive')}</SelectItem>
+                            <SelectItem value="Inativa">{tr('amk.accInactive')}</SelectItem>
+                            <SelectItem value="Bloqueada">{tr('amk.accBlocked')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <label className="flex items-center gap-1.5 text-xs">
-                          <Switch checked={a.is_prepaid} onCheckedChange={v => updateAccount(idx, { is_prepaid: v })} /> Pré-paga
+                          <Switch checked={a.is_prepaid} onCheckedChange={v => updateAccount(idx, { is_prepaid: v })} /> {tr('amk.prepaid')}
                         </label>
                         <Button size="icon" variant="ghost" className="ml-auto" onClick={() => removeAccount(idx)}>
                           <Trash2 size={14} className="text-destructive" />
                         </Button>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                        <Field label="Gastos" value={a.gastos} onChange={v => updateAccount(idx, { gastos: v })} />
-                        <Field label="Limite Meta" value={a.limite_meta} onChange={v => updateAccount(idx, { limite_meta: v })} />
-                        <Field label="Ciclo" value={a.ciclo} onChange={v => updateAccount(idx, { ciclo: v })} />
-                        <Field label="Dívida" value={a.divida} onChange={v => updateAccount(idx, { divida: v })} />
-                        <Field label="Saldo" value={a.saldo} onChange={v => updateAccount(idx, { saldo: v })} />
+                        <Field label={tr('amk.spend')} value={a.gastos} onChange={v => updateAccount(idx, { gastos: v })} />
+                        <Field label={tr('amk.metaLimit')} value={a.limite_meta} onChange={v => updateAccount(idx, { limite_meta: v })} />
+                        <Field label={tr('amk.cycle')} value={a.ciclo} onChange={v => updateAccount(idx, { ciclo: v })} />
+                        <Field label={tr('amk.debt')} value={a.divida} onChange={v => updateAccount(idx, { divida: v })} />
+                        <Field label={tr('amk.balance')} value={a.saldo} onChange={v => updateAccount(idx, { saldo: v })} />
                       </div>
                     </div>
                   ))}
@@ -325,8 +327,8 @@ export default function AdminMarketplaceAssets() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>{tr('amk.cancel')}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? tr('amk.saving2') : tr('amk.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,3 +1,5 @@
+import { getNumberLocale } from "@/i18n/format";
+import { tr } from '@/i18n';
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -18,7 +20,7 @@ interface Row {
 }
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 export default function MarketplaceClients() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -35,7 +37,7 @@ export default function MarketplaceClients() {
       const r = (data as any)?.rows ?? [];
       setRows(r);
     } catch (e: any) {
-      setError(e?.message || "Erro ao carregar clientes");
+      setError(e?.message || tr('amk.loadErr'));
       setRows([]);
     } finally {
       setLoading(false);
@@ -62,12 +64,12 @@ export default function MarketplaceClients() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-            <UsersRound size={22} /> Clientes do Marketplace
+            <UsersRound size={22} /> {tr('amk.clientsTitle')}
           </h1>
-          <p className="text-sm text-muted-foreground">Usuários cadastrados via marketplace, com saldo e histórico.</p>
+          <p className="text-sm text-muted-foreground">{tr('amk.clientsDesc')}</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
+          <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> {tr('amk.refresh')}
         </Button>
       </div>
 
@@ -79,28 +81,28 @@ export default function MarketplaceClients() {
 
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Clientes" value={totals.users.toLocaleString("pt-BR")} />
-        <StatCard label="Total Depositado" value={fmtBRL(totals.deposited)} />
-        <StatCard label="Total Gasto" value={fmtBRL(totals.spent)} />
-        <StatCard label="Saldo em Carteira" value={fmtBRL(totals.balance)} />
+        <StatCard label={tr('amk.clients')} value={totals.users.toLocaleString(getNumberLocale())} />
+        <StatCard label={tr('amk.totalDeposited')} value={fmtBRL(totals.deposited)} />
+        <StatCard label={tr('amk.totalSpent')} value={fmtBRL(totals.spent)} />
+        <StatCard label={tr('amk.walletBalance')} value={fmtBRL(totals.balance)} />
       </div>
 
       <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
         <div className="relative max-w-md mb-3">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Buscar por email, nome ou ID…" value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="pl-9" placeholder={tr('amk.searchPh')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Cadastro</TableHead>
-                <TableHead className="text-right">Depositado</TableHead>
-                <TableHead className="text-right">Gasto</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{tr('amk.client')}</TableHead>
+                <TableHead>{tr('amk.signupCol')}</TableHead>
+                <TableHead className="text-right">{tr('amk.deposited')}</TableHead>
+                <TableHead className="text-right">{tr('amk.spent')}</TableHead>
+                <TableHead className="text-right">{tr('amk.balance')}</TableHead>
+                <TableHead>{tr('amk.status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -113,20 +115,20 @@ export default function MarketplaceClients() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString("pt-BR") : "—"}
+                    {r.created_at ? new Date(r.created_at).toLocaleDateString(getNumberLocale()) : "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{fmtBRL(r.total_deposited)}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtBRL(r.total_spent)}</TableCell>
                   <TableCell className="text-right tabular-nums text-emerald-400 font-semibold">{fmtBRL(r.balance)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={r.total_deposited > 0 ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" : "border-border text-muted-foreground"}>
-                      {r.total_deposited > 0 ? "Ativo" : "Novo"}
+                      {r.total_deposited > 0 ? tr('amk.active') : tr('amk.new')}
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && !loading && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">Nenhum cliente encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">{tr('amk.noClients')}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

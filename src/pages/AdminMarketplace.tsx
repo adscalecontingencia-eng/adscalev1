@@ -1,3 +1,5 @@
+import { getNumberLocale } from "@/i18n/format";
+import { tr } from '@/i18n';
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,7 +45,7 @@ interface Stock {
 }
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat(getNumberLocale(), { style: "currency", currency: "BRL" }).format(n || 0);
 
 const emptyProduct: Partial<Product> = {
   name: "",
@@ -137,7 +139,7 @@ const AdminMarketplace: React.FC = () => {
 
   const saveProduct = async () => {
     if (!editing?.name || !editing?.category) {
-      toast.error("Nome e categoria são obrigatórios");
+      toast.error(tr('amk.nameCatReq'));
       return;
     }
     setLoading(true);
@@ -165,18 +167,18 @@ const AdminMarketplace: React.FC = () => {
     setLoading(false);
     if (error) toast.error(error.message);
     else {
-      toast.success(editing.id ? "Produto atualizado" : "Produto criado");
+      toast.success(editing.id ? tr('amk.updated') : tr('amk.created'));
       setEditing(null);
       refreshProducts();
     }
   };
 
   const deleteProduct = async (p: Product) => {
-    if (!confirm(`Excluir "${p.name}"? Estoque vinculado também será removido.`)) return;
+    if (!confirm(tr('amk.confirmDel', { name: p.name }))) return;
     const { error } = await supabase.from("products").delete().eq("id", p.id);
     if (error) toast.error(error.message);
     else {
-      toast.success("Produto excluído");
+      toast.success(tr('amk.deleted'));
       refreshProducts();
     }
   };
@@ -187,12 +189,12 @@ const AdminMarketplace: React.FC = () => {
     const path = `${(editing.slug || slugify(editing.name || "img"))}-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
     if (upErr) {
-      toast.error("Erro ao enviar imagem: " + upErr.message);
+      toast.error(tr('amk.imgErr', { msg: upErr.message }));
       return;
     }
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     setEditing({ ...editing, image_url: data.publicUrl });
-    toast.success("Imagem enviada");
+    toast.success(tr('amk.imgSent'));
   };
 
   const addBulkStock = async () => {
@@ -213,7 +215,7 @@ const AdminMarketplace: React.FC = () => {
     const { error } = await supabase.from("product_stock").insert(rows);
     if (error) toast.error(error.message);
     else {
-      toast.success(`${rows.length} unidades adicionadas`);
+      toast.success(tr('amk.unitsAdded', { n: rows.length }));
       setBulkText("");
       refreshStockFor(stockFor.id);
       refreshProducts();
@@ -221,7 +223,7 @@ const AdminMarketplace: React.FC = () => {
   };
 
   const deleteStockItem = async (id: string) => {
-    if (!confirm("Remover esta unidade do estoque?")) return;
+    if (!confirm(tr('amk.removeUnit'))) return;
     const { error } = await supabase.from("product_stock").delete().eq("id", id);
     if (error) toast.error(error.message);
     else {
@@ -233,7 +235,7 @@ const AdminMarketplace: React.FC = () => {
   const replaceAsset = async (s: Stock) => {
     if (!stockFor) return;
     const cost = Number(stockFor.cost_price) || 0;
-    if (!confirm(`Repor ativo "${stockFor.name}"?\n\nEsta unidade será removida do estoque e o custo de ${fmtBRL(cost)} será lançado automaticamente como gasto no Dashboard.`)) return;
+    if (!confirm(tr('amk.confirmReplace', { name: stockFor.name, cost: fmtBRL(cost) }))) return;
 
     const today = new Date().toISOString().slice(0, 10);
     const { error: txErr } = await supabase.from("transactions").insert({
@@ -247,17 +249,17 @@ const AdminMarketplace: React.FC = () => {
       custo_produto: cost,
     });
     if (txErr) {
-      toast.error("Erro ao lançar gasto: " + txErr.message);
+      toast.error(tr('amk.txErr', { msg: txErr.message }));
       return;
     }
 
     const { error: delErr } = await supabase.from("product_stock").delete().eq("id", s.id);
     if (delErr) {
-      toast.error("Gasto lançado, mas falhou ao remover do estoque: " + delErr.message);
+      toast.error(tr('amk.delErr', { msg: delErr.message }));
       return;
     }
 
-    toast.success(`Ativo reposto • ${fmtBRL(cost)} lançado no Dashboard`);
+    toast.success(tr('amk.replaced', { cost: fmtBRL(cost) }));
     refreshStockFor(stockFor.id);
     refreshProducts();
   };
@@ -268,22 +270,22 @@ const AdminMarketplace: React.FC = () => {
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
           <TabsTrigger value="products">
-            <Boxes size={14} className="mr-1.5" /> Produtos
+            <Boxes size={14} className="mr-1.5" /> {tr('amk.products')}
           </TabsTrigger>
           <TabsTrigger value="stock">
-            <Package size={14} className="mr-1.5" /> Estoque
+            <Package size={14} className="mr-1.5" /> {tr('amk.stock')}
           </TabsTrigger>
           <TabsTrigger value="orders">
-            <ShoppingBag size={14} className="mr-1.5" /> Pedidos
+            <ShoppingBag size={14} className="mr-1.5" /> {tr('amk.orders')}
           </TabsTrigger>
         </TabsList>
 
         {/* PRODUTOS */}
         <TabsContent value="products" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-display font-semibold">Catálogo</h2>
+            <h2 className="text-lg font-display font-semibold">{tr('amk.catalog')}</h2>
             <Button onClick={() => setEditing({ ...emptyProduct })}>
-              <Plus size={14} className="mr-1.5" /> Novo produto
+              <Plus size={14} className="mr-1.5" /> {tr('amk.newProduct')}
             </Button>
           </div>
 
@@ -291,14 +293,14 @@ const AdminMarketplace: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>País</TableHead>
-                  <TableHead>Custo</TableHead>
-                  <TableHead>Venda</TableHead>
-                  <TableHead>Margem</TableHead>
-                  <TableHead>Estoque</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{tr('amk.name')}</TableHead>
+                  <TableHead>{tr('amk.category')}</TableHead>
+                  <TableHead>{tr('amk.country')}</TableHead>
+                  <TableHead>{tr('amk.cost')}</TableHead>
+                  <TableHead>{tr('amk.sale')}</TableHead>
+                  <TableHead>{tr('amk.margin')}</TableHead>
+                  <TableHead>{tr('amk.stock')}</TableHead>
+                  <TableHead>{tr('amk.status')}</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -351,25 +353,23 @@ const AdminMarketplace: React.FC = () => {
                 {products.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground text-sm py-8">
-                      Nenhum produto cadastrado. Clique em "Novo produto".
+                      {tr('amk.noProducts')}
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Estoque: <span className="text-emerald-400">disponível</span> / <span className="text-amber-400">reservado</span> / <span className="text-muted-foreground">entregue</span>
-          </p>
+          <p className="text-[11px] text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('amk.legend') }} />
         </TabsContent>
 
         {/* ESTOQUE */}
         <TabsContent value="stock" className="space-y-4">
           <div className="flex items-center gap-3">
-            <Label className="text-sm">Produto:</Label>
+            <Label className="text-sm">{tr('amk.product')}</Label>
             <Select value={stockFor?.id || ""} onValueChange={(id) => setStockFor(products.find((p) => p.id === id) || null)}>
               <SelectTrigger className="w-72">
-                <SelectValue placeholder="Selecione um produto" />
+                <SelectValue placeholder={tr('amk.selectProduct')} />
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
@@ -382,18 +382,18 @@ const AdminMarketplace: React.FC = () => {
           {stockFor && (
             <>
               <div className="bg-card/60 border border-border/60 rounded-xl p-4 space-y-2">
-                <Label className="text-sm">Adicionar unidades em lote</Label>
+                <Label className="text-sm">{tr('amk.bulk')}</Label>
                 <p className="text-[11px] text-muted-foreground">
-                  Uma unidade por linha. Aceita JSON (<code>{"{\"email\":\"x\",\"password\":\"y\"}"}</code>) ou formato <code>email|senha|extra</code>.
+                  {tr('amk.bulkA')} (<code>{"{\"email\":\"x\",\"password\":\"y\"}"}</code>) {tr('amk.bulkB')} <code>{tr('amk.bulkFmt')}</code>.
                 </p>
                 <Textarea
                   rows={5}
                   value={bulkText}
                   onChange={(e) => setBulkText(e.target.value)}
-                  placeholder={'usuario@gmail.com|senha123|cookies aqui\n{"email":"a@b.com","password":"x","cookies":"..."}'}
+                  placeholder={tr('amk.bulkPh')}
                 />
                 <Button onClick={addBulkStock} size="sm">
-                  <Plus size={14} className="mr-1.5" /> Adicionar
+                  <Plus size={14} className="mr-1.5" /> {tr('amk.add')}
                 </Button>
               </div>
 
@@ -401,9 +401,9 @@ const AdminMarketplace: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Payload</TableHead>
-                      <TableHead>Criado</TableHead>
+                      <TableHead>{tr('amk.status')}</TableHead>
+                      <TableHead>{tr('amk.payload')}</TableHead>
+                      <TableHead>{tr('amk.createdCol')}</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -411,7 +411,7 @@ const AdminMarketplace: React.FC = () => {
                     {stockItems.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell>
-                          <Badge variant={s.status === "disponivel" ? "secondary" : "outline"}>{s.status}</Badge>
+                          <Badge variant={s.status === "disponivel" ? "secondary" : "outline"}>{tr(`mk.status.${s.status}`, { defaultValue: s.status })}</Badge>
                         </TableCell>
                         <TableCell>
                           <code className="text-[11px] text-muted-foreground line-clamp-1 max-w-md inline-block">
@@ -419,7 +419,7 @@ const AdminMarketplace: React.FC = () => {
                           </code>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(s.created_at).toLocaleString("pt-BR")}
+                          {new Date(s.created_at).toLocaleString(getNumberLocale())}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1 justify-end">
@@ -429,9 +429,9 @@ const AdminMarketplace: React.FC = () => {
                                 size="sm"
                                 onClick={() => replaceAsset(s)}
                                 className="h-7 text-[11px] gap-1 border-primary/40 text-primary hover:bg-primary/10"
-                                title="Repor ativo (remove do estoque e lança custo no Dashboard)"
+                                title={tr('amk.replaceTitle')}
                               >
-                                <RefreshCw size={12} /> Repor ativo
+                                <RefreshCw size={12} /> {tr('amk.replace')}
                               </Button>
                             )}
                             <Button variant="ghost" size="icon" onClick={() => deleteStockItem(s.id)}>
@@ -444,7 +444,7 @@ const AdminMarketplace: React.FC = () => {
                     {stockItems.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-6">
-                          Nenhuma unidade no estoque deste produto.
+                          {tr('amk.noStock')}
                         </TableCell>
                       </TableRow>
                     )}
@@ -461,31 +461,31 @@ const AdminMarketplace: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Itens</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Entrega</TableHead>
+                  <TableHead>{tr('amk.date')}</TableHead>
+                  <TableHead>{tr('amk.client')}</TableHead>
+                  <TableHead>{tr('amk.items')}</TableHead>
+                  <TableHead>{tr('amk.total')}</TableHead>
+                  <TableHead>{tr('amk.status')}</TableHead>
+                  <TableHead>{tr('amk.delivery')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((o) => (
                   <TableRow key={o.id}>
-                    <TableCell className="text-xs">{new Date(o.created_at).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-xs">{new Date(o.created_at).toLocaleString(getNumberLocale())}</TableCell>
                     <TableCell>{o.clients?.name || "—"}</TableCell>
                     <TableCell className="text-xs">
                       {(o.order_items || []).map((it: any) => `${it.quantity}× ${it.products?.name || ""}`).join(" • ")}
                     </TableCell>
                     <TableCell className="font-semibold text-primary">{fmtBRL(o.total)}</TableCell>
-                    <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{tr(`mk.status.${o.status}`, { defaultValue: o.status })}</Badge></TableCell>
                     <TableCell><Badge variant="secondary">{o.delivery_mode}</Badge></TableCell>
                   </TableRow>
                 ))}
                 {orders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground text-sm py-8">
-                      Nenhum pedido ainda.
+                      {tr('amk.noOrders')}
                     </TableCell>
                   </TableRow>
                 )}
@@ -499,48 +499,48 @@ const AdminMarketplace: React.FC = () => {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing?.id ? "Editar produto" : "Novo produto"}</DialogTitle>
+            <DialogTitle>{editing?.id ? tr('amk.editProduct') : tr('amk.newProduct')}</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Nome *</Label>
+                  <Label className="text-xs">{tr('amk.nameReq')}</Label>
                   <Input value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value, slug: editing.slug || slugify(e.target.value) })} />
                 </div>
                 <div>
-                  <Label className="text-xs">Slug</Label>
+                  <Label className="text-xs">{tr('amk.slug')}</Label>
                   <Input value={editing.slug || ""} onChange={(e) => setEditing({ ...editing, slug: slugify(e.target.value) })} />
                 </div>
                 <div>
-                  <Label className="text-xs">Categoria *</Label>
+                  <Label className="text-xs">{tr('amk.categoryReq')}</Label>
                   <Input value={editing.category || ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} placeholder="BM Facebook, TikTok Ads, Perfil Facebook, Proxy, Google Ads" />
                 </div>
                 <div>
-                  <Label className="text-xs">Subcategoria</Label>
+                  <Label className="text-xs">{tr('amk.subcategory')}</Label>
                   <Input value={editing.subcategory || ""} onChange={(e) => setEditing({ ...editing, subcategory: e.target.value })} />
                 </div>
                 <div>
-                  <Label className="text-xs">País</Label>
+                  <Label className="text-xs">{tr('amk.country')}</Label>
                   <Input value={editing.country || ""} onChange={(e) => setEditing({ ...editing, country: e.target.value })} placeholder="BR / US / LATAM" />
                 </div>
                 <div>
-                  <Label className="text-xs">Tags (separadas por vírgula)</Label>
+                  <Label className="text-xs">{tr('amk.tags')}</Label>
                   <Input
                     value={(editing.tags || []).join(", ")}
                     onChange={(e) => setEditing({ ...editing, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })}
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Custo (R$)</Label>
+                  <Label className="text-xs">{tr('amk.costBrl')}</Label>
                   <Input type="number" step="0.01" value={editing.cost_price ?? 0} onChange={(e) => setEditing({ ...editing, cost_price: Number(e.target.value) })} />
                 </div>
                 <div>
-                  <Label className="text-xs">Preço de venda (R$) *</Label>
+                  <Label className="text-xs">{tr('amk.priceReq')}</Label>
                   <Input type="number" step="0.01" value={editing.sale_price ?? 0} onChange={(e) => setEditing({ ...editing, sale_price: Number(e.target.value) })} />
                 </div>
                 <div>
-                  <Label className="text-xs">Preço com desconto (R$)</Label>
+                  <Label className="text-xs">{tr('amk.discount')}</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -549,25 +549,25 @@ const AdminMarketplace: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Ordem (sort)</Label>
+                  <Label className="text-xs">{tr('amk.sort')}</Label>
                   <Input type="number" value={editing.sort_order ?? 0} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} />
                 </div>
               </div>
 
               <div>
-                <Label className="text-xs">Descrição (uma observação por linha começando com "• ")</Label>
+                <Label className="text-xs">{tr('amk.descLabel')}</Label>
                 <Textarea rows={4} value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-                  placeholder="• Possui 100 contas de anúncio&#10;• Segmenta BR + Latam&#10;• Pronto para anunciar" />
+                  placeholder={tr('amk.descPh')} />
               </div>
 
               <div>
-                <Label className="text-xs">Termos de garantia</Label>
+                <Label className="text-xs">{tr('amk.warranty')}</Label>
                 <Textarea rows={4} value={editing.warranty_terms || ""} onChange={(e) => setEditing({ ...editing, warranty_terms: e.target.value })}
-                  placeholder="Garantia de 24 horas válida para erros no acesso..." />
+                  placeholder={tr('amk.warrantyPh')} />
               </div>
 
               <div>
-                <Label className="text-xs flex items-center gap-2"><ImageIcon size={12} /> Imagem do produto</Label>
+                <Label className="text-xs flex items-center gap-2"><ImageIcon size={12} /> {tr('amk.image')}</Label>
                 <div className="flex items-center gap-3 mt-1">
                   <Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])} />
                   {editing.image_url && <img src={editing.image_url} alt="" className="w-12 h-12 rounded object-cover border border-border" />}
@@ -575,15 +575,15 @@ const AdminMarketplace: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap gap-6">
-                <label className="flex items-center gap-2"><Switch checked={!!editing.active} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /> <span className="text-xs">Ativo</span></label>
-                <label className="flex items-center gap-2"><Switch checked={!!editing.is_featured} onCheckedChange={(v) => setEditing({ ...editing, is_featured: v })} /> <span className="text-xs">Em destaque</span></label>
-                <label className="flex items-center gap-2"><Switch checked={!!editing.is_new} onCheckedChange={(v) => setEditing({ ...editing, is_new: v })} /> <span className="text-xs">Novidade</span></label>
+                <label className="flex items-center gap-2"><Switch checked={!!editing.active} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /> <span className="text-xs">{tr('amk.active')}</span></label>
+                <label className="flex items-center gap-2"><Switch checked={!!editing.is_featured} onCheckedChange={(v) => setEditing({ ...editing, is_featured: v })} /> <span className="text-xs">{tr('amk.featured')}</span></label>
+                <label className="flex items-center gap-2"><Switch checked={!!editing.is_new} onCheckedChange={(v) => setEditing({ ...editing, is_new: v })} /> <span className="text-xs">{tr('amk.novelty')}</span></label>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button onClick={saveProduct} disabled={loading}>{loading ? "Salvando…" : "Salvar"}</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>{tr('amk.cancel')}</Button>
+            <Button onClick={saveProduct} disabled={loading}>{loading ? tr('amk.saving') : tr('amk.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
