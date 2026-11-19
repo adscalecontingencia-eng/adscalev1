@@ -1,4 +1,6 @@
 import { Card } from "@/components/ui/card";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { motion } from "framer-motion";
 import {
   TrendingUp, DollarSign, Activity, ShoppingCart, Target, MousePointerClick, BarChart3,
@@ -29,7 +31,7 @@ interface Props {
 
 const fmtUSD = (v: number) =>
   v.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
-const fmtNum = (v: number) => v.toLocaleString("pt-BR");
+const fmtNum = (v: number) => v.toLocaleString(getNumberLocale());
 const fmtPct = (v: number) => `${v.toFixed(2)}%`;
 
 function delta(cur: number, prev?: number | null): { value: number; up: boolean } | null {
@@ -84,7 +86,7 @@ function PrimaryCard({
         </div>
         <div className="flex items-center justify-between mt-1 min-h-[14px]">
           <DeltaBadge d={d} invert={invertDelta} />
-          <span className="text-[10px] text-muted-foreground">vs período anterior</span>
+          <span className="text-[10px] text-muted-foreground">{tr('ads.kpi.vsPrev')}</span>
         </div>
         <div className="mt-2 -mx-1">
           <MiniSparkline data={sparkData} color={color} height={36} />
@@ -124,7 +126,7 @@ export default function AdsKpiHero({ current, previous, daily }: Props) {
     <div className="space-y-3">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <PrimaryCard
-          label="Faturamento"
+          label={tr('ads.kpi.revenue')}
           value={fmtUSD(current.revenue)}
           icon={TrendingUp}
           sparkKey="revenue"
@@ -133,7 +135,7 @@ export default function AdsKpiHero({ current, previous, daily }: Props) {
           accent
         />
         <PrimaryCard
-          label="Gasto Total"
+          label={tr('ads.kpi.spend')}
           value={fmtUSD(current.spend)}
           icon={DollarSign}
           sparkKey="spend"
@@ -142,7 +144,7 @@ export default function AdsKpiHero({ current, previous, daily }: Props) {
           invertDelta
         />
         <PrimaryCard
-          label="Lucro"
+          label={tr('ads.kpi.profit')}
           value={fmtUSD(current.profit)}
           icon={DollarSign}
           sparkKey="profit"
@@ -164,8 +166,8 @@ export default function AdsKpiHero({ current, previous, daily }: Props) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-        <SecondaryCard label="Margem" value={fmtPct(current.margin)} icon={Activity} delta={d("margin")} />
-        <SecondaryCard label="Compras" value={fmtNum(current.purchases)} icon={ShoppingCart} delta={d("purchases")} />
+        <SecondaryCard label={tr('ads.kpi.margin')} value={fmtPct(current.margin)} icon={Activity} delta={d("margin")} />
+        <SecondaryCard label={tr('ads.kpi.purchases')} value={fmtNum(current.purchases)} icon={ShoppingCart} delta={d("purchases")} />
         <SecondaryCard label="CPA" value={fmtUSD(current.cpa)} icon={Target} delta={d("cpa")} invertDelta />
         <SecondaryCard label="CTR" value={fmtPct(current.ctr)} icon={Activity} delta={d("ctr")} />
         <SecondaryCard label="CPC" value={fmtUSD(current.cpc)} icon={DollarSign} delta={d("cpc")} invertDelta />
@@ -179,7 +181,7 @@ export default function AdsKpiHero({ current, previous, daily }: Props) {
         </span>
         <span className="inline-flex items-center gap-1.5">
           <BarChart3 className="h-3.5 w-3.5" />
-          {fmtNum(current.impressions)} impressões
+          {fmtNum(current.impressions)} {tr('ads.kpi.impressions')}
         </span>
       </div>
     </div>

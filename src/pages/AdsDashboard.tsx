@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { tr } from '@/i18n';
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
@@ -329,21 +330,21 @@ export default function AdsDashboard() {
       if ((data as any)?.erro) throw new Error((data as any).erro);
       const rows = (data as any)?.linhas_upsertadas ?? 0;
       const errs = (data as any)?.erros || [];
-      if (!silent) toast.success(`Sincronizado: ${rows} registro(s)`);
+      if (!silent) toast.success(tr('ads.dash.synced', { n: rows }));
       setLastSyncAt(new Date());
       // Surface partial failures even on the first silent run so the admin
       // sees why some accounts are missing (e.g. Meta API instability).
       if (errs.length > 0) {
-        setAutoSyncError(`Meta retornou erro em ${errs.length} conta(s). Clique em "Sincronizar" para tentar de novo.`);
+        setAutoSyncError(tr('ads.dash.metaErr', { n: errs.length }));
       } else {
         setAutoSyncError(null);
       }
       await loadInsights({ background: silent });
     } catch (e: any) {
-      if (!silent) toast.error(`Falha: ${e.message}`);
+      if (!silent) toast.error(tr('ads.dash.fail', { msg: e.message }));
       else {
         console.error("auto-sync falhou:", e.message);
-        setAutoSyncError(`Falha ao sincronizar com a Meta: ${e.message}`);
+        setAutoSyncError(tr('ads.dash.syncFail', { msg: e.message }));
       }
     } finally {
       setSyncing(false);
@@ -353,9 +354,9 @@ export default function AdsDashboard() {
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Performance"
+        eyebrow={tr('ads.dash.eyebrow')}
         title={<><span className="text-primary glow-text">Ads</span></>}
-        description={`Métricas consolidadas das contas do Meta Ads — ${filteredAccountIds.size} conta(s).`}
+        description={tr('ads.dash.desc', { n: filteredAccountIds.size })}
       />
 
       <AdsFiltersBar
@@ -393,7 +394,7 @@ export default function AdsDashboard() {
             disabled={syncing}
             className="text-xs px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-100 hover:bg-amber-500/30 disabled:opacity-50"
           >
-            {syncing ? "Sincronizando..." : "Tentar novamente"}
+            {syncing ? tr('ads.dash.syncing') : tr('ads.dash.retry')}
           </button>
         </Card>
       )}
@@ -414,13 +415,13 @@ export default function AdsDashboard() {
       ) : filteredInsights.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-sm text-muted-foreground mb-3">
-            Nenhum insight encontrado para os filtros selecionados.
+            {tr('ads.dash.none')}
           </p>
           <button
             onClick={() => sync()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
           >
-            Sincronizar agora
+            {tr('ads.dash.syncNow')}
           </button>
         </Card>
       ) : (

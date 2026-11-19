@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { tr } from '@/i18n';
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -38,7 +39,7 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">
-          {current?.company_name ? "Empresa · Cliente" : "Cliente"}
+          {current?.company_name ? tr('meta.picker.companyClient') : tr('meta.picker.client')}
         </div>
         <div className={cn(
           "text-sm font-medium truncate leading-tight mt-0.5",
@@ -46,7 +47,7 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
         )}>
           {current
             ? (current.company_name ? `${current.company_name} · ${current.name}` : current.name)
-            : "Não atribuída"}
+            : tr('meta.picker.notAssigned')}
         </div>
       </div>
 
@@ -54,14 +55,14 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
         <PopoverTrigger asChild>
           <Button size="sm" variant={current ? "outline" : "default"} className="h-8 gap-1" disabled={busy}>
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ChevronsUpDown className="h-3.5 w-3.5" />}
-            {current ? "Trocar" : "Atribuir"}
+            {current ? tr('meta.picker.change') : tr('meta.picker.assign')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-0" align="end">
           <Command>
-            <CommandInput placeholder="Buscar cliente..." />
+            <CommandInput placeholder={tr('meta.picker.search')} />
             <CommandList>
-              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+              <CommandEmpty>{tr('meta.picker.none')}</CommandEmpty>
               <CommandGroup>
                 {clients.map((c) => (
                   <CommandItem key={c.id} value={`${c.name} ${c.email} ${c.company_name || ''}`} onSelect={() => handle(c.id)}>
@@ -79,7 +80,7 @@ export default function ClientPicker({ clients, currentClientId, onAssign }: Pro
               {current && (
                 <CommandGroup>
                   <CommandItem onSelect={() => handle(null)} className="text-destructive">
-                    <X className="mr-2 h-3.5 w-3.5" /> Remover atribuição
+                    <X className="mr-2 h-3.5 w-3.5" /> {tr('meta.picker.remove')}
                   </CommandItem>
                 </CommandGroup>
               )}

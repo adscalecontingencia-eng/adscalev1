@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,17 +21,17 @@ type Row = {
   archived_at: string | null;
 };
 
-const REASONS: Record<number, string> = {
+const REASONS: Record<number, string> = localizedMap('ads.arch.reason', {
   200: "Sem permissão (ads_read)",
   190: "Token inválido/expirado",
   10: "Permissão negada",
   100: "Parâmetro/permissão inválida",
-};
+} as Record<string, string>);
 
 type TokenFilter = "all" | "both" | "system" | "user" | "no_token";
 type ReasonFilter = "all" | "200" | "190" | "10" | "100" | "other";
 
-const fmt = (iso: string | null) => (iso ? format(new Date(iso), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—");
+const fmt = (iso: string | null) => (iso ? format(new Date(iso), "P HH:mm", { locale: getDateLocale() }) : "—");
 
 export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?: number }) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -72,7 +74,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
   const saveRetention = async () => {
     const w = Number(retentionInput);
     if (!Number.isFinite(w) || w < 1) {
-      toast({ title: "Valor inválido", description: "Informe pelo menos 1 semana.", variant: "destructive" });
+      toast({ title: tr('ads.arch.invalid'), description: tr('ads.arch.min1'), variant: "destructive" });
       return;
     }
     setSavingRetention(true);
@@ -81,11 +83,11 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       .upsert({ key: "archived_retention_weeks", value: w as any }, { onConflict: "key" });
     setSavingRetention(false);
     if (error) {
-      toast({ title: "Falha ao salvar", description: error.message, variant: "destructive" });
+      toast({ title: tr('ads.arch.saveFail'), description: error.message, variant: "destructive" });
       return;
     }
     setRetentionWeeks(w);
-    toast({ title: "Configuração salva", description: `Contas somem do painel ${w} semana(s) após o arquivamento.` });
+    toast({ title: tr('ads.arch.saved'), description: tr('ads.arch.savedDesc', { w }) });
   };
 
 
@@ -130,10 +132,10 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
-      toast({ title: "Conta restaurada", description: "Voltará à sincronização normal." });
+      toast({ title: tr('ads.arch.restored'), description: tr('ads.arch.restoredDesc') });
       setTick((t) => t + 1);
     } catch (e: any) {
-      toast({ title: "Falha ao restaurar", description: e.message, variant: "destructive" });
+      toast({ title: tr('ads.arch.restoreFail'), description: e.message, variant: "destructive" });
     } finally {
       setBusy(null);
     }
@@ -147,10 +149,10 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
         <div className="flex items-center gap-2">
           <Archive className="h-4 w-4 text-zinc-300" />
-          <span className="text-sm font-medium text-zinc-200">Contas arquivadas ({visibleRows.length})</span>
+          <span className="text-sm font-medium text-zinc-200">{tr('ads.arch.title', { n: visibleRows.length })}</span>
           <span className="text-[10px] text-muted-foreground">
-            removidas da sincronização e dos relatórios
-            {expiredCount > 0 && ` · ${expiredCount} ocultada(s) após ${retentionWeeks} semana(s)`}
+            {tr('ads.arch.removed')}
+            {expiredCount > 0 && ` ${tr('ads.arch.hidden', { n: expiredCount, w: retentionWeeks })}`}
           </span>
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-zinc-300" /> : <ChevronDown className="h-4 w-4 text-zinc-300" />}
@@ -159,7 +161,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
       {open && (
         <div className="border-t border-zinc-500/20">
           <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
-            <span className="text-[11px] text-muted-foreground">Remover do painel automaticamente após</span>
+            <span className="text-[11px] text-muted-foreground">{tr('ads.arch.autoRemove')}</span>
             <Input
               type="number"
               min={1}
@@ -167,31 +169,31 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
               onChange={(e) => setRetentionInput(e.target.value)}
               className="h-8 w-[70px] text-xs"
             />
-            <span className="text-[11px] text-muted-foreground">semana(s) do arquivamento</span>
+            <span className="text-[11px] text-muted-foreground">{tr('ads.arch.weeksAfter')}</span>
             <Button size="sm" variant="outline" className="h-8 text-xs" disabled={savingRetention} onClick={saveRetention}>
-              Salvar
+              {tr('ads.arch.save')}
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2 p-3">
 
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar por nome ou ID..." className="pl-7 h-8 text-xs" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr('ads.arch.search')} className="pl-7 h-8 text-xs" />
             </div>
             <select value={reason} onChange={(e) => setReason(e.target.value as ReasonFilter)} className="h-8 rounded-md border bg-background px-2 text-xs">
-              <option value="all">Todos motivos</option>
-              <option value="200">200 – Sem permissão</option>
-              <option value="190">190 – Token inválido</option>
-              <option value="10">10 – Permissão negada</option>
-              <option value="100">100 – Inválido</option>
-              <option value="other">Outros</option>
+              <option value="all">{tr('ads.arch.allReasons')}</option>
+              <option value="200">{tr('ads.arch.r200')}</option>
+              <option value="190">{tr('ads.arch.r190')}</option>
+              <option value="10">{tr('ads.arch.r10')}</option>
+              <option value="100">{tr('ads.arch.r100')}</option>
+              <option value="other">{tr('ads.arch.others')}</option>
             </select>
             <select value={token} onChange={(e) => setToken(e.target.value as TokenFilter)} className="h-8 rounded-md border bg-background px-2 text-xs">
-              <option value="all">Todos tokens</option>
-              <option value="both">Ambos falharam</option>
-              <option value="system">Só system</option>
-              <option value="user">Só user</option>
-              <option value="no_token">Sem token</option>
+              <option value="all">{tr('ads.arch.allTokens')}</option>
+              <option value="both">{tr('ads.arch.both')}</option>
+              <option value="system">{tr('ads.arch.onlySystem')}</option>
+              <option value="user">{tr('ads.arch.onlyUser')}</option>
+              <option value="no_token">{tr('ads.arch.noToken')}</option>
             </select>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-[140px] text-xs" />
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 w-[140px] text-xs" />
@@ -202,12 +204,12 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
             <table className="w-full text-xs">
               <thead className="bg-zinc-500/10 text-zinc-200">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium">Conta</th>
-                  <th className="text-left px-3 py-2 font-medium">Motivo</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.arch.account')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.arch.reasonCol')}</th>
                   <th className="text-left px-3 py-2 font-medium">Token</th>
-                  <th className="text-left px-3 py-2 font-medium">Última falha</th>
-                  <th className="text-left px-3 py-2 font-medium">Arquivada em</th>
-                  <th className="text-right px-3 py-2 font-medium">Ações</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.arch.lastFail')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.arch.archivedAt')}</th>
+                  <th className="text-right px-3 py-2 font-medium">{tr('ads.arch.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,7 +222,7 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
                     <td className="px-3 py-2">
                       <div className="text-foreground">
                         <span className="font-mono mr-1">#{r.last_sync_error_code ?? "?"}</span>
-                        {r.last_sync_error_code ? REASONS[r.last_sync_error_code] || "Outro" : "—"}
+                        {r.last_sync_error_code ? REASONS[r.last_sync_error_code] || tr('ads.arch.other') : "—"}
                       </div>
                       <div className="text-[10px] text-muted-foreground line-clamp-1 max-w-md" title={r.last_sync_error_message || ""}>
                         {r.last_sync_error_message || ""}
@@ -231,13 +233,13 @@ export default function ArchivedAccountsPanel({ refreshKey = 0 }: { refreshKey?:
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmt(r.archived_at)}</td>
                     <td className="px-3 py-2 text-right">
                       <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => unarchive(r.id)}>
-                        <RotateCcw className="h-3 w-3 mr-1" /> Restaurar
+                        <RotateCcw className="h-3 w-3 mr-1" /> {tr('ads.arch.restore')}
                       </Button>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Nenhum resultado com esses filtros.</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">{tr('ads.arch.none')}</td></tr>
                 )}
               </tbody>
             </table>

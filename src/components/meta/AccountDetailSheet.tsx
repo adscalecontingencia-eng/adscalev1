@@ -1,4 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { tr } from '@/i18n';
+import { disableReasonLabel, scoreLabel } from '@/lib/meta-labels';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
@@ -46,13 +48,13 @@ export default function AccountDetailSheet({ account, bmName, clientName, onClos
           </SheetTitle>
           <div className="flex items-center gap-2 flex-wrap">
             {account.status === "active" ? (
-              <Badge className="bg-primary/15 text-primary border-primary/40">Ativa</Badge>
+              <Badge className="bg-primary/15 text-primary border-primary/40">{tr('meta.card.active')}</Badge>
             ) : (
-              <Badge variant="destructive">{account.disable_reason_label || "Bloqueada"}</Badge>
+              <Badge variant="destructive">{disableReasonLabel(account.disable_reason_label) || tr('meta.card.blocked')}</Badge>
             )}
             <Badge variant={scoreBadgeVariant(account.score_label)}>
               <span className={cn("font-display font-bold", scoreColor(score))}>{score}</span>
-              <span className="ml-1">· {account.score_label || "—"}</span>
+              <span className="ml-1">· {scoreLabel(account.score_label)}</span>
             </Badge>
           </div>
           <p className="text-[11px] text-muted-foreground font-mono">{account.meta_account_id}</p>
@@ -60,19 +62,19 @@ export default function AccountDetailSheet({ account, bmName, clientName, onClos
 
         <div className="mt-4 space-y-0.5">
           <Row label="Business Manager" value={bmName} />
-          <Row label="Cliente atribuído" value={clientName || <span className="text-yellow-400">— Sem cliente —</span>} />
-          <Row label="Status (código)" value={account.account_status} />
-          <Row label="País" value={account.business_country_code} />
-          <Row label="Moeda" value={account.currency} />
-          <Row label="Fuso horário" value={account.timezone_name} />
-          <Row label="Criada em" value={fmtDate(account.account_created_time)} />
-          <Row label="Idade" value={account.age ? `${account.age} dias` : "—"} />
+          <Row label={tr('meta.card.assignedClient')} value={clientName || <span className="text-yellow-400">{tr('meta.card.noClient')}</span>} />
+          <Row label={tr('meta.card.statusCode')} value={account.account_status} />
+          <Row label={tr('meta.card.country')} value={account.business_country_code} />
+          <Row label={tr('meta.card.currency')} value={account.currency} />
+          <Row label={tr('meta.card.tz')} value={account.timezone_name} />
+          <Row label={tr('meta.card.createdAt')} value={fmtDate(account.account_created_time)} />
+          <Row label={tr('meta.card.age')} value={account.age ? `${account.age} dias` : "—"} />
           <Row label="Owner" value={account.owner_business_name} />
-          <Row label="Pagamento" value={account.funding_source || <span className="text-yellow-400">Sem método</span>} />
-          <Row label="Ciclo de cobrança" value={account.billing_cycle} />
-          <Row label="Saldo" value={fmtMoney(account.currency, account.balance)} />
+          <Row label={tr('meta.card.payment')} value={account.funding_source || <span className="text-yellow-400">{tr('meta.card.noMethod')}</span>} />
+          <Row label={tr('meta.card.billing')} value={account.billing_cycle} />
+          <Row label={tr('meta.card.balance')} value={fmtMoney(account.currency, account.balance)} />
           <Row label="Spend cap" value={fmtMoney(account.currency, account.spend_cap)} />
-          <Row label="Total gasto" value={fmtMoney(account.currency, account.amount_spent)} />
+          <Row label={tr('meta.card.totalSpent')} value={fmtMoney(account.currency, account.amount_spent)} />
         </div>
 
         <Button asChild className="w-full mt-5 gap-2">
@@ -81,7 +83,7 @@ export default function AccountDetailSheet({ account, bmName, clientName, onClos
             target="_blank"
             rel="noopener noreferrer"
           >
-            <ExternalLink className="h-4 w-4" /> Abrir no Meta Business Manager
+            <ExternalLink className="h-4 w-4" /> {tr('meta.card.openBm')}
           </a>
         </Button>
       </SheetContent>

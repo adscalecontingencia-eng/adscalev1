@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getNumberLocale } from '@/i18n/format';
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { toast } from "sonner";
@@ -50,11 +52,11 @@ type Client = { id: string; name: string; meta_app_id: string | null };
 
 const REQUIRED_SCOPES = ["ads_read", "ads_management", "business_management"];
 
-const SCOPE_WARNINGS: Record<string, string> = {
+const SCOPE_WARNINGS: Record<string, string> = localizedMap('meta.apps.scope', {
   ads_read: "Sem ads_read, não será possível ler contas e relatórios de anúncios.",
   ads_management: "Sem ads_management, ações de gerenciamento podem falhar.",
   business_management: "Sem business_management, a integração pode não conseguir relacionar contas às BMs e ativos comerciais.",
-};
+});
 
 const emptyForm: Partial<MetaApp> = {
   label: "",
@@ -108,7 +110,7 @@ const maskToken = (v?: string | null) => {
 
 const fmtDate = (iso: string | null | undefined) => {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleString("pt-BR"); } catch { return "—"; }
+  try { return new Date(iso).toLocaleString(getNumberLocale()); } catch { return "—"; }
 };
 
 type SyncResult = {
@@ -179,19 +181,19 @@ export default function MetaApps() {
 
   const save = async () => {
     if (!form.label?.trim() || !form.app_id?.trim()) {
-      toast.error("Preencha pelo menos o rótulo e o App ID");
+      toast.error(tr('meta.apps.fillMin'));
       return;
     }
     if (appIdIsEmail) {
-      toast.error("App ID não é um e-mail. Informe o ID numérico do aplicativo Meta.");
+      toast.error(tr('meta.apps.notEmail'));
       return;
     }
     if (!appIdIsNumeric) {
-      toast.error("App ID deve conter apenas números.");
+      toast.error(tr('meta.apps.digits'));
       return;
     }
     if (!form.app_secret?.trim()) {
-      toast.error("App Secret é obrigatório.");
+      toast.error(tr('meta.apps.secretReq'));
       return;
     }
     setSaving(true);
@@ -215,16 +217,16 @@ export default function MetaApps() {
       if (editId) {
         const { error } = await supabase.from("meta_apps").update(payload).eq("id", editId);
         if (error) throw error;
-        toast.success("Aplicativo atualizado");
+        toast.success(tr('meta.apps.updated'));
       } else {
         const { error } = await supabase.from("meta_apps").insert(payload);
         if (error) throw error;
-        toast.success("Aplicativo criado");
+        toast.success(tr('meta.apps.created'));
       }
       setOpen(false);
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar");
+      toast.error(e.message || tr('meta.apps.saveError'));
     } finally {
       setSaving(false);
     }
@@ -233,13 +235,13 @@ export default function MetaApps() {
   const remove = async (app: MetaApp) => {
     const using = clientsByApp.get(app.id) || 0;
     const ok = window.confirm(
-      `Excluir o aplicativo "${app.label}"?` +
-      (using > 0 ? `\n${using} cliente(s) usam este aplicativo e voltarão a usar o padrão.` : "")
+      tr('meta.apps.confirmDel', { name: app.label }) +
+      (using > 0 ? `\n${tr('meta.apps.confirmDelUsing', { n: using })}` : "")
     );
     if (!ok) return;
     const { error } = await supabase.from("meta_apps").delete().eq("id", app.id);
     if (error) return toast.error(error.message);
-    toast.success("Aplicativo removido");
+    toast.success(tr('meta.apps.removed'));
     await load();
   };
 
@@ -249,7 +251,7 @@ export default function MetaApps() {
     if (e1) return toast.error(e1.message);
     const { error: e2 } = await supabase.from("meta_apps").update({ is_default: true }).eq("id", app.id);
     if (e2) return toast.error(e2.message);
-    toast.success(`"${app.label}" agora é o aplicativo padrão`);
+    toast.success(tr('meta.apps.nowDefault', { name: app.label }));
     await load();
   };
 
@@ -262,7 +264,7 @@ export default function MetaApps() {
     setClients((prev) =>
       prev.map((c) => (c.id === clientId ? { ...c, meta_app_id: metaAppId } : c))
     );
-    toast.success("Aplicativo do cliente atualizado");
+    toast.success(tr('meta.apps.clientUpdated'));
   };
 
   // === Edge function actions ===
@@ -289,18 +291,18 @@ export default function MetaApps() {
         const missing = (data.missing_scopes || []) as string[];
         const declined = (data.permissions_declined || []) as string[];
         if (missing.length) {
-          const declinedMsg = declined.length ? ` | Recusadas: ${declined.join(", ")}` : "";
-          toast.warning(`Token válido, mas faltam permissões: ${missing.join(", ")}${declinedMsg}. Abra o console (F12) para o log completo.`);
+          const declinedMsg = declined.length ? ` | ${tr('meta.apps.declined', { list: declined.join(", ") })}` : "";
+          toast.warning(tr('meta.apps.missingPerms', { list: missing.join(", "), declined: declinedMsg }));
         } else {
-          toast.success("Token válido — todas as permissões OK.");
+          toast.success(tr('meta.apps.allOk'));
         }
       } else {
-        toast.error(data?.error || "Token inválido");
+        toast.error(data?.error || tr('meta.apps.invalid'));
       }
 
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Falha ao validar token");
+      toast.error(e.message || tr('meta.apps.validateFail'));
     } finally {
       setAppBusy(app.id, null);
     }
@@ -314,13 +316,13 @@ export default function MetaApps() {
       });
       if (error) throw error;
       if (data?.ok) {
-        toast.success("Token longo gerado e salvo com sucesso.");
+        toast.success(tr('meta.apps.longOk'));
       } else {
-        toast.error(data?.error || "Falha ao trocar token");
+        toast.error(data?.error || tr('meta.apps.exchangeFail'));
       }
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Falha ao trocar token");
+      toast.error(e.message || tr('meta.apps.exchangeFail'));
     } finally {
       setAppBusy(app.id, null);
     }
@@ -343,17 +345,17 @@ export default function MetaApps() {
       if (data?.ok) {
         setSyncResults((s) => ({ ...s, [app.id]: data as SyncResult }));
         if (data.total === 0) {
-          toast.warning(data?.hint || "Nenhuma conta encontrada. Veja o console (F12) para o log completo.", { duration: 10000 });
+          toast.warning(data?.hint || tr('meta.apps.noAccounts'), { duration: 10000 });
         } else {
-          toast.success(`${data.total} conta(s) · ${data.active} ativas · ${data.disabled} inativas${dry_run ? " (teste)" : ""}`);
+          toast.success(tr('meta.apps.syncResult', { total: data.total, active: data.active, disabled: data.disabled, test: dry_run ? " " + tr('meta.apps.testSuffix') : "" }));
         }
         if (!dry_run) await load();
       } else {
-        toast.error(data?.error || "Falha ao sincronizar contas");
+        toast.error(data?.error || tr('meta.apps.syncFail'));
       }
 
     } catch (e: any) {
-      toast.error(e.message || "Falha ao sincronizar contas");
+      toast.error(e.message || tr('meta.apps.syncFail'));
     } finally {
       setAppBusy(app.id, null);
     }
@@ -362,8 +364,8 @@ export default function MetaApps() {
   const copyTestEndpoint = (app: MetaApp) => {
     const url = `https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_id,account_status,business&access_token={USER_ACCESS_TOKEN}`;
     navigator.clipboard.writeText(url).then(
-      () => toast.success("Endpoint copiado"),
-      () => toast.error("Falha ao copiar")
+      () => toast.success(tr('meta.apps.endpointCopied')),
+      () => toast.error(tr('meta.apps.copyFail'))
     );
   };
 
@@ -372,9 +374,9 @@ export default function MetaApps() {
   return (
     <div className="space-y-6">
       <PageHero
-        eyebrow="Conexões Meta"
-        title={<><span className="text-primary glow-text">Aplicativos</span> Meta</>}
-        description="Gerencie um ou mais aplicativos Meta (App ID, Secret, tokens). Defina um padrão geral e, opcionalmente, associe um aplicativo específico por cliente — útil quando as BMs estão em perfis diferentes."
+        eyebrow={tr('meta.apps.eyebrow')}
+        title={<><span className="text-primary glow-text">{tr('meta.apps.titleA')}</span> {tr('meta.apps.titleB')}</>}
+        description={tr('meta.apps.desc')}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -383,36 +385,31 @@ export default function MetaApps() {
             <AppWindow size={12} /> {apps.length} aplicativo(s)
           </Badge>
           <Badge variant="secondary" className="gap-1 bg-primary/15 text-primary border-primary/30">
-            <Star size={12} /> Padrão: {defaultApp?.label || "—"}
+            <Star size={12} /> {tr('meta.apps.defaultLbl')} {defaultApp?.label || "—"}
           </Badge>
           <Badge variant="secondary" className="gap-1">
-            <UsersIcon size={12} /> {clients.filter((c) => c.meta_app_id).length}/{clients.length} clientes com app definido
+            <UsersIcon size={12} /> {tr('meta.apps.withApp', { n: clients.filter((c) => c.meta_app_id).length, total: clients.length })}
           </Badge>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreate} size="sm">
-              <Plus size={14} className="mr-1" /> Novo aplicativo
+              <Plus size={14} className="mr-1" /> {tr('meta.apps.newApp')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <div className="flex items-center justify-between gap-2">
-                <DialogTitle>{editId ? "Editar aplicativo Meta" : "Novo aplicativo Meta"}</DialogTitle>
+                <DialogTitle>{editId ? tr('meta.apps.editTitle') : tr('meta.apps.newTitle')}</DialogTitle>
                 <SystemUserTokenGuide />
               </div>
             </DialogHeader>
 
             <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
               <div className="flex items-start gap-2">
-                <span className="text-primary font-semibold">Antes de colar o token:</span>
-                <span>
-                  Ele precisa ter <code className="bg-black/20 px-1 rounded">ads_read</code>,{" "}
-                  <code className="bg-black/20 px-1 rounded">ads_management</code> e{" "}
-                  <code className="bg-black/20 px-1 rounded">business_management</code>. Se faltar
-                  qualquer uma, as contas de anúncio não aparecem. Use o guia acima →
-                </span>
+                <span className="text-primary font-semibold">{tr('meta.apps.before')}</span>
+                <span dangerouslySetInnerHTML={{ __html: tr('meta.apps.beforeBody') }} />
               </div>
             </div>
 
@@ -420,11 +417,11 @@ export default function MetaApps() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Rótulo</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr('meta.apps.label')}</Label>
                   <Input
                     value={form.label || ""}
                     onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-                    placeholder="Ex: App Principal · Perfil Matriz"
+                    placeholder={tr('meta.apps.labelPh')}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -437,12 +434,12 @@ export default function MetaApps() {
                   />
                   {appIdIsEmail && (
                     <p className="text-[10px] text-destructive flex items-center gap-1">
-                      <AlertTriangle size={10} /> App ID não é e-mail — use o ID numérico.
+                      <AlertTriangle size={10} /> {tr('meta.apps.appIdNotEmail')}
                     </p>
                   )}
                   {!!form.app_id && !appIdIsEmail && !appIdIsNumeric && (
                     <p className="text-[10px] text-destructive flex items-center gap-1">
-                      <AlertTriangle size={10} /> App ID deve conter apenas números.
+                      <AlertTriangle size={10} /> {tr('meta.apps.digits')}
                     </p>
                   )}
                 </div>
@@ -452,35 +449,35 @@ export default function MetaApps() {
                 label="App Secret *"
                 value={form.app_secret || ""}
                 onChange={(v) => setForm((f) => ({ ...f, app_secret: v }))}
-                placeholder="Cole o App Secret"
+                placeholder={tr('meta.apps.secretPh')}
               />
 
               <SecretField
                 label="User Access Token"
                 value={form.user_access_token || ""}
                 onChange={(v) => setForm((f) => ({ ...f, user_access_token: v }))}
-                placeholder="EAAB... (usado para puxar contas de anúncio do perfil)"
-                hint={userTokenPrefixOdd ? "Prefixo diferente de EAA — pode não ser um token Meta padrão, mas será salvo mesmo assim." : undefined}
+                placeholder={tr('meta.apps.uatPh')}
+                hint={userTokenPrefixOdd ? tr('meta.apps.prefixWarn') : undefined}
               />
 
               <SecretField
-                label="System User Token (opcional)"
+                label={tr('meta.apps.sutLbl')}
                 value={form.system_user_token || ""}
                 onChange={(v) => setForm((f) => ({ ...f, system_user_token: v }))}
-                placeholder="EAAB... (para ativos atribuídos ao System User da BM)"
+                placeholder={tr('meta.apps.sutPh')}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Status</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr('meta.apps.status')}</Label>
                   <Select
                     value={form.status || "active"}
                     onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Ativo</SelectItem>
-                      <SelectItem value="inactive">Inativo</SelectItem>
+                      <SelectItem value="active">{tr('meta.apps.active')}</SelectItem>
+                      <SelectItem value="inactive">{tr('meta.apps.inactive')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -491,26 +488,26 @@ export default function MetaApps() {
                     id="is_default"
                   />
                   <div className="flex-1">
-                    <Label htmlFor="is_default" className="text-sm cursor-pointer">Aplicativo padrão</Label>
-                    <p className="text-[11px] text-muted-foreground">Usado para clientes sem app definido.</p>
+                    <Label htmlFor="is_default" className="text-sm cursor-pointer">{tr('meta.apps.defaultApp')}</Label>
+                    <p className="text-[11px] text-muted-foreground">{tr('meta.apps.defaultHint')}</p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Observações</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr('meta.apps.notes')}</Label>
                 <Textarea
                   value={form.notes || ""}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}
-                  placeholder="Ex: BMs hospedadas no perfil X, expira em DD/MM..."
+                  placeholder={tr('meta.apps.notesPh')}
                 />
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+              <Button variant="ghost" onClick={() => setOpen(false)}>{tr('meta.apps.cancel')}</Button>
+              <Button onClick={save} disabled={saving}>{saving ? tr('meta.apps.saving') : tr('meta.apps.save')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -523,12 +520,12 @@ export default function MetaApps() {
       ) : apps.length === 0 ? (
         <Card className="p-12 text-center">
           <AppWindow className="mx-auto text-muted-foreground mb-3" size={32} />
-          <p className="text-sm font-medium">Nenhum aplicativo cadastrado</p>
+          <p className="text-sm font-medium">{tr('meta.apps.none')}</p>
           <p className="text-xs text-muted-foreground mt-1 mb-4">
-            Cadastre o primeiro aplicativo Meta para liberar a sincronização sem depender de mudanças no servidor.
+            {tr('meta.apps.noneHint')}
           </p>
           <Button onClick={openCreate} size="sm">
-            <Plus size={14} className="mr-1" /> Cadastrar aplicativo
+            <Plus size={14} className="mr-1" /> {tr('meta.apps.register')}
           </Button>
         </Card>
       ) : (
@@ -552,7 +549,7 @@ export default function MetaApps() {
                       <h3 className="font-display text-base font-semibold truncate">{app.label}</h3>
                       {app.is_default && (
                         <Badge className="bg-primary/15 text-primary border-primary/40 gap-1">
-                          <Star size={10} /> Padrão
+                          <Star size={10} /> {tr('meta.apps.default')}
                         </Badge>
                       )}
                       <Badge variant="secondary" className={
@@ -560,7 +557,7 @@ export default function MetaApps() {
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                           : "bg-muted text-muted-foreground"
                       }>
-                        {app.status === "active" ? "Ativo" : "Inativo"}
+                        {app.status === "active" ? tr('meta.apps.active') : tr('meta.apps.inactive')}
                       </Badge>
                       {app.last_validated_at && (
                         <Badge variant="secondary" className={
@@ -569,7 +566,7 @@ export default function MetaApps() {
                             : "bg-destructive/10 text-destructive border-destructive/30 gap-1"
                         }>
                           {isValid && !expired ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-                          Token {isValid && !expired ? "válido" : expired ? "expirado" : "inválido"}
+                          {isValid && !expired ? tr('meta.apps.tokValid') : expired ? tr('meta.apps.tokExpired') : tr('meta.apps.tokInvalid')}
                         </Badge>
                       )}
                     </div>
@@ -577,14 +574,14 @@ export default function MetaApps() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {!app.is_default && (
-                      <Button size="icon" variant="ghost" onClick={() => setDefault(app)} title="Tornar padrão">
+                      <Button size="icon" variant="ghost" onClick={() => setDefault(app)} title={tr('meta.apps.makeDefault')}>
                         <Star size={14} />
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(app)} title="Editar (substituir token)">
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(app)} title={tr('meta.apps.editToken')}>
                       <Pencil size={14} />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(app)} title="Excluir" className="text-destructive hover:text-destructive">
+                    <Button size="icon" variant="ghost" onClick={() => remove(app)} title={tr('meta.apps.delete')} className="text-destructive hover:text-destructive">
                       <Trash2 size={14} />
                     </Button>
                   </div>
@@ -613,7 +610,7 @@ export default function MetaApps() {
                     onClick={() => validateToken(app, "user")}
                   >
                     {currentBusy === "validate" ? <RefreshCw size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
-                    Validar conexão
+                    {tr('meta.apps.validate')}
                   </Button>
                   <Button
                     size="sm" variant="outline"
@@ -621,15 +618,15 @@ export default function MetaApps() {
                     onClick={() => syncAdAccounts(app, false)}
                   >
                     {currentBusy === "sync" ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                    Sincronizar contas
+                    {tr('meta.apps.sync')}
                   </Button>
                   <Button
                     size="sm" variant="outline"
                     disabled={!app.user_access_token || !!currentBusy}
                     onClick={() => syncAdAccounts(app, true)}
-                    title="Chama /me/adaccounts sem salvar"
+                    title={tr('meta.apps.testTitle')}
                   >
-                    <Beaker size={12} /> Testar /me/adaccounts
+                    <Beaker size={12} /> {tr('meta.apps.testBtn')}
                   </Button>
                   <Button
                     size="sm" variant="outline"
@@ -637,7 +634,7 @@ export default function MetaApps() {
                     onClick={() => exchangeLongLived(app)}
                   >
                     {currentBusy === "exchange" ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} />}
-                    Trocar para token longo
+                    {tr('meta.apps.long')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => copyTestEndpoint(app)}>
                     <Copy size={12} /> Endpoint
@@ -648,12 +645,12 @@ export default function MetaApps() {
                 <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <KeyRound size={12} className="text-primary" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">Diagnóstico da integração</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">{tr('meta.apps.diag')}</span>
                   </div>
 
                   {!app.user_access_token && (
                     <p className="text-[11px] text-amber-400 flex items-center gap-1">
-                      <AlertTriangle size={11} /> Adicione um User Access Token para puxar contas de anúncio do perfil.
+                      <AlertTriangle size={11} /> {tr('meta.apps.addUat')}
                     </p>
                   )}
 
@@ -661,26 +658,26 @@ export default function MetaApps() {
                     <>
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div>
-                          <div className="text-muted-foreground">Usuário do token</div>
+                          <div className="text-muted-foreground">{tr('meta.apps.tokUser')}</div>
                           <div className="font-mono">{app.token_user_id || "—"}</div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground flex items-center gap-1"><Clock size={10} /> Expira</div>
+                          <div className="text-muted-foreground flex items-center gap-1"><Clock size={10} /> {tr('meta.apps.expires')}</div>
                           <div className={expired ? "text-destructive" : ""}>{fmtDate(app.token_expires_at)}</div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Última validação</div>
+                          <div className="text-muted-foreground">{tr('meta.apps.lastVal')}</div>
                           <div>{fmtDate(app.last_validated_at)}</div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Contas sincronizadas</div>
+                          <div className="text-muted-foreground">{tr('meta.apps.syncedAccts')}</div>
                           <div>{accountsSynced}</div>
                         </div>
                       </div>
 
                       {scopes.length > 0 && (
                         <div className="space-y-1">
-                          <div className="text-[10px] uppercase text-muted-foreground">Permissões</div>
+                          <div className="text-[10px] uppercase text-muted-foreground">{tr('meta.apps.perms')}</div>
                           <div className="flex flex-wrap gap-1">
                             {scopes.map((s) => (
                               <Badge key={s} variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
@@ -694,7 +691,7 @@ export default function MetaApps() {
                       {missing.length > 0 && (
                         <div className="space-y-1">
                           <div className="text-[10px] uppercase text-destructive flex items-center gap-1">
-                            <AlertTriangle size={10} /> Permissões ausentes
+                            <AlertTriangle size={10} /> {tr('meta.apps.missing')}
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {missing.map((s) => (
@@ -709,7 +706,7 @@ export default function MetaApps() {
                           <SystemUserTokenGuide
                             trigger={
                               <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 mt-1">
-                                <BookOpen size={12} /> Ver guia passo-a-passo
+                                <BookOpen size={12} /> {tr('meta.apps.guide')}
                               </Button>
                             }
                           />
@@ -719,7 +716,7 @@ export default function MetaApps() {
                     </>
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
-                      Clique em "Validar conexão" para verificar o token e permissões.
+                      {tr('meta.apps.clickValidate')}
                     </p>
                   )}
                 </div>
@@ -729,10 +726,10 @@ export default function MetaApps() {
                   <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold uppercase tracking-wider">
-                        Contas encontradas ({result.total})
+                        {tr('meta.apps.found', { n: result.total })}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
-                        {result.active} ativas · {result.disabled} inativas
+                        {tr('meta.apps.activeInactive', { a: result.active, d: result.disabled })}
                       </span>
                     </div>
                     <div className="max-h-48 overflow-y-auto divide-y divide-border/40">
@@ -776,10 +773,10 @@ export default function MetaApps() {
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="text-primary" size={16} />
-          <h3 className="font-display text-base font-semibold">Aplicativo por cliente</h3>
+          <h3 className="font-display text-base font-semibold">{tr('meta.apps.perClient')}</h3>
         </div>
         <p className="text-xs text-muted-foreground">
-          Defina qual aplicativo Meta cada cliente deve usar. Clientes sem definição usam o aplicativo padrão.
+          {tr('meta.apps.perClientHint')}
         </p>
 
         {loading ? (
@@ -787,7 +784,7 @@ export default function MetaApps() {
             {[0, 1, 2].map((i) => <Skeleton key={i} className="h-10" />)}
           </div>
         ) : clients.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">Nenhum cliente cadastrado.</p>
+          <p className="text-xs text-muted-foreground py-6 text-center">{tr('meta.apps.noClients')}</p>
         ) : (
           <div className="divide-y divide-border">
             {clients.map((c) => (
@@ -802,11 +799,11 @@ export default function MetaApps() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__default__">
-                      Padrão ({defaultApp?.label || "—"})
+                      {tr('meta.apps.default')} ({defaultApp?.label || "—"})
                     </SelectItem>
                     {apps.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.label}{a.is_default ? " · padrão" : ""}
+                        {a.label}{a.is_default ? ` · ${tr('meta.apps.defaultLower')}` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>

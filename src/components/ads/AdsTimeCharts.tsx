@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { Card } from "@/components/ui/card";
 import {
   ResponsiveContainer, AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -59,18 +61,18 @@ export default function AdsTimeCharts({ daily }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-display font-semibold text-foreground/90 uppercase tracking-wider">
-          Evolução temporal
+          {tr('ads.charts.title')}
         </h2>
         <div className="flex gap-1">
-          <Button size="sm" variant={granularity === "daily" ? "default" : "outline"} className="h-7" onClick={() => setGranularity("daily")}>Diário</Button>
-          <Button size="sm" variant={granularity === "weekly" ? "default" : "outline"} className="h-7" onClick={() => setGranularity("weekly")}>Semanal</Button>
+          <Button size="sm" variant={granularity === "daily" ? "default" : "outline"} className="h-7" onClick={() => setGranularity("daily")}>{tr('ads.charts.daily')}</Button>
+          <Button size="sm" variant={granularity === "weekly" ? "default" : "outline"} className="h-7" onClick={() => setGranularity("weekly")}>{tr('ads.charts.weekly')}</Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Gasto · Faturamento · Lucro</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">{tr('ads.charts.series')}</span>
           </div>
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -94,9 +96,9 @@ export default function AdsTimeCharts({ daily }: Props) {
                   formatter={(v: any, name: string) => [fmtUSD(Number(v)), name]}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area type="monotone" dataKey="revenue" name="Faturamento" stroke="hsl(var(--primary))" fill="url(#gRev)" strokeWidth={2} />
-                <Area type="monotone" dataKey="spend" name="Gasto" stroke="hsl(var(--destructive))" fill="url(#gSpend)" strokeWidth={2} />
-                <Line type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--foreground))" strokeWidth={1.5} dot={false} />
+                <Area type="monotone" dataKey="revenue" name={tr("ads.kpi.revenue")} stroke="hsl(var(--primary))" fill="url(#gRev)" strokeWidth={2} />
+                <Area type="monotone" dataKey="spend" name={tr("ads.table.spend")} stroke="hsl(var(--destructive))" fill="url(#gSpend)" strokeWidth={2} />
+                <Line type="monotone" dataKey="profit" name={tr("ads.kpi.profit")} stroke="hsl(var(--foreground))" strokeWidth={1.5} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -105,7 +107,7 @@ export default function AdsTimeCharts({ daily }: Props) {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">ROAS</span>
-            <span className="text-[10px] text-muted-foreground">Referência: 1.0x (breakeven)</span>
+            <span className="text-[10px] text-muted-foreground">{tr('ads.charts.ref')}</span>
           </div>
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">

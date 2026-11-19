@@ -1,4 +1,6 @@
 import { Card } from "@/components/ui/card";
+import { tr } from '@/i18n';
+import { disableReasonLabel, scoreLabel } from '@/lib/meta-labels';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -77,7 +79,7 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
                   <TooltipTrigger asChild>
                     <BadgeCheck className="h-3.5 w-3.5 text-primary" />
                   </TooltipTrigger>
-                  <TooltipContent>BM verificada</TooltipContent>
+                  <TooltipContent>{tr('meta.card.bmVerified')}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
@@ -87,7 +89,7 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
               {account.shared_with_businesses.map((b) => (
                 <Badge key={b.id} variant="outline" className="gap-1 text-[10px] border-primary/40 text-primary bg-primary/5">
                   <Share2 className="h-3 w-3" />
-                  Compartilhada com: {b.name}
+                  {tr('meta.card.sharedWith')} {b.name}
                   <span className="font-mono opacity-70">({b.id})</span>
                 </Badge>
               ))}
@@ -97,7 +99,7 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           {isActive ? (
             <Badge className="gap-1 bg-primary/15 text-primary border-primary/40 hover:bg-primary/20">
-              <CheckCircle2 className="h-3 w-3" /> Ativa
+              <CheckCircle2 className="h-3 w-3" /> {tr('meta.card.active')}
             </Badge>
           ) : (
             <TooltipProvider>
@@ -105,21 +107,21 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
                 <TooltipTrigger asChild>
                   <Badge variant="destructive" className="gap-1 cursor-help">
                     <AlertOctagon className="h-3 w-3" />
-                    {account.disable_reason_label || "Bloqueada"}
+                    {disableReasonLabel(account.disable_reason_label) || tr('meta.card.blocked')}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Motivo: {account.disable_reason_label || "Não informado"}
-                  {account.disable_reason ? ` (cód. ${account.disable_reason})` : ""}
+                  {tr('meta.card.reason')} {disableReasonLabel(account.disable_reason_label) || tr('meta.card.notInformed')}
+                  {account.disable_reason ? ` ${tr('meta.card.code', { c: account.disable_reason })}` : ""}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Score</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{tr('meta.card.score')}</span>
             <span className={cn("font-display font-bold text-sm", scoreColor(score))}>{score}</span>
             <Badge variant={scoreBadgeVariant(account.score_label)} className="text-[9px] h-4 px-1.5">
-              {account.score_label || "—"}
+              {scoreLabel(account.score_label)}
             </Badge>
           </div>
         </div>
@@ -127,22 +129,22 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
 
       {/* Metadata row */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs">
-        <Meta icon={Wallet} label="Gasto" value={`${account.currency || "USD"} ${spend.toFixed(2)}`} />
+        <Meta icon={Wallet} label={tr('meta.card.spend')} value={`${account.currency || "USD"} ${spend.toFixed(2)}`} />
         <Meta
           icon={CreditCard}
-          label="Saldo"
+          label={tr('meta.card.balance')}
           value={`${account.currency || "USD"} ${balance.toFixed(2)}`}
           tone={balance === 0 && noFunding ? "danger" : undefined}
         />
         <Meta
           icon={CreditCard}
-          label="Pagamento"
+          label={tr('meta.card.payment')}
           value={account.funding_source ? "Vinculado" : "Sem pagamento"}
           tone={noFunding ? "warn" : "ok"}
         />
-        <Meta icon={Clock} label="Idade" value={age ? `${age}d` : "Nova"} tone={ageTone === "text-primary" ? "ok" : ageTone === "text-yellow-400" ? "warn" : "danger"} />
+        <Meta icon={Clock} label={tr('meta.card.age')} value={age ? `${age}d` : "Nova"} tone={ageTone === "text-primary" ? "ok" : ageTone === "text-yellow-400" ? "warn" : "danger"} />
         {account.business_country_code && (
-          <Meta icon={Globe} label="País" value={account.business_country_code} />
+          <Meta icon={Globe} label={tr('meta.card.country')} value={account.business_country_code} />
         )}
       </div>
 
@@ -155,20 +157,20 @@ export default function AccountCard({ account, bmName, bmVerified, clients, curr
         />
         <div className="flex gap-1.5">
           <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={onOpenDetail}>
-            <Eye className="h-3.5 w-3.5" /> Detalhes
+            <Eye className="h-3.5 w-3.5" /> {tr('meta.card.details')}
           </Button>
           <Button
             size="sm"
             variant="ghost"
             className="h-9 w-9 p-0"
             asChild
-            title="Abrir no Meta Business Manager"
+            title={tr('meta.card.openBm')}
           >
             <a
               href={`https://business.facebook.com/adsmanager/manage/accounts?act=${account.meta_account_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Abrir no Meta"
+              aria-label={tr('meta.card.openMeta')}
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>

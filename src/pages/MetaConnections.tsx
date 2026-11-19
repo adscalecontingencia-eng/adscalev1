@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr } from '@/i18n';
+import { getDateLocale } from '@/i18n/format';
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { liveAccounts, computeMetaStats } from "@/lib/meta-account-stats";
@@ -144,12 +146,12 @@ export default function MetaConnections() {
           progress_current: j.progress_current || 0,
           progress_total: j.progress_total || 1,
           synced_count: j.synced_count || 0,
-          message: "Sincronização expirada. Clique em sincronizar novamente.",
+          message: tr('meta.conn.expired'),
           errors: j.errors || [],
           created_at: j.created_at,
           updated_at: j.updated_at,
         });
-        toast.error("Sincronização expirada. Tente novamente.");
+        toast.error(tr('meta.conn.expiredRetry'));
         setTimeout(() => setJob(null), 5000);
         return;
       }
@@ -162,10 +164,10 @@ export default function MetaConnections() {
         finished = true;
         setSyncing(false);
         if (j.status === "completed") {
-          toast.success(`${j.synced_count} contas sincronizadas`);
+          toast.success(tr('meta.conn.synced', { n: j.synced_count }));
           load();
         } else {
-          toast.error(j.message || "Sincronização falhou");
+          toast.error(j.message || tr('meta.conn.syncFailed'));
         }
         setTimeout(() => setJob(null), 5000);
       }
@@ -201,10 +203,10 @@ export default function MetaConnections() {
       const { data, error } = await supabase.functions.invoke("meta-sync", { body: { action: "sync_single_bm", bm_id: bmId } });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
-      toast.success(`${(data as any).bm}: ${(data as any).contas} conta(s) atualizadas`);
+      toast.success(tr('meta.conn.bmSynced', { bm: (data as any).bm, n: (data as any).contas }));
       await load();
     } catch (e: any) {
-      toast.error(`Erro ao sincronizar BM: ${e.message}`);
+      toast.error(tr('meta.conn.bmSyncError', { msg: e.message }));
     } finally {
       setSyncingBmId(null);
     }
@@ -227,7 +229,7 @@ export default function MetaConnections() {
           message: j.message, errors: (j.errors as any) || [], created_at: j.created_at, updated_at: j.updated_at,
         });
       }
-      toast.info("Sincronização iniciada em segundo plano");
+      toast.info(tr('meta.conn.bgStarted'));
 
       // Após iniciar a descoberta de contas/BMs, dispara também o refresh de
       // gastos (insights) dos últimos 3 dias em paralelo — assim o botão
@@ -238,7 +240,7 @@ export default function MetaConnections() {
           /* best-effort — o job principal continua rodando mesmo se insights falhar */
         });
     } catch (e: any) {
-      toast.error(`Erro na sincronização: ${e.message}`);
+      toast.error(tr('meta.conn.syncError', { msg: e.message }));
       setSyncing(false);
     }
   };
@@ -256,16 +258,16 @@ export default function MetaConnections() {
       });
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
-      toast.success(client_id ? "Cliente atribuído" : "Atribuição removida");
+      toast.success(client_id ? tr('meta.conn.assigned') : tr('meta.conn.unassigned'));
     } catch (e: any) {
-      toast.error(`Falha: ${e.message}`);
+      toast.error(tr('meta.conn.fail', { msg: e.message }));
       await load();
     }
   };
 
   const bmName = useMemo(() => {
     const m = new Map(bms.map((b) => [b.id, b.name]));
-    return (id: string | null) => (id ? m.get(id) || "—" : "Sem BM");
+    return (id: string | null) => (id ? m.get(id) || "—" : tr('meta.conn.noBm'));
   }, [bms]);
 
   const bmVerifiedMap = useMemo(() => {
@@ -303,8 +305,8 @@ export default function MetaConnections() {
       if (filterScore !== "all") {
         const lbl = a.score_label || "—";
         if (filterScore === "ok" && lbl !== "OK" && lbl !== "Bom" && (a.score || 0) < 70) return false;
-        if (filterScore === "warn" && lbl !== "Atenção") return false;
-        if (filterScore === "crit" && lbl !== "Crítico") return false;
+        if (filterScore === "warn" && lbl !== tr('meta.conn.attention')) return false;
+        if (filterScore === "crit" && lbl !== tr('meta.conn.critical')) return false;
       }
       if (search && !`${a.name} ${a.meta_account_id}`.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterOwnerBmId.trim()) {
@@ -368,11 +370,11 @@ export default function MetaConnections() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-display font-bold text-foreground">Conexões Meta</h2>
+          <h2 className="text-2xl font-display font-bold text-foreground">{tr('meta.conn.title')}</h2>
           <p className="text-xs text-muted-foreground">
             {lastSyncAt
-              ? <>Última sincronização há {formatDistanceToNowStrict(lastSyncAt, { locale: ptBR })}</>
-              : "Sem sincronizações registradas"}
+              ? <>{tr('meta.conn.lastSync', { when: formatDistanceToNowStrict(lastSyncAt, { locale: getDateLocale() }) })}</>
+              : tr('meta.conn.noSyncs')}
             {lastSyncAt && (Date.now() - lastSyncAt.getTime()) > 6 * 3600 * 1000 && (
               <Badge variant="secondary" className="ml-2 bg-yellow-500/15 text-yellow-400 border-yellow-500/30">stale</Badge>
             )}
@@ -383,32 +385,32 @@ export default function MetaConnections() {
             size="sm"
             variant="outline"
             onClick={() => {
-              exportActiveAccountsCsv().catch((e) => toast.error("Falha ao exportar ativas: " + (e?.message || e)));
+              exportActiveAccountsCsv().catch((e) => toast.error(tr('meta.conn.exportActiveFail') + " " + (e?.message || e)));
             }}
           >
             <Download className="h-4 w-4 mr-2" />
-            Exportar ativas
+            {tr('meta.conn.exportActive')}
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              exportArchivedAccountsCsv().catch((e) => toast.error("Falha ao exportar arquivadas: " + (e?.message || e)));
+              exportArchivedAccountsCsv().catch((e) => toast.error(tr('meta.conn.exportArchivedFail') + " " + (e?.message || e)));
             }}
           >
             <Download className="h-4 w-4 mr-2" />
-            Exportar arquivadas
+            {tr('meta.conn.exportArchived')}
           </Button>
           <Button size="sm" disabled={syncing} onClick={sync}>
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
             {syncing && job
-              ? `Sincronizando ${job.progress_total ? Math.round((job.progress_current / job.progress_total) * 100) : 0}%`
-              : "Sincronizar BMs + Contas"}
+              ? tr('meta.conn.syncingPct', { pct: job.progress_total ? Math.round((job.progress_current / job.progress_total) * 100) : 0 })
+              : tr('meta.conn.syncAll')}
           </Button>
         </div>
       </div>
 
-      <AreaResponsibles area="meta_connections" title="Responsáveis pelas contas" />
+      <AreaResponsibles area="meta_connections" title={tr('meta.conn.owners')} />
       <AdsPermissionErrorsPanel refreshKey={bms.length + panelKey} onChanged={() => { setPanelKey((k) => k + 1); load(); }} />
       <ArchivedAccountsPanel refreshKey={bms.length + panelKey} />
 
@@ -420,12 +422,12 @@ export default function MetaConnections() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <RefreshCw className={`h-4 w-4 text-primary ${job.status === "running" ? "animate-spin" : ""}`} />
-              {job.status === "completed" ? "Sincronização concluída" :
-               job.status === "failed" ? "Sincronização falhou" :
-               "Sincronizando em segundo plano"}
+              {job.status === "completed" ? tr('meta.conn.done') :
+               job.status === "failed" ? tr('meta.conn.syncFailed') :
+               tr('meta.conn.bg')}
             </div>
             <Badge variant={job.status === "failed" ? "destructive" : "default"}>
-              {job.synced_count} contas · {progressPct}%
+              {tr('meta.conn.jobBadge', { n: job.synced_count, pct: progressPct })}
             </Badge>
           </div>
           {job.progress_total > 0 && (
@@ -474,7 +476,7 @@ export default function MetaConnections() {
 
       {staleCount > 0 && (
         <p className="text-xs text-muted-foreground -mt-2">
-          {staleCount} conta(s) não retornaram na última sincronização (sem acesso na API) e ficam fora dos números acima.
+          {tr('meta.conn.stale', { n: staleCount })}
         </p>
       )}
 
@@ -487,8 +489,8 @@ export default function MetaConnections() {
           <SheetTrigger asChild>
             <Button variant="outline" className="w-full justify-start gap-2">
               <Building2 className="h-4 w-4" />
-              {selectedBm === "all" ? "Todas as BMs" : selectedBm === "none" ? "Sem BM" : bmName(selectedBm)}
-              <span className="ml-auto text-xs text-muted-foreground">trocar →</span>
+              {selectedBm === "all" ? tr('meta.conn.allBms') : selectedBm === "none" ? tr('meta.conn.noBm') : bmName(selectedBm)}
+              <span className="ml-auto text-xs text-muted-foreground">{tr('meta.conn.change')}</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[280px] p-3">
@@ -509,7 +511,7 @@ export default function MetaConnections() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-9 h-9"
-                  placeholder="Buscar conta por nome ou ID..."
+                  placeholder={tr('meta.conn.search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -517,33 +519,33 @@ export default function MetaConnections() {
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos status</SelectItem>
-                  <SelectItem value="active">Ativas</SelectItem>
-                  <SelectItem value="blocked">Bloqueadas</SelectItem>
+                  <SelectItem value="all">{tr('meta.conn.allStatus')}</SelectItem>
+                  <SelectItem value="active">{tr('meta.conn.active')}</SelectItem>
+                  <SelectItem value="blocked">{tr('meta.conn.blocked')}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterClient} onValueChange={setFilterClient}>
-                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Cliente" /></SelectTrigger>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder={tr('meta.conn.client')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos clientes</SelectItem>
-                  <SelectItem value="unassigned">— Sem cliente —</SelectItem>
+                  <SelectItem value="all">{tr('meta.conn.allClients')}</SelectItem>
+                  <SelectItem value="unassigned">{tr('meta.conn.noClientDash')}</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={filterScore} onValueChange={setFilterScore}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Saúde" /></SelectTrigger>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder={tr('meta.conn.health')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toda saúde</SelectItem>
-                  <SelectItem value="ok">OK (≥70)</SelectItem>
-                  <SelectItem value="warn">Atenção</SelectItem>
-                  <SelectItem value="crit">Crítico</SelectItem>
+                  <SelectItem value="all">{tr('meta.conn.allHealth')}</SelectItem>
+                  <SelectItem value="ok">{tr('meta.conn.ok70')}</SelectItem>
+                  <SelectItem value="warn">{tr('meta.conn.attention')}</SelectItem>
+                  <SelectItem value="crit">{tr('meta.conn.critical')}</SelectItem>
                 </SelectContent>
               </Select>
               <Input
                 className="h-9 w-[220px] font-mono text-xs"
-                placeholder="Compartilhadas COM BM (ID)…"
+                placeholder={tr('meta.conn.sharedPh')}
                 value={filterOwnerBmId}
                 onChange={(e) => setFilterOwnerBmId(e.target.value)}
               />
@@ -553,19 +555,19 @@ export default function MetaConnections() {
               <div className="flex flex-wrap gap-1.5 items-center pt-1">
                 {filterStatus !== "all" && (
                   <Badge variant="secondary" className="gap-1">
-                    Status: {filterStatus === "active" ? "Ativas" : "Bloqueadas"}
+                    {tr('meta.conn.statusLbl')} {filterStatus === "active" ? tr('meta.conn.active') : tr('meta.conn.blocked')}
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterStatus("all")} />
                   </Badge>
                 )}
                 {filterClient !== "all" && (
                   <Badge variant="secondary" className="gap-1">
-                    Cliente: {filterClient === "unassigned" ? "Sem cliente" : clients.find((c) => c.id === filterClient)?.name}
+                    {tr('meta.conn.clientLbl')} {filterClient === "unassigned" ? tr('meta.conn.noClient') : clients.find((c) => c.id === filterClient)?.name}
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterClient("all")} />
                   </Badge>
                 )}
                 {filterScore !== "all" && (
                   <Badge variant="secondary" className="gap-1">
-                    Saúde: {filterScore === "ok" ? "OK" : filterScore === "warn" ? "Atenção" : "Crítico"}
+                    {tr('meta.conn.healthLbl')} {filterScore === "ok" ? "OK" : filterScore === "warn" ? tr('meta.conn.attention') : tr('meta.conn.critical')}
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterScore("all")} />
                   </Badge>
                 )}
@@ -577,12 +579,12 @@ export default function MetaConnections() {
                 )}
                 {filterOwnerBmId.trim() && (
                   <Badge variant="secondary" className="gap-1">
-                    Compartilhadas com BM: <span className="font-mono">{filterOwnerBmId.trim()}</span>
+                    {tr('meta.conn.sharedLbl')} <span className="font-mono">{filterOwnerBmId.trim()}</span>
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setFilterOwnerBmId("")} />
                   </Badge>
                 )}
                 <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground ml-1">
-                  Limpar tudo
+                  {tr('meta.conn.clearAll')}
                 </button>
               </div>
             )}
@@ -592,8 +594,8 @@ export default function MetaConnections() {
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
             <span>
               <ShieldCheck className="inline h-3 w-3 mr-1" />
-              {filtered.length} {filtered.length === 1 ? "conta" : "contas"}
-              {selectedBm !== "all" && <> em <span className="text-foreground font-medium">{selectedBm === "none" ? "Sem BM" : bmName(selectedBm)}</span></>}
+              {filtered.length} {filtered.length === 1 ? tr('meta.conn.count1') : tr('meta.conn.countN')}
+              {selectedBm !== "all" && <> {tr('meta.conn.inLbl')} <span className="text-foreground font-medium">{selectedBm === "none" ? tr('meta.conn.noBm') : bmName(selectedBm)}</span></>}
             </span>
           </div>
 
@@ -606,11 +608,11 @@ export default function MetaConnections() {
             <Card className="p-10 text-center">
               <Inbox className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
-                Nenhuma conta encontrada
-                {hasFilters && <> com esses filtros</>}.
+                {tr('meta.conn.none')}
+                {hasFilters && <> {tr('meta.conn.withFilters')}</>}.
               </p>
               {hasFilters && (
-                <Button size="sm" variant="ghost" className="mt-3" onClick={clearFilters}>Limpar filtros</Button>
+                <Button size="sm" variant="ghost" className="mt-3" onClick={clearFilters}>{tr('meta.conn.clearFilters')}</Button>
               )}
             </Card>
           ) : (

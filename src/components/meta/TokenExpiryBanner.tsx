@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { tr } from '@/i18n';
+import { getNumberLocale } from '@/i18n/format';
 import { Link } from "react-router-dom";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,15 +37,15 @@ export default function TokenExpiryBanner() {
     >
       <div className="flex items-center gap-2 font-semibold text-foreground">
         <AlertTriangle className={`h-5 w-5 ${anyExpired ? "text-destructive" : "text-yellow-500"}`} />
-        {anyExpired ? "Token da Meta vencido" : "Token da Meta perto do vencimento"}
+        {anyExpired ? tr('meta.token.expired') : tr('meta.token.expiring')}
       </div>
       <ul className="text-sm text-muted-foreground space-y-0.5">
         {items.map((a) => (
           <li key={a.id}>
             <span className="text-foreground font-medium">{a.label}</span>{" "}
             {a.days <= 0
-              ? `— vencido em ${new Date(a.token_expires_at!).toLocaleDateString("pt-BR")}. A sincronização não funciona até trocar.`
-              : `— vence em ${a.days} dia${a.days > 1 ? "s" : ""} (${new Date(a.token_expires_at!).toLocaleDateString("pt-BR")}).`}
+              ? tr('meta.token.expiredOn', { date: new Date(a.token_expires_at!).toLocaleDateString(getNumberLocale()) })
+              : tr('meta.token.expiresIn', { count: a.days, date: new Date(a.token_expires_at!).toLocaleDateString(getNumberLocale()) })}
           </li>
         ))}
       </ul>
@@ -54,7 +56,7 @@ export default function TokenExpiryBanner() {
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
         >
-          Gerar novo token <ExternalLink className="h-3.5 w-3.5" />
+          {tr('meta.token.newToken')} <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <a
           href="https://developers.facebook.com/tools/debug/accesstoken"
@@ -62,10 +64,10 @@ export default function TokenExpiryBanner() {
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-primary hover:underline"
         >
-          Estender token (60 dias) <ExternalLink className="h-3.5 w-3.5" />
+          {tr('meta.token.extend')} <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <Link to="/meta-apps" className="text-primary hover:underline">
-          Colar o token novo em Apps Meta →
+          {tr('meta.token.paste')}
         </Link>
       </div>
     </div>

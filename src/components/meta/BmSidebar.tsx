@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { tr } from '@/i18n';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,7 +48,7 @@ function VerifiedBadge({ status }: { status: string | null }) {
   if (verified) {
     return (
       <span
-        title="Business Manager verificado"
+        title={tr('meta.bm.verified')}
         className="inline-flex items-center gap-0.5 text-primary"
       >
         <BadgeCheck className="h-3 w-3" />
@@ -57,7 +58,7 @@ function VerifiedBadge({ status }: { status: string | null }) {
   if (pending) {
     return (
       <span
-        title="Verificação pendente"
+        title={tr('meta.bm.pending')}
         className="inline-flex items-center gap-0.5 text-amber-400"
       >
         <ShieldQuestion className="h-3 w-3" />
@@ -87,7 +88,7 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
   return (
     <Card className="p-2.5 space-y-2 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
       <div className="px-2 pt-1 pb-0.5 text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center justify-between">
-        <span>Business Managers</span>
+        <span>{tr('meta.bm.title')}</span>
         <span className="text-muted-foreground/70 normal-case tracking-normal">
           {bms.length}
         </span>
@@ -98,14 +99,14 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nome ou ID..."
+          placeholder={tr('meta.bm.search')}
           className="h-8 pl-8 pr-7 text-xs bg-card/60"
         />
         {query && (
           <button
             onClick={() => setQuery("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Limpar busca"
+            aria-label={tr('meta.bm.clear')}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -132,7 +133,7 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
                 "text-sm font-medium",
                 selected === "all" ? "text-primary" : "text-foreground"
               )}>
-                Todas as BMs
+                {tr('meta.bm.all')}
               </div>
               <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
                 <span>{totalAccounts} contas</span>
@@ -179,8 +180,8 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
                       <span
                         role="button"
                         tabIndex={0}
-                        aria-label={`Sincronizar ${bm.name}`}
-                        title="Sincronizar só esta BM (busca contas de anúncio)"
+                        aria-label={tr('meta.bm.syncOne', { name: bm.name })}
+                        title={tr('meta.bm.syncTitle')}
                         onClick={(e) => { e.stopPropagation(); if (!syncingBmId) onSyncBm(bm.id); }}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); if (!syncingBmId) onSyncBm(bm.id); } }}
                         className={cn(
@@ -205,7 +206,7 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
                       </span>
                     )}
                     {(bm.page_count ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-0.5" title="Páginas">
+                      <span className="inline-flex items-center gap-0.5" title={tr('meta.bm.pages')}>
                         <FileText className="h-3 w-3" /> {bm.page_count}
                       </span>
                     )}
@@ -216,7 +217,7 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
                     )}
                     <span
                       className="inline-flex items-center gap-0.5 ml-auto"
-                      title={bm.last_synced_at ? `Sincronizado em ${new Date(bm.last_synced_at).toLocaleString()}` : "Nunca sincronizado"}
+                      title={bm.last_synced_at ? tr('meta.bm.syncedAt', { when: new Date(bm.last_synced_at).toLocaleString() }) : tr('meta.bm.never')}
                     >
                       <Clock className="h-3 w-3" /> {timeAgo(bm.last_synced_at)}
                     </span>
@@ -229,7 +230,7 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
 
         {filteredBms.length === 0 && query && (
           <div className="text-center text-xs text-muted-foreground py-6 px-2">
-            Nenhuma BM encontrada para "{query}"
+            {tr('meta.bm.notFound', { q: query })}
           </div>
         )}
 
@@ -252,10 +253,10 @@ export default function BmSidebar({ bms, accounts, selected, onSelect, onSyncBm,
                 "text-sm font-medium",
                 selected === "none" ? "text-primary" : "text-foreground"
               )}>
-                Sem BM
+                {tr('meta.bm.noBm')}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
-                {orphanCount} contas órfãs
+                {tr('meta.bm.orphans', { n: orphanCount })}
               </div>
             </div>
           </button>

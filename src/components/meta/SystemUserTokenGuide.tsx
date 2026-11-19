@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { tr } from '@/i18n';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -14,20 +15,20 @@ import { toast } from "sonner";
 type Props = { trigger?: React.ReactNode };
 
 const REQUIRED = [
-  { name: "ads_read", why: "Ler contas de anúncio, campanhas e insights." },
-  { name: "ads_management", why: "Criar/pausar campanhas e gerenciar ativos de anúncio." },
-  { name: "business_management", why: "Enxergar Business Managers e ativos vinculados." },
+  { name: "ads_read", get why() { return tr('meta.guide.why.ads_read'); } },
+  { name: "ads_management", get why() { return tr('meta.guide.why.ads_management'); } },
+  { name: "business_management", get why() { return tr('meta.guide.why.business_management'); } },
 ];
 const OPTIONAL = [
-  { name: "pages_show_list", why: "Listar páginas vinculadas ao negócio." },
-  { name: "pages_read_engagement", why: "Métricas de páginas (se usadas)." },
-  { name: "read_insights", why: "Ler insights orgânicos de páginas/perfis." },
+  { name: "pages_show_list", get why() { return tr('meta.guide.why.pages_show_list'); } },
+  { name: "pages_read_engagement", get why() { return tr('meta.guide.why.pages_read_engagement'); } },
+  { name: "read_insights", get why() { return tr('meta.guide.why.read_insights'); } },
 ];
 
 const copy = (text: string) => {
   navigator.clipboard.writeText(text).then(
-    () => toast.success("Copiado"),
-    () => toast.error("Falha ao copiar")
+    () => toast.success(tr('meta.guide.copied')),
+    () => toast.error(tr('meta.guide.copyFail'))
   );
 };
 
@@ -40,7 +41,7 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm" className="gap-1.5">
-            <BookOpen size={14} /> Como gerar o token
+            <BookOpen size={14} /> {tr('meta.guide.howTo')}
           </Button>
         )}
       </DialogTrigger>
@@ -48,7 +49,7 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound size={18} className="text-primary" />
-            Guia: gerar System User Token no Business Manager
+            {tr('meta.guide.title')}
           </DialogTitle>
           <div className="flex items-center gap-1 pt-2">
             {Array.from({ length: total }).map((_, i) => (
@@ -58,7 +59,7 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
               />
             ))}
             <span className="text-[10px] text-muted-foreground ml-2">
-              Passo {step}/{total}
+              {tr('meta.guide.step', { n: step, total })}
             </span>
           </div>
         </DialogHeader>
@@ -66,18 +67,15 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
         <div className="space-y-4 py-2 text-sm">
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-muted-foreground">
-                Antes de qualquer coisa: <b>garanta que o System User existe</b> e que ele tem acesso
-                às contas de anúncio que você quer sincronizar.
-              </p>
+              <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('meta.guide.h1') }} />
               <Card className="p-3 space-y-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <Users size={14} className="text-primary" /> 1a. Criar / abrir System User
+                  <Users size={14} className="text-primary" /> {tr('meta.guide.s1a')}
                 </div>
                 <ol className="list-decimal ml-5 space-y-1 text-muted-foreground">
-                  <li>Abra o Business Manager da sua agência.</li>
-                  <li>Vá em <b>Configurações do Negócio</b> → <b>Usuários</b> → <b>Usuários do Sistema</b>.</li>
-                  <li>Crie um usuário do tipo <b>Admin</b> (ou abra o existente que você usa para APIs).</li>
+                  <li>{tr('meta.guide.openBmBiz')}</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h2') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h3') }} />
                 </ol>
                 <Button
                   size="sm"
@@ -85,16 +83,16 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
                   className="gap-1.5 text-xs"
                   onClick={() => window.open("https://business.facebook.com/settings/system-users", "_blank")}
                 >
-                  Abrir Users no BM <ExternalLink size={12} />
+                  {tr('meta.guide.openUsers')} <ExternalLink size={12} />
                 </Button>
               </Card>
               <Card className="p-3 space-y-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <ShieldCheck size={14} className="text-primary" /> 1b. Atribuir o app ao System User
+                  <ShieldCheck size={14} className="text-primary" /> {tr('meta.guide.s1b')}
                 </div>
                 <ol className="list-decimal ml-5 space-y-1 text-muted-foreground">
-                  <li>Na tela do System User, clique em <b>Adicionar Ativos</b> → <b>Apps</b>.</li>
-                  <li>Selecione seu app AdScale e marque <b>Desenvolver App</b>.</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h4') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h5') }} />
                 </ol>
               </Card>
             </div>
@@ -102,56 +100,47 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
 
           {step === 2 && (
             <div className="space-y-3">
-              <p className="text-muted-foreground">
-                Este é o passo <b>mais esquecido</b> — se pular, o token vai ser válido mas
-                <b> nenhuma conta de anúncio aparece</b>.
-              </p>
+              <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('meta.guide.h6') }} />
               <Card className="p-3 space-y-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <Users size={14} className="text-primary" /> 2. Atribuir contas de anúncio ao System User
+                  <Users size={14} className="text-primary" /> {tr('meta.guide.s2')}
                 </div>
                 <ol className="list-decimal ml-5 space-y-1 text-muted-foreground">
-                  <li>Ainda na tela do System User → clique em <b>Adicionar Ativos</b>.</li>
-                  <li>Escolha <b>Contas de anúncios</b>.</li>
-                  <li>Marque <b>todas</b> as contas que quer sincronizar.</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h7') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h8') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h9') }} />
                   <li>
-                    Nível de acesso: marque <b>Gerenciar campanhas</b>{" "}
-                    <Badge variant="outline" className="ml-1">recomendado</Badge>{" "}
-                    ou pelo menos <b>Visualizar performance</b>.
+                    <span dangerouslySetInnerHTML={{ __html: tr('meta.guide.access') }} />{" "}
+                    <Badge variant="outline" className="ml-1">{tr('meta.guide.recommended')}</Badge>{" "}
+                    <span dangerouslySetInnerHTML={{ __html: tr('meta.guide.atLeast') }} />
                   </li>
-                  <li>Clique em <b>Salvar alterações</b>.</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h10') }} />
                 </ol>
               </Card>
               <div className="flex gap-2 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded p-2">
                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                <span>
-                  Se você não fizer este passo, <code className="bg-black/20 px-1 rounded">/me/adaccounts</code>{" "}
-                  volta sempre vazio — mesmo com todos os checkboxes de permissão marcados no próximo passo.
-                </span>
+                <span dangerouslySetInnerHTML={{ __html: tr('meta.guide.warn2') }} />
               </div>
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-3">
-              <p className="text-muted-foreground">
-                Agora sim: <b>gere o token</b>. Ainda na tela do System User → botão{" "}
-                <b>Gerar novo token</b>.
-              </p>
+              <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('meta.guide.h11') }} />
               <Card className="p-3 space-y-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <KeyRound size={14} className="text-primary" /> 3. Configuração do token
+                  <KeyRound size={14} className="text-primary" /> {tr('meta.guide.s3')}
                 </div>
                 <ul className="list-disc ml-5 space-y-1 text-muted-foreground">
-                  <li><b>App</b>: selecione o app AdScale.</li>
-                  <li><b>Expiração do token</b>: <b>Nunca</b> (System User Token não expira).</li>
-                  <li>Depois marque as <b>permissões obrigatórias</b> abaixo.</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h12') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h13') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h14') }} />
                 </ul>
               </Card>
 
               <div className="space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Permissões obrigatórias (marque TODAS)
+                  {tr('meta.guide.required')}
                 </div>
                 {REQUIRED.map((s) => (
                   <div key={s.name} className="flex items-start gap-2 border border-primary/40 bg-primary/5 rounded p-2">
@@ -171,7 +160,7 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
 
               <div className="space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Opcionais (marque se usar páginas)
+                  {tr('meta.guide.optional')}
                 </div>
                 {OPTIONAL.map((s) => (
                   <div key={s.name} className="flex items-start gap-2 border rounded p-2">
@@ -188,27 +177,21 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
 
           {step === 4 && (
             <div className="space-y-3">
-              <p className="text-muted-foreground">
-                Ao clicar em <b>Gerar Token</b>, a Meta mostra o token <b>uma única vez</b>. Copie
-                imediatamente.
-              </p>
+              <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('meta.guide.h15') }} />
               <Card className="p-3 space-y-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <ClipboardCheck size={14} className="text-primary" /> 4. Colar no AdScale
+                  <ClipboardCheck size={14} className="text-primary" /> {tr('meta.guide.s4')}
                 </div>
                 <ol className="list-decimal ml-5 space-y-1 text-muted-foreground">
-                  <li>Copie o token gerado (começa com <code>EAAB…</code>).</li>
-                  <li>
-                    No formulário do app aqui no AdScale, cole no campo{" "}
-                    <b>System User Token</b> (ou <b>User Access Token</b> se preferir tratar como user).
-                  </li>
-                  <li>Salve o cadastro.</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h16') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h17') }} />
+                  <li>{tr('meta.guide.saveForm')}</li>
                 </ol>
               </Card>
               <div className="flex gap-2 text-xs bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 rounded p-2">
                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                 <span>
-                  Nunca compartilhe o token em prints, e-mail ou chat. Se vazar, revogue pelo BM e gere outro.
+                  {tr('meta.guide.never')}
                 </span>
               </div>
             </div>
@@ -216,24 +199,19 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
 
           {step === 5 && (
             <div className="space-y-3">
-              <p className="text-muted-foreground">
-                Última etapa — <b>valide dentro do AdScale</b>.
-              </p>
+              <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: tr('meta.guide.h18') }} />
               <Card className="p-3 space-y-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <ShieldCheck size={14} className="text-primary" /> 5. Testar
+                  <ShieldCheck size={14} className="text-primary" /> {tr('meta.guide.s5')}
                 </div>
                 <ol className="list-decimal ml-5 space-y-1 text-muted-foreground">
-                  <li>Clique em <b>Validar conexão</b> no card do app.</li>
-                  <li>Confirme que <code>missing_scopes</code> está vazio (nenhuma permissão faltando).</li>
-                  <li>Clique em <b>Sincronizar contas</b>.</li>
-                  <li>Se aparecer 0 contas, volte ao Passo 2 — o System User não recebeu as contas.</li>
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h19') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h20') }} />
+                  <li dangerouslySetInnerHTML={{ __html: tr('meta.guide.h21') }} />
+                  <li>{tr('meta.guide.zero')}</li>
                 </ol>
               </Card>
-              <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
-                Precisa depurar? Consulte <code>meta_diagnostics_log</code> (SQL) para ver o retorno
-                real de cada endpoint da Meta.
-              </div>
+              <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30" dangerouslySetInnerHTML={{ __html: tr('meta.guide.h22') }} />
             </div>
           )}
         </div>
@@ -244,18 +222,18 @@ export const SystemUserTokenGuide: React.FC<Props> = ({ trigger }) => {
             onClick={() => setStep((s) => Math.max(1, s - 1))}
             disabled={step === 1}
           >
-            Voltar
+            {tr('meta.guide.back')}
           </Button>
           {step < total ? (
             <Button className="gap-1" onClick={() => setStep((s) => Math.min(total, s + 1))}>
-              Próximo <ArrowRight size={14} />
+              {tr('meta.guide.next')} <ArrowRight size={14} />
             </Button>
           ) : (
             <Button
               className="gap-1"
               onClick={() => window.open("https://business.facebook.com/settings/system-users", "_blank")}
             >
-              Abrir BM agora <ExternalLink size={14} />
+              {tr('meta.guide.openNow')} <ExternalLink size={14} />
             </Button>
           )}
         </DialogFooter>

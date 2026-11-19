@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,7 @@ type Row = {
 };
 
 const fmt = (iso: string | null) =>
-  iso ? format(new Date(iso), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—";
+  iso ? format(new Date(iso), "P HH:mm", { locale: getDateLocale() }) : "—";
 
 // Códigos de permissão retornados pela Meta durante o sync
 const PERMISSION_CODES = [200, 190, 10, 100];
@@ -34,7 +36,7 @@ const sourceLabel: Record<string, { text: string; cls: string }> = {
   both:     { text: "System + User", cls: "bg-red-500/25 text-red-100 border-red-400/50" },
   system:   { text: "System token",  cls: "bg-orange-500/20 text-orange-200 border-orange-400/40" },
   user:     { text: "User token",    cls: "bg-amber-500/20 text-amber-200 border-amber-400/40" },
-  no_token: { text: "Sem token",     cls: "bg-zinc-500/20 text-zinc-200 border-zinc-400/40" },
+  no_token: { get text() { return tr('ads.perm.noToken'); }, cls: "bg-zinc-500/20 text-zinc-200 border-zinc-400/40" },
 };
 
 export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: { refreshKey?: number; onChanged?: () => void }) {
@@ -87,10 +89,10 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
       if (error) throw error;
       if ((data as any)?.erro) throw new Error((data as any).erro);
       setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
-      toast({ title: ids.length === 1 ? "Conta arquivada" : `${ids.length} contas arquivadas`, description: "Removidas da sincronização e dos relatórios." });
+      toast({ title: ids.length === 1 ? tr('ads.perm.archived1') : tr('ads.perm.archivedN', { n: ids.length }), description: tr('ads.perm.archivedDesc') });
       onChanged?.();
     } catch (e: any) {
-      toast({ title: "Falha ao arquivar", description: e.message, variant: "destructive" });
+      toast({ title: tr('ads.perm.archiveFail'), description: e.message, variant: "destructive" });
     } finally {
       setBusy(null);
     }
@@ -121,12 +123,12 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-red-400" />
           <span className="text-sm font-medium text-red-200">
-            Contas sem permissão na Meta ({rows.length})
+            {tr('ads.perm.title', { n: rows.length })}
           </span>
           {counts.both > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-red-500/30 text-red-100 border border-red-400/50">
               <ShieldAlert className="h-3 w-3" />
-              {counts.both} sem system nem user
+              {tr('ads.perm.neither', { n: counts.both })}
             </span>
           )}
         </div>
@@ -136,12 +138,12 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
       {open && (
         <>
           <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2 border-t border-red-500/20 pt-2">
-            <span className="text-[10px] uppercase tracking-wider text-red-300/70 mr-1">Filtrar:</span>
-            <FilterBtn f="both" label="Ambos falharam" />
-            <FilterBtn f="system" label="Só system" />
-            <FilterBtn f="user" label="Só user" />
-            <FilterBtn f="no_token" label="Sem token" />
-            <FilterBtn f="all" label="Todos" />
+            <span className="text-[10px] uppercase tracking-wider text-red-300/70 mr-1">{tr('ads.perm.filter')}</span>
+            <FilterBtn f="both" label={tr('ads.perm.both')} />
+            <FilterBtn f="system" label={tr('ads.perm.onlySystem')} />
+            <FilterBtn f="user" label={tr('ads.perm.onlyUser')} />
+            <FilterBtn f="no_token" label={tr('ads.perm.noToken')} />
+            <FilterBtn f="all" label={tr('ads.perm.all')} />
             <Button
               size="sm"
               variant="outline"
@@ -149,7 +151,7 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
               disabled={busy !== null || filtered.length === 0}
               onClick={() => archive(filtered.map((r) => r.id))}
             >
-              <Archive className="h-3 w-3 mr-1" /> Arquivar filtradas ({filtered.length})
+              <Archive className="h-3 w-3 mr-1" /> {tr('ads.perm.archiveFiltered', { n: filtered.length })}
             </Button>
           </div>
 
@@ -157,13 +159,13 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
             <table className="w-full text-xs">
               <thead className="bg-red-500/10 text-red-200">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium">Conta</th>
-                  <th className="text-left px-3 py-2 font-medium">Token que falhou</th>
-                  <th className="text-left px-3 py-2 font-medium">Código</th>
-                  <th className="text-left px-3 py-2 font-medium">Erro</th>
-                  <th className="text-left px-3 py-2 font-medium">Última sync</th>
-                  <th className="text-left px-3 py-2 font-medium">Erro em</th>
-                  <th className="text-right px-3 py-2 font-medium">Ações</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.perm.account')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.perm.failedToken')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.perm.code')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.perm.error')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.perm.lastSync')}</th>
+                  <th className="text-left px-3 py-2 font-medium">{tr('ads.perm.errorAt')}</th>
+                  <th className="text-right px-3 py-2 font-medium">{tr('ads.perm.actions')}</th>
                 </tr>
               </thead>
 
@@ -193,7 +195,7 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
                               onClick={() => setExpanded(m => ({ ...m, [r.id]: !m[r.id] }))}
                               className="ml-2 text-[10px] text-red-300 hover:text-red-100 underline"
                             >
-                              {isOpen ? "ocultar" : "ver tentativas"}
+                              {isOpen ? tr('ads.perm.hide') : tr('ads.perm.seeAttempts')}
                             </button>
                           )}
                         </td>
@@ -217,7 +219,7 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
                             disabled={busy !== null}
                             onClick={() => archive([r.id])}
                           >
-                            <Archive className="h-3 w-3 mr-1" /> Arquivar
+                            <Archive className="h-3 w-3 mr-1" /> {tr('ads.perm.archive')}
                           </Button>
                         </td>
                       </tr>
@@ -245,7 +247,7 @@ export default function AdsPermissionErrorsPanel({ refreshKey = 0, onChanged }: 
               </tbody>
             </table>
             <div className="px-3 py-2 text-[10px] text-muted-foreground border-t border-red-500/20">
-              Linhas em vermelho intenso: nem o System User nem o User Token conseguiram ler a conta — conceda "Ver desempenho" ou "Gerenciar campanhas" para ambos no Business Manager.
+              {tr('ads.perm.legend')}
             </div>
           </div>
         </>

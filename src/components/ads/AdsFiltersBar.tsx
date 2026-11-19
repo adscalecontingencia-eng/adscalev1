@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,13 +57,13 @@ interface Props {
 export type SyncScope = "active" | "recent_spenders";
 
 const RANGES: { key: AdsRange; label: string }[] = [
-  { key: "today", label: "Hoje" },
-  { key: "yesterday", label: "Ontem" },
-  { key: "billing_week", label: "Última semana fechada" },
-  { key: "7d", label: "7 dias corridos" },
-  { key: "30d", label: "30 dias" },
-  { key: "90d", label: "90 dias" },
-  { key: "custom", label: "Custom" },
+  { key: "today", get label() { return tr('ads.filters.r.today'); } },
+  { key: "yesterday", get label() { return tr('ads.filters.r.yesterday'); } },
+  { key: "billing_week", get label() { return tr('ads.filters.r.billing_week'); } },
+  { key: "7d", get label() { return tr('ads.filters.r.7d'); } },
+  { key: "30d", get label() { return tr('ads.filters.r.30d'); } },
+  { key: "90d", get label() { return tr('ads.filters.r.90d'); } },
+  { key: "custom", get label() { return tr('ads.filters.r.custom'); } },
 ];
 
 export default function AdsFiltersBar(props: Props) {
@@ -87,8 +89,8 @@ export default function AdsFiltersBar(props: Props) {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="active">Todas as contas ativas</SelectItem>
-          <SelectItem value="recent_spenders">Com gasto (últimos 7 dias)</SelectItem>
+          <SelectItem value="active">{tr('ads.filters.allActive')}</SelectItem>
+          <SelectItem value="recent_spenders">{tr('ads.filters.withSpend')}</SelectItem>
         </SelectContent>
       </Select>
       <button
@@ -100,9 +102,9 @@ export default function AdsFiltersBar(props: Props) {
         )}
       >
         <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin text-primary")} />
-        {syncing ? "Sincronizando..." : lastSyncAt
-          ? `Sync · há ${formatDistanceToNowStrict(lastSyncAt, { locale: ptBR })}`
-          : "Sincronizar"}
+        {syncing ? tr('ads.filters.syncing') : lastSyncAt
+          ? tr('ads.filters.syncAgo', { when: formatDistanceToNowStrict(lastSyncAt, { locale: getDateLocale() }) })
+          : tr('ads.filters.sync')}
       </button>
     </div>
   );
@@ -130,7 +132,7 @@ export default function AdsFiltersBar(props: Props) {
                   <CalendarIcon className="h-3.5 w-3.5" />
                   {customStart && customEnd
                     ? `${format(customStart, "dd/MM")} → ${format(customEnd, "dd/MM")}`
-                    : "Selecionar datas"}
+                    : tr('ads.filters.pickDates')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -147,7 +149,7 @@ export default function AdsFiltersBar(props: Props) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground hidden md:inline">
-            {activeAccountsCount} conta(s) ativa(s)
+            {tr('ads.filters.activeCount', { n: activeAccountsCount })}
           </span>
           <MetaApiHealthDialog />
           {syncChip}
@@ -159,10 +161,10 @@ export default function AdsFiltersBar(props: Props) {
         <Select value={filterBm} onValueChange={(v) => { onFilterBmChange(v); onFilterAccountsChange([]); }}>
           <SelectTrigger className="w-[200px] h-9">
             <Building2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Todas as BMs" />
+            <SelectValue placeholder={tr('ads.filters.allBms')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as BMs</SelectItem>
+            <SelectItem value="all">{tr('ads.filters.allBms')}</SelectItem>
             {bms.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -174,11 +176,11 @@ export default function AdsFiltersBar(props: Props) {
               <span className="flex items-center gap-2 truncate">
                 <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 {filterClients.length === 0
-                  ? "Todos clientes"
+                  ? tr('ads.filters.allClients')
                   : filterClients.length === 1
                     ? (filterClients[0] === "__unassigned__"
-                        ? "Sem cliente"
-                        : clients.find((c) => c.id === filterClients[0])?.name || "1 cliente")
+                        ? tr('ads.filters.noClient')
+                        : clients.find((c) => c.id === filterClients[0])?.name || tr('ads.filters.oneClient'))
                     : `${filterClients.length} clientes`}
               </span>
               {filterClients.length > 0 && (
@@ -195,15 +197,15 @@ export default function AdsFiltersBar(props: Props) {
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   className="pl-7 h-8 text-xs"
-                  placeholder="Buscar cliente..."
+                  placeholder={tr('ads.filters.searchClient')}
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
                 />
               </div>
             </div>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border text-xs">
-              <button className="text-primary hover:underline" onClick={() => onFilterClientsChange(clients.map((c) => c.id))}>Selecionar todos</button>
-              <button className="text-muted-foreground hover:text-foreground" onClick={() => onFilterClientsChange([])}>Limpar</button>
+              <button className="text-primary hover:underline" onClick={() => onFilterClientsChange(clients.map((c) => c.id))}>{tr('ads.filters.selectAll')}</button>
+              <button className="text-muted-foreground hover:text-foreground" onClick={() => onFilterClientsChange([])}>{tr('ads.filters.clear')}</button>
             </div>
             <div className="max-h-[260px] overflow-y-auto p-1">
               <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
@@ -213,7 +215,7 @@ export default function AdsFiltersBar(props: Props) {
                     v ? [...filterClients, "__unassigned__"] : filterClients.filter((x) => x !== "__unassigned__")
                   )}
                 />
-                <span className="italic text-muted-foreground">— Sem cliente —</span>
+                <span className="italic text-muted-foreground">{tr('ads.filters.noClientDash')}</span>
               </label>
               {clients
                 .filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
@@ -239,9 +241,9 @@ export default function AdsFiltersBar(props: Props) {
               <span className="flex items-center gap-2 truncate">
                 <BarChart3 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 {filterAccounts.length === 0
-                  ? "Todas as contas"
+                  ? tr('ads.filters.allAccounts')
                   : filterAccounts.length === 1
-                    ? (accounts.find((a) => a.id === filterAccounts[0])?.name || "1 conta")
+                    ? (accounts.find((a) => a.id === filterAccounts[0])?.name || tr('ads.filters.oneAccount'))
                     : `${filterAccounts.length} contas`}
               </span>
               {filterAccounts.length > 0 && (
@@ -258,15 +260,15 @@ export default function AdsFiltersBar(props: Props) {
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   className="pl-7 h-8 text-xs"
-                  placeholder="Buscar conta..."
+                  placeholder={tr('ads.filters.searchAccount')}
                   value={accountSearch}
                   onChange={(e) => setAccountSearch(e.target.value)}
                 />
               </div>
             </div>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border text-xs">
-              <button className="text-primary hover:underline" onClick={() => onFilterAccountsChange(accountOptions.map((a) => a.id))}>Selecionar todos</button>
-              <button className="text-muted-foreground hover:text-foreground" onClick={() => onFilterAccountsChange([])}>Limpar</button>
+              <button className="text-primary hover:underline" onClick={() => onFilterAccountsChange(accountOptions.map((a) => a.id))}>{tr('ads.filters.selectAll')}</button>
+              <button className="text-muted-foreground hover:text-foreground" onClick={() => onFilterAccountsChange([])}>{tr('ads.filters.clear')}</button>
             </div>
             <div className="max-h-[260px] overflow-y-auto p-1">
               {accountOptions
@@ -292,9 +294,9 @@ export default function AdsFiltersBar(props: Props) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="active">Ativas</SelectItem>
-            <SelectItem value="blocked">Bloqueadas</SelectItem>
+            <SelectItem value="all">{tr('ads.filters.allStatus')}</SelectItem>
+            <SelectItem value="active">{tr('ads.filters.active')}</SelectItem>
+            <SelectItem value="blocked">{tr('ads.filters.blocked')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -304,7 +306,7 @@ export default function AdsFiltersBar(props: Props) {
         <div className="flex flex-wrap gap-1 items-center pt-1">
           {filterClients.slice(0, 4).map((cid) => (
             <Badge key={cid} variant="secondary" className="gap-1">
-              {cid === "__unassigned__" ? "Sem cliente" : clients.find((c) => c.id === cid)?.name || cid}
+              {cid === "__unassigned__" ? tr('ads.filters.noClient') : clients.find((c) => c.id === cid)?.name || cid}
               <X className="h-3 w-3 cursor-pointer" onClick={() => onFilterClientsChange(filterClients.filter((x) => x !== cid))} />
             </Badge>
           ))}

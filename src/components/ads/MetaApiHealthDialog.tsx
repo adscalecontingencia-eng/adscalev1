@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -33,21 +35,21 @@ const fmtISO = (d: Date) => {
 function classifyError(msg: string): { label: string; hint: string } {
   const m = (msg || "").toLowerCase();
   if (m.includes("token") || m.includes("oauth") || m.includes("access") || m.includes("session")) {
-    return { label: "Token inválido/expirado", hint: "Renove o System User Token nas Conexões Meta." };
+    return { label: tr('ads.health.c.token'), hint: tr('ads.health.c.tokenHint') };
   }
   if (m.includes("permission") || m.includes("permiss")) {
-    return { label: "Sem permissão", hint: "A conta precisa ser atribuída ao System User da BM." };
+    return { label: tr('ads.health.c.perm'), hint: tr('ads.health.c.permHint') };
   }
   if (m.includes("rate") || m.includes("limit") || m.includes("throttle") || m.includes("(#17)") || m.includes("(#4)")) {
-    return { label: "Rate limit da Meta", hint: "Aguarde alguns minutos e sincronize novamente." };
+    return { label: tr('ads.health.c.rate'), hint: tr('ads.health.c.rateHint') };
   }
   if (m.includes("disabled") || m.includes("restricted") || m.includes("bloque") || m.includes("(#100)")) {
-    return { label: "Conta bloqueada/restrita", hint: "Verifique o status da conta no Business Manager." };
+    return { label: tr('ads.health.c.blocked'), hint: tr('ads.health.c.blockedHint') };
   }
   if (m.includes("network") || m.includes("fetch") || m.includes("timeout") || m.includes("econn")) {
-    return { label: "Falha de rede", hint: "Instabilidade momentânea — tente de novo." };
+    return { label: tr('ads.health.c.net'), hint: tr('ads.health.c.netHint') };
   }
-  return { label: "Erro Meta", hint: msg };
+  return { label: tr('ads.health.c.meta'), hint: msg };
 }
 
 export default function MetaApiHealthDialog() {
@@ -72,7 +74,7 @@ export default function MetaApiHealthDialog() {
           ok: false, contas: 0, linhas_upsertadas: 0, erros: [],
           runtimeError: error.message, elapsedMs,
         });
-        toast.error("Falha ao chamar meta-sync");
+        toast.error(tr('ads.health.callFail'));
         return;
       }
       const d: any = data || {};
@@ -112,24 +114,24 @@ export default function MetaApiHealthDialog() {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-2">
           <Activity className="h-3.5 w-3.5" />
-          Diagnóstico API
+          {tr('ads.health.btn')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
-            Diagnóstico da API Meta
+            {tr('ads.health.title')}
           </DialogTitle>
           <DialogDescription>
-            Testa a integração real com a Meta buscando insights das últimas 24h de cada conta e reporta por conta o que retornou 100% e o que falhou.
+            {tr('ads.health.desc')}
           </DialogDescription>
         </DialogHeader>
 
         {running && (
           <div className="py-10 flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Consultando Meta Graph API…</p>
+            <p className="text-sm text-muted-foreground">{tr('ads.health.querying')}</p>
           </div>
         )}
 
@@ -138,7 +140,7 @@ export default function MetaApiHealthDialog() {
             {result.runtimeError ? (
               <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4">
                 <div className="flex items-center gap-2 text-destructive font-medium mb-1">
-                  <XCircle className="h-4 w-4" /> Falha geral
+                  <XCircle className="h-4 w-4" /> {tr('ads.health.generalFail')}
                 </div>
                 <p className="text-sm text-destructive/90 break-words">{result.runtimeError}</p>
               </div>
@@ -146,7 +148,7 @@ export default function MetaApiHealthDialog() {
               <>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg border border-border bg-card/40 p-3">
-                    <p className="text-[10px] uppercase text-muted-foreground">Contas</p>
+                    <p className="text-[10px] uppercase text-muted-foreground">{tr('ads.health.accounts')}</p>
                     <p className="text-2xl font-semibold">{result.contas}</p>
                   </div>
                   <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
@@ -154,14 +156,14 @@ export default function MetaApiHealthDialog() {
                     <p className="text-2xl font-semibold text-emerald-300">{successCount}</p>
                   </div>
                   <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                    <p className="text-[10px] uppercase text-destructive">Erros</p>
+                    <p className="text-[10px] uppercase text-destructive">{tr('ads.health.errors')}</p>
                     <p className="text-2xl font-semibold text-destructive">{result.erros.length}</p>
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Saúde da API</span>
+                    <span className="text-muted-foreground">{tr('ads.health.health')}</span>
                     <span className={successPct === 100 ? "text-emerald-400 font-medium" : successPct >= 70 ? "text-amber-400 font-medium" : "text-destructive font-medium"}>
                       {successPct}%
                     </span>
@@ -170,23 +172,23 @@ export default function MetaApiHealthDialog() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">Janela: {result.since} → {result.until}</Badge>
-                  <Badge variant="outline">{result.linhas_upsertadas} linha(s) gravada(s)</Badge>
+                  <Badge variant="outline">{tr('ads.health.window')} {result.since} → {result.until}</Badge>
+                  <Badge variant="outline">{tr('ads.health.rows', { n: result.linhas_upsertadas })}</Badge>
                   <Badge variant="outline">{(result.elapsedMs / 1000).toFixed(1)}s</Badge>
                   {typeof result.aplicativos === "number" && (
-                    <Badge variant="outline">{result.aplicativos} app(s) Meta</Badge>
+                    <Badge variant="outline">{tr('ads.health.apps', { n: result.aplicativos })}</Badge>
                   )}
                 </div>
 
                 {result.ok ? (
                   <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center gap-2 text-emerald-300 text-sm">
-                    <CheckCircle2 className="h-4 w-4" /> Todas as contas responderam com sucesso. API 100%.
+                    <CheckCircle2 className="h-4 w-4" /> {tr('ads.health.allOk')}
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <AlertTriangle className="h-4 w-4 text-amber-400" />
-                      <span className="font-medium">Contas com falha ({result.erros.length})</span>
+                      <span className="font-medium">{tr('ads.health.failed', { n: result.erros.length })}</span>
                     </div>
                     <ScrollArea className="max-h-72 rounded-lg border border-border">
                       <ul className="divide-y divide-border">
@@ -196,14 +198,14 @@ export default function MetaApiHealthDialog() {
                             <li key={idx} className="p-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{e.account || "Conta sem nome"}</p>
+                                  <p className="text-sm font-medium truncate">{e.account || tr('ads.health.noName')}</p>
                                   <p className="text-xs text-muted-foreground mt-0.5">{c.hint}</p>
                                 </div>
                                 <Badge variant="destructive" className="shrink-0 text-[10px]">{c.label}</Badge>
                               </div>
                               <details className="mt-2">
                                 <summary className="text-[11px] text-muted-foreground cursor-pointer hover:text-foreground">
-                                  ver mensagem original
+                                  {tr('ads.health.seeOriginal')}
                                 </summary>
                                 <pre className="mt-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-words bg-secondary/40 rounded p-2">
                                   {e.erro}
@@ -221,11 +223,11 @@ export default function MetaApiHealthDialog() {
 
             <div className="flex justify-between items-center pt-2 border-t border-border">
               <p className="text-[11px] text-muted-foreground">
-                Última verificação: {format(new Date(), "dd/MM/yyyy HH:mm:ss")}
+                {tr('ads.health.lastCheck')} {format(new Date(), "P HH:mm:ss", { locale: getDateLocale() })}
               </p>
               <Button size="sm" variant="outline" onClick={runCheck} disabled={running} className="gap-2">
                 <RefreshCw className={running ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
-                Testar novamente
+                {tr('ads.health.again')}
               </Button>
             </div>
           </div>

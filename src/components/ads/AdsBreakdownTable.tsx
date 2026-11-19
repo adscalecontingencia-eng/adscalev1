@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { tr, localizedMap } from '@/i18n';
+import { getDateLocale, getNumberLocale } from '@/i18n/format';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowUpDown, Users, BarChart3, Building2 } from "lucide-react";
@@ -41,7 +43,7 @@ type SortKey = "spend" | "revenue" | "roas" | "purchases";
 
 const fmtUSD = (v: number) =>
   v.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-const fmtNum = (v: number) => v.toLocaleString("pt-BR");
+const fmtNum = (v: number) => v.toLocaleString(getNumberLocale());
 
 interface Row {
   id: string;
@@ -78,16 +80,16 @@ export default function AdsBreakdownTable({
       if (tab === "client") {
         const cid = getClient(i.ad_account_id, i.date);
         key = cid || "__unassigned__";
-        label = cid ? (clients.find((c) => c.id === cid)?.name || cid) : "Sem cliente";
+        label = cid ? (clients.find((c) => c.id === cid)?.name || cid) : tr('ads.table.noClient');
       } else if (tab === "account") {
         key = i.ad_account_id;
         label = account?.name || i.ad_account_id;
         const cid = getClient(i.ad_account_id, i.date) || clientByAccount.get(i.ad_account_id) || null;
-        sublabel = cid ? (clients.find((c) => c.id === cid)?.name || "") : "Sem cliente";
+        sublabel = cid ? (clients.find((c) => c.id === cid)?.name || "") : tr('ads.table.noClient');
         status = account?.status;
       } else {
         key = account?.bm_id || "__unassigned__";
-        label = key === "__unassigned__" ? "Sem BM" : (bms.find((b) => b.id === key)?.name || key);
+        label = key === "__unassigned__" ? tr('ads.table.noBm') : (bms.find((b) => b.id === key)?.name || key);
       }
 
       const cur = acc.get(key) || {
@@ -123,10 +125,10 @@ export default function AdsBreakdownTable({
     if (tab === "bm" && onPickBm && id !== "__unassigned__") onPickBm(id);
   };
 
-  const tabs: { key: Tab; label: string; icon: any }[] = [
-    { key: "client", label: "Por Cliente", icon: Users },
-    { key: "account", label: "Por Conta", icon: BarChart3 },
-    { key: "bm", label: "Por BM", icon: Building2 },
+  const tabs: { key: Tab; label: string; col: string; icon: any }[] = [
+    { key: "client", label: tr('ads.table.byClient'), col: tr('ads.table.client'), icon: Users },
+    { key: "account", label: tr('ads.table.byAccount'), col: tr('ads.table.account'), icon: BarChart3 },
+    { key: "bm", label: tr('ads.table.byBm'), col: "BM", icon: Building2 },
   ];
 
   return (
@@ -156,7 +158,7 @@ export default function AdsBreakdownTable({
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             className="pl-7 h-8 text-xs"
-            placeholder="Buscar..."
+            placeholder={tr('ads.table.search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -167,16 +169,16 @@ export default function AdsBreakdownTable({
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border text-muted-foreground uppercase tracking-wider">
-              <th className="text-left font-medium py-2 pr-2">{tabs.find((t) => t.key === tab)?.label.replace("Por ", "")}</th>
+              <th className="text-left font-medium py-2 pr-2">{tabs.find((t) => t.key === tab)?.col}</th>
               {(["spend", "revenue", "roas", "purchases"] as SortKey[]).map((k) => (
                 <th key={k} className="text-right font-medium py-2 px-2">
                   <button onClick={() => setSort(k)} className={cn("inline-flex items-center gap-1", sort === k && "text-primary")}>
-                    {k === "spend" ? "Gasto" : k === "revenue" ? "Faturamento" : k === "roas" ? "ROAS" : "Compras"}
+                    {k === "spend" ? tr('ads.table.spend') : k === "revenue" ? tr('ads.table.revenue') : k === "roas" ? "ROAS" : tr('ads.table.purchases')}
                     <ArrowUpDown className="h-3 w-3 opacity-60" />
                   </button>
                 </th>
               ))}
-              <th className="text-right font-medium py-2 pl-2">% do total</th>
+              <th className="text-right font-medium py-2 pl-2">{tr('ads.table.pctTotal')}</th>
             </tr>
           </thead>
           <tbody>
@@ -210,7 +212,7 @@ export default function AdsBreakdownTable({
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">Sem dados para os filtros aplicados.</td></tr>
+              <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">{tr('ads.table.noData')}</td></tr>
             )}
           </tbody>
         </table>
